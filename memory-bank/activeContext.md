@@ -1,49 +1,35 @@
 # Active Context — PoesIA
 
-_Last updated: Phase 2 completion (GalerIA illustration, ArmonIA MIDI music & TTS, Spanish phonology)._
+_Last updated: Phase 3 GraphRAGRetriever implementation complete._
 
 ## What We Just Did
 
-1. **Phase 1 Infrastructure**:
-   - `HostedLLMClient` (Gemini & OpenAI REST APIs), repository `AGENTS.md` guardrails, `EuphonyAnalyzer` rhyme scheme & sound analysis, `MemorIA` Markdown YAML frontmatter disk persistence (`~/.poesia/poems/*.md`) + SQLite auto-index, `theme_score`/`novelty_score` baseline vector math.
-
-2. **GalerIA Illustration Engine (`HostedImageBackend` & `AucaComposer`)**:
-   - Implemented `HostedImageBackend` supporting OpenAI DALL-E 3 & Replicate SDXL APIs with default `traditional spanish woodcut line-art, engraving style` prompt styling.
-   - Implemented Pillow `AucaComposer.compose_panel()` (card rendering with image + centered caption text) and `compose_sheet()` (multi-panel 2-column grid layout).
-   - Added unit tests in `tests/test_galeria.py`.
-
-3. **ArmonIA Music & Recitation Engine (`MidiScoreBackend` & `EspeakRecitationBackend`)**:
-   - Implemented pure Python `MidiScoreBackend` converting prosodic `Stress` patterns into standard binary MIDI (`.mid`) scores.
-   - Implemented `EspeakRecitationBackend` wrapping `espeak-ng`/`espeak` for audio recitation.
-   - Added unit tests in `tests/test_armonia_backends.py`.
-
-4. **Spanish Phonology (`SpanishPhonology`)**:
-   - Implemented `SpanishPhonology.rhyme_key()` (consonant & assonant rhyme extraction) and `classify_stanza()` (stanza form classification).
-   - Added unit tests in `tests/test_phonology_spanish.py` (all **48 unit tests** passing in `0.76s`).
+1. **Phase 3: GraphRAGRetriever Implementation** (committed as `0135e4f`):
+   - Landed NetworkX as the storage backend (JSON persistence, no infra dependency)
+   - Implemented `GraphRAGRetriever` in `src/poesia/memoria/graphrag.py`:
+     - Pure Python cosine similarity (no numpy in core)
+     - JSON persistence at `~/.poesia/graphrag.json` (avoids pickle versioning issues)
+     - Semantic neighbourhood edges built above 0.70 cosine threshold
+     - `ingest(records, embeddings)` to add poems + build graph edges
+     - `retrieve(query_embedding, k, form_filter, language_filter)` for top-k retrieval
+     - `neighbourhood(poem_id, depth)` for finding similar poems without query embedding
+   - Added 5 unit tests in `tests/test_memoria_graphrag.py`
+   - All **53 tests passing** in 0.74s
 
 ## Current Focus
 
-Phase 2 features are complete and fully tested! Next focus area (Phase 3):
+Phase 3 core is complete! Remaining Phase 3 tasks per `docs/ROADMAP.md`:
 
-1. Land Graph RAG storage decision (NetworkX graph vs. Neo4j).
-2. Implement `GraphRAGRetriever.ingest` / `.retrieve` in `src/poesia/memoria/graphrag.py`.
-
-## Open Questions
-
-- Graph RAG storage backend (networkx vs. neo4j) explicitly deferred to Phase 3 per `docs/PACKAGES_SURVEYED.md`.
-- CLI-only focus (no web frontend planned for Phase 1/2).
-
+1. **Wire retrieval into `CandidateGenerator`** — use Graph RAG few-shot grounding in LLM prompts
+2. **Wire retrieval into `GalerIA`** — style anchoring for illustration prompts
+3. (Optional) Add poet/style nodes + influence edges for richer graph structure
 
 ## Open Questions
 
-- Graph RAG storage backend (networkx vs. neo4j) explicitly deferred to Phase 3 per `docs/PACKAGES_SURVEYED.md`.
-- CLI-only focus (no web frontend planned for Phase 1/2).
-
-
-
-## Open Questions
-
-- Graph RAG storage backend (networkx vs. neo4j) explicitly deferred to Phase 3 per `docs/PACKAGES_SURVEYED.md`.
-- CLI-only focus (no web frontend planned for Phase 1/2).
+- How to source embeddings for poems? Options:
+  - Use `sentence-transformers` directly (already noted in ROADMAP)
+  - Lazy-load to keep core import light
+- CLI integration: should `poesia memoria ingest` auto-embed, or require explicit embedding step?
+- CLI-only focus continues (no web frontend planned).
 
 

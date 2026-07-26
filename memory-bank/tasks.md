@@ -1,6 +1,6 @@
 # Tasks — PoesIA (Kanban)
 
-## DONE (Phase 0, Phase 1 & Phase 2 Complete)
+## DONE (Phases 0-3 Core Complete)
 
 - [x] Scaffold project (pyproject.toml, .gitignore, README)
 - [x] `phonology/` — base dataclasses & Spanish/English/multilingual wrappers
@@ -13,23 +13,22 @@
 - [x] `galeria/` — `HostedImageBackend` (DALL-E 3 & Replicate SDXL) & Pillow `AucaComposer` (panel & sheet grid composition)
 - [x] `armonia/` — `MidiScoreBackend` (pure Python prosodic MIDI generator) & `EspeakRecitationBackend`
 - [x] `phonology/` — `SpanishPhonology.rhyme_key` & `classify_stanza`
+- [x] Phase 3: `memoria/graphrag.py` — NetworkX storage backend decision landed
+- [x] `GraphRAGRetriever.ingest` / `.retrieve` implementations (commit `0135e4f`)
 
 ## IN PROGRESS
 
-- [ ] Phase 3: `memoria/graphrag.py` Graph RAG storage decision (NetworkX vs Neo4j)
+- [ ] Wire Graph RAG few-shot retrieval into `CandidateGenerator` prompts
 
-## BACKLOG (Phase 3)
+## BACKLOG (Phase 3 Integration)
 
-- [ ] `GraphRAGRetriever.ingest` / `.retrieve` implementations
-- [ ] Incorporate Graph RAG few-shot retrieval into `CandidateGenerator`
-
-
-
+- [ ] Wire Graph RAG into `GalerIA` for illustration style anchoring
+- [ ] Add embedding generation (lazy `sentence-transformers` integration)
+- [ ] CLI `poesia memoria ingest` command with auto-embedding
+- [ ] (Optional) Poet/style nodes + influence edges for richer graph structure
 
 ## BLOCKED
 
-- [ ] `memoria/graphrag.py` — blocked on storage backend decision (Phase 3)
-- [ ] `galeria/auca.py` compose_panel/compose_sheet/export_pdf — blocked on Phase 2
-- [ ] `armonia` real backends (music21/pyfluidsynth/TTS) — blocked on Phase 2
+(None currently)
 
 
