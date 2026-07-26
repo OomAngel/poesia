@@ -1,30 +1,28 @@
 # Tasks — PoesIA (Kanban)
 
-## DONE (Phase 0 & Phase 1 Complete)
+## DONE (Phase 0, Phase 1 & Phase 2 Complete)
 
 - [x] Scaffold project (pyproject.toml, .gitignore, README)
-- [x] `phonology/` — base dataclasses (Stress, Syllable, RhymeKey, ScanResult)
-- [x] `evaluation/` — metre_score, rhyme_score, cliche_penalty functional
+- [x] `phonology/` — base dataclasses & Spanish/English/multilingual wrappers
+- [x] `evaluation/` — metre_score, rhyme_score, cliche_penalty, theme_score, novelty_score
 - [x] `forms/` — FormSpec + registry (soneto, romance, sonnet_shakespearean, haiku)
-- [x] `generation/` — LLMClient Protocol + StubLLMClient, CandidateGenerator, ConstrainedLoop
-- [x] `eufonia/` / `galeria/` / `armonia/` / `memoria/` skeletons & CLI subcommands
-- [x] Docs: ARCHITECTURE.md, ROADMAP.md, NAMING.md, PACKAGES_SURVEYED.md
-- [x] memory-bank/ continuity files & unit test suite
-- [x] `generation/` — `HostedLLMClient` (Gemini REST & OpenAI REST API backends via stdlib urllib)
+- [x] `generation/` — LLMClient Protocol, StubLLMClient, HostedLLMClient (Gemini REST & OpenAI REST)
 - [x] `AGENTS.md` — guidelines, guardrails, and commit standards
 - [x] `eufonia/` — `EuphonyAnalyzer.analyze()` & `detect_rhyme_scheme()` implemented
 - [x] `memoria/` — `Library` Markdown YAML frontmatter storage (`~/.poesia/poems/*.md`) + SQLite auto-index
-- [x] `evaluation/` — `theme_score` and `novelty_score` baseline vector math implemented
+- [x] `galeria/` — `HostedImageBackend` (DALL-E 3 & Replicate SDXL) & Pillow `AucaComposer` (panel & sheet grid composition)
+- [x] `armonia/` — `MidiScoreBackend` (pure Python prosodic MIDI generator) & `EspeakRecitationBackend`
+- [x] `phonology/` — `SpanishPhonology.rhyme_key` & `classify_stanza`
 
 ## IN PROGRESS
 
-- [ ] Phase 2: `GalerIA` image backends & Auca panel composition
+- [ ] Phase 3: `memoria/graphrag.py` Graph RAG storage decision (NetworkX vs Neo4j)
 
-## BACKLOG (Phase 2 & Phase 3)
+## BACKLOG (Phase 3)
 
-- [ ] `SpanishPhonology.rhyme_key` / `classify_stanza`
-- [ ] `ArmonIA` music21 score export & eSpeak NG recitation
-- [ ] Phase 3: `memoria/graphrag.py` Graph RAG storage & retrieval
+- [ ] `GraphRAGRetriever.ingest` / `.retrieve` implementations
+- [ ] Incorporate Graph RAG few-shot retrieval into `CandidateGenerator`
+
 
 
 

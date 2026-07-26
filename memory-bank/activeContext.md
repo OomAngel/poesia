@@ -1,32 +1,38 @@
 # Active Context — PoesIA
 
-_Last updated: Phase 1 completion (LLM client, sound analysis, poem storage, evaluation metrics)._
+_Last updated: Phase 2 completion (GalerIA illustration, ArmonIA MIDI music & TTS, Spanish phonology)._
 
 ## What We Just Did
 
-1. **Phase 1 LLM Backend (`HostedLLMClient`)**:
-   - Implemented `HostedLLMClient` in `src/poesia/generation/llm_client.py` supporting Gemini (`gemini-2.5-flash`) and OpenAI (`gpt-4o-mini`) REST APIs via stdlib `urllib` and environment variables (`GEMINI_API_KEY`, `OPENAI_API_KEY`).
+1. **Phase 1 Infrastructure**:
+   - `HostedLLMClient` (Gemini & OpenAI REST APIs), repository `AGENTS.md` guardrails, `EuphonyAnalyzer` rhyme scheme & sound analysis, `MemorIA` Markdown YAML frontmatter disk persistence (`~/.poesia/poems/*.md`) + SQLite auto-index, `theme_score`/`novelty_score` baseline vector math.
 
-2. **Repository Guardrails & Instructions (`AGENTS.md`)**:
-   - Created `AGENTS.md` documenting commit standards (Conventional Commits, test before commit, logical blocks), local-only git discipline, layering rules, and session lifecycle.
+2. **GalerIA Illustration Engine (`HostedImageBackend` & `AucaComposer`)**:
+   - Implemented `HostedImageBackend` supporting OpenAI DALL-E 3 & Replicate SDXL APIs with default `traditional spanish woodcut line-art, engraving style` prompt styling.
+   - Implemented Pillow `AucaComposer.compose_panel()` (card rendering with image + centered caption text) and `compose_sheet()` (multi-panel 2-column grid layout).
+   - Added unit tests in `tests/test_galeria.py`.
 
-3. **EufonIA Sound Analysis (`EuphonyAnalyzer`)**:
-   - Implemented `EuphonyAnalyzer.analyze()` and `detect_rhyme_scheme()` in `src/poesia/eufonia/analyzer.py` for rhyme scheme inference (e.g. `ABAB`), assonance density, consonance density, and sibilance/cacophony flags.
+3. **ArmonIA Music & Recitation Engine (`MidiScoreBackend` & `EspeakRecitationBackend`)**:
+   - Implemented pure Python `MidiScoreBackend` converting prosodic `Stress` patterns into standard binary MIDI (`.mid`) scores.
+   - Implemented `EspeakRecitationBackend` wrapping `espeak-ng`/`espeak` for audio recitation.
+   - Added unit tests in `tests/test_armonia_backends.py`.
 
-4. **MemorIA Library Persistence (`Library`)**:
-   - Implemented human-readable **Markdown files with YAML frontmatter** (`~/.poesia/poems/*.md`) persistence in `src/poesia/memoria/library.py` alongside a background **SQLite auto-index** (`library.db`).
-
-5. **Evaluation Metrics Baseline (`theme_score` & `novelty_score`)**:
-   - Implemented pure Python vector math baseline (cosine similarity and distance) for `theme_score` and `novelty_score` in `src/poesia/evaluation/metrics.py`.
-   - All **38 unit tests** passing in `0.07s`.
+4. **Spanish Phonology (`SpanishPhonology`)**:
+   - Implemented `SpanishPhonology.rhyme_key()` (consonant & assonant rhyme extraction) and `classify_stanza()` (stanza form classification).
+   - Added unit tests in `tests/test_phonology_spanish.py` (all **48 unit tests** passing in `0.76s`).
 
 ## Current Focus
 
-Phase 1 features are complete and fully tested! Next focus area (Phase 2):
+Phase 2 features are complete and fully tested! Next focus area (Phase 3):
 
-1. `GalerIA` illustration backend integration (Pillow + WeasyPrint PDF layout).
-2. `ArmonIA` score and audio synthesis (`music21` / eSpeak NG recitation).
-3. Spanish rhyme key classification (`SpanishPhonology.rhyme_key`).
+1. Land Graph RAG storage decision (NetworkX graph vs. Neo4j).
+2. Implement `GraphRAGRetriever.ingest` / `.retrieve` in `src/poesia/memoria/graphrag.py`.
+
+## Open Questions
+
+- Graph RAG storage backend (networkx vs. neo4j) explicitly deferred to Phase 3 per `docs/PACKAGES_SURVEYED.md`.
+- CLI-only focus (no web frontend planned for Phase 1/2).
+
 
 ## Open Questions
 
