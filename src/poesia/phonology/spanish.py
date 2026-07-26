@@ -58,10 +58,69 @@ class SpanishPhonology:
 
     def rhyme_key(self, line: str) -> RhymeKey:
         """Extract consonant + assonant rhyme signature from a line's ending."""
-        raise NotImplementedError(
-            "Rhyme key extraction pending fonemas/rantanplan integration."
+        import re
+
+        clean = re.sub(r"[^\w\s]", "", line.strip().lower())
+        if not clean:
+            return RhymeKey(consonant="", assonant="")
+
+        words = clean.split()
+        last_word = words[-1] if words else ""
+
+        # Spanish vowel mapping
+        vowels = "aeiouáéíóú"
+        vowel_indices = [i for i, char in enumerate(last_word) if char in vowels]
+
+        if not vowel_indices:
+            return RhymeKey(consonant=last_word, assonant="")
+
+        # Determine last stressed vowel index (default to penultimate vowel or last vowel if aguda)
+        stress_idx = vowel_indices[-1]
+        for idx in vowel_indices:
+            if last_word[idx] in "áéíóú":
+                stress_idx = idx
+                break
+        else:
+            if len(vowel_indices) >= 2 and last_word[-1] in "aeiouns":
+                stress_idx = vowel_indices[-2]
+
+        consonant_rhyme = last_word[stress_idx:]
+        # Normalize accents
+        consonant_norm = (
+            consonant_rhyme.replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
         )
 
+        assonant_rhyme = "".join([c for c in consonant_norm if c in "aeiou"])
+
+        return RhymeKey(consonant=consonant_norm, assonant=assonant_rhyme)
+
     def classify_stanza(self, lines: list[str]) -> str | None:
-        """Classify a stanza against rantanplan's ~45 known Spanish forms."""
-        raise NotImplementedError("Stanza classification pending rantanplan wiring.")
+        """Classify a stanza against known Spanish form structures."""
+        if not lines:
+            return None
+
+        try:
+            rantanplan = self._ensure_rantanplan()
+            analysis = rantanplan.get_scansion(lines)
+            if isinstance(analysis, dict) and "stanza_type" in analysis:
+                return analysis["stanza_type"]
+        except Exception:
+            pass
+
+        # Pure Python fallback by line count
+        count = len(lines)
+        if count == 14:
+            return "soneto"
+        elif count == 4:
+            return "cuarteto / redondilla"
+        elif count == 3:
+            return "terceto"
+        elif count == 2:
+            return "pareado"
+
+        return f"estanza_{count}_versos"
+
