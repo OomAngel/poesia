@@ -1,0 +1,146 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poesia"
+version = "0.1.0"
+description = "A hybrid poetry-writing engine: LLM generation validated by deterministic phonology/prosody, later extended with Graph RAG."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary - personal project" }
+authors = [{ name = "Angel" }]
+
+# Core dependencies kept deliberately minimal at Phase 0.
+# Heavier / optional stacks (LLM inference, C++ bindings) are extras below.
+dependencies = [
+    "pydantic>=2.6",
+    "typer>=0.12",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+# Spanish phonology / scansion
+spanish = [
+    "rantanplan",
+    "silabeador",
+]
+
+# English phonology / scansion
+english = [
+    "pronouncing",
+    "cmudict",
+    "prosodic",
+]
+
+# Multilingual phonology
+phonology-multi = [
+    "phonemizer",
+    "epitran",
+]
+
+# Lightweight/alternative phonology backends (no eSpeak binary required,
+# neural G2P fallback, cross-language hyphenation sanity-check)
+phonology-extra = [
+    "gruut",
+    "g2p_en",
+    "pyphen",
+]
+
+# Classical Language Toolkit — Latin/Greek metrical scansion, relevant
+# since the "LLM validity" study cited in README was on Greek poetry.
+classical = [
+    "cltk",
+]
+
+# Interactive rhyme/near-rhyme/word discovery + statistical baseline
+lexical-extra = [
+    "python-datamuse",
+    "markovify",
+]
+
+
+# Linguistic / semantic analysis
+nlp = [
+    "spacy",
+    "sentence-transformers",
+    "wn",
+    "wordfreq",
+]
+
+# LLM orchestration (local + API)
+llm = [
+    "transformers",
+    "llama-cpp-python",
+    "guidance",
+    "outlines",
+]
+
+# Graph RAG (Phase 3, not yet wired) — used by MemorIA's graphrag.py
+graphrag = [
+    "networkx",
+    "neo4j",
+]
+
+# GalerIA: illustration — image generation backends + composition/export
+illustration = [
+    "Pillow",
+    "openai",
+    "replicate",
+    "svgwrite",
+    "weasyprint",
+]
+
+# GalerIA: local (offline, GPU-heavy) image generation alternative
+illustration-local = [
+    "diffusers",
+]
+
+# ArmonIA: music — symbolic score, audio synthesis, AI music generation, TTS
+music = [
+    "music21",
+    "pretty_midi",
+    "mido",
+    "pyfluidsynth",
+]
+
+music-ai = [
+    "audiocraft",
+]
+
+recitation = [
+    "TTS",
+]
+
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+# Convenience bundle for the plan discussed at repo creation
+all-lang = ["poesia[spanish,english,phonology-multi,phonology-extra,nlp]"]
+
+
+[project.scripts]
+poesia = "poesia.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
