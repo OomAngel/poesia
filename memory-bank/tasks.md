@@ -13,16 +13,17 @@
 - [x] `generation/` — `HostedLLMClient` (Gemini REST & OpenAI REST API backends via stdlib urllib)
 - [x] `AGENTS.md` — guidelines, guardrails, and commit standards
 - [x] `eufonia/` — `EuphonyAnalyzer.analyze()` & `detect_rhyme_scheme()` implemented
+- [x] `memoria/` — `Library` Markdown YAML frontmatter storage (`~/.poesia/poems/*.md`) + SQLite auto-index
 
 ## IN PROGRESS
 
-- [ ] Implement Markdown + YAML frontmatter persistence with SQLite background index for `MemorIA` library
+- [ ] Implement `theme_score`/`novelty_score` using `sentence-transformers` in `src/poesia/evaluation/metrics.py`
 
 ## BACKLOG (Phase 1)
 
-- [ ] Implement `theme_score`/`novelty_score` using sentence-transformers
 - [ ] Implement `SpanishPhonology.rhyme_key` / `classify_stanza`
 - [ ] Expand test coverage as each component matures
+
 
 ## BLOCKED
 

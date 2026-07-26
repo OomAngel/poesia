@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: Phase 1 EuphonyAnalyzer implementation._
+_Last updated: Phase 1 MemorIA library disk persistence completion._
 
 ## What We Just Did
 
@@ -13,14 +13,17 @@ _Last updated: Phase 1 EuphonyAnalyzer implementation._
 
 3. **EufonIA Sound Analysis (`EuphonyAnalyzer`)**:
    - Implemented `EuphonyAnalyzer.analyze()` and `detect_rhyme_scheme()` in `src/poesia/eufonia/analyzer.py` for rhyme scheme inference (e.g. `ABAB`), assonance density, consonance density, and sibilance/cacophony flags.
-   - Added unit tests in `tests/test_eufonia_analyzer.py` (32 total passing tests).
+
+4. **MemorIA Library Persistence (`Library`)**:
+   - Implemented human-readable **Markdown files with YAML frontmatter** (`~/.poesia/poems/*.md`) persistence in `src/poesia/memoria/library.py` alongside a background **SQLite auto-index** (`library.db`).
+   - Updated unit tests in `tests/test_memoria_library.py` (32 passing tests).
 
 ## Current Focus
 
 Proceed with Phase 1 tasks:
 
-1. Implement human-readable Markdown + YAML frontmatter poem persistence with background SQLite auto-index in `src/poesia/memoria/library.py`.
-2. Add `sentence-transformers` for `theme_score` and `novelty_score` in `src/poesia/evaluation/metrics.py`.
+1. Add `sentence-transformers` for `theme_score` and `novelty_score` in `src/poesia/evaluation/metrics.py` (lazy-imported behind try-except block).
+
 
 ## Open Questions
 
