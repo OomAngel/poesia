@@ -12,14 +12,14 @@
 - [x] memory-bank/ continuity files & initial unit tests
 - [x] `generation/` — `HostedLLMClient` (Gemini REST & OpenAI REST API backends via stdlib urllib)
 - [x] `AGENTS.md` — guidelines, guardrails, and commit standards
+- [x] `eufonia/` — `EuphonyAnalyzer.analyze()` & `detect_rhyme_scheme()` implemented
 
 ## IN PROGRESS
 
-- [ ] Implement `EuphonyAnalyzer.analyze()` in `src/poesia/eufonia/analyzer.py`
+- [ ] Implement Markdown + YAML frontmatter persistence with SQLite background index for `MemorIA` library
 
 ## BACKLOG (Phase 1)
 
-- [ ] Implement Markdown + YAML frontmatter persistence with SQLite background index for `MemorIA` library
 - [ ] Implement `theme_score`/`novelty_score` using sentence-transformers
 - [ ] Implement `SpanishPhonology.rhyme_key` / `classify_stanza`
 - [ ] Expand test coverage as each component matures
@@ -29,4 +29,5 @@
 - [ ] `memoria/graphrag.py` — blocked on storage backend decision (Phase 3)
 - [ ] `galeria/auca.py` compose_panel/compose_sheet/export_pdf — blocked on Phase 2
 - [ ] `armonia` real backends (music21/pyfluidsynth/TTS) — blocked on Phase 2
+
 
