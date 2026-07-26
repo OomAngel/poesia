@@ -41,22 +41,86 @@ class RecitationBackend(Protocol):
         ...
 
 
-class StubScoreBackend:
-    """Deterministic no-op ScoreBackend for tests and offline development."""
+class MidiScoreBackend:
+    """Produces valid standard MIDI score bytes from a prosodic stress pattern."""
 
     def stress_to_score(self, stress_pattern: tuple[Stress, ...], tempo_bpm: int = 90) -> bytes:
-        return b""
+        """Map stress pattern to rhythmic MIDI notes and return .mid bytes."""
+        if not stress_pattern:
+            return b""
+
+        # MIDI Header: Format 0, 1 Track, 96 Ticks per Quarter Note (0x0060)
+        header = b"MThd\x00\x00\x00\x06\x00\x00\x00\x01\x00\x60"
+
+        # Construct Track events
+        events = bytearray()
+
+        # Set Tempo meta-event: 60,000,000 / tempo_bpm
+        microseconds_per_quarter = int(60_000_000 / max(30, min(300, tempo_bpm)))
+        tempo_bytes = microseconds_per_quarter.to_bytes(3, "big")
+        events.extend(b"\x00\xFF\x51\x03" + tempo_bytes)
+
+        note = 60  # Middle C (C4)
+        ticks_per_quarter = 96
+        ticks_per_eighth = 48
+
+        for stress in stress_pattern:
+            if stress == Stress.PRIMARY:
+                duration = ticks_per_quarter
+                velocity = 100
+            elif stress == Stress.SECONDARY:
+                duration = ticks_per_eighth
+                velocity = 70
+            else:  # UNSTRESSED
+                duration = ticks_per_eighth
+                velocity = 40
+
+            # Note On (Channel 0, Note 60, Velocity)
+            events.extend(b"\x00\x90" + bytes([note, velocity]))
+
+            # Note Off after duration ticks
+            # Convert duration to variable-length quantity
+            delta_time = self._to_var_length(duration)
+            events.extend(delta_time + b"\x80" + bytes([note, 0]))
+
+        # End of Track meta event
+        events.extend(b"\x00\xFF\x2F\x00")
+
+        track_header = b"MTrk" + len(events).to_bytes(4, "big")
+        return header + track_header + bytes(events)
+
+    @staticmethod
+    def _to_var_length(val: int) -> bytes:
+        """Convert integer to MIDI variable length byte sequence."""
+        buf = bytearray()
+        buf.append(val & 0x7F)
+        val >>= 7
+        while val > 0:
+            buf.insert(0, (val & 0x7F) | 0x80)
+            val >>= 7
+        return bytes(buf)
 
 
-# --- Candidate real backends (Phase 2+, not yet implemented) ----------------
-#
-# Music21ScoreBackend      -> wraps `music21` for stress->rhythm mapping,
-#                             MusicXML/MIDI export.
-# FluidSynthAudioBackend   -> wraps `pyfluidsynth` + a .sf2 SoundFont to
-#                             render MIDI to audio.
-# MusicGenBackend          -> wraps `audiocraft` (Meta MusicGen) for local
-#                             text-to-music generation.
-# PiperRecitationBackend   -> wraps `piper` (fast, local TTS) for recitation.
-# EspeakRecitationBackend  -> reuses the eSpeak NG dependency already present
-#                             via `poesia.phonology.multilingual` for a free,
-#                             low-quality recitation fallback.
+class EspeakRecitationBackend:
+    """Text-to-speech recitation using system eSpeak NG binary."""
+
+    def recite(self, text: str, language: str = "es") -> bytes:
+        import shutil
+        import subprocess
+
+        espeak_bin = shutil.which("espeak-ng") or shutil.which("espeak")
+        if not espeak_bin:
+            raise RuntimeError(
+                "eSpeak NG binary is not installed. Install via your package manager "
+                "(e.g. 'sudo apt install espeak-ng')."
+            )
+
+        lang_code = "es" if language.lower().startswith("es") else "en"
+        cmd = [espeak_bin, "-v", lang_code, "--stdout", text]
+
+        try:
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            return res.stdout
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"eSpeak recitation failed: {e.stderr.decode('utf-8')}") from e
+
