@@ -1,6 +1,6 @@
 # Tasks — PoesIA (Kanban)
 
-## DONE (Phase 0 & Phase 1 Initial)
+## DONE (Phase 0 & Phase 1 Complete)
 
 - [x] Scaffold project (pyproject.toml, .gitignore, README)
 - [x] `phonology/` — base dataclasses (Stress, Syllable, RhymeKey, ScanResult)
@@ -9,20 +9,23 @@
 - [x] `generation/` — LLMClient Protocol + StubLLMClient, CandidateGenerator, ConstrainedLoop
 - [x] `eufonia/` / `galeria/` / `armonia/` / `memoria/` skeletons & CLI subcommands
 - [x] Docs: ARCHITECTURE.md, ROADMAP.md, NAMING.md, PACKAGES_SURVEYED.md
-- [x] memory-bank/ continuity files & initial unit tests
+- [x] memory-bank/ continuity files & unit test suite
 - [x] `generation/` — `HostedLLMClient` (Gemini REST & OpenAI REST API backends via stdlib urllib)
 - [x] `AGENTS.md` — guidelines, guardrails, and commit standards
 - [x] `eufonia/` — `EuphonyAnalyzer.analyze()` & `detect_rhyme_scheme()` implemented
 - [x] `memoria/` — `Library` Markdown YAML frontmatter storage (`~/.poesia/poems/*.md`) + SQLite auto-index
+- [x] `evaluation/` — `theme_score` and `novelty_score` baseline vector math implemented
 
 ## IN PROGRESS
 
-- [ ] Implement `theme_score`/`novelty_score` using `sentence-transformers` in `src/poesia/evaluation/metrics.py`
+- [ ] Phase 2: `GalerIA` image backends & Auca panel composition
 
-## BACKLOG (Phase 1)
+## BACKLOG (Phase 2 & Phase 3)
 
-- [ ] Implement `SpanishPhonology.rhyme_key` / `classify_stanza`
-- [ ] Expand test coverage as each component matures
+- [ ] `SpanishPhonology.rhyme_key` / `classify_stanza`
+- [ ] `ArmonIA` music21 score export & eSpeak NG recitation
+- [ ] Phase 3: `memoria/graphrag.py` Graph RAG storage & retrieval
+
 
 
 ## BLOCKED
