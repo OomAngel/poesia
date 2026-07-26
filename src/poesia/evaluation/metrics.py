@@ -34,26 +34,45 @@ def rhyme_score(candidate_key: str, target_key: str) -> float:
     return 1.0 if candidate_key == target_key else 0.0
 
 
-def theme_score(candidate_embedding, theme_embedding) -> float:
-    """Cosine similarity between a candidate line and the poem's theme anchor.
+def _cosine_similarity(vec1: list[float] | tuple[float, ...], vec2: list[float] | tuple[float, ...]) -> float:
+    """Compute cosine similarity between two numeric vectors in pure Python."""
+    if not vec1 or not vec2 or len(vec1) != len(vec2):
+        return 0.0
 
-    Requires sentence-transformers embeddings computed upstream. Phase 0:
-    placeholder signature only, not yet wired to sentence-transformers.
+    dot = sum(a * b for a, b in zip(vec1, vec2))
+    norm1 = sum(a * a for a in vec1) ** 0.5
+    norm2 = sum(b * b for b in vec2) ** 0.5
+
+    if norm1 == 0.0 or norm2 == 0.0:
+        return 0.0
+
+    return max(0.0, min(1.0, dot / (norm1 * norm2)))
+
+
+def theme_score(candidate_embedding: list[float] | tuple[float, ...], theme_embedding: list[float] | tuple[float, ...]) -> float:
+    """Cosine similarity between candidate vector and poem's theme anchor.
+
+    Acts as baseline semantic alignment scoring. Pluggable for higher-order
+    cross-encoders or Graph RAG contextual embeddings in Phase 3.
     """
-    raise NotImplementedError(
-        "theme_score requires sentence-transformers integration (Phase 1)."
-    )
+    return _cosine_similarity(candidate_embedding, theme_embedding)
 
 
-def novelty_score(candidate_embedding, prior_line_embeddings: list) -> float:
+def novelty_score(
+    candidate_embedding: list[float] | tuple[float, ...],
+    prior_line_embeddings: list[list[float] | tuple[float, ...]],
+) -> float:
     """Score how semantically distinct a candidate is from prior poem lines.
 
-    Prevents near-redundant lines. Higher = more novel relative to what has
-    already been written in this poem.
+    Returns 1.0 - max_similarity(candidate, prior_lines). If no prior lines exist,
+    returns 1.0 (maximum novelty).
     """
-    raise NotImplementedError(
-        "novelty_score requires sentence-transformers integration (Phase 1)."
-    )
+    if not prior_line_embeddings:
+        return 1.0
+
+    max_sim = max(_cosine_similarity(candidate_embedding, prior) for prior in prior_line_embeddings)
+    return round(max(0.0, 1.0 - max_sim), 4)
+
 
 
 def cliche_penalty(line: str, cliche_phrases: frozenset[str]) -> float:
