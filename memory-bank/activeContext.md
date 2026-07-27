@@ -16,7 +16,30 @@ P0 and P1 of the hardening plan are satisfied.
 
 ## What We Just Did
 
-### Session 2026-07-27 (Real Usage Testing - Found Critical Bugs)
+### Session 2026-07-27 (Fixed Haiku Metre Scoring - Issue #2)
+
+**✅ FIXED the critical metre scoring bug:**
+
+1. **Root cause:** Haiku's 5-7-5 pattern was documented but never implemented
+   - `FormSpec` had `syllables_per_line=0` with comment "special-cased: 5-7-5"
+   - ConstrainedLoop passed 0 to scorer → `metre_score()` returned 0.0 for all lines
+   - All haiku lines scored identically, making metre constraint useless
+
+2. **Solution implemented:**
+   - Added `syllable_pattern: list[int] | None` to `FormSpec` dataclass
+   - Added `syllables_for_line(line_index)` method to get position-specific targets
+   - Updated haiku definition: `syllable_pattern=[5, 7, 5]`
+   - Modified `ConstrainedLoop` to create scorer per-line with correct target
+   - Wrote 5 comprehensive tests in `test_haiku_metre_scoring.py`
+
+3. **Verified working:**
+   - `test_real_generation.py` now shows varying metre scores: 0.40, 0.71, 0.00
+   - Candidates are properly differentiated by syllable accuracy
+   - All 218 tests pass
+
+**Status:** Haiku generation now has functional metre constraint. Stub client generates plausible lines, scoring works correctly for variable syllable patterns.
+
+### Session 2026-07-27 (Real Usage Testing - Found Critical Bugs - Earlier)
 
 **Tested actual poem generation** with `test_real_generation.py` and found:
 

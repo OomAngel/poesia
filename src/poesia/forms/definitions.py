@@ -23,10 +23,28 @@ class FormSpec:
     lines_per_stanza: list[int]  # e.g. [4, 4, 3, 3] for a sonnet
     syllables_per_line: int
     rhyme_scheme: str  # e.g. "ABBAABBACDCDCD"
+    syllable_pattern: list[int] | None = None  # For variable patterns like haiku [5, 7, 5]
 
     @property
     def total_lines(self) -> int:
         return sum(self.lines_per_stanza)
+
+    def syllables_for_line(self, line_index: int) -> int:
+        """Get target syllable count for a specific line position (0-indexed).
+        
+        If syllable_pattern is provided, uses that (e.g., haiku: [5, 7, 5]).
+        Otherwise, returns the uniform syllables_per_line.
+        
+        Args:
+            line_index: 0-based line position in the poem
+            
+        Returns:
+            Target syllable count for that line position
+        """
+        if self.syllable_pattern:
+            # Use pattern, cycling if needed (though typically exact match)
+            return self.syllable_pattern[line_index % len(self.syllable_pattern)]
+        return self.syllables_per_line
 
 
 # --- Spanish forms -----------------------------------------------------
@@ -62,8 +80,9 @@ HAIKU_EN = FormSpec(
     name="haiku",
     language="en",
     lines_per_stanza=[1, 1, 1],
-    syllables_per_line=0,  # special-cased: 5-7-5, not uniform per line
+    syllables_per_line=5,  # Default/typical, but pattern overrides
     rhyme_scheme="",
+    syllable_pattern=[5, 7, 5],  # The defining 5-7-5 pattern
 )
 
 FORM_REGISTRY: dict[str, FormSpec] = {

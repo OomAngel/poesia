@@ -11,6 +11,12 @@ loop = ConstrainedLoop(
     llm=StubLLMClient(),
 )
 
+print("=== Haiku Pattern ===")
+print(f"Line 1 target: {loop.form_spec.syllables_for_line(0)} syllables")
+print(f"Line 2 target: {loop.form_spec.syllables_for_line(1)} syllables")
+print(f"Line 3 target: {loop.form_spec.syllables_for_line(2)} syllables")
+print()
+
 result = loop.run(theme="luna", n_candidates=3)
 
 print("=== Generated Poem ===")

@@ -128,16 +128,17 @@ class ConstrainedLoop:
             )
             result.brief = brief
 
-        # Create scorer with theme for semantic scoring (Phase 1 fix)
-        self._scorer = LineScorer(
-            phonology_backend=self._phonology,
-            target_syllable_count=self.form_spec.syllables_per_line,
-            embedding_client=self._embedding_client,
-            theme_text=theme,
-            language=self.language,
-        )
-
-        for _ in range(self.form_spec.total_lines):
+        # Generate lines one by one, updating scorer target for variable patterns (e.g., haiku)
+        for line_index in range(self.form_spec.total_lines):
+            # Create/update scorer with correct target for this line position
+            target_syllables = self.form_spec.syllables_for_line(line_index)
+            self._scorer = LineScorer(
+                phonology_backend=self._phonology,
+                target_syllable_count=target_syllables,
+                embedding_client=self._embedding_client,
+                theme_text=theme,
+                language=self.language,
+            )
             candidates = self._generator.generate_lines(
                 theme=theme,
                 language=self.language,

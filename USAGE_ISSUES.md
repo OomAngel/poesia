@@ -15,16 +15,17 @@ Issues discovered from real generation testing with `test_real_generation.py`.
 ## 🟡 HIGH - Scoring Broken
 
 ### #2: Metre scoring gives 0.00 for haiku (and returns 0.0 for all lines)
-**Status:** ROOT CAUSE FOUND  
-**Impact:** Metre constraint isn't working - all lines score 0.00 for metre  
-**Evidence:** `test_real_generation.py` shows `metre=0.00` for all candidates  
-**Root cause:** Haiku has `syllables_per_line=0` (marked as "special-cased: 5-7-5"), but the special case is **not implemented**.
-- `FormSpec.syllables_per_line=0` for haiku
-- `ConstrainedLoop` passes this to `LineScorer(target_syllable_count=0)`  
-- `metre_score()` checks `if target_syllable_count <= 0: return 0.0`
-- Result: all haiku lines score 0.00 for metre regardless of actual syllable count
-
-**Fix needed:** ConstrainedLoop must track line position and pass correct target (5/7/5) to scorer for each haiku line
+**Status:** ✅ FIXED  
+**Impact:** Was blocking all metre-based selection for haiku  
+**Evidence:** `test_real_generation.py` now shows varying metre scores (0.40, 0.71, 0.00)
+**Root cause:** Haiku had `syllables_per_line=0` with no implementation of 5-7-5 pattern
+**Fix applied:**
+- Added `syllable_pattern: list[int]` to `FormSpec`
+- Added `syllables_for_line(line_index)` method  
+- Updated haiku to use `syllable_pattern=[5, 7, 5]`
+- Modified `ConstrainedLoop` to create scorer per-line with correct target
+- Added 5 new tests in `test_haiku_metre_scoring.py`
+- All 218 tests pass
 
 ### #3: Theme scoring gives 0.00 (no embedding client)
 **Status:** Expected (by design)  
@@ -56,9 +57,9 @@ Issues discovered from real generation testing with `test_real_generation.py`.
 
 ## Resolution Order
 
-1. ✅ Fix stub client (#1) - IN PROGRESS
-2. Fix metre scoring (#2) - NEXT
-3. Investigate composite_score weighting (#4)
+1. ✅ Fix stub client (#1) - DONE
+2. ✅ Fix metre scoring (#2) - DONE  
+3. Investigate composite_score weighting (#4) - NEXT
 4. Add graceful degradation for missing embeddings (#3)
 5. Test with real LLM (#5)
 6. Add alternative presentation (#6) - P1

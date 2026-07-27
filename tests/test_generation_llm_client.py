@@ -10,13 +10,19 @@ from poesia.generation.llm_client import HostedLLMClient, StubLLMClient
 
 
 def test_stub_llm_client() -> None:
+    """StubLLMClient generates short plausible lines based on theme extraction."""
     client = StubLLMClient()
-    candidates = client.generate("test prompt", n=2)
+    
+    # Stub extracts theme and generates template-based lines
+    candidates = client.generate("Theme: luna\nLanguage: es\nWrite a line", n=2)
     assert len(candidates) == 2
-    assert "test prompt" in candidates[0]
-
-    repaired = client.repair("line", "syllables")
-    assert "repaired: syllables" in repaired
+    # Should generate Spanish lines with "luna" theme, not echo prompt
+    assert "luna" in candidates[0].lower()
+    assert len(candidates[0].split()) <= 10  # Short lines, not full prompt
+    
+    # Repair adds a word
+    repaired = client.repair("luna brillante", "syllables")
+    assert "clara" in repaired  # Adds "clara" for syllable adjustment
 
 
 def test_hosted_llm_client_missing_key() -> None:
