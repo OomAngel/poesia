@@ -91,37 +91,45 @@ staying within the tonal register, grounded in the personal fragments above.
 
 CLI flag: `--brief-level minimal|standard|maximal`
 
-## BriefBuilder Interface (planned)
+## BriefBuilder Interface (implemented)
+
+See `src/poesia/generation/brief_builder.py` for full implementation.
 
 ```python
 class BriefBuilder:
     def __init__(
         self,
-        retriever: GraphRAGRetriever,
-        embedding_client: EmbeddingClient,
-        phonology: PhonologyBackend,
+        embedding_client: EmbeddingClient | None = None,
+        fragments: list[FragmentRecord] | None = None,
+        influences: list[InfluenceRecord] | None = None,
     ) -> None: ...
+
+    def add_fragments(self, fragments: list[FragmentRecord]) -> None: ...
+    def add_influences(self, influences: list[InfluenceRecord]) -> None: ...
 
     def build(
         self,
-        form: str,
+        form: str | FormSpec,
         theme: str,
-        tone: list[str],
-        seeds: list[str],
+        tone: list[str] | None = None,
+        seeds: list[str] | None = None,
         level: Literal["minimal", "standard", "maximal"] = "standard",
+        language: str | None = None,
     ) -> GenerationBrief: ...
 
 
 @dataclass
 class GenerationBrief:
     form_spec: FormSpec
-    tone: list[str]
     theme: str
+    tone: list[str]
     fragments: list[tuple[FragmentRecord, float]]  # (fragment, similarity)
     seeds_expanded: dict[str, SeedExpansion]
     rhyme_options: dict[str, list[str]]
     exemplar_lines: list[str]
     influences: list[InfluenceRecord]
+    level: str  # "minimal", "standard", "maximal"
+    created_at: datetime
 
     def to_prompt(self) -> str:
         """Render brief as LLM prompt string."""

@@ -83,22 +83,37 @@ The Graph RAG layer is no longer just "exemplar poems." It's your **personal con
 
 ## Implementation Phases
 
-### Phase 3A: Embedding Layer (current)
+### Phase 3A: Core Graph RAG ✅
 - [x] `GraphRAGRetriever` core (NetworkX, JSON persistence)
-- [ ] `EmbeddingClient` Protocol + `SentenceTransformerClient`
-- [ ] Auto-embed on ingest
+- [x] `retrieve()` with cosine similarity scoring
+- [x] `neighbourhood()` for graph traversal
 
-### Phase 3B: Extended Node Types
-- [ ] `FragmentRecord` dataclass + ingestion
-- [ ] `SeedRecord` dataclass + word expansion (WordNet, datamuse, phonology)
-- [ ] `InfluenceRecord` dataclass + ingestion
+### Phase 3B: Embedding Layer ✅
+- [x] `EmbeddingClient` Protocol + `SentenceTransformerClient` (e5-base)
+- [x] `StubEmbeddingClient` for deterministic testing
+- [x] `get_embedding_client()` factory
+- [ ] Auto-embed on ingest (pending Phase 3E)
 
-### Phase 3C: Brief Assembly
-- [ ] `BriefBuilder` class — assembles generation brief
-- [ ] Brief → LLM prompt formatting
+### Phase 3C: Extended Node Types ✅
+- [x] `FragmentRecord` dataclass (life moments, feelings)
+- [x] `SeedRecord` + `SeedExpansion` (11 expansion dimensions)
+- [x] `InfluenceRecord` dataclass (poets/works)
+- [x] `SeedExpander` (WordNet + rhyme + semantic + Datamuse)
+- [x] First 10 personal fragments in `seeds/angel_fragments/`
+- [x] Influence registry (24 poets) in `docs/INFLUENCE_REGISTRY.md`
 
-### Phase 3D: Integration
+### Phase 3D: Brief Assembly ✅
+- [x] `BriefBuilder` class — assembles generation brief
+- [x] `GenerationBrief.to_prompt()` — renders as LLM prompt
+- [x] Verbosity levels: minimal/standard/maximal
+- [x] Fragment retrieval via semantic similarity
+- [x] Influence matching by tone overlap
+
+### Phase 3E: Integration (current)
 - [ ] Wire brief into `CandidateGenerator`
 - [ ] CLI: `poesia write --theme X --tone Y --seeds "a,b" --form soneto`
+- [ ] CLI: `poesia memoria add-fragment|add-seed|add-influence`
+- [ ] Auto-embed on `GraphRAGRetriever.ingest()`
+- [ ] Wire retrieval into GalerIA for style anchoring
 
 See `INGESTION_SCHEMA.md` for record formats and `GENERATION_BRIEF.md` for brief structure.
