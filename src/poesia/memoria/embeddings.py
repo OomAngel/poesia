@@ -102,7 +102,11 @@ class SentenceTransformerClient:
             ) from exc
 
         self._model = SentenceTransformer(self._model_name)
-        self._dimension = self._model.get_sentence_embedding_dimension()
+        # Use the new API name (get_embedding_dimension) if available
+        if hasattr(self._model, "get_embedding_dimension"):
+            self._dimension = self._model.get_embedding_dimension()
+        else:
+            self._dimension = self._model.get_sentence_embedding_dimension()
 
     @property
     def model_id(self) -> str:
