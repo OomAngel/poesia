@@ -114,8 +114,29 @@ silent failures have been eliminated.
 
 ## Current Focus
 
-**RAG/LLM hardening P0:** restore embedding correctness and replace weak semantic test
-oracles, followed by one complete retrieval-to-generation vertical slice.
+**RAG/LLM hardening P1:** complete the end-to-end journey with human-in-the-loop alternative selection.
+
+### P1 Status Assessment (2026-07-27)
+
+**What exists (partial P1):**
+- ✅ Library loading (`--use-library` flag)
+- ✅ Library poems converted to fragments for retrieval
+- ✅ Retrieval context passed to ConstrainedLoop via BriefBuilder
+- ✅ Generation brief built and used
+- ✅ Provenance tracking and saving (`--save` flag)
+- ✅ `LoopResult.scored_history` contains all alternatives per line
+
+**What P1 requires but is missing:**
+- ❌ Explicit retrieval visibility: show which context was retrieved
+- ❌ Alternative presentation: display scored alternatives with breakdown
+- ❌ Human selection: interactive choice among alternatives (not just auto-select best)
+- ❌ Deliberate degraded mode: if embeddings fail, make it explicit, don't silent-fallback
+
+**Next P1 steps:**
+1. Add `--show-alternatives` flag to present top-N candidates per line with scores
+2. Add `--interactive` flag for human line-by-line selection
+3. Add `--show-retrieval` flag to display which fragments/poems were retrieved
+4. Ensure degraded mode (no embeddings) is explicitly signaled, not silent
 
 ### Prior integration work that remains useful
 

@@ -28,18 +28,132 @@ class LLMClient(Protocol):
 
 
 class StubLLMClient:
-    """Deterministic no-op client for tests and offline development.
+    """Deterministic stub client for tests and offline development.
 
-    Returns the prompt itself (or a trivially modified variant) instead of
-    calling any real model. Useful for exercising the generation loop's
-    control flow without network access or GPU/CPU inference cost.
+    Generates short plausible lines based on theme keywords instead of
+    echoing the full prompt. Useful for exercising the generation loop's
+    control flow without network access or API cost.
     """
 
+    # Spanish line templates by syllable count
+    _SPANISH_TEMPLATES_5 = [
+        "{word} en la noche",
+        "brilla la {word}",
+        "{word} de plata",
+        "bajo la {word}",
+        "canta la {word}",
+    ]
+    
+    _SPANISH_TEMPLATES_7 = [
+        "{word} sobre el mar azul",
+        "la {word} brilla en silencio",
+        "{word} de cristal y luz",
+        "susurra la {word} eterna",
+        "baila la {word} callada",
+    ]
+    
+    _SPANISH_TEMPLATES_11 = [
+        "en el jardín florece la {word} de primavera",
+        "bajo la {word} brillante caminan las sombras",
+        "la {word} susurra secretos al viento callado",
+        "entre las {word}s perdidas navega el recuerdo",
+        "cuando la {word} desciende se enciende la aurora",
+    ]
+    
+    # English line templates by syllable count
+    _ENGLISH_TEMPLATES_5 = [
+        "{word} in the night",
+        "bright shining {word}",
+        "{word} of silver",
+        "beneath the {word}",
+        "singing {word}",
+    ]
+    
+    _ENGLISH_TEMPLATES_7 = [
+        "{word} across the dark blue sea",
+        "the {word} shines in silence",
+        "{word} of crystal and light",
+        "whispers the eternal {word}",
+        "dancing {word} so quietly",
+    ]
+    
+    _ENGLISH_TEMPLATES_10 = [
+        "beneath the glowing {word} the shadows fall",
+        "when {word} descends the morning star appears",
+        "the {word} whispers secrets to the silent wind",
+        "among the lost {word}s memory sails away",
+        "in gardens where the {word} blooms in spring",
+    ]
+
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
-        return [f"{prompt} [candidate {i}]" for i in range(n)]
+        """Generate plausible short lines based on prompt keywords."""
+        # Extract theme/language from prompt
+        theme_word = self._extract_theme(prompt)
+        language = self._extract_language(prompt)
+        
+        # Pick template based on context (look for syllable hints in prompt)
+        templates = self._select_templates(prompt, language)
+        
+        # Generate n candidates by cycling through templates
+        results = []
+        for i in range(n):
+            template = templates[i % len(templates)]
+            line = template.format(word=theme_word)
+            results.append(line)
+        
+        return results
 
     def repair(self, line: str, defect_description: str) -> str:
-        return f"{line} [repaired: {defect_description}]"
+        """Simple repair: slightly modify the line."""
+        # For now, just add a word to try to fix syllable count
+        return f"{line} clara"
+
+    def _extract_theme(self, prompt: str) -> str:
+        """Extract the main theme word from prompt."""
+        # Look for "Theme: <word>" pattern
+        if "Theme:" in prompt or "Tema:" in prompt:
+            for line in prompt.split("\n"):
+                if "Theme:" in line or "Tema:" in line or "theme:" in line:
+                    parts = line.split(":", 1)
+                    if len(parts) > 1:
+                        theme = parts[1].strip().split()[0]  # First word of theme
+                        return theme
+        return "luna"  # fallback
+
+    def _extract_language(self, prompt: str) -> str:
+        """Extract language from prompt."""
+        if "Language: es" in prompt or "Idioma: es" in prompt:
+            return "es"
+        if "Language: en" in prompt:
+            return "en"
+        return "es"  # fallback
+
+    def _select_templates(self, prompt: str, language: str) -> list[str]:
+        """Select appropriate templates based on prompt context."""
+        # Without form info in prompt, default to short lines (5-7 syllables)
+        # Real LLMs would get this from the brief or learn from examples
+        prompt_lower = prompt.lower()
+        
+        # Count existing lines to handle haiku's 5-7-5 pattern
+        poem_so_far = prompt.split("Poem so far:")[-1].strip() if "Poem so far:" in prompt else ""
+        existing_lines = [l.strip() for l in poem_so_far.split("\n") if l.strip()]
+        line_number = len(existing_lines)
+        
+        if language == "es":
+            # For haiku pattern: line 0 -> 5, line 1 -> 7, line 2 -> 5
+            if line_number == 1 or "7" in prompt:
+                return self._SPANISH_TEMPLATES_7
+            elif "haiku" in prompt_lower or line_number in [0, 2] or "5" in prompt:
+                return self._SPANISH_TEMPLATES_5
+            else:
+                return self._SPANISH_TEMPLATES_11  # Sonnet default
+        else:  # English
+            if line_number == 1 or "7" in prompt:
+                return self._ENGLISH_TEMPLATES_7
+            elif "haiku" in prompt_lower or line_number in [0, 2] or "5" in prompt:
+                return self._ENGLISH_TEMPLATES_5
+            else:
+                return self._ENGLISH_TEMPLATES_10  # Sonnet default
 
 
 class HostedLLMClient:
