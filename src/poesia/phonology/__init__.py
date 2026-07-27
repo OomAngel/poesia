@@ -8,5 +8,6 @@ Modules:
     base.py      - shared data structures (ScanResult, StressPattern, RhymeKey)
     spanish.py   - rantanplan / silabeador / fonemas backed scansion
     english.py   - pronouncing / cmudict / prosodic backed scansion
+    dutch.py     - pyphen-backed syllabification for Dutch
     multilingual.py - phonemizer / epitran fallback for OOV or new languages
 """

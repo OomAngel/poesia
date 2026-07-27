@@ -160,13 +160,19 @@ def _load_influences() -> list:
 @app.command()
 def scan(
     line: str = typer.Argument(..., help="A single line of verse to scan."),
-    language: str = typer.Option("es", help="Language code: 'es' or 'en'."),
+    language: str = typer.Option("es", help="Language code: 'es', 'en', or 'nl'."),
 ) -> None:
     """Scan a single line for syllable count, stress and validity."""
     from poesia.phonology.english import EnglishPhonology
     from poesia.phonology.spanish import SpanishPhonology
 
-    phonology = SpanishPhonology() if language == "es" else EnglishPhonology()
+    if language == "es":
+        phonology = SpanishPhonology()
+    elif language == "nl":
+        from poesia.phonology.dutch import DutchPhonology
+        phonology = DutchPhonology()
+    else:
+        phonology = EnglishPhonology()
     result = phonology.scan_line(line)
     rprint(result)
 

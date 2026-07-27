@@ -40,6 +40,9 @@ def _phonology_for(language: str):
         return SpanishPhonology()
     if language == "en":
         return EnglishPhonology()
+    if language == "nl":
+        from poesia.phonology.dutch import DutchPhonology
+        return DutchPhonology()
     raise ValueError(f"No phonology backend registered for language '{language}'.")
 
 
