@@ -35,6 +35,8 @@ def write(
     tags: str = typer.Option(None, help="Comma-separated tags for the saved poem."),
     use_library: bool = typer.Option(False, "--use-library", help="Load existing poems from library for retrieval context."),
     show_alternatives: int = typer.Option(0, "--show-alternatives", help="Show top N alternative candidates per line with score breakdowns."),
+    show_retrieval: bool = typer.Option(False, "--show-retrieval", help="Show which fragments and influences were retrieved for context."),
+    interactive: bool = typer.Option(False, "--interactive", help="Choose each line interactively from scored candidates."),
 ) -> None:
     """Generate a poem using the constrained generate/validate/repair loop.
 
@@ -46,6 +48,13 @@ def write(
 
     With --use-library, loads existing poems from the library and uses them
     as additional context for semantic retrieval during generation.
+
+    With --show-retrieval, prints which personal fragments and influences were
+    retrieved and their similarity scores before generation begins.
+
+    With --interactive, pauses after generating and scoring candidates for each
+    line and lets you pick the one you want. Press Enter to accept the top-scored
+    candidate, or type a number to choose another.
 
     LLM backends:
       - stub: Deterministic placeholder (default, no API key needed)
@@ -129,6 +138,67 @@ def write(
             influences=influences,
         )
 
+    # --show-retrieval: build a preview brief now just to show what was retrieved
+    if show_retrieval and brief_builder is not None:
+        from poesia.forms.definitions import get_form
+        preview_brief = brief_builder.build(
+            form=get_form(form),
+            theme=theme,
+            tone=tone_list,
+            seeds=seeds_list,
+            level=brief_level,
+            language=language,
+        )
+        rprint("\n[bold]── Retrieved context ──[/bold]")
+        if preview_brief.fragments:
+            rprint(f"\n[bold]Fragments[/bold] ({len(preview_brief.fragments)} retrieved):")
+            for frag, sim in preview_brief.fragments:
+                rprint(f"  [cyan]{frag.id}[/cyan]  sim={sim:.3f}")
+                first_line = frag.content.strip().split("\n")[0][:80]
+                rprint(f"    [dim]{first_line}[/dim]")
+        else:
+            rprint("  [dim](no fragments retrieved — embeddings may be unavailable)[/dim]")
+        if preview_brief.influences:
+            rprint(f"\n[bold]Influences[/bold] ({len(preview_brief.influences)} matched):")
+            for inf in preview_brief.influences:
+                rprint(f"  [cyan]{inf.name}[/cyan]  tone: {', '.join(inf.tone[:3])}")
+        if preview_brief.seeds_expanded:
+            rprint(f"\n[bold]Seed expansions[/bold]:")
+            for word, exp in preview_brief.seeds_expanded.items():
+                syns = ", ".join(exp.synonyms[:4]) if exp.synonyms else "—"
+                rprint(f"  [cyan]{word}[/cyan] → synonyms: {syns}")
+        rprint()
+
+    # --interactive: build a line_selector callback that pauses for human input
+    line_selector = None
+    if interactive:
+        def _interactive_selector(line_index: int, candidates: list) -> str:
+            rprint(f"\n[bold]── Line {line_index + 1} — choose a candidate ──[/bold]")
+            for i, cand in enumerate(candidates[:8], 1):
+                score_color = "green" if cand.score >= 0.7 else ("yellow" if cand.score >= 0.4 else "red")
+                marker = " [bold green]★ top[/bold green]" if i == 1 else ""
+                rprint(f"  [bold]{i}.[/bold] [{score_color}][{cand.score:.3f}][/{score_color}] {cand.line}{marker}")
+                rprint(
+                    f"     [dim]syllables={cand.scan.metrical_syllable_count}, "
+                    f"metre={cand.breakdown['metre']:.2f}, "
+                    f"rhyme={cand.breakdown['rhyme']:.2f}[/dim]"
+                )
+            while True:
+                raw = input("  Pick (Enter = top, number = choice, t = type your own): ").strip()
+                if raw == "":
+                    return candidates[0].line
+                if raw == "t":
+                    own = input("  Your line: ").strip()
+                    return own if own else candidates[0].line
+                try:
+                    idx = int(raw) - 1
+                    if 0 <= idx < min(8, len(candidates)):
+                        return candidates[idx].line
+                    rprint(f"  [red]Enter 1–{min(8, len(candidates))}[/red]")
+                except ValueError:
+                    rprint("  [red]Enter a number, or press Enter[/red]")
+        line_selector = _interactive_selector
+
     loop = ConstrainedLoop(
         language=language,
         form=form,
@@ -144,6 +214,7 @@ def write(
         tone=tone_list,
         seeds=seeds_list,
         brief_level=brief_level,
+        line_selector=line_selector,
     )
 
     rprint(f"[bold]Theme:[/bold] {theme}  [bold]Form:[/bold] {form}  [bold]Language:[/bold] {language}")
@@ -379,15 +450,64 @@ memoria_app = typer.Typer(help="MemorIA: personal poem collection (Graph RAG in 
 
 
 @memoria_app.command("list")
-def memoria_list() -> None:
-    """List all poems saved in the personal library (stub, in-memory only)."""
-    rprint("[dim]Library is in-memory only in Phase 0 — nothing persisted yet.[/dim]")
+def memoria_list(
+    form: str = typer.Option(None, help="Filter by form (e.g. 'soneto', 'haiku')."),
+    language: str = typer.Option(None, help="Filter by language code ('es', 'en')."),
+    limit: int = typer.Option(20, help="Maximum number of poems to show."),
+) -> None:
+    """List all poems saved in the personal library (~/.poesia/poems/)."""
+    from poesia.memoria.library import Library
+
+    library = Library()
+    poems = library.list_all()
+
+    # Apply filters
+    if form:
+        poems = [p for p in poems if p.form == form]
+    if language:
+        poems = [p for p in poems if p.language == language]
+
+    if not poems:
+        rprint("[dim]No poems in library yet. Use 'poesia write --save' to save one.[/dim]")
+        return
+
+    poems = poems[:limit]
+    rprint(f"\n[bold]Library[/bold] ({len(poems)} poem{'s' if len(poems) != 1 else ''})\n")
+    for poem in poems:
+        date_str = poem.created_at.strftime("%Y-%m-%d %H:%M")
+        tags_str = f"  [dim][{', '.join(poem.tags)}][/dim]" if poem.tags else ""
+        rprint(f"  [cyan]{poem.id}[/cyan]")
+        rprint(f"    [bold]{poem.theme}[/bold]  [{poem.form}, {poem.language}]  {date_str}{tags_str}")
+        if poem.lines:
+            preview = poem.lines[0][:70]
+            rprint(f"    [dim]{preview}…[/dim]")
+        rprint()
 
 
 @memoria_app.command("search")
-def memoria_search(query: str = typer.Argument(..., help="Substring to search for.")) -> None:
-    """Search the personal library by naive substring match (stub)."""
-    rprint(f"[dim]Search for '{query}' — persistence not yet implemented (Phase 1).[/dim]")
+def memoria_search(
+    query: str = typer.Argument(..., help="Substring to search across theme, tags and content."),
+) -> None:
+    """Search the personal library by substring match across theme, tags and content."""
+    from poesia.memoria.library import Library
+
+    library = Library()
+    poems = library.search(query)
+
+    if not poems:
+        rprint(f"[dim]No poems found matching '{query}'.[/dim]")
+        return
+
+    rprint(f"\n[bold]Search results for '{query}'[/bold] ({len(poems)} found)\n")
+    for poem in poems:
+        date_str = poem.created_at.strftime("%Y-%m-%d %H:%M")
+        rprint(f"  [cyan]{poem.id}[/cyan]  [{poem.form}, {poem.language}]  {date_str}")
+        rprint(f"    [bold]{poem.theme}[/bold]")
+        for line in poem.lines[:3]:
+            rprint(f"    [dim]{line}[/dim]")
+        if len(poem.lines) > 3:
+            rprint(f"    [dim]… ({len(poem.lines)} lines total)[/dim]")
+        rprint()
 
 
 @memoria_app.command("add-fragment")

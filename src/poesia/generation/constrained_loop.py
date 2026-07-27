@@ -20,7 +20,7 @@ Phase 3E: now supports BriefBuilder integration for rich pre-generation context.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from poesia.evaluation.scorer import LineScorer, ScoredCandidate
 from poesia.forms.definitions import FormSpec, get_form
@@ -45,6 +45,10 @@ def _phonology_for(language: str):
         from poesia.phonology.dutch import DutchPhonology
         return DutchPhonology()
     raise ValueError(f"No phonology backend registered for language '{language}'.")
+
+
+# Callable type: receives (line_index, scored_candidates) → returns chosen line text
+LineSelector = Callable[[int, "list[ScoredCandidate]"], str]
 
 
 @dataclass
@@ -100,6 +104,7 @@ class ConstrainedLoop:
         tone: list[str] | None = None,
         seeds: list[str] | None = None,
         brief_level: str = "standard",
+        line_selector: "LineSelector | None" = None,
     ) -> LoopResult:
         """Generate a full poem, one line at a time, for `total_lines` lines.
 
@@ -110,6 +115,10 @@ class ConstrainedLoop:
             tone: Optional tone descriptors (e.g. ['melancholic', 'intimate']).
             seeds: Optional seed words to expand for rhymes/synonyms.
             brief_level: Brief verbosity: 'minimal', 'standard', or 'maximal'.
+            line_selector: Optional callable ``(line_index, candidates) -> str``.
+                If provided, called after scoring each line position so the human
+                can choose among candidates. If None (default) the top-scored
+                candidate is selected automatically.
 
         Returns:
             LoopResult with generated lines, scoring history, and brief used.
@@ -176,6 +185,25 @@ class ConstrainedLoop:
                 attempts += 1
 
             if best is not None:
+                # Human selection callback: may override auto-selected best
+                if line_selector is not None and scored:
+                    chosen_text = line_selector(line_index, scored)
+                    # Find the ScoredCandidate for the chosen line.
+                    # If the human typed their own line, wrap it in a ScoredCandidate.
+                    match = next((c for c in scored if c.line == chosen_text), None)
+                    if match is not None:
+                        best = match
+                    else:
+                        # User typed a custom line — rescan it and use as best
+                        custom_scan = self._phonology.scan_line(chosen_text)
+                        best = ScoredCandidate(
+                            line=chosen_text,
+                            scan=custom_scan,
+                            score=1.0,
+                            breakdown={"metre": 1.0, "rhyme": 0.0,
+                                       "theme": 0.0, "novelty": 1.0, "cliche": 0.0},
+                        )
+
                 result.lines.append(best.line)
                 rhyme_tracker.commit(line_index, best.line)
 

@@ -41,11 +41,13 @@
 - [x] **P0 hardening**: LineScorer validates embeddings (theme + prior + candidates)
 - [x] **P0 hardening**: Remove silent failures, expose validation errors
 - [x] **P0 hardening**: 26 new tests for validation and contract enforcement
+- [x] **P1 complete**: memoria list/search wired to real Library; --show-retrieval;
+  --interactive human line selection with typed-own-line support; 9 new tests
 
 ## IN PROGRESS
 
-- [ ] **RAG/LLM hardening P1:** complete Library → retrieval → generation brief →
-  validated alternatives → human selection → provenance-preserving save.
+- [ ] **RAG/LLM hardening P2:** typed graph nodes/relations and bounded explainable
+  graph expansion (prerequisite: P1 now complete — see DONE below).
 
 ## BACKLOG
 
