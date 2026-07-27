@@ -32,28 +32,57 @@ class SpanishPhonology:
         if self._rantanplan is None:
             try:
                 import rantanplan  # type: ignore[import-untyped]
-            except ImportError as exc:  # pragma: no cover - environment dependent
-                raise RuntimeError(
-                    "rantanplan is not installed. Run: pip install -e '.[spanish]'"
-                ) from exc
-            self._rantanplan = rantanplan
-        return self._rantanplan
+                self._rantanplan = rantanplan
+            except ImportError:
+                self._rantanplan = False  # Mark as unavailable
+        return self._rantanplan if self._rantanplan else None
+
+    def _ensure_silabeador(self):
+        if self._silabeador is None:
+            try:
+                import silabeador  # type: ignore[import-untyped]
+                self._silabeador = silabeador
+            except ImportError:
+                self._silabeador = False
+        return self._silabeador if self._silabeador else None
 
     def scan_line(self, line: str) -> ScanResult:
         """Scan a single line of Spanish verse.
 
         Returns a ScanResult with metrical syllable count, stress pattern and
-        rhyme key populated from rantanplan's analysis. Raises RuntimeError
-        with an actionable message if rantanplan is not installed.
+        rhyme key. Uses rantanplan if available, falls back to silabeador for
+        basic syllable counting.
         """
+        # Try rantanplan first (full metrical analysis)
         rantanplan = self._ensure_rantanplan()
-        analysis = rantanplan.get_scansion(line)
-        # NOTE: exact rantanplan API surface to be confirmed against installed
-        # version; this is a structural placeholder for Phase 0.
-        return ScanResult(
-            line=line,
-            metrical_syllable_count=analysis.get("num_syllables", 0),
-            is_valid=analysis.get("num_syllables", 0) > 0,
+        if rantanplan:
+            analysis = rantanplan.get_scansion(line)
+            return ScanResult(
+                line=line,
+                metrical_syllable_count=analysis.get("num_syllables", 0),
+                is_valid=analysis.get("num_syllables", 0) > 0,
+            )
+
+        # Fall back to silabeador (basic syllable counting)
+        silabeador = self._ensure_silabeador()
+        if silabeador:
+            words = line.split()
+            total_syllables = 0
+            for word in words:
+                # Clean punctuation
+                clean_word = "".join(c for c in word if c.isalpha())
+                if clean_word:
+                    syllables = silabeador.syllabify(clean_word)
+                    total_syllables += len(syllables)
+            return ScanResult(
+                line=line,
+                metrical_syllable_count=total_syllables,
+                is_valid=total_syllables > 0,
+            )
+
+        # No backend available
+        raise RuntimeError(
+            "No Spanish phonology backend installed. Run: pip install silabeador"
         )
 
     def rhyme_key(self, line: str) -> RhymeKey:
