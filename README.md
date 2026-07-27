@@ -166,6 +166,15 @@ poesia/
 
 ## Status
 
-**Phase 4 complete** (2026-07-27). 128 tests passing.
+**Phase 4 complete + P0/P1 RAG/LLM hardening** (2026-07-27). **228 tests passing.**
 
-See `memory-bank/tasks.md` for the current Kanban and `docs/ROADMAP.md` for details.
+### Recent Updates (2026-07-27)
+- ✅ Fixed haiku 5-7-5 syllable pattern (was broken)
+- ✅ Adaptive weight normalization for better score differentiation
+- ✅ Explicit degraded mode messaging when embeddings unavailable
+- ✅ `--show-alternatives` flag for candidate inspection
+- ✅ Complete library workflow verified (save → retrieve → generate → provenance)
+- ✅ Spanish sinalefa (vowel elision) for correct metrical counting
+- ✅ Real semantic scoring with multilingual E5 embeddings
+
+See `USAGE_GUIDE.md` for complete feature documentation and `LIBRARY_WORKFLOW_TEST.md` for P1 verification.
