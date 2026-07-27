@@ -70,7 +70,12 @@ class GraphRAGRetriever:
     # Public interface
     # ------------------------------------------------------------------
 
-    def ingest(self, records: list[PoemRecord], embeddings: dict[str, list[float]] | None = None) -> None:
+    def ingest(
+        self,
+        records: list[PoemRecord],
+        embeddings: dict[str, list[float]] | None = None,
+        embedding_client: Any | None = None,
+    ) -> None:
         """Add or update poem nodes and rebuild semantic neighbourhood edges.
 
         Args:
@@ -78,8 +83,28 @@ class GraphRAGRetriever:
             embeddings: Optional dict mapping record.id → float vector. If
                 provided, semantic similarity edges are built between poems
                 whose cosine score ≥ SIMILARITY_THRESHOLD.
+            embedding_client: Optional EmbeddingClient for auto-embedding. If
+                provided and embeddings dict is missing entries, will compute
+                embeddings automatically from record content.
+
+        Phase 4D: Auto-embed on ingest when embedding_client is provided.
         """
         embeddings = embeddings or {}
+
+        # Phase 4D: Auto-embed records that don't have pre-computed embeddings
+        if embedding_client is not None:
+            for rec in records:
+                if rec.id and rec.id not in embeddings:
+                    # Build embeddable text from record
+                    text_parts = [rec.theme or ""]
+                    if hasattr(rec, "lines") and rec.lines:
+                        text_parts.extend(rec.lines)
+                    embeddable_text = " ".join(text_parts).strip()
+                    if embeddable_text:
+                        try:
+                            embeddings[rec.id] = embedding_client.embed(embeddable_text)
+                        except Exception:
+                            pass  # Skip if embedding fails
 
         for rec in records:
             if not rec.id:

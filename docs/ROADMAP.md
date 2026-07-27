@@ -76,6 +76,35 @@ Your inputs → PoesIA enriches → LLM (one dense call) → PoesIA validates �
 PoesIA front-loads context to minimize LLM calls and keep your voice central.
 See `ENRICHMENT_ARCHITECTURE.md` for the full design.
 
+## Phase 4 — Polish & Real Generation ✅
+
+### 4A: Real LLM Integration ✅
+- [x] Wire `HostedLLMClient` to actual Gemini/OpenAI APIs
+- [x] CLI `--llm gemini|openai|stub|auto` option
+- [x] Environment variable config for API keys (GEMINI_API_KEY, OPENAI_API_KEY)
+- [ ] End-to-end poem generation test (requires API key)
+
+### 4B: Richer Influence Profiles ✅
+- [x] `InfluenceRecord` already has movement, era, tone, forms, exemplars, resonance_notes
+- [x] Parse full profiles from INFLUENCE_REGISTRY.md (movement, era, tone, exemplars)
+- [x] Correct language detection from section headers (es/en/nl)
+- [x] Clean markdown formatting (strip `**` markers)
+
+### 4C: GalerIA Style Anchoring ✅
+- [x] `style_anchoring.py` with movement→visual style mapping
+- [x] `style_from_influences()` derives visual keywords from influences
+- [x] CLI `galeria illustrate --style-from-influences --tone <tones>`
+
+### 4D: Auto-embed on Ingest ✅
+- [x] `GraphRAGRetriever.ingest()` accepts optional `embedding_client`
+- [x] Auto-compute embeddings for records missing from embeddings dict
+- [x] Semantic edges rebuilt automatically
+
+### 4E: Literary Taxonomy Integration (deferred)
+- [ ] Auto-tag influences by movement from taxonomy
+- [ ] Retrieval by movement/era
+- [ ] Brief includes movement context
+
 ## Explicit non-goals for now
 
 - No web frontend until concrete need emerges — Python-only

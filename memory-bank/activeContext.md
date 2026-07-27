@@ -1,8 +1,36 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-07-27 — Phase 3E complete._
+_Last updated: 2026-07-27 — Phase 4 complete._
 
 ## What We Just Did
+
+### Session 2026-07-27 (Phase 4 Complete)
+
+1. **Dutch phonology support** — `pyphen`-based syllabification for Dutch
+   - New `DutchPhonology` class in `phonology/dutch.py`
+   - CLI `--language nl` support for scan and write commands
+   - 4 new Dutch tests
+
+2. **Phase 4A: Real LLM Integration**
+   - CLI `write --llm gemini|openai|stub|auto` option
+   - Environment variable config (GEMINI_API_KEY, OPENAI_API_KEY)
+   - `HostedLLMClient` already implemented, now wired to CLI
+
+3. **Phase 4B: Richer Influence Profiles**
+   - Full registry parser extracts: movement, era, tone, forms, exemplars
+   - Correct language detection from section headers (es/en/nl)
+   - Clean markdown formatting (strips `**` markers)
+
+4. **Phase 4C: GalerIA Style Anchoring**
+   - New `galeria/style_anchoring.py` with movement→visual style mapping
+   - `style_from_influences()` derives visual keywords
+   - CLI `galeria illustrate --style-from-influences --tone <tones>`
+
+5. **Phase 4D: Auto-embed on Ingest**
+   - `GraphRAGRetriever.ingest()` accepts optional `embedding_client`
+   - Auto-computes embeddings for records missing from dict
+
+**Tests**: 106 passing (7 new Phase 4 tests)
 
 ### Session 2026-07-27 (Phase 3E Integration)
 

@@ -1,6 +1,6 @@
 # Tasks — PoesIA (Kanban)
 
-## DONE (Phases 0-3E Complete)
+## DONE (Phases 0-4 Complete)
 
 - [x] Scaffold project (pyproject.toml, .gitignore, README)
 - [x] `phonology/` — base dataclasses & Spanish/English/multilingual wrappers
@@ -26,6 +26,12 @@
 - [x] Phase 3E: CLI `memoria add-fragment|add-seed|add-influence`
 - [x] Phase 3E: CLI `memoria list-fragments|list-influences`
 - [x] Phase 3E: Integration tests (test_integration_phase3e.py)
+- [x] Dutch phonology support via pyphen
+- [x] Phase 4A: CLI `--llm gemini|openai|stub|auto` option
+- [x] Phase 4B: Richer influence profile parsing (movement, era, exemplars)
+- [x] Phase 4C: GalerIA style anchoring from influences
+- [x] Phase 4D: Auto-embed on ingest in GraphRAGRetriever
+- [x] Phase 4 tests (test_phase4_features.py)
 
 ## IN PROGRESS
 
@@ -33,10 +39,8 @@
 
 ## BACKLOG
 
-- [ ] Auto-embed on ingest in GraphRAGRetriever
-- [ ] Wire retrieval into GalerIA for style anchoring (Phase 4)
-- [ ] Test with real LLM backend (not StubLLMClient)
-- [ ] Improve influence parsing from INFLUENCE_REGISTRY.md
+- [ ] Test with real LLM backend (set GEMINI_API_KEY or OPENAI_API_KEY)
+- [ ] Phase 4E: Literary taxonomy auto-tagging
 
 ## BLOCKED
 

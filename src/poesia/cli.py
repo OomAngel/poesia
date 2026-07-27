@@ -23,24 +23,42 @@ app = typer.Typer(help="PoesIA: a hybrid poetry-writing engine.")
 @app.command()
 def write(
     theme: str = typer.Option(..., help="Thematic anchor, e.g. 'lluvia sobre piedra'."),
-    language: str = typer.Option("es", help="Language code: 'es' or 'en'."),
+    language: str = typer.Option("es", help="Language code: 'es', 'en', or 'nl'."),
     form: str = typer.Option("soneto", help="Registered form name, see poesia.forms.definitions."),
     n_candidates: int = typer.Option(16, help="Candidate lines generated per position."),
     tone: str = typer.Option(None, help="Comma-separated tone descriptors, e.g. 'melancholic,intimate'."),
     seeds: str = typer.Option(None, help="Comma-separated seed words to expand for rhymes/synonyms."),
     brief_level: str = typer.Option("standard", help="Brief verbosity: minimal, standard, or maximal."),
     use_brief: bool = typer.Option(False, "--brief", help="Use BriefBuilder for rich pre-generation context."),
+    llm: str = typer.Option("stub", help="LLM backend: 'stub', 'gemini', 'openai', or 'auto'."),
 ) -> None:
     """Generate a poem using the constrained generate/validate/repair loop.
 
     With --brief, uses BriefBuilder to assemble rich context from personal
     fragments, seed expansions, and influence matching before generation.
+
+    LLM backends:
+      - stub: Deterministic placeholder (default, no API key needed)
+      - gemini: Google Gemini API (requires GEMINI_API_KEY env var)
+      - openai: OpenAI API (requires OPENAI_API_KEY env var)
+      - auto: Use first available API key (Gemini preferred)
     """
     from poesia.generation.constrained_loop import ConstrainedLoop
+    from poesia.generation.llm_client import HostedLLMClient, StubLLMClient
 
     # Parse comma-separated options
     tone_list = [t.strip() for t in tone.split(",")] if tone else None
     seeds_list = [s.strip() for s in seeds.split(",")] if seeds else None
+
+    # Select LLM backend
+    if llm == "stub":
+        llm_client = StubLLMClient()
+    elif llm in ("gemini", "openai", "auto"):
+        llm_client = HostedLLMClient(provider=llm)
+        rprint(f"[dim]Using LLM: {llm_client.provider} ({llm_client.model})[/dim]")
+    else:
+        rprint(f"[red]Unknown LLM backend: {llm}. Using stub.[/red]")
+        llm_client = StubLLMClient()
 
     # Build the loop with optional brief builder
     brief_builder = None
@@ -50,14 +68,18 @@ def write(
 
     if use_brief:
         from poesia.generation.brief_builder import BriefBuilder
-        from poesia.memoria.embeddings import StubEmbeddingClient
+        from poesia.memoria.embeddings import get_embedding_client
 
         # Load personal context if available
         fragments = _load_fragments()
         influences = _load_influences()
 
-        # Use stub embedding client for now (can upgrade to real one later)
-        embedding_client = StubEmbeddingClient()
+        # Use real embedding client for semantic retrieval
+        try:
+            embedding_client = get_embedding_client()
+        except Exception:
+            from poesia.memoria.embeddings import StubEmbeddingClient
+            embedding_client = StubEmbeddingClient()
 
         brief_builder = BriefBuilder(
             embedding_client=embedding_client,
@@ -68,6 +90,7 @@ def write(
     loop = ConstrainedLoop(
         language=language,
         form=form,
+        llm=llm_client,
         brief_builder=brief_builder,
         embedding_client=embedding_client,
         fragments=fragments,
@@ -115,45 +138,86 @@ def _load_fragments() -> list:
 
 
 def _load_influences() -> list:
-    """Load influences from docs/INFLUENCE_REGISTRY.md if available."""
+    """Load influences from docs/INFLUENCE_REGISTRY.md with full profile parsing.
+
+    Phase 4B: Extracts movement, era, tone, forms, and exemplars from the registry.
+    """
+    import re
     from pathlib import Path
 
     from poesia.memoria.records import InfluenceRecord
 
     influences = []
     registry_path = Path(__file__).parent.parent.parent / "docs" / "INFLUENCE_REGISTRY.md"
-    if registry_path.exists():
-        # Simple parsing: look for poet entries in the markdown
-        content = registry_path.read_text(encoding="utf-8")
-        current_poet = None
-        current_tone = []
+    if not registry_path.exists():
+        return influences
 
-        for line in content.split("\n"):
-            if line.startswith("### "):
-                if current_poet:
-                    influences.append(
-                        InfluenceRecord(
-                            id=current_poet.lower().replace(" ", "_"),
-                            name=current_poet,
-                            language="es",  # Default to Spanish
-                            tone=current_tone,
-                        )
-                    )
-                current_poet = line[4:].strip()
-                current_tone = []
-            elif line.startswith("- Tone:") or line.startswith("- **Tone**:"):
-                tone_str = line.split(":", 1)[1].strip() if ":" in line else ""
-                current_tone = [t.strip() for t in tone_str.split(",") if t.strip()]
+    content = registry_path.read_text(encoding="utf-8")
+    current_section_lang = "es"  # Default language based on section
 
-        if current_poet:
+    # Track current poet data
+    current: dict = {}
+
+    def _save_current():
+        if current.get("name"):
             influences.append(
                 InfluenceRecord(
-                    id=current_poet.lower().replace(" ", "_"),
-                    name=current_poet,
-                    language="es",
-                    tone=current_tone,
+                    id=current["name"].lower().replace(" ", "_").replace(".", ""),
+                    name=current["name"],
+                    language=current.get("language", "es"),
+                    movement=current.get("movement"),
+                    era=current.get("era"),
+                    tone=current.get("tone", []),
+                    forms=current.get("forms", []),
+                    exemplars=current.get("exemplars", []),
                 )
             )
+
+    for line in content.split("\n"):
+        # Section headers determine language
+        if line.startswith("## Spanish") or line.startswith("## Latin"):
+            current_section_lang = "es"
+            continue
+        if line.startswith("## English") or line.startswith("## American"):
+            current_section_lang = "en"
+            continue
+        if line.startswith("## Dutch"):
+            current_section_lang = "nl"
+            continue
+
+        # Poet header: ### Name (years)
+        if line.startswith("### "):
+            _save_current()
+            header = line[4:].strip()
+            # Extract name and era from "Name (1875-1939)"
+            match = re.match(r"^(.+?)\s*\(([^)]+)\)$", header)
+            if match:
+                current = {"name": match.group(1).strip(), "era": match.group(2).strip()}
+            else:
+                current = {"name": header}
+            current["language"] = current_section_lang
+            continue
+
+        # Parse attributes (strip markdown bold markers)
+        def _clean_md(s: str) -> str:
+            """Remove markdown bold markers and extra whitespace."""
+            return re.sub(r"\*\*", "", s).strip().strip('"')
+
+        if "**Movement:**" in line or "- Movement:" in line:
+            val = line.split(":", 1)[1].strip() if ":" in line else ""
+            current["movement"] = _clean_md(val)
+        elif "**Tone:**" in line or "- Tone:" in line:
+            val = line.split(":", 1)[1].strip() if ":" in line else ""
+            current["tone"] = [_clean_md(t) for t in val.split(",") if t.strip()]
+        elif "**Forms:**" in line or "- Forms:" in line:
+            val = line.split(":", 1)[1].strip() if ":" in line else ""
+            current["forms"] = [_clean_md(f) for f in val.split(",") if f.strip()]
+        elif "**Exemplars:**" in line or "- Exemplars:" in line:
+            val = line.split(":", 1)[1].strip() if ":" in line else ""
+            # Split on · or " · " separator
+            current["exemplars"] = [_clean_md(e) for e in re.split(r"\s*·\s*", val) if e.strip()]
+
+    _save_current()
     return influences
 
 
@@ -213,15 +277,44 @@ def galeria_illustrate(
     path: str = typer.Argument(..., help="Path to a text file with the poem."),
     style: str = typer.Option("grabado español", help="Style tag passed to the image backend."),
     output: str = typer.Option("auca.pdf", help="Output PDF path."),
+    use_influences: bool = typer.Option(False, "--style-from-influences", help="Derive style from matched influences."),
+    tone: str = typer.Option(None, help="Comma-separated tones for influence matching."),
 ) -> None:
-    """Generate an illustrated auca-style sheet for a poem (stub, Phase 2)."""
+    """Generate an illustrated auca-style sheet for a poem.
+
+    With --style-from-influences, derives visual style from poetic influences
+    matched by the provided tones. Maps movements like Generación del 98,
+    Romanticism, Surrealism to appropriate visual styles.
+    """
     from poesia.galeria.auca import AucaComposer, AucaPanel
     from poesia.galeria.backends import StubImageBackend
 
     with open(path, encoding="utf-8") as f:
         lines = [ln.strip() for ln in f if ln.strip()]
+
+    # Phase 4C: Style anchoring from influences
+    final_style = style
+    if use_influences:
+        from poesia.galeria.style_anchoring import style_from_influences
+
+        influences = _load_influences()
+        if tone:
+            tone_list = [t.strip().lower() for t in tone.split(",")]
+            # Filter influences by matching tones
+            matched = [
+                inf for inf in influences
+                if any(t in [it.lower() for it in inf.tone] for t in tone_list)
+            ]
+        else:
+            matched = influences[:5]  # Use first 5 if no tone specified
+
+        influence_style = style_from_influences(matched)
+        if influence_style:
+            final_style = f"{influence_style}, {style}"
+            rprint(f"[dim]Style from influences: {influence_style}[/dim]")
+
     backend = StubImageBackend()
-    image_bytes = backend.generate_image(prompt=" ".join(lines), style=style)
+    image_bytes = backend.generate_image(prompt=" ".join(lines), style=final_style)
     panel = AucaPanel(image_bytes=image_bytes, caption_lines=lines)
     composer = AucaComposer()
     composer.export_pdf([panel], output_path=output)  # raises NotImplementedError today
