@@ -159,9 +159,19 @@ class StubLLMClient:
 class HostedLLMClient:
     """Hosted LLM provider via standard HTTP API requests (Gemini or OpenAI format).
 
-    Reads GEMINI_API_KEY or OPENAI_API_KEY from environment. Does not require
-    external SDK packages, relying on standard library urllib.
+    Reads GEMINI_API_KEY, OPENAI_API_KEY, or XAI_API_KEY from environment.
+    Does not require external SDK packages, relying on standard library urllib.
+
+    Supported providers:
+      - gemini  : Google Gemini API (GEMINI_API_KEY)
+      - openai  : OpenAI Chat Completions API (OPENAI_API_KEY)
+      - grok    : xAI Grok API — OpenAI-compatible (XAI_API_KEY)
+      - auto    : First available key wins (Gemini → Grok → OpenAI)
     """
+
+    # xAI Grok base URL (OpenAI-compatible)
+    _GROK_BASE_URL = "https://api.x.ai/v1"
+    _GROK_DEFAULT_MODEL = "grok-3-mini"
 
     def __init__(
         self,
@@ -179,6 +189,10 @@ class HostedLLMClient:
             self.api_key = os.environ.get("GEMINI_API_KEY", "")
             if provider == "auto":
                 self.provider = "gemini"
+        elif os.environ.get("XAI_API_KEY"):
+            self.api_key = os.environ.get("XAI_API_KEY", "")
+            if provider == "auto":
+                self.provider = "grok"
         elif os.environ.get("OPENAI_API_KEY"):
             self.api_key = os.environ.get("OPENAI_API_KEY", "")
             if provider == "auto":
@@ -190,20 +204,31 @@ class HostedLLMClient:
             self.model = model
         elif self.provider == "gemini":
             self.model = "gemini-2.5-flash"
+        elif self.provider == "grok":
+            self.model = self._GROK_DEFAULT_MODEL
         else:
             self.model = "gpt-4o-mini"
 
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         if not self.api_key:
             raise RuntimeError(
-                "HostedLLMClient requires an API key. Set GEMINI_API_KEY or "
-                "OPENAI_API_KEY environment variable, or pass api_key to HostedLLMClient."
+                "HostedLLMClient requires an API key. Set GEMINI_API_KEY, "
+                "XAI_API_KEY, or OPENAI_API_KEY environment variable, or pass "
+                "api_key to HostedLLMClient."
             )
 
         if self.provider == "gemini":
             return self._generate_gemini(prompt, n, temperature)
+        elif self.provider == "grok":
+            return self._generate_openai_compat(
+                prompt, n, temperature,
+                base_url=self._GROK_BASE_URL,
+            )
         else:
-            return self._generate_openai(prompt, n, temperature)
+            return self._generate_openai_compat(
+                prompt, n, temperature,
+                base_url="https://api.openai.com/v1",
+            )
 
     def repair(self, line: str, defect_description: str) -> str:
         prompt = (
@@ -281,8 +306,11 @@ class HostedLLMClient:
         except Exception as e:
             raise RuntimeError(f"Gemini API request failed: {e}") from e
 
-    def _generate_openai(self, prompt: str, n: int, temperature: float) -> list[str]:
-        url = "https://api.openai.com/v1/chat/completions"
+    def _generate_openai_compat(
+        self, prompt: str, n: int, temperature: float, base_url: str
+    ) -> list[str]:
+        """OpenAI-compatible chat completions (used by OpenAI and Grok)."""
+        url = f"{base_url.rstrip('/')}/chat/completions"
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
@@ -298,13 +326,14 @@ class HostedLLMClient:
                 "Authorization": f"Bearer {self.api_key}",
             },
         )
+        provider_label = "Grok" if "x.ai" in base_url else "OpenAI"
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 res = json.loads(resp.read().decode("utf-8"))
                 return [c["message"]["content"].strip() for c in res.get("choices", [])]
         except urllib.error.HTTPError as e:
             err_msg = e.read().decode("utf-8")
-            raise RuntimeError(f"OpenAI API HTTP Error {e.code}: {err_msg}") from e
+            raise RuntimeError(f"{provider_label} API HTTP Error {e.code}: {err_msg}") from e
         except Exception as e:
-            raise RuntimeError(f"OpenAI API request failed: {e}") from e
+            raise RuntimeError(f"{provider_label} API request failed: {e}") from e
 

@@ -30,7 +30,7 @@ def write(
     seeds: str = typer.Option(None, help="Comma-separated seed words to expand for rhymes/synonyms."),
     brief_level: str = typer.Option("standard", help="Brief verbosity: minimal, standard, or maximal."),
     use_brief: bool = typer.Option(False, "--brief", help="Use BriefBuilder for rich pre-generation context."),
-    llm: str = typer.Option("stub", help="LLM backend: 'stub', 'gemini', 'openai', or 'auto'."),
+    llm: str = typer.Option("stub", help="LLM backend: 'stub', 'gemini', 'openai', 'grok', or 'auto'."),
     save: bool = typer.Option(False, "--save", help="Save the generated poem to the library (~/.poesia/poems/)."),
     tags: str = typer.Option(None, help="Comma-separated tags for the saved poem."),
     use_library: bool = typer.Option(False, "--use-library", help="Load existing poems from library for retrieval context."),
@@ -51,7 +51,8 @@ def write(
       - stub: Deterministic placeholder (default, no API key needed)
       - gemini: Google Gemini API (requires GEMINI_API_KEY env var)
       - openai: OpenAI API (requires OPENAI_API_KEY env var)
-      - auto: Use first available API key (Gemini preferred)
+      - grok: xAI Grok API (requires XAI_API_KEY env var)
+      - auto: Use first available API key (Gemini → Grok → OpenAI)
     """
     from poesia.generation.constrained_loop import ConstrainedLoop
     from poesia.generation.llm_client import HostedLLMClient, StubLLMClient
@@ -63,7 +64,7 @@ def write(
     # Select LLM backend
     if llm == "stub":
         llm_client = StubLLMClient()
-    elif llm in ("gemini", "openai", "auto"):
+    elif llm in ("gemini", "openai", "grok", "auto"):
         llm_client = HostedLLMClient(provider=llm)
         rprint(f"[dim]Using LLM: {llm_client.provider} ({llm_client.model})[/dim]")
     else:
