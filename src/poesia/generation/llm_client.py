@@ -120,12 +120,14 @@ class HostedLLMClient:
             try:
                 with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                     res = json.loads(resp.read().decode("utf-8"))
-                    text = (
-                        res.get("candidates", [{}])[0]
-                        .get("content", {})
-                        .get("parts", [{}])[0]
-                        .get("text", "")
-                    )
+                    # Handle empty/malformed responses gracefully
+                    cands = res.get("candidates", [])
+                    if cands:
+                        content = cands[0].get("content", {})
+                        parts = content.get("parts", [])
+                        text = parts[0].get("text", "") if parts else ""
+                    else:
+                        text = ""
                     candidates.append(text.strip())
             except urllib.error.HTTPError as e:
                 err_msg = e.read().decode("utf-8")
