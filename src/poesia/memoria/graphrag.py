@@ -19,10 +19,13 @@ Use add_fragment_node() / add_influence_node() for typed non-poem nodes.
 P0 hardening: validates embedding dimensions and exposes failures explicitly.
 P2 additions: NodeType/RelationType enums, GraphPath, traverse(),
               versioned JSON persistence header.
+P3 source fingerprints: content_fingerprint in JSON header; is_stale(records)
+              detects when the persisted index is out of date.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -146,6 +149,36 @@ class GraphPath:
         return " ".join(parts)
 
 
+def _compute_fingerprint(records: list[PoemRecord]) -> str:
+    """Compute a deterministic SHA-256 fingerprint over the ingested record set.
+
+    The fingerprint is a hex digest of a sorted sequence of
+    ``(record.id, embeddable_text)`` pairs, so it changes whenever:
+
+    * A record is added or removed.
+    * A record's theme or lines change.
+
+    The pairs are sorted by ID so the result is independent of the order in
+    which records are passed.
+
+    Args:
+        records: The list of PoemRecord objects to fingerprint.
+
+    Returns:
+        A 64-character hex string (SHA-256 digest).
+    """
+    hasher = hashlib.sha256()
+    sorted_records = sorted(records, key=lambda r: r.id or "")
+    for rec in sorted_records:
+        text_parts = [rec.id or "", rec.theme or ""]
+        if hasattr(rec, "lines") and rec.lines:
+            text_parts.extend(rec.lines)
+        entry = "\x00".join(text_parts)
+        hasher.update(entry.encode("utf-8"))
+        hasher.update(b"\n")  # Record separator
+    return hasher.hexdigest()
+
+
 def _cosine(a: list[float], b: list[float]) -> float:
     """Pure Python cosine similarity between two vectors."""
     if not a or not b or len(a) != len(b):
@@ -186,6 +219,10 @@ class GraphRAGRetriever:
         # P2/P3: track the embedding model used for this index (for compatibility)
         self._index_model_id: str | None = None
         self._index_embedding_dimension: int | None = None
+
+        # P3: source fingerprint — SHA-256 over the ingested (id, text) pairs.
+        # Allows callers to detect a stale index without a full rebuild.
+        self._index_content_fingerprint: str | None = None
 
         self._graph = self._make_graph()
         if self.storage_path and self.storage_path.exists():
@@ -311,8 +348,33 @@ class GraphRAGRetriever:
                         relation_type=RelationType.similar_to.value,
                     )
 
+        # P3: update content fingerprint after every ingest
+        self._index_content_fingerprint = _compute_fingerprint(records)
+
         if self.storage_path:
             self._save()
+
+    def is_stale(self, records: list[PoemRecord]) -> bool:
+        """Return True if the persisted index is out of sync with *records*.
+
+        The check is a pure fingerprint comparison: it hashes the given records
+        the same way :func:`_compute_fingerprint` did at ingest time and
+        compares with the stored value. This is O(N) in the number of records
+        and requires no embedding computation.
+
+        A ``None`` stored fingerprint (index built before P3 or never saved)
+        is treated as stale so callers know they should rebuild.
+
+        Args:
+            records: The current set of PoemRecord objects to compare against.
+
+        Returns:
+            ``True`` if the fingerprints differ (or the stored fingerprint is
+            unknown), ``False`` if the index matches the records exactly.
+        """
+        if self._index_content_fingerprint is None:
+            return True
+        return _compute_fingerprint(records) != self._index_content_fingerprint
 
     def retrieve(
         self,
@@ -827,6 +889,8 @@ class GraphRAGRetriever:
         - ``schema_version``: the format version string
         - ``model_id``: the embedding model recorded in the index (or ``None``)
         - ``embedding_dimension``: the vector size (or ``None``)
+        - ``content_fingerprint``: SHA-256 hex digest of the ingested records
+          (or ``None`` if the index was built before P3)
         - ``node_count``: number of nodes
         - ``edge_count``: number of edges
         """
@@ -834,6 +898,7 @@ class GraphRAGRetriever:
             "schema_version": _SCHEMA_VERSION,
             "model_id": self._index_model_id,
             "embedding_dimension": self._index_embedding_dimension,
+            "content_fingerprint": self._index_content_fingerprint,
             "node_count": self.node_count(),
             "edge_count": self.edge_count(),
         }
@@ -851,6 +916,8 @@ class GraphRAGRetriever:
             "schema_version": _SCHEMA_VERSION,
             "model_id": self._index_model_id,
             "embedding_dimension": self._index_embedding_dimension,
+            # P3: source fingerprint — SHA-256 over ingested (id, text) pairs
+            "content_fingerprint": self._index_content_fingerprint,
             "nodes": {n: dict(attrs) for n, attrs in self._graph.nodes(data=True)},
             "edges": [
                 {
@@ -887,6 +954,8 @@ class GraphRAGRetriever:
             # P2/P3: restore versioning metadata
             self._index_model_id = data.get("model_id")
             self._index_embedding_dimension = data.get("embedding_dimension")
+            # P3: restore source fingerprint
+            self._index_content_fingerprint = data.get("content_fingerprint")
 
             for node_id, attrs in data.get("nodes", {}).items():
                 self._graph.add_node(node_id, **attrs)

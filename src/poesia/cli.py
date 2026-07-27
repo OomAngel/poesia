@@ -90,12 +90,25 @@ def write(
 
     # P1: Load library poems as additional context if requested
     if use_library:
+        from poesia.memoria.graphrag import GraphRAGRetriever
         from poesia.memoria.library import Library
 
         library = Library()
         library_poems = library.list_all()
         if library_poems:
             rprint(f"[dim]Loaded {len(library_poems)} poems from library for context[/dim]")
+
+        # P3: warn when the persisted graph index may be stale relative to the
+        # current library — the user should run `poesia memoria rebuild` to
+        # re-index and restore accurate retrieval.
+        if library_poems:
+            _retriever_check = GraphRAGRetriever()
+            if _retriever_check.is_stale(library_poems):
+                rprint(
+                    "[yellow]⚠[/yellow]  [bold]Graph index may be stale.[/bold] "
+                    "Library content has changed since the last index build. "
+                    "Run [bold]poesia memoria rebuild[/bold] to re-index."
+                )
 
     if use_brief:
         from poesia.generation.brief_builder import BriefBuilder
