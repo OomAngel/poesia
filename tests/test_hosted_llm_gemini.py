@@ -87,26 +87,68 @@ class TestGeminiBackend:
 
         assert results == ["La luna brilla"]  # Stripped whitespace
 
-    def test_gemini_multiple_candidates_sequential(self, client: HostedLLMClient) -> None:
-        """Verify n>1 makes n sequential calls (current implementation)."""
+    def test_gemini_batched_candidates_single_call(self, client: HostedLLMClient) -> None:
+        """Verify n<=8 uses single API call with candidateCount."""
         call_count = 0
+        captured_payload = None
 
-        def count_calls(req, timeout=None):
-            nonlocal call_count
+        def capture_single_call(req, timeout=None):
+            nonlocal call_count, captured_payload
             call_count += 1
+            captured_payload = json.loads(req.data.decode("utf-8"))
             mock_response = MagicMock()
+            # Return 3 candidates in one response
             mock_response.read.return_value = json.dumps({
-                "candidates": [{"content": {"parts": [{"text": f"output {call_count}"}]}}]
+                "candidates": [
+                    {"content": {"parts": [{"text": "output 1"}]}},
+                    {"content": {"parts": [{"text": "output 2"}]}},
+                    {"content": {"parts": [{"text": "output 3"}]}},
+                ]
             }).encode("utf-8")
             mock_response.__enter__ = MagicMock(return_value=mock_response)
             mock_response.__exit__ = MagicMock(return_value=False)
             return mock_response
 
-        with patch("urllib.request.urlopen", side_effect=count_calls):
+        with patch("urllib.request.urlopen", side_effect=capture_single_call):
             results = client.generate("prompt", n=3)
 
-        assert call_count == 3
+        # Should be a single call with candidateCount=3
+        assert call_count == 1
+        assert captured_payload["generationConfig"]["candidateCount"] == 3
         assert len(results) == 3
+        assert results == ["output 1", "output 2", "output 3"]
+
+    def test_gemini_large_n_batches_in_chunks(self, client: HostedLLMClient) -> None:
+        """Verify n>8 batches into multiple calls."""
+        call_count = 0
+        captured_candidate_counts = []
+
+        def count_batches(req, timeout=None):
+            nonlocal call_count
+            call_count += 1
+            payload = json.loads(req.data.decode("utf-8"))
+            n_requested = payload["generationConfig"]["candidateCount"]
+            captured_candidate_counts.append(n_requested)
+
+            mock_response = MagicMock()
+            # Return requested number of candidates
+            mock_response.read.return_value = json.dumps({
+                "candidates": [
+                    {"content": {"parts": [{"text": f"output {i}"}]}}
+                    for i in range(n_requested)
+                ]
+            }).encode("utf-8")
+            mock_response.__enter__ = MagicMock(return_value=mock_response)
+            mock_response.__exit__ = MagicMock(return_value=False)
+            return mock_response
+
+        with patch("urllib.request.urlopen", side_effect=count_batches):
+            results = client.generate("prompt", n=10)
+
+        # Should make 2 calls: 8 + 2
+        assert call_count == 2
+        assert captured_candidate_counts == [8, 2]
+        assert len(results) == 10
 
     def test_gemini_empty_response_handling(self, client: HostedLLMClient) -> None:
         """Handle malformed/empty Gemini response gracefully."""

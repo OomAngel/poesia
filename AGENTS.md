@@ -9,6 +9,14 @@
 * **PoesIA**: A personal hybrid poetry-writing engine combining deterministic phonology/prosody validation with LLM semantic generation, extended into sound analysis (`eufonia`), illustration (`galeria`), collection library (`memoria`), and music score/recitation (`armonia`).
 * **Repo State**: Personal local-only repository. **Never configure or push to a remote (GitHub/GitLab) unless explicitly instructed by the user.**
 
+### Active RAG/LLM Development Authority
+
+Before changing `memoria/`, embedding-backed evaluation, retrieval-informed generation,
+hosted LLM integration, or their CLI paths, read
+`docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md` completely. It owns the current sequencing,
+honest capability boundary, acceptance criteria, and definition of done for this work.
+Do not mark a RAG/LLM phase complete from file presence or aggregate test count alone.
+
 ---
 
 ## 2. Commit Preparation & Git Standards
@@ -42,7 +50,8 @@ Before making any git commit, adhere to the following workflow:
 
 ### Session Start
 1. Check `memory-bank/activeContext.md` and `memory-bank/tasks.md` to establish current state and active focus.
-2. Run `pytest` to confirm working tree status.
+2. For RAG/LLM work, read `docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md`.
+3. Run `pytest` to confirm working tree status.
 
 ### Session End / Task Completion
 1. Update `memory-bank/activeContext.md` under **What We Just Did** and **Current Focus**.

@@ -103,39 +103,69 @@ class HostedLLMClient:
         return line
 
     def _generate_gemini(self, prompt: str, n: int, temperature: float) -> list[str]:
+        """Generate using Gemini API with candidateCount for batching.
+
+        Uses a single API call with candidateCount=n to get multiple candidates,
+        reducing latency and API calls compared to n sequential requests.
+        """
         url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
             f"?key={self.api_key}"
         )
-        candidates: list[str] = []
-        for _ in range(n):
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": temperature},
-            }
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                url, data=data, headers={"Content-Type": "application/json"}
-            )
-            try:
-                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                    res = json.loads(resp.read().decode("utf-8"))
-                    # Handle empty/malformed responses gracefully
-                    cands = res.get("candidates", [])
-                    if cands:
-                        content = cands[0].get("content", {})
-                        parts = content.get("parts", [])
-                        text = parts[0].get("text", "") if parts else ""
-                    else:
-                        text = ""
-                    candidates.append(text.strip())
-            except urllib.error.HTTPError as e:
-                err_msg = e.read().decode("utf-8")
-                raise RuntimeError(f"Gemini API HTTP Error {e.code}: {err_msg}") from e
-            except Exception as e:
-                raise RuntimeError(f"Gemini API request failed: {e}") from e
 
-        return candidates
+        # Use candidateCount for batched generation (max 8 for most Gemini models)
+        # Falls back to sequential calls if n > max_candidates
+        max_candidates = 8
+        if n <= max_candidates:
+            return self._generate_gemini_batched(url, prompt, n, temperature)
+        else:
+            # For large n, batch in chunks
+            candidates: list[str] = []
+            remaining = n
+            while remaining > 0:
+                batch_size = min(remaining, max_candidates)
+                candidates.extend(
+                    self._generate_gemini_batched(url, prompt, batch_size, temperature)
+                )
+                remaining -= batch_size
+            return candidates
+
+    def _generate_gemini_batched(
+        self, url: str, prompt: str, n: int, temperature: float
+    ) -> list[str]:
+        """Make a single Gemini API call with candidateCount=n."""
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": temperature,
+                "candidateCount": n,
+            },
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url, data=data, headers={"Content-Type": "application/json"}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                res = json.loads(resp.read().decode("utf-8"))
+                # Extract all candidates from the response
+                candidates: list[str] = []
+                for cand in res.get("candidates", []):
+                    content = cand.get("content", {})
+                    parts = content.get("parts", [])
+                    text = parts[0].get("text", "") if parts else ""
+                    candidates.append(text.strip())
+
+                # If we got fewer candidates than requested, pad with empty strings
+                while len(candidates) < n:
+                    candidates.append("")
+
+                return candidates
+        except urllib.error.HTTPError as e:
+            err_msg = e.read().decode("utf-8")
+            raise RuntimeError(f"Gemini API HTTP Error {e.code}: {err_msg}") from e
+        except Exception as e:
+            raise RuntimeError(f"Gemini API request failed: {e}") from e
 
     def _generate_openai(self, prompt: str, n: int, temperature: float) -> list[str]:
         url = "https://api.openai.com/v1/chat/completions"
