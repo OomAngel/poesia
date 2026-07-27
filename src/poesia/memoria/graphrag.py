@@ -11,6 +11,8 @@ Retrieval: given a query embedding, return the k most semantically similar
 poem records via cosine similarity against all stored embeddings.
 
 Ingestion: call ingest(records) to add/update nodes and rebuild edges.
+
+P0 hardening: validates embedding dimensions and exposes failures explicitly.
 """
 
 from __future__ import annotations
@@ -21,6 +23,10 @@ import os
 from pathlib import Path
 from typing import Any
 
+from poesia.memoria.embedding_validation import (
+    EmbeddingValidationError,
+    validate_embedding_vector,
+)
 from poesia.memoria.library import PoemRecord
 
 
@@ -92,7 +98,9 @@ class GraphRAGRetriever:
         embeddings = embeddings or {}
 
         # Phase 4D: Auto-embed records that don't have pre-computed embeddings
+        # P0: validate embeddings and expose failures explicitly
         if embedding_client is not None:
+            expected_dim = embedding_client.dimension
             for rec in records:
                 if rec.id and rec.id not in embeddings:
                     # Build embeddable text from record
@@ -103,20 +111,51 @@ class GraphRAGRetriever:
                     if embeddable_text:
                         try:
                             # Use embed_one() for scalar text, not embed() which expects list[str]
-                            embeddings[rec.id] = embedding_client.embed_one(embeddable_text)
-                        except Exception:
-                            pass  # Skip if embedding fails
+                            raw_embedding = embedding_client.embed_one(embeddable_text)
+                            # P0: validate embedding shape and values
+                            validated = validate_embedding_vector(
+                                raw_embedding,
+                                expected_dimension=expected_dim,
+                                context=f"auto-embed record {rec.id}",
+                            )
+                            embeddings[rec.id] = validated
+                        except EmbeddingValidationError as e:
+                            # P0: expose validation failures explicitly
+                            raise ValueError(
+                                f"Failed to auto-embed record {rec.id}: {e}"
+                            ) from e
+                        except Exception as e:
+                            # Other embedding failures (network, model load, etc.)
+                            raise RuntimeError(
+                                f"Embedding client failed for record {rec.id}: {e}"
+                            ) from e
 
+        # P0: validate all embeddings before storing
         for rec in records:
             if not rec.id:
                 continue
+
+            embedding = embeddings.get(rec.id, [])
+            # Validate non-empty embeddings
+            if embedding and embedding_client:
+                try:
+                    embedding = validate_embedding_vector(
+                        embedding,
+                        expected_dimension=embedding_client.dimension,
+                        context=f"record {rec.id} embedding",
+                    )
+                except EmbeddingValidationError as e:
+                    raise ValueError(
+                        f"Invalid embedding for record {rec.id}: {e}"
+                    ) from e
+
             self._graph.add_node(
                 rec.id,
                 theme=rec.theme,
                 form=rec.form,
                 language=rec.language,
                 tags=rec.tags,
-                embedding=embeddings.get(rec.id, []),
+                embedding=embedding,
             )
 
         # Rebuild semantic edges from embeddings
@@ -150,7 +189,18 @@ class GraphRAGRetriever:
 
         Returns:
             List of (poem_id, cosine_score) sorted by descending similarity.
+
+        Raises:
+            ValueError: If query_embedding is invalid (P0 hardening).
         """
+        # P0: validate query embedding
+        try:
+            query_embedding = validate_embedding_vector(
+                query_embedding, context="query embedding"
+            )
+        except EmbeddingValidationError as e:
+            raise ValueError(f"Invalid query embedding: {e}") from e
+
         scores: list[tuple[str, float]] = []
 
         for node_id, attrs in self._graph.nodes(data=True):
@@ -227,7 +277,18 @@ class GraphRAGRetriever:
 
         Returns:
             List of (poem_id, cosine_score) sorted by descending similarity.
+
+        Raises:
+            ValueError: If query_embedding is invalid (P0 hardening).
         """
+        # P0: validate query embedding
+        try:
+            query_embedding = validate_embedding_vector(
+                query_embedding, context="query embedding (graph-based)"
+            )
+        except EmbeddingValidationError as e:
+            raise ValueError(f"Invalid query embedding: {e}") from e
+
         try:
             import networkx as nx  # type: ignore[import-untyped]
         except ImportError:

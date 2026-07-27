@@ -7,6 +7,9 @@ model loading.
 
 Phase 1 update: Now uses real theme_score/novelty_score when an embedding
 client is provided. Falls back to metre-only scoring if no embeddings.
+
+P0 hardening: validates embeddings and exposes failures explicitly instead of
+silent fallback.
 """
 
 from __future__ import annotations
@@ -21,6 +24,10 @@ from poesia.evaluation.metrics import (
     novelty_score,
     rhyme_score,
     theme_score,
+)
+from poesia.memoria.embedding_validation import (
+    EmbeddingValidationError,
+    validate_embedding_vector,
 )
 from poesia.phonology.base import ScanResult
 
@@ -82,9 +89,19 @@ class LineScorer:
         if embedding_client and theme_text:
             try:
                 # Use embed_one() for scalar text, not embed() which expects list[str]
-                self._theme_embedding = embedding_client.embed_one(theme_text)
-            except Exception:
-                pass  # Fall back to no theme scoring
+                raw_theme = embedding_client.embed_one(theme_text)
+                # P0: validate theme embedding
+                self._theme_embedding = validate_embedding_vector(
+                    raw_theme,
+                    expected_dimension=embedding_client.dimension,
+                    context="theme embedding",
+                )
+            except EmbeddingValidationError as e:
+                # P0: expose validation failure explicitly
+                raise ValueError(f"Invalid theme embedding: {e}") from e
+            except Exception as e:
+                # Other failures (network, model load)
+                raise RuntimeError(f"Failed to embed theme text: {e}") from e
 
         # Track prior line embeddings for novelty scoring
         self._prior_embeddings: list[list[float]] = []
@@ -109,12 +126,23 @@ class LineScorer:
         # Embed prior lines for novelty scoring
         if prior_lines and self._embedding_client:
             self._prior_embeddings = []
-            for line in prior_lines:
+            for i, line in enumerate(prior_lines):
                 try:
                     # Use embed_one() for scalar text
-                    self._prior_embeddings.append(self._embedding_client.embed_one(line))
-                except Exception:
-                    pass
+                    raw_emb = self._embedding_client.embed_one(line)
+                    # P0: validate prior line embedding
+                    validated = validate_embedding_vector(
+                        raw_emb,
+                        expected_dimension=self._embedding_client.dimension,
+                        context=f"prior line {i} embedding",
+                    )
+                    self._prior_embeddings.append(validated)
+                except EmbeddingValidationError as e:
+                    # P0: expose validation failure explicitly
+                    raise ValueError(f"Invalid prior line {i} embedding: {e}") from e
+                except Exception as e:
+                    # Other failures
+                    raise RuntimeError(f"Failed to embed prior line {i}: {e}") from e
 
         scored: list[ScoredCandidate] = []
         for line in candidates:
@@ -135,10 +163,20 @@ class LineScorer:
             if self._embedding_client and self._theme_embedding:
                 try:
                     # Use embed_one() for scalar text
-                    candidate_embedding = self._embedding_client.embed_one(line)
+                    raw_cand = self._embedding_client.embed_one(line)
+                    # P0: validate candidate embedding
+                    candidate_embedding = validate_embedding_vector(
+                        raw_cand,
+                        expected_dimension=self._embedding_client.dimension,
+                        context=f"candidate line '{line[:30]}...' embedding",
+                    )
                     t_score = theme_score(candidate_embedding, self._theme_embedding)
-                except Exception:
-                    pass
+                except EmbeddingValidationError as e:
+                    # P0: expose validation failure explicitly
+                    raise ValueError(f"Invalid candidate embedding: {e}") from e
+                except Exception as e:
+                    # Other failures
+                    raise RuntimeError(f"Failed to embed candidate line: {e}") from e
 
             # Novelty score (if we have prior embeddings)
             n_score = 1.0  # Maximum novelty if no priors

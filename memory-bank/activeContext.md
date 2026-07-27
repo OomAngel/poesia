@@ -16,7 +16,48 @@ P0 and P1 of the hardening plan are satisfied.
 
 ## What We Just Did
 
-### Session 2026-07-27 (Load-Bearing Gap Fixes)
+### Session 2026-07-27 (P0 RAG/LLM Hardening - Embedding Validation)
+
+**Completed P0 requirements from RAG/LLM hardening plan:**
+
+1. ✅ **Embedding contract validation module** (`src/poesia/memoria/embedding_validation.py`)
+   - `validate_embedding_vector()` — catches nested lists, NaN, inf, dimension mismatches
+   - `validate_embedding_batch()` — validates batches with per-vector checks
+   - `check_dimension_compatibility()` — ensures vectors can be compared
+   - `EmbeddingValidationError` — explicit exception type for validation failures
+
+2. ✅ **GraphRAGRetriever hardening** (`src/poesia/memoria/graphrag.py`)
+   - Auto-embedding now validates vectors before storing
+   - Pre-computed embeddings validated at ingest
+   - Query embeddings validated at retrieval
+   - Silent failures (`except: pass`) replaced with explicit errors
+   - Critical P0 bug (scalar/batch confusion) would now be caught immediately
+
+3. ✅ **LineScorer hardening** (`src/poesia/evaluation/scorer.py`)
+   - Theme embedding validated at construction
+   - Prior line embeddings validated before novelty scoring
+   - Candidate embeddings validated during scoring
+   - Silent failures replaced with explicit `ValueError`/`RuntimeError`
+
+4. ✅ **Comprehensive test coverage** (26 new tests)
+   - 19 validation tests (`test_embedding_validation.py`) — unit tests for validation logic
+   - 7 P0 contract tests (`test_p0_embedding_contract.py`) — integration tests proving:
+     * Malformed nested embeddings caught
+     * Dimension mismatches caught
+     * NaN/inf values caught
+     * Invalid query embeddings caught
+     * Auto-embedding failures exposed (not silenced)
+     * Scorer validation at construction and scoring
+     * Complete validation journey end-to-end
+
+**Key improvement:** The critical P0 bug mentioned in the hardening plan (calling `embed(text)` 
+instead of `embed_one(text)` which produces nested arrays) was already fixed in the code, but 
+now we have **explicit validation** that would catch it immediately if reintroduced, plus all 
+silent failures have been eliminated.
+
+**Test status:** 213 passing (was 187)
+
+### Session 2026-07-27 (Load-Bearing Gap Fixes - Earlier)
 
 **Fixed the two critical gaps that undercut the project's core claims:**
 

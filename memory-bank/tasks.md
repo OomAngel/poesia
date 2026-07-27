@@ -36,12 +36,14 @@
 - [x] **Gap fix**: Spanish sinalefa (vowel elision) in metrical counting
 - [x] **Gap fix**: CLI --brief tries real sentence-transformers first
 - [x] Sinalefa + scorer tests (22 new tests)
+- [x] **P0 hardening**: Embedding validation module with explicit error messages
+- [x] **P0 hardening**: GraphRAGRetriever validates all embeddings (ingest + retrieval)
+- [x] **P0 hardening**: LineScorer validates embeddings (theme + prior + candidates)
+- [x] **P0 hardening**: Remove silent failures, expose validation errors
+- [x] **P0 hardening**: 26 new tests for validation and contract enforcement
 
 ## IN PROGRESS
 
-- [ ] **RAG/LLM hardening P0:** correct scalar/batch embedding calls in GraphRAG
-  ingestion and semantic scoring; validate vector shape/profile; remove silent failure;
-  replace weak semantic test oracles.
 - [ ] **RAG/LLM hardening P1:** complete Library → retrieval → generation brief →
   validated alternatives → human selection → provenance-preserving save.
 
