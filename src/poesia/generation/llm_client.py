@@ -311,10 +311,15 @@ class HostedLLMClient:
         """Groq Cloud chat completions.
 
         Groq's API is OpenAI-compatible but does NOT support n>1 in a single
-        request. We issue n sequential calls and collect the results.
+        request. We issue n sequential calls with a small inter-call delay to
+        stay within the free-tier rate limit (30 RPM = 2 s between requests).
         """
+        import time
+
         results = []
-        for _ in range(n):
+        for i in range(n):
+            if i > 0:
+                time.sleep(2.1)  # 30 RPM → ~2 s between requests; 2.1 adds margin
             batch = self._generate_openai_compat(
                 prompt, 1, temperature, base_url=self._GROQ_BASE_URL
             )

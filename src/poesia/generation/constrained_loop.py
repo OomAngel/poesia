@@ -145,6 +145,7 @@ class ConstrainedLoop:
                 n_candidates=n_candidates,
                 prior_lines=result.lines,
                 brief=brief,
+                target_syllables=target_syllables,
             )
             # Pass prior lines for novelty scoring (Phase 1 fix)
             scored = self._scorer.score_candidates(candidates, prior_lines=result.lines)
