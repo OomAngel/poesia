@@ -28,10 +28,19 @@ Issues discovered from real generation testing with `test_real_generation.py`.
 - All 218 tests pass
 
 ### #3: Theme scoring gives 0.00 (no embedding client)
-**Status:** Expected (by design)  
-**Impact:** Semantic relevance not scored without embeddings  
-**Evidence:** `theme=0.00` for all candidates  
-**Note:** Test runs without `embedding_client`, so this is expected. But should fall back gracefully and maybe warn user.
+**Status:** ✅ FIXED (explicit degraded mode)  
+**Impact:** Was silent degradation, now explicit and clear  
+**Evidence:** CLI now shows clear messaging about scoring mode
+**Fix applied:**
+- Added `semantic_mode_active` flag to track if embeddings loaded
+- Enhanced messaging when sentence-transformers unavailable:
+  - `⚠ Degraded mode: No sentence-transformers available`
+  - Shows installation instructions: `pip install -e '.[nlp]'`
+  - Displays error details
+- Added scoring mode summary after generation:
+  - Without embeddings: "Scoring mode: metre only (no semantic scoring)"
+  - With embeddings: "Scoring mode: metre + theme + novelty"
+- Green checkmark when semantic scoring enabled
 
 ### #4: Composite scores are identical (0.150) for all candidates
 **Status:** TODO  

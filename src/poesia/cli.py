@@ -75,6 +75,7 @@ def write(
     fragments = []
     influences = []
     library_poems = []
+    semantic_mode_active = False  # Track if we have semantic scoring
 
     # P1: Load library poems as additional context if requested
     if use_library:
@@ -111,11 +112,14 @@ def write(
         # Use real embedding client for semantic retrieval
         try:
             embedding_client = get_embedding_client()
-            rprint("[dim]Using sentence-transformers for semantic scoring[/dim]")
+            semantic_mode_active = True
+            rprint("[green]✓[/green] [dim]Semantic scoring enabled (sentence-transformers)[/dim]")
         except Exception as e:
             from poesia.memoria.embeddings import StubEmbeddingClient
             embedding_client = StubEmbeddingClient()
-            rprint(f"[dim]Falling back to stub embeddings: {e}[/dim]")
+            rprint(f"[yellow]⚠[/yellow]  [bold]Degraded mode:[/bold] No sentence-transformers available")
+            rprint(f"[dim]   Theme and novelty scoring disabled. Install with: pip install -e '.[nlp]'[/dim]")
+            rprint(f"[dim]   Error: {e}[/dim]")
 
         brief_builder = BriefBuilder(
             embedding_client=embedding_client,
@@ -147,6 +151,15 @@ def write(
         rprint(f"[bold]Seeds:[/bold] {', '.join(seeds_list)}")
     if result.brief:
         rprint(f"[bold]Brief level:[/bold] {result.brief.level}")
+    
+    # Show scoring mode status
+    if not semantic_mode_active and not use_brief:
+        rprint("[dim]Scoring mode: metre only (no semantic scoring)[/dim]")
+    elif not semantic_mode_active and use_brief:
+        rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
+    else:
+        rprint("[dim]Scoring mode: metre + theme + novelty[/dim]")
+    
     rprint()
     for line in result.lines:
         rprint(line)
