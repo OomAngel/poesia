@@ -57,10 +57,13 @@
 - [x] `GenerationBrief.to_prompt()` — renders brief as LLM prompt
 - [x] Verbosity levels: minimal/standard/maximal
 
-### 3E: Integration
-- [ ] Wire brief into `CandidateGenerator`
-- [ ] CLI: `poesia write --theme X --tone Y --seeds "a,b" --form soneto`
-- [ ] Wire retrieval into `GalerIA` for illustration style anchoring
+### 3E: Integration ✅
+- [x] Wire brief into `CandidateGenerator` (optional `brief` parameter)
+- [x] Wire `BriefBuilder` into `ConstrainedLoop` (new constructor + run params)
+- [x] CLI: `poesia write --theme X --tone Y --seeds "a,b" --brief-level standard --brief`
+- [x] CLI: `poesia memoria add-fragment|add-seed|add-influence|list-fragments|list-influences`
+- [x] Integration tests in `tests/test_integration_phase3e.py`
+- [ ] Wire retrieval into `GalerIA` for illustration style anchoring (deferred to Phase 4)
 
 ## Workflow Model
 

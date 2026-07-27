@@ -26,15 +26,135 @@ def write(
     language: str = typer.Option("es", help="Language code: 'es' or 'en'."),
     form: str = typer.Option("soneto", help="Registered form name, see poesia.forms.definitions."),
     n_candidates: int = typer.Option(16, help="Candidate lines generated per position."),
+    tone: str = typer.Option(None, help="Comma-separated tone descriptors, e.g. 'melancholic,intimate'."),
+    seeds: str = typer.Option(None, help="Comma-separated seed words to expand for rhymes/synonyms."),
+    brief_level: str = typer.Option("standard", help="Brief verbosity: minimal, standard, or maximal."),
+    use_brief: bool = typer.Option(False, "--brief", help="Use BriefBuilder for rich pre-generation context."),
 ) -> None:
-    """Generate a poem using the constrained generate/validate/repair loop."""
+    """Generate a poem using the constrained generate/validate/repair loop.
+
+    With --brief, uses BriefBuilder to assemble rich context from personal
+    fragments, seed expansions, and influence matching before generation.
+    """
     from poesia.generation.constrained_loop import ConstrainedLoop
 
-    loop = ConstrainedLoop(language=language, form=form)
-    result = loop.run(theme=theme, n_candidates=n_candidates)
-    rprint(f"[bold]Theme:[/bold] {theme}  [bold]Form:[/bold] {form}  [bold]Language:[/bold] {language}\n")
+    # Parse comma-separated options
+    tone_list = [t.strip() for t in tone.split(",")] if tone else None
+    seeds_list = [s.strip() for s in seeds.split(",")] if seeds else None
+
+    # Build the loop with optional brief builder
+    brief_builder = None
+    embedding_client = None
+    fragments = []
+    influences = []
+
+    if use_brief:
+        from poesia.generation.brief_builder import BriefBuilder
+        from poesia.memoria.embeddings import StubEmbeddingClient
+
+        # Load personal context if available
+        fragments = _load_fragments()
+        influences = _load_influences()
+
+        # Use stub embedding client for now (can upgrade to real one later)
+        embedding_client = StubEmbeddingClient()
+
+        brief_builder = BriefBuilder(
+            embedding_client=embedding_client,
+            fragments=fragments,
+            influences=influences,
+        )
+
+    loop = ConstrainedLoop(
+        language=language,
+        form=form,
+        brief_builder=brief_builder,
+        embedding_client=embedding_client,
+        fragments=fragments,
+        influences=influences,
+    )
+    result = loop.run(
+        theme=theme,
+        n_candidates=n_candidates,
+        tone=tone_list,
+        seeds=seeds_list,
+        brief_level=brief_level,
+    )
+
+    rprint(f"[bold]Theme:[/bold] {theme}  [bold]Form:[/bold] {form}  [bold]Language:[/bold] {language}")
+    if tone_list:
+        rprint(f"[bold]Tone:[/bold] {', '.join(tone_list)}")
+    if seeds_list:
+        rprint(f"[bold]Seeds:[/bold] {', '.join(seeds_list)}")
+    if result.brief:
+        rprint(f"[bold]Brief level:[/bold] {result.brief.level}")
+    rprint()
     for line in result.lines:
         rprint(line)
+
+
+def _load_fragments() -> list:
+    """Load personal fragments from seeds/angel_fragments/ if available."""
+    from pathlib import Path
+
+    from poesia.memoria.records import FragmentRecord
+
+    fragments = []
+    fragments_dir = Path(__file__).parent.parent.parent / "seeds" / "angel_fragments"
+    if fragments_dir.exists():
+        for md_file in sorted(fragments_dir.glob("*.md")):
+            content = md_file.read_text(encoding="utf-8")
+            frag = FragmentRecord(
+                id=md_file.stem,
+                content=content,
+                language="es",  # Default to Spanish for now
+                tags=[],
+            )
+            fragments.append(frag)
+    return fragments
+
+
+def _load_influences() -> list:
+    """Load influences from docs/INFLUENCE_REGISTRY.md if available."""
+    from pathlib import Path
+
+    from poesia.memoria.records import InfluenceRecord
+
+    influences = []
+    registry_path = Path(__file__).parent.parent.parent / "docs" / "INFLUENCE_REGISTRY.md"
+    if registry_path.exists():
+        # Simple parsing: look for poet entries in the markdown
+        content = registry_path.read_text(encoding="utf-8")
+        current_poet = None
+        current_tone = []
+
+        for line in content.split("\n"):
+            if line.startswith("### "):
+                if current_poet:
+                    influences.append(
+                        InfluenceRecord(
+                            id=current_poet.lower().replace(" ", "_"),
+                            name=current_poet,
+                            language="es",  # Default to Spanish
+                            tone=current_tone,
+                        )
+                    )
+                current_poet = line[4:].strip()
+                current_tone = []
+            elif line.startswith("- Tone:") or line.startswith("- **Tone**:"):
+                tone_str = line.split(":", 1)[1].strip() if ":" in line else ""
+                current_tone = [t.strip() for t in tone_str.split(",") if t.strip()]
+
+        if current_poet:
+            influences.append(
+                InfluenceRecord(
+                    id=current_poet.lower().replace(" ", "_"),
+                    name=current_poet,
+                    language="es",
+                    tone=current_tone,
+                )
+            )
+    return influences
 
 
 @app.command()
@@ -119,6 +239,112 @@ def memoria_list() -> None:
 def memoria_search(query: str = typer.Argument(..., help="Substring to search for.")) -> None:
     """Search the personal library by naive substring match (stub)."""
     rprint(f"[dim]Search for '{query}' — persistence not yet implemented (Phase 1).[/dim]")
+
+
+@memoria_app.command("add-fragment")
+def memoria_add_fragment(
+    path: str = typer.Argument(..., help="Path to a markdown file with the fragment content."),
+    tags: str = typer.Option("", help="Comma-separated tags for the fragment."),
+    language: str = typer.Option("es", help="Language code: 'es' or 'en'."),
+) -> None:
+    """Add a personal fragment to the memoria collection."""
+    from pathlib import Path
+
+    from poesia.memoria.records import FragmentRecord
+
+    file_path = Path(path)
+    if not file_path.exists():
+        rprint(f"[red]Error:[/red] File not found: {path}")
+        raise typer.Exit(1)
+
+    content = file_path.read_text(encoding="utf-8")
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+
+    frag = FragmentRecord(id=file_path.stem, content=content, language=language, tags=tag_list)
+
+    # Copy to seeds/angel_fragments/ for persistence
+    target_dir = Path(__file__).parent.parent.parent / "seeds" / "angel_fragments"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / file_path.name
+    target_path.write_text(content, encoding="utf-8")
+
+    rprint(f"[green]✓[/green] Added fragment '{frag.id}' → {target_path}")
+
+
+@memoria_app.command("add-seed")
+def memoria_add_seed(
+    word: str = typer.Argument(..., help="The seed word to expand."),
+    language: str = typer.Option("es", help="Language code: 'es' or 'en'."),
+) -> None:
+    """Add a seed word and expand it with rhymes, synonyms, etc."""
+    from poesia.memoria.embeddings import StubEmbeddingClient
+    from poesia.memoria.seed_expander import SeedExpander
+
+    expander = SeedExpander(language=language)
+    embedding_client = StubEmbeddingClient()
+    expansion = expander.expand(word, embedding_client=embedding_client)
+
+    rprint(f"[green]✓[/green] Seed '{word}' ({language})")
+    if expansion.synonyms:
+        rprint(f"  Synonyms: {', '.join(expansion.synonyms[:8])}")
+    if expansion.rhymes_consonant:
+        for ending, rhymes in list(expansion.rhymes_consonant.items())[:2]:
+            if rhymes:
+                rprint(f"  Rhymes ({ending}): {', '.join(rhymes[:6])}")
+
+
+@memoria_app.command("add-influence")
+def memoria_add_influence(
+    name: str = typer.Argument(..., help="Name of the poet or work."),
+    tone: str = typer.Option(..., help="Comma-separated tone descriptors."),
+    language: str = typer.Option("es", help="Language code: 'es' or 'en'."),
+) -> None:
+    """Add a poetic influence to the memoria."""
+    from poesia.memoria.records import InfluenceRecord
+
+    tone_list = [t.strip() for t in tone.split(",") if t.strip()]
+    influence = InfluenceRecord(
+        id=name.lower().replace(" ", "_"), name=name, language=language, tone=tone_list
+    )
+    rprint(f"[green]✓[/green] Added influence '{influence.name}' — tone: {', '.join(tone_list)}")
+    rprint(f"[dim]  (To persist, add to docs/INFLUENCE_REGISTRY.md)[/dim]")
+
+
+@memoria_app.command("list-fragments")
+def memoria_list_fragments() -> None:
+    """List all personal fragments in seeds/angel_fragments/."""
+    from pathlib import Path
+
+    fragments_dir = Path(__file__).parent.parent.parent / "seeds" / "angel_fragments"
+    if not fragments_dir.exists():
+        rprint("[dim]No fragments directory found.[/dim]")
+        return
+
+    md_files = sorted(fragments_dir.glob("*.md"))
+    if not md_files:
+        rprint("[dim]No fragments found.[/dim]")
+        return
+
+    rprint(f"[bold]Personal fragments ({len(md_files)} total):[/bold]\n")
+    for md_file in md_files:
+        content = md_file.read_text(encoding="utf-8")
+        lines = [l.strip() for l in content.split("\n") if l.strip()]
+        preview = lines[0][:60] + "..." if lines and len(lines[0]) > 60 else (lines[0] if lines else "(empty)")
+        rprint(f"  [cyan]{md_file.stem}[/cyan]: {preview}")
+
+
+@memoria_app.command("list-influences")
+def memoria_list_influences() -> None:
+    """List all influences from docs/INFLUENCE_REGISTRY.md."""
+    influences = _load_influences()
+    if not influences:
+        rprint("[dim]No influences found.[/dim]")
+        return
+
+    rprint(f"[bold]Poetic influences ({len(influences)} total):[/bold]\n")
+    for inf in influences:
+        tone_str = ", ".join(inf.tone[:4]) if inf.tone else "(no tone)"
+        rprint(f"  [cyan]{inf.name}[/cyan]: {tone_str}")
 
 
 app.add_typer(memoria_app, name="memoria")

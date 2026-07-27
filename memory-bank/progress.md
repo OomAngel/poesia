@@ -5,9 +5,13 @@
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 0 | Scaffold: package layout, 5 -IA modules, docs, tests, git init | ✅ Complete |
-| 1 | Real LLM generation loop, EufonIA sound analysis, theme/novelty scoring, Library persistence | ⬜ Not started |
-| 2 | GalerIA illustration backends, ArmonIA music backends, corpus/KenLM | ⬜ Not started |
-| 3 | MemorIA Graph RAG (storage decision, ingestion, retrieval wiring) | ⬜ Not started |
+| 1 | Real LLM generation loop, EufonIA sound analysis, theme/novelty scoring, Library persistence | ✅ Complete |
+| 2 | GalerIA illustration backends, ArmonIA music backends, corpus/KenLM | ✅ Complete |
+| 3A | MemorIA Graph RAG - storage decision (NetworkX), basic ingest/retrieve | ✅ Complete |
+| 3B | EmbeddingClient Protocol + SentenceTransformerClient | ✅ Complete |
+| 3C | Extended record types (Fragment, Seed, Influence), SeedExpander | ✅ Complete |
+| 3D | BriefBuilder + GenerationBrief with to_prompt() | ✅ Complete |
+| 3E | Integration: CandidateGenerator, ConstrainedLoop, CLI wiring | ✅ Complete |
 
 ## What's functional right now (Phase 0 end state)
 

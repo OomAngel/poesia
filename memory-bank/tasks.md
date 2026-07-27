@@ -1,6 +1,6 @@
 # Tasks — PoesIA (Kanban)
 
-## DONE (Phases 0-3C Complete)
+## DONE (Phases 0-3E Complete)
 
 - [x] Scaffold project (pyproject.toml, .gitignore, README)
 - [x] `phonology/` — base dataclasses & Spanish/English/multilingual wrappers
@@ -20,19 +20,23 @@
 - [x] First 10 personal fragments in `seeds/angel_fragments/`
 - [x] Influence registry (24 poets)
 - [x] Literary taxonomy
+- [x] Phase 3E: CandidateGenerator accepts GenerationBrief
+- [x] Phase 3E: ConstrainedLoop wired to BriefBuilder
+- [x] Phase 3E: CLI `write` with --tone/--seeds/--brief-level/--brief
+- [x] Phase 3E: CLI `memoria add-fragment|add-seed|add-influence`
+- [x] Phase 3E: CLI `memoria list-fragments|list-influences`
+- [x] Phase 3E: Integration tests (test_integration_phase3e.py)
 
 ## IN PROGRESS
 
-- [ ] Phase 3E: Integration
-  - Wire BriefBuilder into CandidateGenerator
-  - Wire retrieval into GalerIA
+(None currently)
 
 ## BACKLOG
 
-- [ ] Wire brief into CandidateGenerator
-- [ ] Wire retrieval into GalerIA for style anchoring
-- [ ] Ingestion CLI: `poesia memoria add-fragment|add-seed|add-influence`
 - [ ] Auto-embed on ingest in GraphRAGRetriever
+- [ ] Wire retrieval into GalerIA for style anchoring (Phase 4)
+- [ ] Test with real LLM backend (not StubLLMClient)
+- [ ] Improve influence parsing from INFLUENCE_REGISTRY.md
 
 ## BLOCKED
 
