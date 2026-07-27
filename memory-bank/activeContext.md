@@ -16,7 +16,29 @@ P0 and P1 of the hardening plan are satisfied.
 
 ## What We Just Did
 
-### Session 2026-07-27 (P0 RAG/LLM Hardening - Embedding Validation)
+### Session 2026-07-27 (Real Usage Testing - Found Critical Bugs)
+
+**Tested actual poem generation** with `test_real_generation.py` and found:
+
+1. ✅ **FIXED**: StubLLMClient was echoing full prompts instead of generating lines
+   - Added Spanish/English templates for 5/7/11 syllables
+   - Extracts theme word and infers target syllable count
+   - Now generates plausible short poetic lines
+
+2. 🔴 **ROOT CAUSE FOUND**: Metre scoring completely broken for haiku
+   - Haiku has `syllables_per_line=0` (documented as "special-cased: 5-7-5")
+   - **The special case is NOT implemented** anywhere in the code
+   - ConstrainedLoop passes 0 to LineScorer → metre_score() returns 0.0 for all lines
+   - **All haiku lines score 0.00 for metre, making metre constraint useless**
+   - Fix required: ConstrainedLoop must track line position and pass 5/7/5 to scorer
+
+3. Expected: Theme scoring is 0.00 without embedding client (by design)
+
+4. Consequence: All candidates score identically (0.150) → random selection
+
+**Created USAGE_ISSUES.md** to track all discovered problems with priority/status.
+
+### Session 2026-07-27 (P0 RAG/LLM Hardening - Embedding Validation - Earlier)
 
 **Completed P0 requirements from RAG/LLM hardening plan:**
 

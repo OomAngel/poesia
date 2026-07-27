@@ -14,11 +14,17 @@ Issues discovered from real generation testing with `test_real_generation.py`.
 
 ## 🟡 HIGH - Scoring Broken
 
-### #2: Metre scoring gives 0.00 for all candidates
-**Status:** TODO  
-**Impact:** Metre constraint isn't working - accepts 32-syllable prompts as valid 5-syllable lines  
-**Evidence:** `test_real_generation.py` shows `metre=0.00` for all candidates, `syllables=32, valid=True` for haiku (target=5)  
-**Root cause:** Unknown - need to check `metre_score()` function in `evaluation/metrics.py`
+### #2: Metre scoring gives 0.00 for haiku (and returns 0.0 for all lines)
+**Status:** ROOT CAUSE FOUND  
+**Impact:** Metre constraint isn't working - all lines score 0.00 for metre  
+**Evidence:** `test_real_generation.py` shows `metre=0.00` for all candidates  
+**Root cause:** Haiku has `syllables_per_line=0` (marked as "special-cased: 5-7-5"), but the special case is **not implemented**.
+- `FormSpec.syllables_per_line=0` for haiku
+- `ConstrainedLoop` passes this to `LineScorer(target_syllable_count=0)`  
+- `metre_score()` checks `if target_syllable_count <= 0: return 0.0`
+- Result: all haiku lines score 0.00 for metre regardless of actual syllable count
+
+**Fix needed:** ConstrainedLoop must track line position and pass correct target (5/7/5) to scorer for each haiku line
 
 ### #3: Theme scoring gives 0.00 (no embedding client)
 **Status:** Expected (by design)  
