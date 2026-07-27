@@ -1,6 +1,18 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-07-27 — Load-bearing gaps fixed._
+_Last updated: 2026-07-27 — RAG/LLM hardening audit active._
+
+## Current authority and correction
+
+`docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md` is the canonical implementation plan
+for embeddings, RAG/GraphRAG, retrieval-informed generation, and hosted LLM lifecycle
+work. Its audit supersedes earlier “complete” statements where those statements lack
+the plan's acceptance evidence.
+
+The most urgent open defect is the scalar/batch embedding mismatch in GraphRAG ingestion
+and semantic scoring. The current graph and dense-fragment retrieval are also not yet one
+integrated GraphRAG-to-generation journey. Do not describe either item as complete until
+P0 and P1 of the hardening plan are satisfied.
 
 ## What We Just Did
 
@@ -61,9 +73,10 @@ _Last updated: 2026-07-27 — Load-bearing gaps fixed._
 
 ## Current Focus
 
-**Phase 3E: Complete** — All integration gaps addressed.
+**RAG/LLM hardening P0:** restore embedding correctness and replace weak semantic test
+oracles, followed by one complete retrieval-to-generation vertical slice.
 
-### What's Done
+### Prior integration work that remains useful
 
 | Gap | Status |
 |-----|--------|
@@ -72,20 +85,19 @@ _Last updated: 2026-07-27 — Load-bearing gaps fixed._
 | CLI `write` has `--tone/--seeds/--brief-level` | ✅ |
 | CLI `memoria` has `add-fragment/add-seed/add-influence` | ✅ |
 
-### Remaining (deferred to future phases)
+### Current hardening priorities
 
-| Gap | Notes |
+| Priority | Required outcome |
 |-----|-------|
-| `GraphRAGRetriever` auto-embed on ingest | Future enhancement |
-| GalerIA style anchoring from influences | Future Phase 4 |
+| P0 | Correct scalar/batch embedding use, validate compatibility, expose failure, and prove semantic outcomes |
+| P1 | Wire Library → ingestion → retrieval → brief → generation → human selection → provenance-preserving save |
+| P2 | Make typed graph relations and bounded traversal materially affect generation context |
 
 ## Next Steps
 
-Phase 3 is complete. Next priorities:
-
-1. **Test end-to-end with real LLM** — The brief integration is wired but StubLLMClient is still the default
-2. **Improve influence parsing** — Current parser doesn't extract tone from INFLUENCE_REGISTRY.md
-3. **Consider Phase 4** — Graph RAG enhancements, cross-language support
+Follow the ordered phases in `docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md`. Do not move
+directly to hosted-provider experimentation before local semantic correctness, the complete
+user journey, and reviewed retrieval evaluation exist.
 
 ## Key Files
 
@@ -93,5 +105,4 @@ Phase 3 is complete. Next priorities:
 - `src/poesia/generation/constrained_loop.py` — ✅ Brief wiring
 - `src/poesia/cli.py` — ✅ New CLI options and commands
 - `tests/test_integration_phase3e.py` — ✅ Integration tests
-
 

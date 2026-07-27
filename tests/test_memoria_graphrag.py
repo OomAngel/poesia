@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from poesia.memoria.embeddings import StubEmbeddingClient
 from poesia.memoria.graphrag import GraphRAGRetriever
 from poesia.memoria.library import PoemRecord
 
@@ -212,3 +213,58 @@ def test_graphrag_get_connected_influences_missing_poem() -> None:
     retriever = GraphRAGRetriever(storage_path=":memory:")
     influences = retriever.get_connected_influences("nonexistent")
     assert influences == []
+
+
+def test_graphrag_auto_embed_produces_flat_vectors() -> None:
+    """Auto-embedding must produce flat vectors, not nested (P0 contract test).
+
+    This guards against the scalar/batch confusion bug where passing
+    a string to embed() instead of embed_one() produces shape (len, dim)
+    instead of (dim,).
+    """
+    retriever = GraphRAGRetriever(storage_path=":memory:")
+    embedding_client = StubEmbeddingClient()
+
+    records = [
+        _record("p1", "lluvia nocturna"),
+        _record("p2", "amor eterno"),
+    ]
+
+    # Ingest with auto-embedding
+    retriever.ingest(records, embedding_client=embedding_client)
+
+    # Verify embeddings are flat vectors with correct dimension
+    for node_id in ["p1", "p2"]:
+        emb = retriever._graph.nodes[node_id].get("embedding", [])
+        assert emb, f"Node {node_id} should have an embedding"
+        assert isinstance(emb, list), "Embedding should be a list"
+        assert len(emb) == embedding_client.dimension, (
+            f"Embedding should have {embedding_client.dimension} dimensions, got {len(emb)}"
+        )
+        assert all(isinstance(x, float) for x in emb), "All values should be floats"
+
+
+def test_graphrag_auto_embed_enables_retrieval() -> None:
+    """Auto-embedded records should be retrievable with non-zero scores."""
+    retriever = GraphRAGRetriever(storage_path=":memory:")
+    embedding_client = StubEmbeddingClient()
+
+    records = [
+        _record("p1", "lluvia nocturna"),
+        _record("p2", "amor eterno"),
+    ]
+
+    retriever.ingest(records, embedding_client=embedding_client)
+
+    # Query with a fresh embedding
+    query_emb = embedding_client.embed_one("noche de lluvia")
+    results = retriever.retrieve(query_emb, k=2)
+
+    # Should get results with actual scores (not 0.0 from dimension mismatch)
+    assert len(results) == 2
+    # At least one result should have non-zero score
+    scores = [score for _, score in results]
+    assert any(s > 0.0 for s in scores), (
+        f"Expected non-zero scores but got {scores}. "
+        "This suggests embedding dimension mismatch."
+    )

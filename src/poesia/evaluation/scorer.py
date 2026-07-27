@@ -81,7 +81,8 @@ class LineScorer:
         self._theme_embedding: list[float] | None = None
         if embedding_client and theme_text:
             try:
-                self._theme_embedding = embedding_client.embed(theme_text)
+                # Use embed_one() for scalar text, not embed() which expects list[str]
+                self._theme_embedding = embedding_client.embed_one(theme_text)
             except Exception:
                 pass  # Fall back to no theme scoring
 
@@ -110,7 +111,8 @@ class LineScorer:
             self._prior_embeddings = []
             for line in prior_lines:
                 try:
-                    self._prior_embeddings.append(self._embedding_client.embed(line))
+                    # Use embed_one() for scalar text
+                    self._prior_embeddings.append(self._embedding_client.embed_one(line))
                 except Exception:
                     pass
 
@@ -132,7 +134,8 @@ class LineScorer:
             candidate_embedding: list[float] | None = None
             if self._embedding_client and self._theme_embedding:
                 try:
-                    candidate_embedding = self._embedding_client.embed(line)
+                    # Use embed_one() for scalar text
+                    candidate_embedding = self._embedding_client.embed_one(line)
                     t_score = theme_score(candidate_embedding, self._theme_embedding)
                 except Exception:
                     pass

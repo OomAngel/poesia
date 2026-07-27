@@ -40,6 +40,30 @@ class TestScorerWithEmbeddings:
         # Theme score should be computed (non-zero)
         assert scored[0].breakdown["theme"] >= 0.0
 
+    def test_embedding_shape_is_flat_vector(
+        self, embedding_client: StubEmbeddingClient
+    ) -> None:
+        """Embedding must be flat list[float], not nested (P0 contract test).
+
+        This guards against the scalar/batch confusion bug where passing
+        a string to embed() instead of embed_one() produces shape (len, dim)
+        instead of (dim,).
+        """
+        # embed_one returns a flat vector
+        vec = embedding_client.embed_one("test text")
+        assert isinstance(vec, list)
+        assert len(vec) == embedding_client.dimension
+        assert all(isinstance(x, float) for x in vec)
+
+        # embed returns list of flat vectors
+        vecs = embedding_client.embed(["text one", "text two"])
+        assert isinstance(vecs, list)
+        assert len(vecs) == 2
+        for v in vecs:
+            assert isinstance(v, list)
+            assert len(v) == embedding_client.dimension
+            assert all(isinstance(x, float) for x in v)
+
     def test_scorer_computes_novelty_score(
         self, phonology: SpanishPhonology, embedding_client: StubEmbeddingClient
     ) -> None:

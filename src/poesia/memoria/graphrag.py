@@ -102,7 +102,8 @@ class GraphRAGRetriever:
                     embeddable_text = " ".join(text_parts).strip()
                     if embeddable_text:
                         try:
-                            embeddings[rec.id] = embedding_client.embed(embeddable_text)
+                            # Use embed_one() for scalar text, not embed() which expects list[str]
+                            embeddings[rec.id] = embedding_client.embed_one(embeddable_text)
                         except Exception:
                             pass  # Skip if embedding fails
 

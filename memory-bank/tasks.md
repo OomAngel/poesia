@@ -39,10 +39,18 @@
 
 ## IN PROGRESS
 
-(None currently)
+- [ ] **RAG/LLM hardening P0:** correct scalar/batch embedding calls in GraphRAG
+  ingestion and semantic scoring; validate vector shape/profile; remove silent failure;
+  replace weak semantic test oracles.
+- [ ] **RAG/LLM hardening P1:** complete Library → retrieval → generation brief →
+  validated alternatives → human selection → provenance-preserving save.
 
 ## BACKLOG
 
+- [ ] P2: implement typed graph nodes/relations and bounded explainable graph expansion.
+- [ ] P3: add immutable embedding/index compatibility identity and atomic versioned persistence.
+- [ ] P4: build and evaluate a reviewed multilingual retrieval/generation corpus.
+- [ ] P5: add hosted-provider privacy, lineage, retry, latency, token, and cost controls.
 - [ ] Test with real LLM backend (set GEMINI_API_KEY or OPENAI_API_KEY)
 - [ ] Phase 4E: Literary taxonomy auto-tagging
 - [x] Mock-based tests for HostedLLMClient/HostedImageBackend HTTP shapes (27 tests)
@@ -53,5 +61,4 @@
 ## BLOCKED
 
 (None currently)
-
 
