@@ -82,12 +82,10 @@ Explicit request only: LLM expansion (costs credits).
 2. **Standard** — Above + rhyme options + exemplar lines (~1500 tokens)
 3. **Maximal** — Above + influence anchors + anti-patterns (~2500 tokens)
 
-**Recommendation:** Standard as default, flag for minimal/maximal.
-- `--brief-level minimal|standard|maximal`
-- More context = fewer iterations but costlier single call
+**Decision:** ✅ **Standard as default (2026-07-27)**
+- `--brief-level minimal|standard|maximal` flag
 - Standard is the sweet spot for most generation
-
-**Decision:** _Pending_
+- Maximal for complex pieces or unfamiliar forms
 
 ---
 
@@ -98,12 +96,10 @@ Explicit request only: LLM expansion (costs credits).
 2. **Sentence-level** — more precise retrieval, more ingestion work
 3. **Document-level** — coarse, but simpler
 
-**Recommendation:** Paragraph-level (option 1).
+**Decision:** ✅ **Paragraph-level (option 1) — (2026-07-27)**
 - Natural semantic unit
 - Support explicit `---` boundaries for finer control
 - Auto-split on double newlines
-
-**Decision:** _Pending_
 
 ---
 
@@ -134,12 +130,10 @@ Rationale:
 2. **Partitioned graphs** — separate graphs per node type, linked by ID
 3. **Layered** — base poem graph + overlay graphs for context
 
-**Recommendation:** Single graph (option 1).
+**Decision:** ✅ **Single graph (option 1) — (2026-07-27)**
 - Simpler queries
 - Cross-type similarity edges make sense (fragment ↔ poem)
 - NetworkX handles mixed node types fine
-
-**Decision:** _Pending_
 
 ---
 
@@ -150,14 +144,12 @@ Rationale:
 2. **Conversational-first** — You + LLM (Claude/me) using PoesIA tools
 3. **Both equally supported**
 
-**Current reality:** You work conversationally (VS Code + Claude), PoesIA validates.
+**Decision:** ✅ **Both equally supported (option 3) — (2026-07-27)**
 
-**Recommendation:** Both (option 3), but conversational is primary workflow.
+Current reality: You work conversationally (VS Code + Claude), PoesIA validates.
+- Conversational is primary workflow for exploratory drafting
 - CLI for scripted/repeatable tasks
-- Conversational for exploratory drafting
 - PoesIA provides tools for both
-
-**Decision:** _Pending_
 
 ---
 
@@ -246,26 +238,33 @@ Can add later as metadata on generated poems.
 
 **Question:** Should we create a starter file with literary movements?
 
-**Decision:** _Pending — likely yes_
+**Decision:** ✅ **Document now, defer implementation (2026-07-27)**
 
-Proposed starter set (~15-20 movements):
-- Spanish: Modernismo, Generación del 27, Romanticismo, Barroco, Siglo de Oro
-- General: Romanticism, Symbolism, Imagism, Surrealism, Contemporary
-
-Each with: era dates, key characteristics, representative poets, tonal qualities.
+See `docs/LITERARY_TAXONOMY.md` for the reference taxonomy.
+Implementation (auto-tagging, retrieval by movement) is Phase 4 work.
 
 ---
 
 ## Q15: Poet Influence Registry — Who are YOUR poets?
 
-**Question:** Who resonates? Need 5-10 names to build initial influence profiles.
+**Decision:** ✅ **List provided (2026-07-27)**
 
-**Known so far:**
-- Machado
-- Neruda
-- Urbina
+See `docs/INFLUENCE_REGISTRY.md` for the full registry.
 
-**Decision:** _Pending — awaiting your list_
+**Spanish / Latin American (primary):**
+- Antonio Machado, Pablo Neruda, Luis G. Urbina
+- Manuel Gutiérrez Nájera, Miguel Hernández, Rubén Darío
+- Octavio Paz, Sor Juana Inés de la Cruz, Gustavo Adolfo Bécquer
+- Manuel Acuña, Federico García Lorca, Gabriela Mistral
+- Ramón López Velarde
+
+**English / American:**
+- Charles Mackay, Thomas Hardy, A.E. Housman
+- William Wordsworth, John Keats, Robert Frost
+- Walt Whitman, Emily Dickinson
+
+**Dutch:**
+- Willem Kloos, J.C. Bloem, Hendrik Marsman
 
 ---
 
