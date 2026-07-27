@@ -41,6 +41,40 @@ from poesia.memoria.records import NodeType, RelationType
 _SCHEMA_VERSION = "2"
 
 
+class IndexCompatibilityError(RuntimeError):
+    """Raised when an embedding client is incompatible with the loaded index.
+
+    This prevents silently mixing embeddings from different models or
+    dimension sizes, which would corrupt cosine similarity without any
+    visible error.
+
+    Attributes:
+        stored_model_id: The model ID recorded in the persisted index.
+        stored_dimension: The embedding dimension recorded in the persisted index.
+        client_model_id: The model ID of the client being used.
+        client_dimension: The embedding dimension of the client being used.
+    """
+
+    def __init__(
+        self,
+        stored_model_id: str | None,
+        stored_dimension: int | None,
+        client_model_id: str,
+        client_dimension: int,
+    ) -> None:
+        self.stored_model_id = stored_model_id
+        self.stored_dimension = stored_dimension
+        self.client_model_id = client_model_id
+        self.client_dimension = client_dimension
+        super().__init__(
+            f"Embedding model mismatch: index was built with "
+            f"model='{stored_model_id}' dim={stored_dimension}, "
+            f"but current client is model='{client_model_id}' dim={client_dimension}. "
+            f"Call retriever.rebuild(records, embedding_client) to re-index with the "
+            f"new model, or use the original model to continue."
+        )
+
+
 @dataclass
 class GraphHop:
     """A single hop along a graph path.
@@ -191,10 +225,10 @@ class GraphRAGRetriever:
         """
         embeddings = embeddings or {}
 
-        # Phase 4D: Auto-embed records that don't have pre-computed embeddings
-        # P0: validate embeddings and expose failures explicitly
+        # P3: enforce index compatibility before mutating the graph
         if embedding_client is not None:
-            # P2/P3: record model identity for versioned persistence
+            self.check_index_compatibility(embedding_client)
+            # Record model identity for versioned persistence
             self._index_model_id = embedding_client.model_id
             self._index_embedding_dimension = embedding_client.dimension
             expected_dim = embedding_client.dimension
@@ -453,6 +487,8 @@ class GraphRAGRetriever:
         embedding_client: Any | None = None,
     ) -> None:
         """Add a FragmentRecord as a typed graph node."""
+        if embedding_client is not None:
+            self.check_index_compatibility(embedding_client)
         emb = embedding or []
         if not emb and embedding_client and content:
             try:
@@ -485,6 +521,8 @@ class GraphRAGRetriever:
         embedding_client: Any | None = None,
     ) -> None:
         """Add an InfluenceRecord as a typed graph node."""
+        if embedding_client is not None:
+            self.check_index_compatibility(embedding_client)
         emb = embedding or []
         if not emb and embedding_client and tone:
             text = f"{name} {' '.join(tone)}"
@@ -712,6 +750,95 @@ class GraphRAGRetriever:
         return self._graph.number_of_edges()
 
     # ------------------------------------------------------------------
+    # P3: Index compatibility and rebuild
+    # ------------------------------------------------------------------
+
+    def check_index_compatibility(self, embedding_client: Any) -> None:
+        """Assert that embedding_client is compatible with the loaded index.
+
+        Raises ``IndexCompatibilityError`` when the index was built with a
+        different model or dimension than the client being used.  This
+        prevents silently mixing incompatible embeddings — which produces
+        wrong cosine scores with no visible error.
+
+        The check is a no-op when the index is empty (no model recorded yet),
+        because an empty index accepts any client.
+
+        Args:
+            embedding_client: An ``EmbeddingClient`` instance to check.
+
+        Raises:
+            IndexCompatibilityError: If model_id or embedding_dimension
+                does not match the stored index metadata.
+        """
+        if self._index_model_id is None and self._index_embedding_dimension is None:
+            # Empty index — no constraint yet
+            return
+
+        model_mismatch = (
+            self._index_model_id is not None
+            and self._index_model_id != embedding_client.model_id
+        )
+        dim_mismatch = (
+            self._index_embedding_dimension is not None
+            and self._index_embedding_dimension != embedding_client.dimension
+        )
+
+        if model_mismatch or dim_mismatch:
+            raise IndexCompatibilityError(
+                stored_model_id=self._index_model_id,
+                stored_dimension=self._index_embedding_dimension,
+                client_model_id=embedding_client.model_id,
+                client_dimension=embedding_client.dimension,
+            )
+
+    def rebuild(
+        self,
+        records: list[PoemRecord],
+        embedding_client: Any,
+    ) -> None:
+        """Clear the graph and re-ingest records with a new embedding client.
+
+        Use this when swapping embedding models.  The graph is cleared first
+        so that no old-model vectors survive — mixing vectors from different
+        models would corrupt cosine similarity silently.
+
+        After ``rebuild()`` the ``_index_model_id`` and
+        ``_index_embedding_dimension`` reflect the new client, and the
+        persisted JSON is updated atomically.
+
+        Args:
+            records: PoemRecord list to ingest fresh.
+            embedding_client: The new EmbeddingClient.  Its model_id and
+                dimension become the new index identity.
+        """
+        # Wipe all graph state
+        self._graph = self._make_graph()
+        self._index_model_id = None
+        self._index_embedding_dimension = None
+
+        # Re-ingest — compatibility check passes because index is empty
+        self.ingest(records, embedding_client=embedding_client)
+
+    def index_info(self) -> dict[str, Any]:
+        """Return a summary of the current index metadata.
+
+        Returns a dict with keys:
+        - ``schema_version``: the format version string
+        - ``model_id``: the embedding model recorded in the index (or ``None``)
+        - ``embedding_dimension``: the vector size (or ``None``)
+        - ``node_count``: number of nodes
+        - ``edge_count``: number of edges
+        """
+        return {
+            "schema_version": _SCHEMA_VERSION,
+            "model_id": self._index_model_id,
+            "embedding_dimension": self._index_embedding_dimension,
+            "node_count": self.node_count(),
+            "edge_count": self.edge_count(),
+        }
+
+    # ------------------------------------------------------------------
     # Persistence (plain JSON, no pickle)
     # ------------------------------------------------------------------
 
@@ -720,7 +847,7 @@ class GraphRAGRetriever:
             return
         os.makedirs(self.storage_path.parent, exist_ok=True)
         data = {
-            # P2/P3: versioned header — lets us detect incompatible model swaps
+            # Versioned header — enables compatibility checks on load
             "schema_version": _SCHEMA_VERSION,
             "model_id": self._index_model_id,
             "embedding_dimension": self._index_embedding_dimension,
@@ -735,8 +862,20 @@ class GraphRAGRetriever:
                 for u, v, d in self._graph.edges(data=True)
             ],
         }
-        with open(self.storage_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        # P3: atomic write — write to a temp file then rename so a crash
+        # mid-write can never leave a partially-written (corrupt) JSON.
+        tmp_path = self.storage_path.with_suffix(".tmp")
+        try:
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            os.replace(tmp_path, self.storage_path)
+        finally:
+            # Clean up the temp file if the rename didn't happen
+            if tmp_path.exists():
+                try:
+                    tmp_path.unlink()
+                except OSError:
+                    pass
 
     def _load(self) -> None:
         if not self.storage_path or not self.storage_path.exists():
