@@ -26,6 +26,7 @@ from poesia.evaluation.scorer import LineScorer, ScoredCandidate
 from poesia.forms.definitions import FormSpec, get_form
 from poesia.generation.candidate_generator import CandidateGenerator
 from poesia.generation.llm_client import LLMClient, StubLLMClient
+from poesia.generation.rhyme_tracker import RhymeTracker
 from poesia.phonology.english import EnglishPhonology
 from poesia.phonology.spanish import SpanishPhonology
 
@@ -128,15 +129,21 @@ class ConstrainedLoop:
             )
             result.brief = brief
 
+        # Rhyme tracker: maps rhyme-scheme letters to committed rhyme keys
+        rhyme_tracker = RhymeTracker(self.form_spec.rhyme_scheme, self._phonology)
+
         # Generate lines one by one, updating scorer target for variable patterns (e.g., haiku)
         for line_index in range(self.form_spec.total_lines):
-            # Create/update scorer with correct target for this line position
             target_syllables = self.form_spec.syllables_for_line(line_index)
+            target_rhyme_key = rhyme_tracker.target_key_for_line(line_index)
+            example_rhyme_word = rhyme_tracker.example_word_for_line(line_index)
+
             self._scorer = LineScorer(
                 phonology_backend=self._phonology,
                 target_syllable_count=target_syllables,
                 embedding_client=self._embedding_client,
                 theme_text=theme,
+                target_rhyme_key=target_rhyme_key,
                 language=self.language,
             )
             candidates = self._generator.generate_lines(
@@ -146,8 +153,9 @@ class ConstrainedLoop:
                 prior_lines=result.lines,
                 brief=brief,
                 target_syllables=target_syllables,
+                target_rhyme_key=target_rhyme_key,
+                example_rhyme_word=example_rhyme_word,
             )
-            # Pass prior lines for novelty scoring (Phase 1 fix)
             scored = self._scorer.score_candidates(candidates, prior_lines=result.lines)
             result.scored_history.append(scored)
 
@@ -163,4 +171,6 @@ class ConstrainedLoop:
 
             if best is not None:
                 result.lines.append(best.line)
+                rhyme_tracker.commit(line_index, best.line)
+
         return result

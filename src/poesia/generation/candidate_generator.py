@@ -29,6 +29,8 @@ class CandidateGenerator:
         prior_lines: list[str] | None = None,
         brief: GenerationBrief | None = None,
         target_syllables: int | None = None,
+        target_rhyme_key: str | None = None,
+        example_rhyme_word: str | None = None,
     ) -> list[str]:
         """Generate a batch of candidate next-lines for a poem in progress.
 
@@ -38,41 +40,66 @@ class CandidateGenerator:
             n_candidates: Number of candidate lines to generate.
             prior_lines: Lines already written in the poem (for continuity).
             brief: Optional GenerationBrief with rich context from BriefBuilder.
-                   If provided, uses brief.to_prompt() for a much richer prompt.
             target_syllables: Expected syllable count for this line position.
-                   Included in the prompt so the model knows the metrical target.
+            target_rhyme_key: Phonetic rhyme key the line end must match.
+            example_rhyme_word: A word already committed to this rhyme group
+                (e.g. "claras") shown in the prompt so the model can hear the sound.
 
         Returns:
             List of candidate lines from the LLM.
         """
-        prior = "\n".join(prior_lines or [])
+        prior_lines = prior_lines or []
+
+        # --- constraint instructions ------------------------------------
         syllable_instruction = (
-            f" The line must have exactly {target_syllables} syllables."
-            if target_syllables
-            else ""
+            f"Exactly {target_syllables} syllables." if target_syllables else ""
         )
-        output_rule = (
-            "Output ONLY the single bare line of poetry — no explanation, "
-            "no preamble, no questions, no punctuation outside the line itself."
+        if target_rhyme_key and example_rhyme_word:
+            rhyme_instruction = (
+                f'End the line with a word that rhymes with "{example_rhyme_word}" '
+                f"(same ending sound)."
+            )
+        elif target_rhyme_key:
+            rhyme_instruction = (
+                f"End the line with a word whose rhyme key is '{target_rhyme_key}'."
+            )
+        else:
+            rhyme_instruction = ""  # first of its rhyme group — model is free
+
+        anti_repeat = (
+            "Do NOT begin the line with the same word as any prior line."
+            if prior_lines else ""
         )
 
+        constraints = " ".join(filter(None, [syllable_instruction, rhyme_instruction, anti_repeat]))
+        output_rule = (
+            "Output ONLY the single bare poetry line — no explanation, "
+            "no preamble, no numbering, no quotes."
+        )
+
+        # --- numbered prior-lines block ---------------------------------
+        if prior_lines:
+            numbered = "\n".join(f"{i+1}. {ln}" for i, ln in enumerate(prior_lines))
+            prior_block = f"Poem so far:\n{numbered}\n\n"
+        else:
+            prior_block = ""
+
+        # --- assemble prompt --------------------------------------------
         if brief is not None:
             base_prompt = brief.to_prompt()
             prompt = (
                 f"{base_prompt}\n"
-                f"## POEM IN PROGRESS\n{prior}\n\n"
+                f"## POEM IN PROGRESS\n{prior_block}"
                 f"## TASK\n"
-                f"Write the next line of the poem above.{syllable_instruction} "
-                f"Stay faithful to the form, personal context, and tone.\n"
+                f"Write line {len(prior_lines)+1}. {constraints}\n"
                 f"{output_rule}"
             )
         else:
             lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch"}.get(language, language)
-            prior_block = f"Poem so far:\n{prior}\n\n" if prior else ""
             prompt = (
                 f"You are writing a {lang_name} poem on the theme: {theme}.\n"
                 f"{prior_block}"
-                f"Write the next line.{syllable_instruction}\n"
+                f"Write line {len(prior_lines)+1}. {constraints}\n"
                 f"{output_rule}"
             )
 
