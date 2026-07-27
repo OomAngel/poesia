@@ -1,18 +1,24 @@
-"""Graph RAG retrieval layer — Phase 3.
+"""Graph RAG retrieval layer — Phase 3 / P2.
 
 Storage: networkx in-memory directed graph, persisted as JSON alongside the
 poem library at ~/.poesia/graphrag.json.
 
-Graph schema:
-    Nodes: PoemRecord ID → attributes (theme, form, language, tags, embedding)
-    Edges (directed): semantic similarity ≥ threshold, weighted by cosine score
+Graph schema (P2 typed):
+    Nodes: any record ID → attributes (node_type, theme, form, language,
+           tags, embedding)
+    Edges (directed): typed relations (RelationType) weighted by cosine score
+                      for semantic edges, or 1.0 for structural edges.
 
 Retrieval: given a query embedding, return the k most semantically similar
-poem records via cosine similarity against all stored embeddings.
+records via cosine similarity against all stored embeddings, OR via bounded
+typed graph traversal that returns explainable paths.
 
-Ingestion: call ingest(records) to add/update nodes and rebuild edges.
+Ingestion: call ingest(records) to add/update poem nodes and rebuild edges.
+Use add_fragment_node() / add_influence_node() for typed non-poem nodes.
 
 P0 hardening: validates embedding dimensions and exposes failures explicitly.
+P2 additions: NodeType/RelationType enums, GraphPath, traverse(),
+              versioned JSON persistence header.
 """
 
 from __future__ import annotations
@@ -20,6 +26,7 @@ from __future__ import annotations
 import json
 import math
 import os
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +35,81 @@ from poesia.memoria.embedding_validation import (
     validate_embedding_vector,
 )
 from poesia.memoria.library import PoemRecord
+from poesia.memoria.records import NodeType, RelationType
+
+# Persistence format version — bump when the JSON schema changes incompatibly.
+_SCHEMA_VERSION = "2"
+
+
+@dataclass
+class GraphHop:
+    """A single hop along a graph path.
+
+    Attributes:
+        node_id: ID of the node reached by this hop.
+        node_type: Type of the node (poem, fragment, influence, …).
+        relation_type: The relation that was followed to reach this node.
+        weight: Edge weight (cosine similarity for ``similar_to`` edges,
+                1.0 for structural edges).
+    """
+
+    node_id: str
+    node_type: NodeType
+    relation_type: RelationType
+    weight: float
+
+
+@dataclass
+class GraphPath:
+    """A traversal path through the semantic graph.
+
+    A path starts at ``origin_id`` and follows a sequence of typed hops.
+    The path can be rendered as a human-readable explanation string such as::
+
+        pattern-finder -[similar_to 0.82]-> hound -[inspired_by]-> Garcia Lorca
+
+    Attributes:
+        origin_id: ID of the node where traversal started.
+        hops: Ordered list of hops from the origin.
+    """
+
+    origin_id: str
+    hops: list[GraphHop] = field(default_factory=list)
+
+    @property
+    def endpoint_id(self) -> str:
+        """Return the ID of the final node in the path."""
+        return self.hops[-1].node_id if self.hops else self.origin_id
+
+    @property
+    def depth(self) -> int:
+        """Return the number of hops in the path."""
+        return len(self.hops)
+
+    def to_display_string(self, node_labels: dict[str, str] | None = None) -> str:
+        """Render the path as a human-readable explanation.
+
+        Args:
+            node_labels: Optional mapping of node_id → display label.
+                         If absent, node IDs are used directly.
+
+        Returns:
+            A string like::
+
+                pattern-finder -[similar_to 0.82]-> hound -[inspired_by]-> Garcia Lorca
+        """
+        labels = node_labels or {}
+
+        def _label(node_id: str) -> str:
+            return labels.get(node_id, node_id)
+
+        parts = [_label(self.origin_id)]
+        for hop in self.hops:
+            rel = hop.relation_type.value
+            w = f" {hop.weight:.2f}" if hop.weight < 1.0 else ""
+            parts.append(f"-[{rel}{w}]->")
+            parts.append(_label(hop.node_id))
+        return " ".join(parts)
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
@@ -45,9 +127,17 @@ def _cosine(a: list[float], b: list[float]) -> float:
 class GraphRAGRetriever:
     """NetworkX-backed Graph RAG retriever for the MemorIA poem library.
 
-    Builds a semantic neighbourhood graph over ingested PoemRecords.
+    Builds a typed semantic neighbourhood graph over ingested records.
     Persists the graph data to ``~/.poesia/graphrag.json`` as plain JSON so
     no networkx version-specific pickle format is relied on.
+
+    P2: Nodes carry a ``node_type`` attribute (NodeType enum). Edges carry a
+    ``relation_type`` attribute (RelationType enum). The ``traverse()`` method
+    returns ``GraphPath`` objects with explainable hop sequences.
+
+    Persistence header carries ``schema_version``, ``model_id``, and
+    ``embedding_dimension`` — these are checked on load and warn (or discard)
+    on mismatch, providing the P3 compatibility foundation.
 
     Lazy-imports ``networkx`` — requires ``pip install -e ".[graphrag]"``.
     """
@@ -58,6 +148,10 @@ class GraphRAGRetriever:
         if storage_path is None:
             storage_path = Path.home() / ".poesia" / "graphrag.json"
         self.storage_path = Path(storage_path) if str(storage_path) != ":memory:" else None
+
+        # P2/P3: track the embedding model used for this index (for compatibility)
+        self._index_model_id: str | None = None
+        self._index_embedding_dimension: int | None = None
 
         self._graph = self._make_graph()
         if self.storage_path and self.storage_path.exists():
@@ -100,6 +194,9 @@ class GraphRAGRetriever:
         # Phase 4D: Auto-embed records that don't have pre-computed embeddings
         # P0: validate embeddings and expose failures explicitly
         if embedding_client is not None:
+            # P2/P3: record model identity for versioned persistence
+            self._index_model_id = embedding_client.model_id
+            self._index_embedding_dimension = embedding_client.dimension
             expected_dim = embedding_client.dimension
             for rec in records:
                 if rec.id and rec.id not in embeddings:
@@ -111,7 +208,8 @@ class GraphRAGRetriever:
                     if embeddable_text:
                         try:
                             # Use embed_one() for scalar text, not embed() which expects list[str]
-                            raw_embedding = embedding_client.embed_one(embeddable_text)
+                            # text_type="passage": stored documents use passage prefix in e5 models
+                            raw_embedding = embedding_client.embed_one(embeddable_text, text_type="passage")
                             # P0: validate embedding shape and values
                             validated = validate_embedding_vector(
                                 raw_embedding,
@@ -149,8 +247,10 @@ class GraphRAGRetriever:
                         f"Invalid embedding for record {rec.id}: {e}"
                     ) from e
 
+            # P2: store node_type on all poem nodes
             self._graph.add_node(
                 rec.id,
+                node_type=NodeType.poem.value,
                 theme=rec.theme,
                 form=rec.form,
                 language=rec.language,
@@ -158,7 +258,7 @@ class GraphRAGRetriever:
                 embedding=embedding,
             )
 
-        # Rebuild semantic edges from embeddings
+        # Rebuild semantic edges from embeddings — P2: tag with relation_type
         node_ids = [n for n in self._graph.nodes if self._graph.nodes[n].get("embedding")]
         for i, node_a in enumerate(node_ids):
             emb_a = self._graph.nodes[node_a]["embedding"]
@@ -166,8 +266,16 @@ class GraphRAGRetriever:
                 emb_b = self._graph.nodes[node_b]["embedding"]
                 score = _cosine(emb_a, emb_b)
                 if score >= self.SIMILARITY_THRESHOLD:
-                    self._graph.add_edge(node_a, node_b, weight=round(score, 4))
-                    self._graph.add_edge(node_b, node_a, weight=round(score, 4))
+                    self._graph.add_edge(
+                        node_a, node_b,
+                        weight=round(score, 4),
+                        relation_type=RelationType.similar_to.value,
+                    )
+                    self._graph.add_edge(
+                        node_b, node_a,
+                        weight=round(score, 4),
+                        relation_type=RelationType.similar_to.value,
+                    )
 
         if self.storage_path:
             self._save()
@@ -331,6 +439,237 @@ class GraphRAGRetriever:
         scores.sort(key=lambda x: x[1], reverse=True)
         return scores[:k]
 
+    # ------------------------------------------------------------------
+    # P2: Typed node/edge management
+    # ------------------------------------------------------------------
+
+    def add_fragment_node(
+        self,
+        fragment_id: str,
+        content: str,
+        language: str = "es",
+        tags: list[str] | None = None,
+        embedding: list[float] | None = None,
+        embedding_client: Any | None = None,
+    ) -> None:
+        """Add a FragmentRecord as a typed graph node."""
+        emb = embedding or []
+        if not emb and embedding_client and content:
+            try:
+                raw = embedding_client.embed_one(content, text_type="passage")
+                emb = validate_embedding_vector(raw, context=f"fragment {fragment_id}")
+                self._index_model_id = embedding_client.model_id
+                self._index_embedding_dimension = embedding_client.dimension
+            except (EmbeddingValidationError, Exception):
+                emb = []
+
+        self._graph.add_node(
+            fragment_id,
+            node_type=NodeType.fragment.value,
+            content=content,
+            language=language,
+            tags=tags or [],
+            embedding=emb,
+        )
+        if self.storage_path:
+            self._save()
+
+    def add_influence_node(
+        self,
+        influence_id: str,
+        name: str,
+        language: str = "es",
+        tone: list[str] | None = None,
+        movement: str | None = None,
+        embedding: list[float] | None = None,
+        embedding_client: Any | None = None,
+    ) -> None:
+        """Add an InfluenceRecord as a typed graph node."""
+        emb = embedding or []
+        if not emb and embedding_client and tone:
+            text = f"{name} {' '.join(tone)}"
+            try:
+                raw = embedding_client.embed_one(text, text_type="passage")
+                emb = validate_embedding_vector(raw, context=f"influence {influence_id}")
+                self._index_model_id = embedding_client.model_id
+                self._index_embedding_dimension = embedding_client.dimension
+            except (EmbeddingValidationError, Exception):
+                emb = []
+
+        self._graph.add_node(
+            influence_id,
+            node_type=NodeType.influence.value,
+            name=name,
+            language=language,
+            tone=tone or [],
+            movement=movement or "",
+            embedding=emb,
+        )
+        if self.storage_path:
+            self._save()
+
+    def add_typed_edge(
+        self,
+        source_id: str,
+        target_id: str,
+        relation_type: RelationType,
+        weight: float = 1.0,
+    ) -> None:
+        """Add a typed directed edge between two existing nodes."""
+        if source_id not in self._graph:
+            raise ValueError(
+                f"Source node '{source_id}' not found. Add it first."
+            )
+        if target_id not in self._graph:
+            raise ValueError(
+                f"Target node '{target_id}' not found. Add it first."
+            )
+        self._graph.add_edge(
+            source_id, target_id,
+            weight=round(weight, 4),
+            relation_type=relation_type.value,
+        )
+        if self.storage_path:
+            self._save()
+
+    # ------------------------------------------------------------------
+    # P2: Bounded typed traversal with explainable paths
+    # ------------------------------------------------------------------
+
+    def traverse(
+        self,
+        start_id: str,
+        max_hops: int = 2,
+        budget: int = 20,
+        relation_types: list[RelationType] | None = None,
+        node_types: list[NodeType] | None = None,
+    ) -> list[GraphPath]:
+        """Bounded typed BFS traversal returning explainable GraphPaths.
+
+        Args:
+            start_id: Node to start from.
+            max_hops: Maximum hops from start (default 2).
+            budget: Maximum total nodes to visit (default 20).
+            relation_types: Edge type whitelist (None = all).
+            node_types: Node type whitelist for results (None = all).
+
+        Returns:
+            List of GraphPath objects, shortest paths first.
+        """
+        if start_id not in self._graph:
+            return []
+
+        allowed_relations = {rt.value for rt in relation_types} if relation_types else None
+        allowed_node_types = {nt.value for nt in node_types} if node_types else None
+
+        from collections import deque
+
+        paths: list[GraphPath] = []
+        visited: set[str] = {start_id}
+        queue: deque[GraphPath] = deque()
+
+        for nbr in self._graph.successors(start_id):
+            edge_data = self._graph[start_id][nbr]
+            rel_val = edge_data.get("relation_type", RelationType.similar_to.value)
+            if allowed_relations and rel_val not in allowed_relations:
+                continue
+            nbr_type_val = self._graph.nodes[nbr].get("node_type", NodeType.poem.value)
+            try:
+                nbr_type = NodeType(nbr_type_val)
+                rel_type = RelationType(rel_val)
+            except ValueError:
+                nbr_type = NodeType.poem
+                rel_type = RelationType.similar_to
+            hop = GraphHop(node_id=nbr, node_type=nbr_type, relation_type=rel_type,
+                           weight=edge_data.get("weight", 1.0))
+            queue.append(GraphPath(origin_id=start_id, hops=[hop]))
+            visited.add(nbr)
+
+        while queue and len(paths) < budget:
+            current_path = queue.popleft()
+            endpoint = current_path.endpoint_id
+            ep_type = self._graph.nodes[endpoint].get("node_type", NodeType.poem.value)
+            if allowed_node_types is None or ep_type in allowed_node_types:
+                paths.append(current_path)
+            if current_path.depth < max_hops and len(paths) + len(queue) < budget:
+                for nbr in self._graph.successors(endpoint):
+                    if nbr in visited:
+                        continue
+                    edge_data = self._graph[endpoint][nbr]
+                    rel_val = edge_data.get("relation_type", RelationType.similar_to.value)
+                    if allowed_relations and rel_val not in allowed_relations:
+                        continue
+                    nbr_type_val = self._graph.nodes[nbr].get("node_type", NodeType.poem.value)
+                    try:
+                        nbr_type = NodeType(nbr_type_val)
+                        rel_type = RelationType(rel_val)
+                    except ValueError:
+                        nbr_type = NodeType.poem
+                        rel_type = RelationType.similar_to
+                    hop = GraphHop(node_id=nbr, node_type=nbr_type, relation_type=rel_type,
+                                   weight=edge_data.get("weight", 1.0))
+                    queue.append(GraphPath(origin_id=start_id, hops=current_path.hops + [hop]))
+                    visited.add(nbr)
+        return paths
+
+    def retrieve_with_paths(
+        self,
+        query_embedding: list[float],
+        k: int = 5,
+        max_hops: int = 2,
+        budget: int = 30,
+        relation_types: list[RelationType] | None = None,
+        form_filter: str | None = None,
+        language_filter: str | None = None,
+    ) -> list[tuple[str, float, "GraphPath | None"]]:
+        """Graph-enhanced retrieval returning (node_id, score, GraphPath|None).
+
+        Seeds found by dense cosine; each seed is expanded via traverse().
+        Results include the path from the nearest seed for display.
+
+        Returns:
+            (node_id, cosine_score, GraphPath|None) sorted by descending score.
+        """
+        try:
+            query_embedding = validate_embedding_vector(
+                query_embedding, context="query (retrieve_with_paths)"
+            )
+        except EmbeddingValidationError as e:
+            raise ValueError(f"Invalid query embedding: {e}") from e
+
+        if self._graph.number_of_nodes() == 0:
+            return []
+
+        m = max(k // 2 + 1, 3)
+        seed_results = self.retrieve(query_embedding, m, form_filter, language_filter)
+        if not seed_results:
+            return []
+
+        candidate_paths: dict[str, tuple[float, "GraphPath | None"]] = {}
+        for seed_id, seed_score in seed_results:
+            candidate_paths[seed_id] = (seed_score, None)
+
+        seed_ids = [sid for sid, _ in seed_results]
+        budget_per_seed = max(budget // len(seed_ids), 5) if seed_ids else budget
+        for seed_id in seed_ids:
+            for path in self.traverse(seed_id, max_hops=max_hops, budget=budget_per_seed,
+                                      relation_types=relation_types):
+                ep = path.endpoint_id
+                attrs = self._graph.nodes.get(ep, {})
+                if form_filter and attrs.get("form") != form_filter:
+                    continue
+                if language_filter and attrs.get("language") != language_filter:
+                    continue
+                emb = attrs.get("embedding", [])
+                if emb:
+                    score = _cosine(query_embedding, emb)
+                    if ep not in candidate_paths or score > candidate_paths[ep][0]:
+                        candidate_paths[ep] = (score, path)
+
+        scored = [(nid, sc, p) for nid, (sc, p) in candidate_paths.items()]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored[:k]
+
     def get_connected_influences(
         self,
         poem_id: str,
@@ -381,9 +720,18 @@ class GraphRAGRetriever:
             return
         os.makedirs(self.storage_path.parent, exist_ok=True)
         data = {
+            # P2/P3: versioned header — lets us detect incompatible model swaps
+            "schema_version": _SCHEMA_VERSION,
+            "model_id": self._index_model_id,
+            "embedding_dimension": self._index_embedding_dimension,
             "nodes": {n: dict(attrs) for n, attrs in self._graph.nodes(data=True)},
             "edges": [
-                {"source": u, "target": v, "weight": d.get("weight", 0.0)}
+                {
+                    "source": u,
+                    "target": v,
+                    "weight": d.get("weight", 0.0),
+                    "relation_type": d.get("relation_type", RelationType.similar_to.value),
+                }
                 for u, v, d in self._graph.edges(data=True)
             ],
         }
@@ -396,10 +744,20 @@ class GraphRAGRetriever:
         try:
             with open(self.storage_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
+
+            # P2/P3: restore versioning metadata
+            self._index_model_id = data.get("model_id")
+            self._index_embedding_dimension = data.get("embedding_dimension")
+
             for node_id, attrs in data.get("nodes", {}).items():
                 self._graph.add_node(node_id, **attrs)
             for edge in data.get("edges", []):
-                self._graph.add_edge(edge["source"], edge["target"], weight=edge["weight"])
+                self._graph.add_edge(
+                    edge["source"],
+                    edge["target"],
+                    weight=edge.get("weight", 0.0),
+                    relation_type=edge.get("relation_type", RelationType.similar_to.value),
+                )
         except Exception:
             # Corrupt or incompatible JSON — start fresh
             self._graph = self._make_graph()

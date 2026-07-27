@@ -24,19 +24,28 @@ class EmbeddingClient(Protocol):
         """Return the embedding vector dimension."""
         ...
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def embed(self, texts: list[str], text_type: str = "query") -> list[list[float]]:
         """Embed a batch of texts into vectors.
 
         Args:
             texts: List of strings to embed.
+            text_type: ``"query"`` or ``"passage"``. e5 models use different
+                representations for queries vs stored documents. Always pass
+                ``"passage"`` when embedding documents for storage, and
+                ``"query"`` (the default) when embedding retrieval queries.
 
         Returns:
             List of embedding vectors, one per input text.
         """
         ...
 
-    def embed_one(self, text: str) -> list[float]:
-        """Embed a single text. Convenience wrapper around embed()."""
+    def embed_one(self, text: str, text_type: str = "query") -> list[float]:
+        """Embed a single text. Convenience wrapper around embed().
+
+        Args:
+            text: Text to embed.
+            text_type: ``"query"`` or ``"passage"``. See ``embed()`` for details.
+        """
         ...
 
 
@@ -51,8 +60,12 @@ class StubEmbeddingClient:
     def dimension(self) -> int:
         return 384  # Match MiniLM dimension for test compatibility
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
-        """Return deterministic fake embeddings based on text hash."""
+    def embed(self, texts: list[str], text_type: str = "query") -> list[list[float]]:
+        """Return deterministic fake embeddings based on text hash.
+
+        The ``text_type`` parameter is accepted for protocol compatibility but
+        ignored — the stub does not distinguish queries from passages.
+        """
         import hashlib
 
         result = []
@@ -67,8 +80,8 @@ class StubEmbeddingClient:
             result.append(vec)
         return result
 
-    def embed_one(self, text: str) -> list[float]:
-        return self.embed([text])[0]
+    def embed_one(self, text: str, text_type: str = "query") -> list[float]:
+        return self.embed([text], text_type=text_type)[0]
 
 
 class SentenceTransformerClient:
@@ -118,22 +131,43 @@ class SentenceTransformerClient:
             self._load_model()
         return self._dimension  # type: ignore[return-value]
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def embed(
+        self,
+        texts: list[str],
+        text_type: str = "query",
+    ) -> list[list[float]]:
         """Embed texts using sentence-transformers.
 
-        For e5 models, prepends "query: " prefix as recommended.
+        For e5 models, prepends the correct prefix per the e5 convention:
+        - ``"query: "`` for retrieval queries (default)
+        - ``"passage: "`` for documents/passages being stored in the index
+
+        Using ``"query: "`` for stored passages silently degrades retrieval
+        quality because the e5 model uses different representations for
+        query tokens and passage tokens.
+
+        Args:
+            texts: Texts to embed.
+            text_type: ``"query"`` or ``"passage"``. Ignored for non-e5 models.
         """
         self._load_model()
 
         # e5 models expect "query: " or "passage: " prefix
         if "e5" in self._model_name.lower():
-            texts = [f"query: {t}" for t in texts]
+            prefix = "passage: " if text_type == "passage" else "query: "
+            texts = [f"{prefix}{t}" for t in texts]
 
         embeddings = self._model.encode(texts, convert_to_numpy=True)  # type: ignore
         return [emb.tolist() for emb in embeddings]
 
-    def embed_one(self, text: str) -> list[float]:
-        return self.embed([text])[0]
+    def embed_one(self, text: str, text_type: str = "query") -> list[float]:
+        """Embed a single text.
+
+        Args:
+            text: Text to embed.
+            text_type: ``"query"`` or ``"passage"``. See ``embed()`` for details.
+        """
+        return self.embed([text], text_type=text_type)[0]
 
 
 def get_embedding_client(

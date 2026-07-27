@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-07-27 — End of session. P0 + P1 complete. Next: P2._
+_Last updated: 2026-07-27 — End of session. P0 + P1 + P2 complete. Next: P3._
 
 ---
 
@@ -9,7 +9,7 @@ _Last updated: 2026-07-27 — End of session. P0 + P1 complete. Next: P2._
 ```bash
 cd /home/angel/dev/poesia
 conda activate poesia
-python -m pytest tests/ --tb=no -q   # should say 285 passed
+python -m pytest tests/ --tb=no -q   # should say 313 passed
 export GROQ_API_KEY=***REMOVED***
 ```
 
@@ -20,67 +20,57 @@ poesia write --theme "luna sobre el mar" --form haiku --language es --llm groq -
 
 ---
 
-## What was completed this session (Phase 5)
+## What was completed this session (Phase P2)
 
-| Sub-phase | What shipped |
+| Sub-task | What shipped |
 |---|---|
-| 5A Groq | --llm groq, GROQ_API_KEY, sequential n calls, User-Agent fix, rate-limit delay |
-| 5B Prompts | Syllable target + numbered priors + output-only rule + anti-repetition per line |
-| 5C Rhyme | RhymeTracker commits keys; RhymeFetcher word bank (Datamuse/CMUdict/ES offline) |
-| 5D P1 | memoria list/search real; --show-retrieval; --interactive with typed-own-line |
-| Docs | USAGE_ISSUES all done, RAG plan updated, ROADMAP Phase 5 added, this file rewritten |
+| E5 prefix fix | `SentenceTransformerClient.embed()` now accepts `text_type="query"|"passage"`. All callers (ingest, BriefBuilder) use `"passage"` for stored docs and `"query"` for queries. |
+| Typed graph schema | `NodeType` and `RelationType` enums added to `records.py`. `ingest()` stores `node_type="poem"`. Semantic edges carry `relation_type="similar_to"`. |
+| Typed node management | `add_fragment_node()`, `add_influence_node()`, `add_typed_edge()` in `GraphRAGRetriever`. |
+| `GraphHop` + `GraphPath` | New dataclasses with `to_display_string()` for `X -[similar_to 0.82]-> Y` output. |
+| `traverse()` | Bounded BFS with `max_hops`, `budget`, `relation_types`, `node_types` filters. Returns `list[GraphPath]`. |
+| `retrieve_with_paths()` | Dense seeds + graph expansion; returns `(node_id, score, GraphPath|None)` triples. |
+| BriefBuilder wired | `BriefBuilder.build()` calls `self._retriever.retrieve_with_paths()`. `GenerationBrief.graph_paths` carries result. |
+| `--show-retrieval` extended | CLI shows graph paths with typed hop chains. |
+| Versioned persistence | `graphrag.json` includes `schema_version`, `model_id`, `embedding_dimension` header. |
+| P2 tests | 28 new tests in `tests/test_p2_graph_structure.py`. All 313 tests pass. |
 
-285 tests passing. Last commit: 90f4b79
+313 tests passing.
 
 ---
 
 ## Key source files
 
-- src/poesia/generation/constrained_loop.py — Loop; line_selector= callback; RhymeTracker wired
-- src/poesia/generation/candidate_generator.py — Directive prompts with rhyme + syllable
-- src/poesia/generation/rhyme_tracker.py — Per-letter-group rhyme commitment + word bank
-- src/poesia/generation/rhyme_fetcher.py — Datamuse + CMUdict + offline ES suffix match
-- src/poesia/generation/llm_client.py — Gemini / OpenAI / Groq backends
-- src/poesia/cli.py — All flags including --interactive, --show-retrieval
-- src/poesia/memoria/library.py — Real Markdown+SQLite library
+- src/poesia/memoria/records.py — `NodeType`, `RelationType` enums
+- src/poesia/memoria/graphrag.py — `GraphHop`, `GraphPath`, `traverse()`, `retrieve_with_paths()`, versioned persistence
+- src/poesia/memoria/embeddings.py — `text_type` param on `embed()` / `embed_one()`
+- src/poesia/generation/brief_builder.py — `GenerationBrief.graph_paths`, BriefBuilder calls retriever
+- src/poesia/cli.py — `--show-retrieval` shows graph paths
+- tests/test_p2_graph_structure.py — 28 P2 tests
 
 ---
 
-## What to do next: P2 (Graph structure)
+## What to do next: P3 (Make artifacts reproducible)
 
-Authority: docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md section 12, P2
+Authority: docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md section 12, P3
 
-Four tasks in order:
+1. Compatibility check on load: compare stored `model_id`/`embedding_dimension` with active client — warn and refuse on mismatch.
+2. Source fingerprints: hash ingested content to detect stale indexes.
+3. Atomic write: temp file → rename (prevent corruption on crash).
+4. Explicit `rebuild()` method.
 
-1. Typed nodes and relations in GraphRAGRetriever / records.py
-   - NodeType enum: poem, fragment, influence, seed, theme
-   - RelationType enum: similar_to, inspired_by, explores, contains
+Key files: src/poesia/memoria/graphrag.py
 
-2. Bounded graph expansion: traverse N hops along typed edges with a budget cap;
-   return path + endpoints (not just endpoints)
-
-3. --show-retrieval path extension: show graph path in retrieval output:
-   pattern-finder -[similar_to 0.82]-> hound -[inspired_by]-> Garcia Lorca
-
-4. Dense vs graph comparison: same theme twice, compare brief content.
-   This is the evidence gate the hardening plan requires.
-
-Key files for P2:
-- src/poesia/memoria/graphrag.py — NetworkX implementation to extend
-- src/poesia/memoria/records.py — add typed enums
-- src/poesia/generation/brief_builder.py — extend to call graph retrieval
-- tests/test_memoria_graphrag.py — existing tests to extend
-
-Do NOT start P3/P4/P5 before P2 evidence gate is passed.
+Do NOT start P4/P5 before P3.
 
 ---
 
 ## Known rough edges (not bugs)
 
-- Groq soneto sometimes repeats: word bank helps; use --n-candidates 5+ for variety
-- Metre not always exact: repair loop helps; phoneme-level constraints are P3+
-- --interactive with Groq is slow: 2.1s x n per line; reduce --n-candidates or upgrade tier
-- romance form has no default line count: known incomplete spec, deferred
+- Groq soneto sometimes repeats: use --n-candidates 5+ for variety
+- Metre not always exact: repair loop helps; phoneme constraints are P3+
+- romance form has no default line count: deferred
+- E5 query/passage quality improvement only visible with real sentence-transformers
 
 ---
 
@@ -89,7 +79,3 @@ Do NOT start P3/P4/P5 before P2 evidence gate is passed.
 - What to build next: docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md section 12
 - Phase history: docs/ROADMAP.md
 - Kanban: memory-bank/tasks.md
-- CLI usage: USAGE_GUIDE.md
-- Original issues (historical, all done): USAGE_ISSUES.md
-- Architecture rules: docs/ARCHITECTURE.md
-- Package survey: docs/PACKAGES_SURVEYED.md

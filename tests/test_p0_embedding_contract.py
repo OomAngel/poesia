@@ -124,11 +124,11 @@ def test_auto_embed_validation_exposes_failures() -> None:
         def dimension(self) -> int:
             return 384
 
-        def embed(self, texts: list[str]) -> list[list[float]]:
+        def embed(self, texts: list[str], text_type: str = "query") -> list[list[float]]:
             # Correct implementation
             return [[0.1] * 384 for _ in texts]
 
-        def embed_one(self, text: str) -> list[float]:
+        def embed_one(self, text: str, text_type: str = "query") -> list[float]:
             # BUG: returns nested list instead of flat vector
             # This simulates the scalar/batch confusion
             return [[0.1] * 384]  # type: ignore

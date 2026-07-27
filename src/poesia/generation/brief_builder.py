@@ -4,6 +4,10 @@ The BriefBuilder is the bridge between MemorIA's retrieval layer and the
 generation loop. It takes user inputs (form, theme, tone, seeds) and assembles
 a dense, grounded prompt.
 
+P2: BriefBuilder now calls the injected GraphRAGRetriever (when available)
+via retrieve_with_paths() to obtain graph-traversal context. The retrieved
+paths are stored in GenerationBrief.graph_paths for CLI display.
+
 See docs/GENERATION_BRIEF.md for the full specification.
 """
 
@@ -11,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from poesia.forms.definitions import FormSpec, get_form
 from poesia.memoria.records import FragmentRecord, InfluenceRecord, SeedExpansion
@@ -19,12 +23,18 @@ from poesia.memoria.seed_expander import SeedExpander
 
 if TYPE_CHECKING:
     from poesia.memoria.embeddings import EmbeddingClient
-    from poesia.memoria.graphrag import GraphRAGRetriever
+    from poesia.memoria.graphrag import GraphPath, GraphRAGRetriever
 
 
 @dataclass
 class GenerationBrief:
-    """A rich, grounded prompt for poem generation."""
+    """A rich, grounded prompt for poem generation.
+
+    P2 additions:
+    - ``graph_paths``: explainable retrieval paths from GraphRAGRetriever
+      (list of (node_id, score, GraphPath|None) triples).  Empty when only
+      dense retrieval was used.
+    """
 
     form_spec: FormSpec
     theme: str
@@ -34,6 +44,8 @@ class GenerationBrief:
     rhyme_options: dict[str, list[str]] = field(default_factory=dict)
     exemplar_lines: list[str] = field(default_factory=list)
     influences: list[InfluenceRecord] = field(default_factory=list)
+    # P2: graph retrieval results — (node_id, score, GraphPath|None)
+    graph_paths: list[tuple[str, float, Any]] = field(default_factory=list)
     level: str = "standard"
     created_at: datetime = field(default_factory=datetime.now)
 
@@ -181,6 +193,18 @@ class BriefBuilder:
         if self._fragments and self._embedding_client:
             fragments_scored = self._retrieve_fragments(theme, k=5)
 
+        # P2: retrieve from graph when retriever is wired and embedding is available
+        graph_paths: list[tuple[str, float, Any]] = []
+        if self._retriever is not None and self._embedding_client is not None:
+            query_emb = self._embedding_client.embed_one(theme, text_type="query")
+            try:
+                graph_paths = self._retriever.retrieve_with_paths(
+                    query_emb, k=5, max_hops=2
+                )
+            except Exception:
+                # Graph retrieval is best-effort; never crash brief assembly
+                graph_paths = []
+
         # Match influences by tone
         matched_influences: list[InfluenceRecord] = []
         if tone and self._influences:
@@ -193,6 +217,7 @@ class BriefBuilder:
             fragments=fragments_scored,
             seeds_expanded=seeds_expanded,
             influences=matched_influences,
+            graph_paths=graph_paths,
             level=level,
         )
 
@@ -205,13 +230,13 @@ class BriefBuilder:
         if not self._embedding_client or not self._fragments:
             return []
 
-        # Embed query
-        query_emb = self._embedding_client.embed_one(query)
+        # Embed query — retrieval queries use "query: " prefix in e5 models
+        query_emb = self._embedding_client.embed_one(query, text_type="query")
 
-        # Lazy-compute fragment embeddings
+        # Lazy-compute fragment embeddings — stored documents use "passage: " prefix
         if self._fragment_embeddings is None:
             texts = [f.content for f in self._fragments]
-            self._fragment_embeddings = self._embedding_client.embed(texts)
+            self._fragment_embeddings = self._embedding_client.embed(texts, text_type="passage")
 
         # Score fragments
         scores = []

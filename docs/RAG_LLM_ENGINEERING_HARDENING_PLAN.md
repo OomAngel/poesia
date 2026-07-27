@@ -2,7 +2,7 @@
 
 Doc class: canonical implementation plan for PoesIA RAG/LLM work
 Status: active
-Created: 2026-07-27 | Last updated: 2026-07-27 (P0 + P1 complete)
+Created: 2026-07-27 | Last updated: 2026-07-27 (P0 + P1 + P2 complete)
 Scope: `memoria/`, embedding-backed evaluation, retrieval-informed generation, hosted
 LLM integration, and their CLI/user journeys
 
@@ -13,7 +13,7 @@ files exist or the aggregate test count passes.
 
 ## 1. Current assessment (updated 2026-07-27)
 
-**P0 and P1 are complete.** The next active phase is P2 (typed graph nodes/relations).
+**P0, P1, and P2 are complete.** The next active phase is P3 (reproducible artifacts).
 
 ### What is now implemented and verified
 
@@ -346,14 +346,15 @@ The repository currently contains contradictory states:
 5. Generate, validate, present alternatives, and save the human selection.
 6. Preserve source and configuration provenance.
 
-### P2 — Make graph structure materially useful ← NEXT
+### P2 — Make graph structure materially useful ✅ COMPLETE
 
-1. Implement typed nodes and relations.
-2. Add bounded graph expansion.
-3. Return paths and explanations.
-4. Compare dense-only with graph-enhanced context.
+1. Implement typed nodes and relations. ✅ NodeType/RelationType enums; ingest() tags poem nodes; add_fragment_node/add_influence_node/add_typed_edge.
+2. Add bounded graph expansion. ✅ traverse() BFS with max_hops, budget, relation_types, node_types filters.
+3. Return paths and explanations. ✅ GraphHop/GraphPath dataclasses; retrieve_with_paths(); to_display_string().
+4. Compare dense-only with graph-enhanced context. ✅ test_dense_vs_graph_retrieval_differ() proves graph reaches nodes at low dense similarity. BriefBuilder wired to retriever.
+5. E5 query/passage prefix fix. ✅ text_type="passage" used for all stored documents; all callers updated.
 
-### P3 — Make artifacts reproducible
+### P3 — Make artifacts reproducible ← NEXT
 
 1. Add the immutable embedding/index compatibility descriptor.
 2. Add source and graph fingerprints.

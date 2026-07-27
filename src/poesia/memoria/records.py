@@ -6,12 +6,51 @@ Beyond PoemRecord (in library.py), the enrichment layer uses:
 - InfluenceRecord: poets/works that resonate
 
 All records use YAML frontmatter in Markdown files for human readability.
+
+P2: NodeType and RelationType enums define the typed graph schema.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
+
+
+class NodeType(str, Enum):
+    """Typed node categories in the GraphRAG semantic graph.
+
+    Each node in the graph is one of these types. Having distinct types
+    enables typed traversal (e.g. "find all influences connected to this
+    poem") and explainable path rendering.
+    """
+
+    poem = "poem"
+    fragment = "fragment"
+    influence = "influence"
+    seed = "seed"
+    theme = "theme"
+
+
+class RelationType(str, Enum):
+    """Typed edge categories in the GraphRAG semantic graph.
+
+    Each directed edge has a relation type. This enables:
+    - filtered traversal (e.g. follow only ``inspired_by`` edges)
+    - human-readable path explanations
+    - evidence of which relation carried the retrieval
+
+    Relation semantics:
+    - ``similar_to``: two nodes have high cosine similarity (undirected in practice)
+    - ``inspired_by``: a poem or fragment was influenced by a poet/work
+    - ``explores``: a poem or fragment explores a given theme
+    - ``contains``: a poem contains a fragment (part-of relation)
+    """
+
+    similar_to = "similar_to"
+    inspired_by = "inspired_by"
+    explores = "explores"
+    contains = "contains"
 
 
 @dataclass
