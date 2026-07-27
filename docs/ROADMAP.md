@@ -33,14 +33,19 @@
 - [x] Storage backend decision: NetworkX (JSON persistence)
 - [x] `GraphRAGRetriever.ingest` / `.retrieve` in `memoria/graphrag.py`
 
-### 3B: Embedding Layer
-- [ ] `EmbeddingClient` Protocol + `SentenceTransformerClient` (`e5-base`)
-- [ ] Auto-embed on ingest
+### 3B: Embedding Layer ✅
+- [x] `EmbeddingClient` Protocol + `SentenceTransformerClient` (`e5-base`)
+- [x] `StubEmbeddingClient` for testing (deterministic)
+- [x] `get_embedding_client()` factory
+- [ ] Auto-embed on ingest (wiring pending)
 
-### 3C: Extended Node Types (see `INGESTION_SCHEMA.md`)
-- [ ] `FragmentRecord` — life moments, feelings, emotional states
-- [ ] `SeedRecord` — word/image clusters with expansions
-- [ ] `InfluenceRecord` — poets/works that resonate
+### 3C: Extended Node Types ✅ (see `INGESTION_SCHEMA.md`)
+- [x] `FragmentRecord` — life moments, feelings, emotional states
+- [x] `SeedRecord` + `SeedExpansion` — word/image clusters with 11 expansion dimensions
+- [x] `InfluenceRecord` — poets/works that resonate
+- [x] `SeedExpander` — WordNet + rhyme + semantic + Datamuse expansion
+- [x] First 10 personal fragments in `seeds/angel_fragments/`
+- [x] Influence registry (24 poets) in `docs/INFLUENCE_REGISTRY.md`
 - [ ] Ingestion CLI: `poesia memoria add-fragment|add-seed|add-influence`
 
 ### 3D: Pre-Generation Enrichment (see `ENRICHMENT_ARCHITECTURE.md`)

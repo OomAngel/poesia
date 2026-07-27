@@ -1,35 +1,43 @@
 # Active Context — PoesIA
 
-_Last updated: Phase 3 GraphRAGRetriever implementation complete._
+_Last updated: 2026-07-27 — Phase 3B-3C complete, entering Phase 3D._
 
 ## What We Just Did
 
-1. **Phase 3: GraphRAGRetriever Implementation** (committed as `0135e4f`):
-   - Landed NetworkX as the storage backend (JSON persistence, no infra dependency)
-   - Implemented `GraphRAGRetriever` in `src/poesia/memoria/graphrag.py`:
-     - Pure Python cosine similarity (no numpy in core)
-     - JSON persistence at `~/.poesia/graphrag.json` (avoids pickle versioning issues)
-     - Semantic neighbourhood edges built above 0.70 cosine threshold
-     - `ingest(records, embeddings)` to add poems + build graph edges
-     - `retrieve(query_embedding, k, form_filter, language_filter)` for top-k retrieval
-     - `neighbourhood(poem_id, depth)` for finding similar poems without query embedding
-   - Added 5 unit tests in `tests/test_memoria_graphrag.py`
-   - All **53 tests passing** in 0.74s
+### Session 2026-07-27
+
+1. **Design decisions landed** — All 16 questions in `docs/DESIGN_QUESTIONS.md` resolved
+2. **EmbeddingClient** (`embeddings.py`) — Protocol + SentenceTransformerClient (e5-base)
+3. **Extended record types** (`records.py`) — FragmentRecord, SeedRecord, InfluenceRecord
+4. **SeedExpander** (`seed_expander.py`) — WordNet + rhymes + semantic + Datamuse
+5. **First personal fragments** — 10 files in `seeds/angel_fragments/`
+6. **Influence registry** — 24 poets documented in `docs/INFLUENCE_REGISTRY.md`
+7. **Literary taxonomy** — Movements/eras in `docs/LITERARY_TAXONOMY.md`
+
+**Tests**: 76 passing, 1 skipped
 
 ## Current Focus
 
-Phase 3 core is complete! Remaining Phase 3 tasks per `docs/ROADMAP.md`:
+**Phase 3D: BriefBuilder** — assemble generation prompts from:
+- Retrieved fragments (semantic similarity)
+- Expanded seeds (rhymes, synonyms)
+- Influence anchors (tonal grounding)
+- Form spec + tone inputs
 
-1. **Wire retrieval into `CandidateGenerator`** — use Graph RAG few-shot grounding in LLM prompts
-2. **Wire retrieval into `GalerIA`** — style anchoring for illustration prompts
-3. (Optional) Add poet/style nodes + influence edges for richer graph structure
+## Next Steps
 
-## Open Questions
+1. Build `BriefBuilder` class
+2. Wire auto-embed into GraphRAGRetriever.ingest()
+3. Create ingestion CLI: `poesia memoria add-fragment|add-seed|add-influence`
+4. Integrate brief into `CandidateGenerator`
 
-- How to source embeddings for poems? Options:
-  - Use `sentence-transformers` directly (already noted in ROADMAP)
-  - Lazy-load to keep core import light
-- CLI integration: should `poesia memoria ingest` auto-embed, or require explicit embedding step?
-- CLI-only focus continues (no web frontend planned).
+## Key Files
+
+- `src/poesia/memoria/embeddings.py`
+- `src/poesia/memoria/records.py`
+- `src/poesia/memoria/seed_expander.py`
+- `seeds/angel_fragments/` — personal context corpus
+- `docs/INFLUENCE_REGISTRY.md` — 24 poets
+- `docs/GENERATION_BRIEF.md` — target brief format
 
 
