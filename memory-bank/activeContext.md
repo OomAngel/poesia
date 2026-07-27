@@ -16,7 +16,38 @@ P0 and P1 of the hardening plan are satisfied.
 
 ## What We Just Did
 
-### Session 2026-07-27 (Alternative Presentation - Issue #6 Partial)
+### Session 2026-07-27 (Documentation Complete)
+
+**✅ Comprehensive documentation added:**
+- Created `USAGE_GUIDE.md` (171 lines)
+  - Installation guide (basic, nlp, all)
+  - Quick start examples
+  - Complete command reference
+  - Poetic forms table
+  - Scoring modes explained
+  - Alternative presentation guide
+  - Library workflow with examples
+  - Troubleshooting section
+  - Advanced usage patterns
+- Updated `README.md` with current status
+  - 228 tests passing
+  - Recent updates list
+  - References to new docs
+
+**Test status:** All 228 tests pass
+
+**Commits:**
+- `f7ec5d8` - Documentation (USAGE_GUIDE.md + README update)
+- `c434753` - Library workflow verification
+- `38a9824` - Alternative presentation
+
+**Session accomplishments:**
+1. Fixed all real usage issues (#1-4)
+2. Implemented alternative presentation (#6 partial)
+3. Verified complete P1 library workflow
+4. Comprehensive documentation
+
+### Session 2026-07-27 (Alternative Presentation - Issue #6 Partial - Earlier)
 
 **✅ Implemented `--show-alternatives N` flag:**
 - Displays top-N candidate lines per position with full score breakdowns
@@ -204,7 +235,13 @@ silent failures have been eliminated.
 
 ## Current Focus
 
-**RAG/LLM hardening P1:** complete the end-to-end journey with human-in-the-loop alternative selection.
+**Documentation complete.** All P0/P1 features fully documented and tested.
+
+Ready for:
+- Real LLM testing (needs API key)
+- Interactive selection (`--interactive`)
+- Other poetic forms testing
+- New features or back to other projects
 
 ### P1 Status Assessment (2026-07-27)
 
