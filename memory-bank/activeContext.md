@@ -1,42 +1,63 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-07-27 — Phase 3B-3C complete, entering Phase 3D._
+_Last updated: 2026-07-27 — Phase 3D complete, starting Phase 3E._
 
 ## What We Just Did
 
-### Session 2026-07-27
+### Session 2026-07-27 (continued)
 
-1. **Design decisions landed** — All 16 questions in `docs/DESIGN_QUESTIONS.md` resolved
-2. **EmbeddingClient** (`embeddings.py`) — Protocol + SentenceTransformerClient (e5-base)
-3. **Extended record types** (`records.py`) — FragmentRecord, SeedRecord, InfluenceRecord
-4. **SeedExpander** (`seed_expander.py`) — WordNet + rhymes + semantic + Datamuse
-5. **First personal fragments** — 10 files in `seeds/angel_fragments/`
-6. **Influence registry** — 24 poets documented in `docs/INFLUENCE_REGISTRY.md`
-7. **Literary taxonomy** — Movements/eras in `docs/LITERARY_TAXONOMY.md`
+1. **GPU PyTorch installed** — torch 2.11.0+cu128 on RTX 2000 Ada (8GB)
+2. **Reviewed all packages** — Complete analysis of integration gaps
+3. **Docs updated** — ENRICHMENT_ARCHITECTURE.md and GENERATION_BRIEF.md now accurate
 
-**Tests**: 76 passing, 1 skipped
+**Previous session (same day)**:
+- Design decisions (16 questions), EmbeddingClient, extended records
+- SeedExpander, personal fragments, influence registry, literary taxonomy
+- BriefBuilder + GenerationBrief with `to_prompt()`
+
+**Tests**: 76+ passing
 
 ## Current Focus
 
-**Phase 3E: Integration** — wire everything together:
-- Connect BriefBuilder to CandidateGenerator
-- Wire retrieval into GalerIA for illustration
-- Create ingestion CLI commands
+**Phase 3E: Integration** — wire everything together.
 
-## Next Steps
+### Integration Gaps Identified
 
-1. Wire `BriefBuilder` into `CandidateGenerator`
-2. Auto-embed on GraphRAGRetriever.ingest()
-3. Ingestion CLI: `poesia memoria add-fragment|add-seed|add-influence`
-4. Wire retrieval into GalerIA
+| Gap | Current | Target |
+|-----|---------|--------|
+| `CandidateGenerator` | Takes raw theme string | Accept `GenerationBrief` |
+| `ConstrainedLoop` | Basic prompt | Use BriefBuilder |
+| CLI `write` | `--theme` only | `--theme/--tone/--seeds/--brief-level` |
+| CLI `memoria` | Stubs | `add-fragment/add-seed/add-influence` |
+| `GraphRAGRetriever` | `PoemRecord` only | Extended records + auto-embed |
+| GalerIA | No retrieval | Style anchoring from influences |
+
+## Next Steps (Phase 3E)
+
+1. **Wire BriefBuilder into generation loop**
+   - Modify `CandidateGenerator.generate_lines()` to accept `GenerationBrief`
+   - Update `ConstrainedLoop` to build briefs
+   
+2. **Update CLI `write` command**
+   - Add `--tone`, `--seeds`, `--brief-level` options
+   
+3. **Add memoria ingestion CLI**
+   - `poesia memoria add-fragment <path>`
+   - `poesia memoria add-seed <word> --language es`
+   - `poesia memoria add-influence <path>`
+   
+4. **Auto-embed on ingest**
+   - Extend `GraphRAGRetriever.ingest()` to accept embedding_client
+
+5. **GalerIA style anchoring** (stretch)
+   - Use influence `tone` to guide image style prompts
 
 ## Key Files
 
-- `src/poesia/memoria/embeddings.py`
-- `src/poesia/memoria/records.py`
-- `src/poesia/memoria/seed_expander.py`
-- `seeds/angel_fragments/` — personal context corpus
-- `docs/INFLUENCE_REGISTRY.md` — 24 poets
-- `docs/GENERATION_BRIEF.md` — target brief format
+- `src/poesia/generation/brief_builder.py` — BriefBuilder (done)
+- `src/poesia/generation/candidate_generator.py` — needs brief integration
+- `src/poesia/generation/constrained_loop.py` — needs brief wiring
+- `src/poesia/cli.py` — needs new options and commands
+- `src/poesia/memoria/graphrag.py` — needs auto-embed
 
 
