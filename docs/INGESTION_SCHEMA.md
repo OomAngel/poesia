@@ -36,7 +36,7 @@ You looked back once. I lifted my hand too late.
 
 ## Seed Record
 
-Seeds are word/image clusters with pre-computed expansions.
+Seeds are word/image clusters with **comprehensive expansions** across all dimensions.
 
 ```yaml
 # ~/.poesia/seeds/silencio-cluster.md
@@ -49,24 +49,66 @@ language: es
 tags:
   - absence
   - communication
-associations:
+
+# Comprehensive expansion (all dimensions)
+synonyms:
   - callar
   - mudez
   - sigilo
   - quietud
-  - vacío
-  - lo no dicho
+antonyms:
+  - ruido
+  - estruendo
+  - grito
+  - bullicio
 rhymes_consonant:
+  -encio: [silencio, presencia, ausencia, violencia]
   -icio: [vicio, indicio, propicio]
-  -encio: [silencio, presencia, ausencia]
 rhymes_assonant:
-  e-o: [silencio, tiempo, viento, cielo]
+  e-o: [silencio, tiempo, viento, cielo, sueño]
+semantic_neighbors:  # via embeddings
+  - soledad
+  - vacío
+  - espera
+  - ausencia
+collocations:  # via Datamuse
+  - "romper el silencio"
+  - "guardar silencio"
+  - "silencio sepulcral"
+  - "en silencio"
+hypernyms:
+  - quietud
+  - estado
+  - condición
+hyponyms: []  # specific types if any
+register: formal, literary
+connotation: melancholic, weighty
+etymology: "Latin silentium, from silēre (to be silent)"
+cross_language:
+  en: silence
+  nl: stilte
+  zh: 沉默
 ---
 
 # Notes
 The word "silencio" carries weight when it follows speech.
 Best placed at line-end for emphasis. Pairs well with "tiempo."
 ```
+
+### Expansion Sources
+
+| Dimension | Source | Auto/Manual |
+|-----------|--------|-------------|
+| Synonyms | WordNet (`wn`) | Auto |
+| Antonyms | WordNet | Auto |
+| Rhymes (consonant) | `phonology/` | Auto |
+| Rhymes (assonant) | `phonology/` | Auto |
+| Semantic neighbors | `sentence-transformers` | Auto |
+| Collocations | Datamuse API | Auto (optional) |
+| Hypernyms/Hyponyms | WordNet | Auto |
+| Register/Connotation | Manual or LLM | Manual |
+| Etymology | Manual | Manual |
+| Cross-language | Manual | Manual |
 
 ## Influence Record
 
