@@ -1,12 +1,29 @@
-"""MemorIA — collections and (eventually) Graph RAG retrieval.
+"""MemorIA — collections, Graph RAG retrieval, and personal context corpus.
 
-*Memoria* (memory). Phase 0-1: a personal library of saved/generated poems,
-tagged by theme, form, language and date. Phase 3: the Graph RAG layer —
-poet/style nodes, influence edges, semantic-neighbourhood retrieval, used to
-ground GalerIA illustration prompts and the generation loop's few-shot
-exemplars.
+*Memoria* (memory). The personal knowledge layer for PoesIA:
 
-Do not import Phase-3 retrieval helpers until a concrete storage backend
-decision has landed (in-memory networkx graph vs. neo4j) — see
-docs/PACKAGES_SURVEYED.md.
+- **Library**: Markdown poem storage with SQLite index (`library.py`)
+- **GraphRAGRetriever**: NetworkX-backed semantic retrieval (`graphrag.py`)
+- **EmbeddingClient**: Protocol + implementations for embeddings (`embeddings.py`)
+- **Record types**: Fragment, Seed, Influence records (`records.py`)
+
+The Graph RAG layer uses semantic embeddings to retrieve personal context
+(fragments, seeds, influences) for grounding LLM generation prompts.
 """
+
+from poesia.memoria.library import Library, PoemRecord
+from poesia.memoria.records import (
+    FragmentRecord,
+    InfluenceRecord,
+    SeedExpansion,
+    SeedRecord,
+)
+
+__all__ = [
+    "Library",
+    "PoemRecord",
+    "FragmentRecord",
+    "SeedRecord",
+    "SeedExpansion",
+    "InfluenceRecord",
+]
