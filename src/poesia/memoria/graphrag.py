@@ -198,6 +198,112 @@ class GraphRAGRetriever:
         neighbours.sort(key=lambda x: x[1], reverse=True)
         return neighbours
 
+    def retrieve_graph_based(
+        self,
+        query_embedding: list[float],
+        k: int = 5,
+        depth: int = 1,
+        form_filter: str | None = None,
+        language_filter: str | None = None,
+    ) -> list[tuple[str, float]]:
+        """Graph-based retrieval: find seed nodes, then expand via ego_graph.
+
+        This is more efficient than brute-force cosine when the graph is large,
+        and provides contextually-related results by traversing semantic edges.
+
+        Algorithm:
+            1. Find top-m seed nodes by cosine similarity (m = k // 2 + 1)
+            2. For each seed, expand to `depth`-hop neighbours via ego_graph
+            3. Score all candidates by cosine similarity to query
+            4. Return top-k unique results
+
+        Args:
+            query_embedding: Query vector to match against.
+            k: Number of results to return.
+            depth: Number of hops in ego_graph expansion (default 1).
+            form_filter: Optional form name to restrict results.
+            language_filter: Optional language code to restrict results.
+
+        Returns:
+            List of (poem_id, cosine_score) sorted by descending similarity.
+        """
+        try:
+            import networkx as nx  # type: ignore[import-untyped]
+        except ImportError:
+            return self.retrieve(query_embedding, k, form_filter, language_filter)
+
+        if self._graph.number_of_nodes() == 0:
+            return []
+
+        # Step 1: Find seed nodes (top-m by cosine)
+        m = max(k // 2 + 1, 3)  # At least 3 seeds
+        seed_results = self.retrieve(query_embedding, m, form_filter, language_filter)
+        if not seed_results:
+            return []
+
+        # Step 2: Expand each seed via ego_graph
+        candidate_ids: set[str] = set()
+        for seed_id, _ in seed_results:
+            candidate_ids.add(seed_id)
+            ego = nx.ego_graph(self._graph, seed_id, radius=depth)
+            for node_id in ego.nodes:
+                if node_id != seed_id:
+                    # Apply filters to expanded nodes
+                    attrs = self._graph.nodes.get(node_id, {})
+                    if form_filter and attrs.get("form") != form_filter:
+                        continue
+                    if language_filter and attrs.get("language") != language_filter:
+                        continue
+                    candidate_ids.add(node_id)
+
+        # Step 3: Score all candidates by cosine similarity
+        scores: list[tuple[str, float]] = []
+        for node_id in candidate_ids:
+            attrs = self._graph.nodes.get(node_id, {})
+            emb = attrs.get("embedding", [])
+            if emb:
+                score = _cosine(query_embedding, emb)
+                scores.append((node_id, score))
+
+        # Step 4: Return top-k
+        scores.sort(key=lambda x: x[1], reverse=True)
+        return scores[:k]
+
+    def get_connected_influences(
+        self,
+        poem_id: str,
+        influence_prefix: str = "influence:",
+    ) -> list[tuple[str, float]]:
+        """Get influences connected to a poem via semantic edges.
+
+        Useful for finding which literary influences resonate with a given poem.
+
+        Args:
+            poem_id: The poem node ID.
+            influence_prefix: Prefix used for influence node IDs.
+
+        Returns:
+            List of (influence_id, edge_weight) sorted by descending weight.
+        """
+        if poem_id not in self._graph:
+            return []
+
+        influences = []
+        for nbr in self._graph.successors(poem_id):
+            if nbr.startswith(influence_prefix):
+                weight = self._graph[poem_id][nbr].get("weight", 0.0)
+                influences.append((nbr, weight))
+
+        # Also check reverse edges (influence → poem)
+        for pred in self._graph.predecessors(poem_id):
+            if pred.startswith(influence_prefix):
+                weight = self._graph[pred][poem_id].get("weight", 0.0)
+                if not any(inf_id == pred for inf_id, _ in influences):
+                    influences.append((pred, weight))
+
+        influences.sort(key=lambda x: x[1], reverse=True)
+        return influences
+
     def node_count(self) -> int:
         return self._graph.number_of_nodes()
 
