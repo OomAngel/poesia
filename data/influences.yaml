@@ -1,0 +1,208 @@
+# Influence Registry — Structured YAML
+# Angel's poetic influences with tone profiles and exemplars.
+# Replaces docs/INFLUENCE_REGISTRY.md for programmatic access.
+
+spanish:
+  - id: antonio_machado
+    name: Antonio Machado
+    era: "1875-1939"
+    movement: Generación del 98
+    tone: [spare, meditative, honest, austere, landscape-as-interior]
+    forms: [romance, soneto, free verse]
+    exemplars:
+      - "Caminante, son tus huellas el camino y nada más"
+      - "Hoy es siempre todavía"
+
+  - id: pablo_neruda
+    name: Pablo Neruda
+    era: "1904-1973"
+    movement: "Surrealism → Political → Late simplicity"
+    tone: [sensual, elemental, political, expansive, intimate]
+    exemplars:
+      - "Puedo escribir los versos más tristes esta noche"
+      - "Me gustas cuando callas"
+
+  - id: luis_g_urbina
+    name: Luis G. Urbina
+    era: "1864-1934"
+    movement: Modernismo (Mexican)
+    tone: [melancholic, tender, intimate, nostalgic]
+    exemplars:
+      - "Vieja lágrima"
+
+  - id: manuel_gutierrez_najera
+    name: Manuel Gutiérrez Nájera
+    era: "1859-1895"
+    movement: Modernismo (precursor)
+    tone: [elegant, musical, wistful, Parisian]
+    exemplars:
+      - "Quiero morir cuando decline el día"
+
+  - id: miguel_hernandez
+    name: Miguel Hernández
+    era: "1910-1942"
+    movement: Generación del 27
+    tone: [earthy, passionate, tragic, popular]
+    exemplars:
+      - "Llegó con tres heridas: la del amor, la de la muerte, la de la vida"
+
+  - id: ruben_dario
+    name: Rubén Darío
+    era: "1867-1916"
+    movement: Modernismo (founder)
+    tone: [musical, exotic, formal, sensual, cosmopolitan]
+    exemplars:
+      - "Juventud, divino tesoro, ¡ya te vas para no volver!"
+
+  - id: octavio_paz
+    name: Octavio Paz
+    era: "1914-1998"
+    movement: "Surrealism, Contemporáneos"
+    tone: [intellectual, erotic, philosophical, luminous]
+    exemplars:
+      - "Entre lo que veo y digo, entre lo que digo y callo"
+
+  - id: sor_juana
+    name: Sor Juana Inés de la Cruz
+    era: "1648-1695"
+    movement: Baroque / Siglo de Oro
+    tone: [intellectual, witty, feminist, paradoxical]
+    exemplars:
+      - "Hombres necios que acusáis a la mujer sin razón"
+
+  - id: gustavo_adolfo_becquer
+    name: Gustavo Adolfo Bécquer
+    era: "1836-1870"
+    movement: Post-Romanticismo
+    tone: [intimate, musical, delicate, melancholic]
+    exemplars:
+      - "¿Qué es poesía? ¿Y tú me lo preguntas? Poesía... eres tú."
+
+  - id: manuel_acuna
+    name: Manuel Acuña
+    era: "1849-1873"
+    movement: Romanticismo (Mexican)
+    tone: [passionate, tragic, youthful, melancholic]
+    exemplars:
+      - "Nocturno a Rosario"
+
+  - id: federico_garcia_lorca
+    name: Federico García Lorca
+    era: "1898-1936"
+    movement: Generación del 27
+    tone: [duende, popular, tragic, surreal, musical]
+    exemplars:
+      - "Verde que te quiero verde"
+      - "A las cinco de la tarde"
+
+  - id: gabriela_mistral
+    name: Gabriela Mistral
+    era: "1889-1957"
+    movement: Post-Modernismo
+    tone: [maternal, tender, biblical, earthy, sorrowful]
+    exemplars:
+      - "Piececitos de niño, azulosos de frío"
+
+  - id: ramon_lopez_velarde
+    name: Ramón López Velarde
+    era: "1888-1921"
+    movement: "Post-Modernismo / Contemporáneos precursor"
+    tone: [provincial, erotic, Catholic guilt, nostalgic]
+    exemplars:
+      - "Mi prima Águeda"
+      - "Suave Patria"
+
+english:
+  - id: charles_mackay
+    name: Charles Mackay
+    era: "1814-1889"
+    movement: Victorian popular verse
+    tone: [moral, accessible, anthemic]
+    exemplars:
+      - "You have no enemies, you say?"
+
+  - id: thomas_hardy
+    name: Thomas Hardy
+    era: "1840-1928"
+    movement: Victorian / Early Modern
+    tone: [pessimistic, ironic, rural, fatalistic]
+    exemplars:
+      - "Woman much missed, how you call to me"
+
+  - id: a_e_housman
+    name: A.E. Housman
+    era: "1859-1936"
+    movement: Georgian / Late Victorian
+    tone: [elegiac, stoic, pastoral, death-haunted]
+    exemplars:
+      - "Into my heart an air that kills"
+      - "To an Athlete Dying Young"
+
+  - id: william_wordsworth
+    name: William Wordsworth
+    era: "1770-1850"
+    movement: Romanticism
+    tone: [contemplative, nature-mystical, democratic, nostalgic]
+    exemplars:
+      - "I wandered lonely as a cloud"
+
+  - id: john_keats
+    name: John Keats
+    era: "1795-1821"
+    movement: Romanticism
+    tone: [sensuous, mortal, beautiful, melancholic]
+    exemplars:
+      - "A thing of beauty is a joy forever"
+      - "Ode to a Nightingale"
+
+  - id: robert_frost
+    name: Robert Frost
+    era: "1874-1963"
+    movement: American Modernism (traditional forms)
+    tone: [rural, deceptively simple, dark undertow, conversational]
+    exemplars:
+      - "Two roads diverged in a yellow wood"
+      - "Good fences make good neighbors"
+
+  - id: walt_whitman
+    name: Walt Whitman
+    era: "1819-1892"
+    movement: American Transcendentalism
+    tone: [expansive, democratic, erotic, cosmic, cataloguing]
+    exemplars:
+      - "I contain multitudes"
+      - "O Captain! My Captain!"
+
+  - id: emily_dickinson
+    name: Emily Dickinson
+    era: "1830-1886"
+    movement: American proto-Modernist
+    tone: [compressed, slant, death-intimate, surprising]
+    exemplars:
+      - "Because I could not stop for Death"
+      - "Tell all the truth but tell it slant"
+
+dutch:
+  - id: willem_kloos
+    name: Willem Kloos
+    era: "1859-1938"
+    movement: Tachtigers
+    tone: [individualist, sensory, rebellious, "art for art's sake"]
+    exemplars:
+      - "Ik ben een God in 't diepst van mijn gedachten"
+
+  - id: j_c_bloem
+    name: J.C. Bloem
+    era: "1887-1966"
+    movement: Forum-generatie
+    tone: [melancholic, autumnal, resigned, accessible]
+    exemplars:
+      - "Voorbij, voorbij, o en voorgoed voorbij"
+
+  - id: hendrik_marsman
+    name: Hendrik Marsman
+    era: "1899-1940"
+    movement: Expressionisme / Vitalism
+    tone: [cosmic, dynamic, vital, patriotic]
+    exemplars:
+      - "Denkend aan Holland zie ik brede rivieren"

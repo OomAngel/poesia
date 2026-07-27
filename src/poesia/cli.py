@@ -140,87 +140,16 @@ def _load_fragments() -> list:
 
 
 def _load_influences() -> list:
-    """Load influences from docs/INFLUENCE_REGISTRY.md with full profile parsing.
+    """Load influences from data/influences.yaml.
 
-    Phase 4B: Extracts movement, era, tone, forms, and exemplars from the registry.
+    Phase 4B+: Now uses structured YAML instead of regex-parsing markdown.
     """
-    import re
-    from pathlib import Path
+    from poesia.memoria.influence_loader import load_influences
 
-    from poesia.memoria.records import InfluenceRecord
-
-    influences = []
-    registry_path = Path(__file__).parent.parent.parent / "docs" / "INFLUENCE_REGISTRY.md"
-    if not registry_path.exists():
-        return influences
-
-    content = registry_path.read_text(encoding="utf-8")
-    current_section_lang = "es"  # Default language based on section
-
-    # Track current poet data
-    current: dict = {}
-
-    def _save_current():
-        if current.get("name"):
-            influences.append(
-                InfluenceRecord(
-                    id=current["name"].lower().replace(" ", "_").replace(".", ""),
-                    name=current["name"],
-                    language=current.get("language", "es"),
-                    movement=current.get("movement"),
-                    era=current.get("era"),
-                    tone=current.get("tone", []),
-                    forms=current.get("forms", []),
-                    exemplars=current.get("exemplars", []),
-                )
-            )
-
-    for line in content.split("\n"):
-        # Section headers determine language
-        if line.startswith("## Spanish") or line.startswith("## Latin"):
-            current_section_lang = "es"
-            continue
-        if line.startswith("## English") or line.startswith("## American"):
-            current_section_lang = "en"
-            continue
-        if line.startswith("## Dutch"):
-            current_section_lang = "nl"
-            continue
-
-        # Poet header: ### Name (years)
-        if line.startswith("### "):
-            _save_current()
-            header = line[4:].strip()
-            # Extract name and era from "Name (1875-1939)"
-            match = re.match(r"^(.+?)\s*\(([^)]+)\)$", header)
-            if match:
-                current = {"name": match.group(1).strip(), "era": match.group(2).strip()}
-            else:
-                current = {"name": header}
-            current["language"] = current_section_lang
-            continue
-
-        # Parse attributes (strip markdown bold markers)
-        def _clean_md(s: str) -> str:
-            """Remove markdown bold markers and extra whitespace."""
-            return re.sub(r"\*\*", "", s).strip().strip('"')
-
-        if "**Movement:**" in line or "- Movement:" in line:
-            val = line.split(":", 1)[1].strip() if ":" in line else ""
-            current["movement"] = _clean_md(val)
-        elif "**Tone:**" in line or "- Tone:" in line:
-            val = line.split(":", 1)[1].strip() if ":" in line else ""
-            current["tone"] = [_clean_md(t) for t in val.split(",") if t.strip()]
-        elif "**Forms:**" in line or "- Forms:" in line:
-            val = line.split(":", 1)[1].strip() if ":" in line else ""
-            current["forms"] = [_clean_md(f) for f in val.split(",") if f.strip()]
-        elif "**Exemplars:**" in line or "- Exemplars:" in line:
-            val = line.split(":", 1)[1].strip() if ":" in line else ""
-            # Split on · or " · " separator
-            current["exemplars"] = [_clean_md(e) for e in re.split(r"\s*·\s*", val) if e.strip()]
-
-    _save_current()
-    return influences
+    try:
+        return list(load_influences())
+    except FileNotFoundError:
+        return []
 
 
 @app.command()
