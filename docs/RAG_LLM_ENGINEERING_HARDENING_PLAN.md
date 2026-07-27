@@ -1,8 +1,8 @@
 # PoesIA RAG, GraphRAG, and LLM Engineering Hardening Plan
 
-Doc class: canonical implementation plan for PoesIA RAG/LLM work  
-Status: active  
-Created: 2026-07-27  
+Doc class: canonical implementation plan for PoesIA RAG/LLM work
+Status: active
+Created: 2026-07-27 | Last updated: 2026-07-27 (P0 + P1 complete)
 Scope: `memoria/`, embedding-backed evaluation, retrieval-informed generation, hosted
 LLM integration, and their CLI/user journeys
 
@@ -11,35 +11,39 @@ authoritative sequencing and completion guide for RAG, GraphRAG, embeddings, and
 lifecycle work. A phase or capability must not be described as complete merely because
 files exist or the aggregate test count passes.
 
-## 1. Current assessment
+## 1. Current assessment (updated 2026-07-27)
 
-PoesIA contains real RAG/LLM engineering, but its current “GraphRAG complete” claim is
-ahead of the implementation. It presently consists of several valuable components that
-are not yet joined into one dependable end-to-end system.
+**P0 and P1 are complete.** The next active phase is P2 (typed graph nodes/relations).
 
-### What is genuinely implemented
+### What is now implemented and verified
 
 - provider-neutral LLM integration through an `LLMClient` protocol;
+- Groq Cloud backend (`--llm groq`, `GROQ_API_KEY`) — live-tested with haiku + soneto;
 - deterministic generation, validation, scoring, ranking, and repair orchestration;
+- RhymeTracker: per-line rhyme commitment with word-bank injection (Datamuse/CMUdict/offline);
+- directive prompts: syllable target + rhyme word bank + anti-repetition rule per line;
 - dense semantic retrieval of personal fragments for generation briefs;
-- an explicit embedding-client abstraction with multilingual E5 support;
-- semantic-graph construction and retrieval when correct explicit embeddings are supplied;
+- scalar/batch embedding contract enforced (`embed_one()` for scalars, `embed()` for batches);
+- embedding validation at all boundaries (rank, dimension, numeric, finite);
+- semantic-graph construction and retrieval with correct explicit embeddings;
 - local graph JSON persistence and neighbourhood queries;
-- retrieval-informed prompt construction;
-- hosted Gemini/OpenAI HTTP adapters and mock-based request/response tests;
-- a Markdown/SQLite poem library.
+- retrieval-informed prompt construction with `--show-retrieval` CLI flag;
+- hosted Gemini/OpenAI/Groq HTTP adapters and mock-based tests;
+- Markdown/SQLite poem library with real `list`/`search` CLI (no longer stubs);
+- `--interactive` human line-by-line selection with typed-own-line support;
+- `--show-alternatives N` scored candidate display;
+- 285 passing tests.
 
 ### Current honest positioning
 
-Until the acceptance criteria in this plan are met, describe PoesIA as:
+> PoesIA is a hybrid deterministic/LLM poetry system with verified dense personal-context
+> retrieval, a complete end-to-end generation+selection+save user journey, and a semantic-
+> graph prototype ready for typed-relation enrichment (P2).
 
-> A hybrid deterministic/LLM poetry system with dense personal-context retrieval and a
-> separate semantic-graph prototype.
+Do not yet describe it as production GraphRAG — the graph does not yet have typed nodes/
+relations or explainable traversal paths (P2 prerequisite).
 
-Do not yet describe the complete application journey as production GraphRAG or operated
-LLMOps.
-
-## 2. Critical embedding-contract defect
+## 2. Critical embedding-contract defect ✅ FIXED
 
 The embedding protocol correctly distinguishes:
 
@@ -325,7 +329,7 @@ The repository currently contains contradictory states:
 
 ## 12. Implementation sequence
 
-### P0 — Restore semantic correctness
+### P0 — Restore semantic correctness ✅ COMPLETE
 
 1. Correct every scalar/batch embedding call.
 2. Add vector shape and compatibility validation.
@@ -333,7 +337,7 @@ The repository currently contains contradictory states:
 4. Replace weak test oracles with discriminating expected outcomes.
 5. Prove auto-ingestion and semantic scoring with at least two records.
 
-### P1 — Complete one end-to-end RAG journey
+### P1 — Complete one end-to-end RAG journey ✅ COMPLETE
 
 1. Wire the real library into the CLI.
 2. Ingest library and context records.
@@ -342,7 +346,7 @@ The repository currently contains contradictory states:
 5. Generate, validate, present alternatives, and save the human selection.
 6. Preserve source and configuration provenance.
 
-### P2 — Make graph structure materially useful
+### P2 — Make graph structure materially useful ← NEXT
 
 1. Implement typed nodes and relations.
 2. Add bounded graph expansion.

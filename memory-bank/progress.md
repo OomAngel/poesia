@@ -4,41 +4,35 @@
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 0 | Scaffold: package layout, 5 -IA modules, docs, tests, git init | ✅ Complete |
-| 1 | Real LLM generation loop, EufonIA sound analysis, theme/novelty scoring, Library persistence | ✅ Complete |
-| 2 | GalerIA illustration backends, ArmonIA music backends, corpus/KenLM | ✅ Complete |
-| 3A | MemorIA Graph RAG - storage decision (NetworkX), basic ingest/retrieve | ✅ Complete |
-| 3B | EmbeddingClient Protocol + SentenceTransformerClient | ✅ Complete |
-| 3C | Extended record types (Fragment, Seed, Influence), SeedExpander | ✅ Complete |
-| 3D | BriefBuilder + GenerationBrief with to_prompt() | ✅ Complete |
-| 3E | Integration: CandidateGenerator, ConstrainedLoop, CLI wiring | ✅ Complete |
+| 0 | Scaffold: package layout, 5 -IA modules, docs, tests, git init | Complete |
+| 1 | Real LLM generation loop, EufonIA sound analysis, theme/novelty scoring, Library persistence | Complete |
+| 2 | GalerIA illustration backends, ArmonIA music backends, corpus/KenLM | Complete |
+| 3A | MemorIA Graph RAG - storage decision (NetworkX), basic ingest/retrieve | Complete |
+| 3B | EmbeddingClient Protocol + SentenceTransformerClient | Complete |
+| 3C | Extended record types (Fragment, Seed, Influence), SeedExpander | Complete |
+| 3D | BriefBuilder + GenerationBrief with to_prompt() | Complete |
+| 3E | Integration: CandidateGenerator, ConstrainedLoop, CLI wiring | Complete |
+| 4 | Phase 4A-D: Gemini/OpenAI, influence profiles, GalerIA style, auto-embed | Complete |
+| 5 | P0+P1 hardening, Groq, directive prompts, RhymeTracker, interactive CLI | Complete |
+| 6 / P2 | Typed graph nodes/relations, bounded expansion, explainable paths | NEXT |
 
-## What's functional right now (Phase 0 end state)
+## What is functional now (Phase 5 end state)
 
-- `EnglishPhonology.scan_line` / `.rhyme_key` — functional (via `pronouncing`)
-- `evaluation.metrics.metre_score` / `rhyme_score` / `cliche_penalty` — functional
-- `generation.ConstrainedLoop.run()` — functional end-to-end against
-  `StubLLMClient` (produces deterministic placeholder lines, not real poetry
-  yet — that needs Phase 1's real LLMClient)
-- `forms.FORM_REGISTRY` / `get_form()` — functional, 4 forms registered
-- `memoria.Library` — fully functional in-memory CRUD/search
-- `armonia.stress_pattern_to_pulses` — functional naive mapping
-- `galeria.StubImageBackend` — functional (returns a valid placeholder PNG)
-- CLI (`poesia`, `poesia eufonia`, `poesia galeria`, `poesia memoria`,
-  `poesia armonia`) — all subcommands wired and runnable, though several
-  underlying operations still raise `NotImplementedError` until Phase 1/2/3
+- Full end-to-end poem generation with real LLM (Groq llama-3.3-70b-versatile)
+- Directive prompts: syllable target, rhyme word bank, anti-repetition, output-only rule
+- RhymeTracker: per-letter-group commitments, Datamuse/CMUdict/ES-offline word banks
+- ConstrainedLoop with LineSelector callback for human interactive selection
+- poesia memoria list/search: real SQLite-backed library
+- --show-retrieval, --interactive, --show-alternatives, --save all working
+- 285 tests passing
 
-## What's explicitly NOT implemented yet (raises NotImplementedError)
+## What is NOT implemented yet
 
-- `SpanishPhonology.rhyme_key`, `.classify_stanza`
-- `EuphonyAnalyzer.analyze`, `.detect_rhyme_scheme`
-- `AucaComposer.compose_panel/.compose_sheet/.export_pdf`
-- `evaluation.metrics.theme_score`, `.novelty_score`
-- `memoria.graphrag.GraphRAGRetriever.ingest/.retrieve`
-
-## No open architectural violations tracked
-
-This is a small personal project, not currently using the DV-*/SM-*/ST-*
-violation-tracking convention from the LumiNose project. If this project
-grows large enough to need that discipline, adopt it explicitly rather than
-retrofitting silently.
+- Typed graph nodes/relations (P2)
+- Bounded graph traversal with explainable paths (P2)
+- Dense vs graph comparison (P2 evidence gate)
+- Embedding/index compatibility descriptor (P3)
+- Multilingual evaluation corpus (P4)
+- Provider controls: privacy, retry, cost (P5)
+- romance form default line count (deferred, not on plan)
+- Literary taxonomy auto-tagging (deferred)
