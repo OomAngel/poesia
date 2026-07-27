@@ -45,8 +45,9 @@
 
 - [ ] Test with real LLM backend (set GEMINI_API_KEY or OPENAI_API_KEY)
 - [ ] Phase 4E: Literary taxonomy auto-tagging
-- [ ] Mock-based tests for HostedLLMClient/HostedImageBackend HTTP shapes
+- [x] Mock-based tests for HostedLLMClient/HostedImageBackend HTTP shapes (27 tests)
 - [ ] Batching/backoff for hosted APIs (Gemini candidateCount instead of N calls)
+- [ ] Move influence registry from markdown to YAML (structured data)
 
 ## BLOCKED
 
