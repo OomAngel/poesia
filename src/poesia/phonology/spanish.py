@@ -26,7 +26,8 @@ class SpanishPhonology:
 
     def __init__(self) -> None:
         self._rantanplan = None  # lazy-loaded
-        self._silabeador = None  # lazy-loaded
+        self._fonemas = None  # lazy-loaded
+        self._silabeador = None  # lazy-loaded (fallback)
 
     def _ensure_rantanplan(self):
         if self._rantanplan is None:
@@ -36,6 +37,15 @@ class SpanishPhonology:
             except ImportError:
                 self._rantanplan = False  # Mark as unavailable
         return self._rantanplan if self._rantanplan else None
+
+    def _ensure_fonemas(self):
+        if self._fonemas is None:
+            try:
+                from fonemas.fonemas import Transcription  # type: ignore[import-untyped]
+                self._fonemas = Transcription
+            except ImportError:
+                self._fonemas = False
+        return self._fonemas if self._fonemas else None
 
     def _ensure_silabeador(self):
         if self._silabeador is None:
@@ -50,9 +60,11 @@ class SpanishPhonology:
         """Scan a single line of Spanish verse.
 
         Returns a ScanResult with metrical syllable count, stress pattern and
-        rhyme key. Uses rantanplan if available, falls back to silabeador for
-        basic syllable counting.
+        rhyme key. Uses rantanplan if available, falls back to fonemas (with
+        stress), then silabeador (basic syllables only).
         """
+        from poesia.phonology.base import Stress
+
         # Try rantanplan first (full metrical analysis)
         rantanplan = self._ensure_rantanplan()
         if rantanplan:
@@ -63,13 +75,42 @@ class SpanishPhonology:
                 is_valid=analysis.get("num_syllables", 0) > 0,
             )
 
-        # Fall back to silabeador (basic syllable counting)
+        # Try fonemas (syllables + stress)
+        Transcription = self._ensure_fonemas()
+        if Transcription:
+            words = line.split()
+            total_syllables = 0
+            stress_pattern = []
+            for word in words:
+                clean_word = "".join(c for c in word if c.isalpha())
+                if clean_word:
+                    try:
+                        t = Transcription(clean_word)
+                        syllables = t.phonology.syllables
+                        total_syllables += len(syllables)
+                        # Check each syllable for stress marker (ˈ)
+                        for syl in syllables:
+                            if "ˈ" in syl:
+                                stress_pattern.append(Stress.PRIMARY)
+                            else:
+                                stress_pattern.append(Stress.UNSTRESSED)
+                    except Exception:
+                        # Fallback for unknown words
+                        total_syllables += 1
+                        stress_pattern.append(Stress.UNSTRESSED)
+            return ScanResult(
+                line=line,
+                metrical_syllable_count=total_syllables,
+                stress_pattern=tuple(stress_pattern),
+                is_valid=total_syllables > 0,
+            )
+
+        # Fall back to silabeador (basic syllable counting, no stress)
         silabeador = self._ensure_silabeador()
         if silabeador:
             words = line.split()
             total_syllables = 0
             for word in words:
-                # Clean punctuation
                 clean_word = "".join(c for c in word if c.isalpha())
                 if clean_word:
                     syllables = silabeador.syllabify(clean_word)
@@ -82,7 +123,7 @@ class SpanishPhonology:
 
         # No backend available
         raise RuntimeError(
-            "No Spanish phonology backend installed. Run: pip install silabeador"
+            "No Spanish phonology backend installed. Run: pip install fonemas"
         )
 
     def rhyme_key(self, line: str) -> RhymeKey:
