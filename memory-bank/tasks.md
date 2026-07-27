@@ -32,6 +32,10 @@
 - [x] Phase 4C: GalerIA style anchoring from influences
 - [x] Phase 4D: Auto-embed on ingest in GraphRAGRetriever
 - [x] Phase 4 tests (test_phase4_features.py)
+- [x] **Gap fix**: LineScorer uses real theme_score/novelty_score/cliche_penalty
+- [x] **Gap fix**: Spanish sinalefa (vowel elision) in metrical counting
+- [x] **Gap fix**: CLI --brief tries real sentence-transformers first
+- [x] Sinalefa + scorer tests (22 new tests)
 
 ## IN PROGRESS
 
@@ -41,6 +45,8 @@
 
 - [ ] Test with real LLM backend (set GEMINI_API_KEY or OPENAI_API_KEY)
 - [ ] Phase 4E: Literary taxonomy auto-tagging
+- [ ] Mock-based tests for HostedLLMClient/HostedImageBackend HTTP shapes
+- [ ] Batching/backoff for hosted APIs (Gemini candidateCount instead of N calls)
 
 ## BLOCKED
 

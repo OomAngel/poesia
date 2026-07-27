@@ -1,36 +1,34 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-07-27 — Phase 4 complete._
+_Last updated: 2026-07-27 — Load-bearing gaps fixed._
 
 ## What We Just Did
 
-### Session 2026-07-27 (Phase 4 Complete)
+### Session 2026-07-27 (Load-Bearing Gap Fixes)
 
-1. **Dutch phonology support** — `pyphen`-based syllabification for Dutch
-   - New `DutchPhonology` class in `phonology/dutch.py`
-   - CLI `--language nl` support for scan and write commands
-   - 4 new Dutch tests
+**Fixed the two critical gaps that undercut the project's core claims:**
 
-2. **Phase 4A: Real LLM Integration**
-   - CLI `write --llm gemini|openai|stub|auto` option
-   - Environment variable config (GEMINI_API_KEY, OPENAI_API_KEY)
-   - `HostedLLMClient` already implemented, now wired to CLI
+1. **Gap 1: Scorer now uses real semantic scoring**
+   - `LineScorer` accepts `embedding_client` and `theme_text`
+   - Computes `theme_score` (cosine similarity to theme)
+   - Computes `novelty_score` (1 - max similarity to prior lines)
+   - Applies `cliche_penalty` (Spanish/English cliché lists)
+   - `ConstrainedLoop` passes embedding client to scorer
 
-3. **Phase 4B: Richer Influence Profiles**
-   - Full registry parser extracts: movement, era, tone, forms, exemplars
-   - Correct language detection from section headers (es/en/nl)
-   - Clean markdown formatting (strips `**` markers)
+2. **Gap 2: Spanish sinalefa (vowel elision) now handled**
+   - `_count_sinalefas()` detects cross-word vowel merging
+   - `_final_stress_adjustment()` handles aguda/llana/esdrújula
+   - **Verified**: "En tanto que de rosa y de azucena" → 11 syllables ✅
+   - **Verified**: "Caminante no hay camino" → 8 syllables ✅
 
-4. **Phase 4C: GalerIA Style Anchoring**
-   - New `galeria/style_anchoring.py` with movement→visual style mapping
-   - `style_from_influences()` derives visual keywords
-   - CLI `galeria illustrate --style-from-influences --tone <tones>`
+3. **Gap 3: CLI `--brief` tries real embeddings first**
+   - Uses `get_embedding_client()` (sentence-transformers)
+   - Falls back to stub only on exception
+   - Shows informative message about which client is used
 
-5. **Phase 4D: Auto-embed on Ingest**
-   - `GraphRAGRetriever.ingest()` accepts optional `embedding_client`
-   - Auto-computes embeddings for records missing from dict
+**Tests**: 128 passing (22 new tests for sinalefa + scorer)
 
-**Tests**: 106 passing (7 new Phase 4 tests)
+### Earlier: Phase 4 Complete
 
 ### Session 2026-07-27 (Phase 3E Integration)
 
