@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from poesia.generation.rhyme_fetcher import fetch_rhyme_words
+
 if TYPE_CHECKING:
     from poesia.phonology.base import PhonologyBackend
 
@@ -35,14 +37,24 @@ class RhymeTracker:
         phonology: The phonology backend used to extract rhyme keys from lines.
     """
 
-    def __init__(self, rhyme_scheme: str, phonology: PhonologyBackend) -> None:
+    def __init__(
+        self,
+        rhyme_scheme: str,
+        phonology: PhonologyBackend,
+        language: str = "es",
+        fetch_candidates: bool = True,
+    ) -> None:
         # Strip spaces so "ABBA ABBA CDC DCD" and "ABBAABBACDCDCD" both work
         self._scheme: list[str] = list(rhyme_scheme.replace(" ", ""))
         self._phonology = phonology
+        self._language = language
+        self._fetch_candidates = fetch_candidates
         # letter → consonant rhyme key of the first committed line with that letter
         self._committed_keys: dict[str, str] = {}
         # letter → last word of that first committed line (for prompt examples)
         self._example_words: dict[str, str] = {}
+        # letter → list of rhyme-word candidates (from databases)
+        self._rhyme_candidates: dict[str, list[str]] = {}
 
     # ------------------------------------------------------------------
     # Query API (call before generating a line)
@@ -74,12 +86,26 @@ class RhymeTracker:
             return None
         return self._example_words.get(letter)
 
+    def candidates_for_line(self, line_index: int) -> list[str]:
+        """Return rhyme-word candidates for this line's group (from word databases).
+
+        Returns empty list for free lines or if fetching was disabled/failed.
+        """
+        letter = self.letter_for_line(line_index)
+        if letter is None:
+            return []
+        return self._rhyme_candidates.get(letter, [])
+
     # ------------------------------------------------------------------
     # Commit API (call after a line is accepted)
     # ------------------------------------------------------------------
 
     def commit(self, line_index: int, line: str) -> None:
-        """Record the rhyme of an accepted line if it opens a new group."""
+        """Record the rhyme of an accepted line if it opens a new group.
+
+        Also fetches rhyme-word candidates from word databases for the
+        committed rhyme group, so they can be injected into later prompts.
+        """
         letter = self.letter_for_line(line_index)
         if letter is None or letter in self._committed_keys:
             return  # free line or group already established
@@ -88,11 +114,15 @@ class RhymeTracker:
         key = rhyme_key.consonant
         if key:
             self._committed_keys[letter] = key
-            # Grab the last word, stripped of trailing punctuation
             words = line.split()
             if words:
                 last = words[-1].rstrip(".,;:!?¿¡\"'")
                 self._example_words[letter] = last
+                # Fetch rhyme candidates from word databases
+                if self._fetch_candidates:
+                    self._rhyme_candidates[letter] = fetch_rhyme_words(
+                        last, language=self._language
+                    )
 
     # ------------------------------------------------------------------
     # Introspection (for tests and debugging)

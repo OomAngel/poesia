@@ -130,13 +130,18 @@ class ConstrainedLoop:
             result.brief = brief
 
         # Rhyme tracker: maps rhyme-scheme letters to committed rhyme keys
-        rhyme_tracker = RhymeTracker(self.form_spec.rhyme_scheme, self._phonology)
+        rhyme_tracker = RhymeTracker(
+            self.form_spec.rhyme_scheme,
+            self._phonology,
+            language=self.language,
+        )
 
         # Generate lines one by one, updating scorer target for variable patterns (e.g., haiku)
         for line_index in range(self.form_spec.total_lines):
             target_syllables = self.form_spec.syllables_for_line(line_index)
             target_rhyme_key = rhyme_tracker.target_key_for_line(line_index)
             example_rhyme_word = rhyme_tracker.example_word_for_line(line_index)
+            rhyme_candidates = rhyme_tracker.candidates_for_line(line_index)
 
             self._scorer = LineScorer(
                 phonology_backend=self._phonology,
@@ -155,6 +160,7 @@ class ConstrainedLoop:
                 target_syllables=target_syllables,
                 target_rhyme_key=target_rhyme_key,
                 example_rhyme_word=example_rhyme_word,
+                rhyme_candidates=rhyme_candidates,
             )
             scored = self._scorer.score_candidates(candidates, prior_lines=result.lines)
             result.scored_history.append(scored)

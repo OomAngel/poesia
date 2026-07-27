@@ -31,6 +31,7 @@ class CandidateGenerator:
         target_syllables: int | None = None,
         target_rhyme_key: str | None = None,
         example_rhyme_word: str | None = None,
+        rhyme_candidates: list[str] | None = None,
     ) -> list[str]:
         """Generate a batch of candidate next-lines for a poem in progress.
 
@@ -55,9 +56,14 @@ class CandidateGenerator:
             f"Exactly {target_syllables} syllables." if target_syllables else ""
         )
         if target_rhyme_key and example_rhyme_word:
+            word_bank = ""
+            if rhyme_candidates:
+                bank_words = ", ".join(rhyme_candidates[:10])
+                word_bank = f" Word bank (pick one or find your own): {bank_words}."
             rhyme_instruction = (
                 f'End the line with a word that rhymes with "{example_rhyme_word}" '
-                f"(same ending sound)."
+                f"(same ending sound — use a DIFFERENT word, not \"{example_rhyme_word}\" itself)."
+                f"{word_bank}"
             )
         elif target_rhyme_key:
             rhyme_instruction = (
