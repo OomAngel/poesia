@@ -158,6 +158,14 @@ def write(
                 rprint(f"    [dim]{first_line}[/dim]")
         else:
             rprint("  [dim](no fragments retrieved — embeddings may be unavailable)[/dim]")
+        if preview_brief.graph_paths:
+            rprint(f"\n[bold]Graph retrieval[/bold] ({len(preview_brief.graph_paths)} results):")
+            for node_id, score, path in preview_brief.graph_paths:
+                if path is not None:
+                    path_str = path.to_display_string()
+                    rprint(f"  [cyan]{node_id}[/cyan]  score={score:.3f}  via: [dim]{path_str}[/dim]")
+                else:
+                    rprint(f"  [cyan]{node_id}[/cyan]  score={score:.3f}  [dim](dense seed)[/dim]")
         if preview_brief.influences:
             rprint(f"\n[bold]Influences[/bold] ({len(preview_brief.influences)} matched):")
             for inf in preview_brief.influences:

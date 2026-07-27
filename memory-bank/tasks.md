@@ -44,14 +44,19 @@
 - [x] **P1 complete**: memoria list/search wired to real Library; --show-retrieval;
   --interactive human line selection with typed-own-line support; 9 new tests
 
+- [x] **P2 complete**: typed NodeType/RelationType enums; GraphHop/GraphPath dataclasses;
+  traverse() bounded BFS; retrieve_with_paths() graph-enhanced retrieval;
+  BriefBuilder wired to retriever; versioned JSON persistence header;
+  E5 query/passage prefix fix; --show-retrieval graph path display;
+  28 new tests (313 total passing).
+
 ## IN PROGRESS
 
-- [ ] **RAG/LLM hardening P2:** typed graph nodes/relations and bounded explainable
-  graph expansion (prerequisite: P1 now complete — see DONE below).
+- [ ] **RAG/LLM hardening P3:** immutable embedding/index compatibility check and
+  atomic versioned persistence (prerequisite: P2 complete).
 
 ## BACKLOG
 
-- [ ] P2: implement typed graph nodes/relations and bounded explainable graph expansion.
 - [ ] P3: add immutable embedding/index compatibility identity and atomic versioned persistence.
 - [ ] P4: build and evaluate a reviewed multilingual retrieval/generation corpus.
 - [ ] P5: add hosted-provider privacy, lineage, retry, latency, token, and cost controls.
