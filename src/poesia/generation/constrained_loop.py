@@ -83,15 +83,13 @@ class ConstrainedLoop:
         self._llm = llm or StubLLMClient()
         self._phonology = _phonology_for(language)
         self._generator = CandidateGenerator(self._llm)
-        self._scorer = LineScorer(
-            phonology_backend=self._phonology,
-            target_syllable_count=self.form_spec.syllables_per_line,
-        )
         # Phase 3E: brief building support
         self._brief_builder = brief_builder
         self._embedding_client = embedding_client
         self._fragments = fragments or []
         self._influences = influences or []
+        # Scorer is created per-run with theme, so store config here
+        self._scorer: LineScorer | None = None
 
     def run(
         self,
@@ -130,6 +128,15 @@ class ConstrainedLoop:
             )
             result.brief = brief
 
+        # Create scorer with theme for semantic scoring (Phase 1 fix)
+        self._scorer = LineScorer(
+            phonology_backend=self._phonology,
+            target_syllable_count=self.form_spec.syllables_per_line,
+            embedding_client=self._embedding_client,
+            theme_text=theme,
+            language=self.language,
+        )
+
         for _ in range(self.form_spec.total_lines):
             candidates = self._generator.generate_lines(
                 theme=theme,
@@ -138,7 +145,8 @@ class ConstrainedLoop:
                 prior_lines=result.lines,
                 brief=brief,
             )
-            scored = self._scorer.score_candidates(candidates)
+            # Pass prior lines for novelty scoring (Phase 1 fix)
+            scored = self._scorer.score_candidates(candidates, prior_lines=result.lines)
             result.scored_history.append(scored)
 
             best = scored[0] if scored else None
@@ -147,7 +155,7 @@ class ConstrainedLoop:
                 repaired_text = self._llm.repair(
                     best.line, defect_description="metrical syllable count mismatch"
                 )
-                rescored = self._scorer.score_candidates([repaired_text])
+                rescored = self._scorer.score_candidates([repaired_text], prior_lines=result.lines)
                 best = rescored[0]
                 attempts += 1
 

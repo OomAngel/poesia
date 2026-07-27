@@ -77,9 +77,11 @@ def write(
         # Use real embedding client for semantic retrieval
         try:
             embedding_client = get_embedding_client()
-        except Exception:
+            rprint("[dim]Using sentence-transformers for semantic scoring[/dim]")
+        except Exception as e:
             from poesia.memoria.embeddings import StubEmbeddingClient
             embedding_client = StubEmbeddingClient()
+            rprint(f"[dim]Falling back to stub embeddings: {e}[/dim]")
 
         brief_builder = BriefBuilder(
             embedding_client=embedding_client,

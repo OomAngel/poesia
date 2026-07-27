@@ -126,13 +126,18 @@ poesia write --theme "lluvia sobre piedra" --language es --form soneto
 
 See `docs/ROADMAP.md`.
 
-Phase 0 (now): repo scaffold, phonology validation layer, all five -IA
-modules present as documented, importable skeletons.
-Phase 1: LLM candidate generation + reranking loop wired to a real backend.
-Phase 2: Corpus ingestion + KenLM stylistic prior; GalerIA illustration and
-ArmonIA music backends wired to real image/audio generation.
-Phase 3: Graph RAG in MemorIA — poet nodes, influence edges, semantic
-retrieval.
+**Phase 0 ✅**: Scaffold, phonology validation, all five -IA modules.
+**Phase 1 ✅**: LLM candidate generation + reranking loop.
+**Phase 2 ✅**: GalerIA (DALL-E/Replicate) + ArmonIA (MIDI/TTS).
+**Phase 3 ✅**: Graph RAG in MemorIA, BriefBuilder enrichment, seed expansion.
+**Phase 4 ✅**: Real LLM integration, richer influences, GalerIA style anchoring.
+
+### Current capabilities
+- **Spanish sinalefa handling** — correct metrical syllable counting with vowel elision
+- **Semantic scoring** — theme/novelty via sentence-transformers embeddings
+- **Graph RAG** — NetworkX-based semantic retrieval for personal context
+- **Multi-language** — Spanish (primary), English, Dutch phonology backends
+- **Real LLM backends** — Gemini/OpenAI via `--llm` option (API key required)
 
 ---
 
@@ -161,6 +166,6 @@ poesia/
 
 ## Status
 
-Early scaffold, local-only repo (not pushed to any remote). No production
-code yet beyond the phonology/evaluation vertical. See
-`memory-bank/tasks.md` for the current Kanban.
+**Phase 4 complete** (2026-07-27). 128 tests passing.
+
+See `memory-bank/tasks.md` for the current Kanban and `docs/ROADMAP.md` for details.
