@@ -16,7 +16,52 @@ P0 and P1 of the hardening plan are satisfied.
 
 ## What We Just Did
 
-### Session 2026-07-27 (Fixed Haiku Metre Scoring - Issue #2)
+### Session 2026-07-27 (Alternative Presentation - Issue #6 Partial)
+
+**✅ Implemented `--show-alternatives N` flag:**
+- Displays top-N candidate lines per position with full score breakdowns
+- Color-coded scores: green (≥0.7), yellow (≥0.4), red (<0.4)
+- Shows: syllables, metre, theme, novelty scores
+- Green ✓ checkmark indicates which candidate was selected
+- Displays target syllable count for context
+- Rich formatted output using Rich library
+
+**Example output:**
+```
+Line 1 (target: 5 syllables):
+  1. [0.810] luna en la noche ✓
+      syllables=5, metre=0.71, theme=0.00, novelty=1.00
+  2. [0.600] luna sobre el mar azul
+      syllables=8, metre=0.40, theme=0.00, novelty=1.00
+```
+
+**Tests:** 228 passing (added 4 CLI tests)
+
+**Status:** P1 requirement partially complete. Interactive selection (`--interactive`) remains for future work.
+
+### Session 2026-07-27 (Fixed Issues #3 & #4 - Degraded Mode + Score Normalization - Earlier)
+
+**✅ FIXED Issue #3: Explicit degraded mode messaging**
+- Added `semantic_mode_active` flag to track if embeddings loaded
+- Enhanced error messaging with yellow ⚠ icon and installation instructions
+- Show scoring mode summary: "metre only" vs "metre + theme + novelty"
+- Green ✓ checkmark when semantic scoring enabled
+- Users now know exactly what's active
+
+**✅ FIXED Issue #4: Adaptive weight normalization**
+- Problem: In degraded mode, only 45% of scoring weight was used
+- Solution: Automatically normalize weights among active signals
+- Score spread improved: 0.150-0.364 → 0.333-0.810
+- Better candidate differentiation in all modes
+- Backwards compatible via `normalize_weights=False` flag
+
+**Test status:** All 224 tests pass (added 6 normalization tests)
+
+**Commits:**
+- `41ebcd4` - Explicit degraded mode messaging (#3)
+- `d23f682` - Adaptive weight normalization (#4)
+
+### Session 2026-07-27 (Fixed Haiku Metre Scoring - Issue #2 - Earlier)
 
 **✅ FIXED the critical metre scoring bug:**
 

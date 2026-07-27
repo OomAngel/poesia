@@ -66,10 +66,19 @@ Issues discovered from real generation testing with `test_real_generation.py`.
 **Impact:** Can't verify end-to-end generation quality  
 **Action:** Get Gemini/OpenAI API key and test with `--llm gemini`
 
-### #6: No alternative presentation in CLI
-**Status:** P1 requirement  
-**Impact:** User can't see or choose alternatives  
-**Action:** Add `--show-alternatives` and `--interactive` flags
+### #6: Alternative presentation in CLI
+**Status:** ✅ PARTIALLY DONE (`--show-alternatives` complete, `--interactive` TODO)  
+**Impact:** Users can now see candidate alternatives with score breakdowns  
+**What's done:**
+- Added `--show-alternatives N` flag to show top-N candidates per line
+- Rich formatted display with color-coded scores (green/yellow/red)
+- Shows score breakdowns: syllables, metre, theme, novelty
+- Green ✓ checkmark marks which candidate was selected
+- Displays target syllable count per line
+- Added 4 comprehensive CLI tests
+
+**What's TODO:**
+- `--interactive` flag for human line-by-line selection (future P1 work)
 
 ---
 

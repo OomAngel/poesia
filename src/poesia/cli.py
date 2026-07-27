@@ -34,6 +34,7 @@ def write(
     save: bool = typer.Option(False, "--save", help="Save the generated poem to the library (~/.poesia/poems/)."),
     tags: str = typer.Option(None, help="Comma-separated tags for the saved poem."),
     use_library: bool = typer.Option(False, "--use-library", help="Load existing poems from library for retrieval context."),
+    show_alternatives: int = typer.Option(0, "--show-alternatives", help="Show top N alternative candidates per line with score breakdowns."),
 ) -> None:
     """Generate a poem using the constrained generate/validate/repair loop.
 
@@ -163,6 +164,45 @@ def write(
     rprint()
     for line in result.lines:
         rprint(line)
+
+    # Show alternative candidates if requested
+    if show_alternatives > 0 and result.scored_history:
+        rprint()
+        rprint("[bold cyan]═══ Alternative Candidates ═══[/bold cyan]")
+        
+        for line_idx, scored_candidates in enumerate(result.scored_history):
+            # Get target syllables for this line
+            target_syllables = loop.form_spec.syllables_for_line(line_idx)
+            
+            rprint(f"\n[bold]Line {line_idx + 1}[/bold] (target: {target_syllables} syllables):")
+            
+            # Show top N alternatives
+            selected_line = result.lines[line_idx] if line_idx < len(result.lines) else None
+            
+            for rank, candidate in enumerate(scored_candidates[:show_alternatives], start=1):
+                # Format score with color coding
+                score_color = "green" if candidate.score >= 0.7 else "yellow" if candidate.score >= 0.4 else "red"
+                
+                # Truncate long lines for display
+                display_line = candidate.line if len(candidate.line) <= 50 else candidate.line[:47] + "..."
+                
+                # Mark selected candidate
+                selected_marker = " [bold green]✓[/bold green]" if candidate.line == selected_line else ""
+                
+                rprint(f"  {rank}. [{score_color}][{candidate.score:.3f}][/{score_color}] {display_line}{selected_marker}")
+                
+                # Show score breakdown
+                rprint(
+                    f"      [dim]syllables={candidate.scan.metrical_syllable_count}, "
+                    f"metre={candidate.breakdown['metre']:.2f}, "
+                    f"theme={candidate.breakdown['theme']:.2f}, "
+                    f"novelty={candidate.breakdown['novelty']:.2f}[/dim]"
+                )
+                
+                # Show validation issues if any
+                if not candidate.scan.is_valid and candidate.scan.violations:
+                    violations = ", ".join(candidate.scan.violations[:2])  # Show first 2
+                    rprint(f"      [red]⚠ {violations}[/red]")
 
     # P1: Save to library with full provenance
     if save and result.lines:
