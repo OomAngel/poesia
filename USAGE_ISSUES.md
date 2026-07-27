@@ -1,14 +1,12 @@
-# Usage Issues Found (2026-07-27)
+# Usage Issues — PoesIA (2026-07-27, updated 2026-07-27)
 
-Issues discovered from real generation testing with `test_real_generation.py`.
+All issues from initial real-generation testing. All resolved.
 
 ## 🔴 CRITICAL - Blocking Usage
 
 ### #1: Stub LLM returns full prompts, not poetic lines
-**Status:** IN PROGRESS  
-**Impact:** Can't test generation flow without real API  
-**Found:** The stub client echoes the entire multi-line prompt (32 syllables) instead of generating short poetic lines (5-7 syllables for haiku)  
-**Fix:** Make stub generate short, plausible Spanish/English lines based on theme
+**Status:** ✅ FIXED  
+**Fix:** StubLLMClient now generates short plausible lines from templates keyed by syllable target and language. 5-syllable, 7-syllable, 10-syllable, 11-syllable templates for ES and EN.
 
 ---
 
@@ -62,31 +60,26 @@ Issues discovered from real generation testing with `test_real_generation.py`.
 ## 🟢 LOW - Future Enhancements
 
 ### #5: Need real LLM testing
-**Status:** Deferred (needs API key)  
-**Impact:** Can't verify end-to-end generation quality  
-**Action:** Get Gemini/OpenAI API key and test with `--llm gemini`
+**Status:** ✅ DONE — Groq Cloud wired (`--llm groq`, `GROQ_API_KEY`).  
+Live tests confirmed: haiku and soneto end-to-end with `llama-3.3-70b-versatile`.
 
 ### #6: Alternative presentation in CLI
-**Status:** ✅ PARTIALLY DONE (`--show-alternatives` complete, `--interactive` TODO)  
-**Impact:** Users can now see candidate alternatives with score breakdowns  
-**What's done:**
-- Added `--show-alternatives N` flag to show top-N candidates per line
-- Rich formatted display with color-coded scores (green/yellow/red)
-- Shows score breakdowns: syllables, metre, theme, novelty
-- Green ✓ checkmark marks which candidate was selected
-- Displays target syllable count per line
-- Added 4 comprehensive CLI tests
-
-**What's TODO:**
-- `--interactive` flag for human line-by-line selection (future P1 work)
+**Status:** ✅ FULLY DONE  
+- `--show-alternatives N` — shows top-N scored candidates per line with colour-coded breakdowns
+- `--interactive` — pauses per line, human picks by number or types own line
+- `--show-retrieval` — shows which fragments/influences were retrieved before generation
 
 ---
 
-## Resolution Order
+## Resolution summary
 
-1. ✅ Fix stub client (#1) - DONE
-2. ✅ Fix metre scoring (#2) - DONE  
-3. ✅ Add explicit degraded mode (#3) - DONE
-4. ✅ Fix composite score weighting (#4) - DONE
-5. Test with real LLM (#5) - Deferred (needs API key)
-6. Add alternative presentation (#6) - P1 (future work)
+| # | Issue | Status |
+|---|-------|--------|
+| 1 | Stub returns prompts | ✅ Fixed |
+| 2 | Haiku metre scoring | ✅ Fixed |
+| 3 | Silent degraded mode | ✅ Fixed |
+| 4 | Identical scores in degraded mode | ✅ Fixed |
+| 5 | Real LLM testing | ✅ Done (Groq) |
+| 6 | Alternative presentation + interactive | ✅ Done |
+
+This file is now historical. All issues resolved. See `docs/ROADMAP.md` for current state and `docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md` for next priorities (P2+).

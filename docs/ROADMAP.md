@@ -105,6 +105,53 @@ See `ENRICHMENT_ARCHITECTURE.md` for the full design.
 - [ ] Retrieval by movement/era
 - [ ] Brief includes movement context
 
+## Phase 5 — Generation Quality + P0/P1 Hardening ✅ (2026-07-27)
+
+### 5A: Real LLM provider — Groq ✅
+- [x] `HostedLLMClient` Groq backend (`https://api.groq.com/openai/v1`, `GROQ_API_KEY`)
+- [x] Default model `llama-3.3-70b-versatile`; auto-detection priority Gemini → Groq → OpenAI
+- [x] Groq n>1 handled via sequential calls (Groq API does not support `n>1`)
+- [x] `User-Agent: poesia/1.0` header (Cloudflare blocks Python-urllib default)
+- [x] 2.1s inter-call delay for free-tier 30 RPM limit
+- [x] `--llm groq` in CLI; 11 mock-based tests
+- [x] Live end-to-end confirmed: haiku + soneto with `llama-3.3-70b-versatile`
+
+### 5B: Directive prompts ✅
+- [x] Prompt specifies exact syllable target per line
+- [x] Numbered prior-lines block (1. / 2. / …) for clear context
+- [x] Line number in task instruction ("Write line 3.")
+- [x] "Output ONLY the single bare poetry line" output rule
+- [x] Anti-repetition: "Do NOT begin the line with the same word as any prior line"
+
+### 5C: Rhyme tracking + word banks ✅
+- [x] `RhymeTracker` — maps form rhyme scheme to per-line commitments
+- [x] Commits first rhyme key per letter group; tracks example word
+- [x] `RhymeFetcher` — retrieves rhyming word candidates:
+  - English: `pronouncing`/CMUdict (offline) → Datamuse `rel_rhy` (online)
+  - Spanish: Datamuse → offline suffix match against ~200 frequency words
+  - Correct paroxytone/oxytone stress rules for Spanish suffix extraction
+- [x] Prompt rhyme instruction includes word bank: "Word bank: amor, calor, temblor, …"
+- [x] "Use a DIFFERENT word, not X itself" constraint in prompt
+- [x] 17 + 18 new tests (rhyme_fetcher + rhyme_tracker)
+
+### 5D: P1 complete — end-to-end RAG journey ✅
+- [x] `poesia memoria list` — real Library, `--form`/`--language`/`--limit` filters
+- [x] `poesia memoria search` — SQLite substring match, real results
+- [x] `--show-retrieval` — prints retrieved fragments + similarity scores + influences
+- [x] `--interactive` — human picks each line from numbered scored candidates;
+  supports Enter (top), number (choice), `t` (type own line); custom line rescanned
+- [x] `LineSelector` callback type in `ConstrainedLoop.run()`
+- [x] 9 new P1 tests
+
+**Total tests after Phase 5: 285**
+
+## Phase 6 — Next (P2: Graph structure)
+
+- [ ] Typed graph nodes and relations (poem→influence `inspired_by`, poem→theme `explores`, etc.)
+- [ ] Bounded graph expansion with explainable paths
+- [ ] `--show-retrieval` extended to show graph path, not just cosine score
+- [ ] Compare dense-only vs graph-enhanced context on same prompt
+
 ## Explicit non-goals for now
 
 - No web frontend until concrete need emerges — Python-only
