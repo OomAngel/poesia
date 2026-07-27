@@ -159,19 +159,22 @@ class StubLLMClient:
 class HostedLLMClient:
     """Hosted LLM provider via standard HTTP API requests (Gemini or OpenAI format).
 
-    Reads GEMINI_API_KEY, OPENAI_API_KEY, or XAI_API_KEY from environment.
+    Reads GEMINI_API_KEY, OPENAI_API_KEY, or GROQ_API_KEY from environment.
     Does not require external SDK packages, relying on standard library urllib.
 
     Supported providers:
       - gemini  : Google Gemini API (GEMINI_API_KEY)
       - openai  : OpenAI Chat Completions API (OPENAI_API_KEY)
-      - grok    : xAI Grok API — OpenAI-compatible (XAI_API_KEY)
-      - auto    : First available key wins (Gemini → Grok → OpenAI)
+      - groq    : Groq Cloud API — OpenAI-compatible (GROQ_API_KEY)
+      - auto    : First available key wins (Gemini → Groq → OpenAI)
+
+    Groq note: the Groq API requires n=1 per request. For n>1 candidates
+    the client issues n sequential calls automatically.
     """
 
-    # xAI Grok base URL (OpenAI-compatible)
-    _GROK_BASE_URL = "https://api.x.ai/v1"
-    _GROK_DEFAULT_MODEL = "grok-3-mini"
+    # Groq Cloud base URL (OpenAI-compatible)
+    _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+    _GROQ_DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
     def __init__(
         self,
@@ -189,10 +192,10 @@ class HostedLLMClient:
             self.api_key = os.environ.get("GEMINI_API_KEY", "")
             if provider == "auto":
                 self.provider = "gemini"
-        elif os.environ.get("XAI_API_KEY"):
-            self.api_key = os.environ.get("XAI_API_KEY", "")
+        elif os.environ.get("GROQ_API_KEY"):
+            self.api_key = os.environ.get("GROQ_API_KEY", "")
             if provider == "auto":
-                self.provider = "grok"
+                self.provider = "groq"
         elif os.environ.get("OPENAI_API_KEY"):
             self.api_key = os.environ.get("OPENAI_API_KEY", "")
             if provider == "auto":
@@ -204,8 +207,8 @@ class HostedLLMClient:
             self.model = model
         elif self.provider == "gemini":
             self.model = "gemini-2.5-flash"
-        elif self.provider == "grok":
-            self.model = self._GROK_DEFAULT_MODEL
+        elif self.provider == "groq":
+            self.model = self._GROQ_DEFAULT_MODEL
         else:
             self.model = "gpt-4o-mini"
 
@@ -213,17 +216,15 @@ class HostedLLMClient:
         if not self.api_key:
             raise RuntimeError(
                 "HostedLLMClient requires an API key. Set GEMINI_API_KEY, "
-                "XAI_API_KEY, or OPENAI_API_KEY environment variable, or pass "
+                "GROQ_API_KEY, or OPENAI_API_KEY environment variable, or pass "
                 "api_key to HostedLLMClient."
             )
 
         if self.provider == "gemini":
             return self._generate_gemini(prompt, n, temperature)
-        elif self.provider == "grok":
-            return self._generate_openai_compat(
-                prompt, n, temperature,
-                base_url=self._GROK_BASE_URL,
-            )
+        elif self.provider == "groq":
+            # Groq requires n=1 per request — issue n sequential calls
+            return self._generate_groq(prompt, n, temperature)
         else:
             return self._generate_openai_compat(
                 prompt, n, temperature,
@@ -306,10 +307,24 @@ class HostedLLMClient:
         except Exception as e:
             raise RuntimeError(f"Gemini API request failed: {e}") from e
 
+    def _generate_groq(self, prompt: str, n: int, temperature: float) -> list[str]:
+        """Groq Cloud chat completions.
+
+        Groq's API is OpenAI-compatible but does NOT support n>1 in a single
+        request. We issue n sequential calls and collect the results.
+        """
+        results = []
+        for _ in range(n):
+            batch = self._generate_openai_compat(
+                prompt, 1, temperature, base_url=self._GROQ_BASE_URL
+            )
+            results.extend(batch)
+        return results
+
     def _generate_openai_compat(
         self, prompt: str, n: int, temperature: float, base_url: str
     ) -> list[str]:
-        """OpenAI-compatible chat completions (used by OpenAI and Grok)."""
+        """OpenAI-compatible chat completions (used by OpenAI and Groq)."""
         url = f"{base_url.rstrip('/')}/chat/completions"
         payload = {
             "model": self.model,
@@ -324,9 +339,10 @@ class HostedLLMClient:
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {self.api_key}",
+                "User-Agent": "poesia/1.0",
             },
         )
-        provider_label = "Grok" if "x.ai" in base_url else "OpenAI"
+        provider_label = "Groq" if "groq.com" in base_url else "OpenAI"
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 res = json.loads(resp.read().decode("utf-8"))
