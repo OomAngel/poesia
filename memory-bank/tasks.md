@@ -15,6 +15,7 @@
 - [x] Phase 3B: EmbeddingClient Protocol + SentenceTransformerClient (e5-base)
 - [x] Phase 3C: Extended record types (Fragment, Seed, Influence)
 - [x] Phase 3C: SeedExpander (WordNet, rhymes, semantic, Datamuse)
+- [x] Phase 3D: BriefBuilder + GenerationBrief
 - [x] Design decisions (16 questions resolved)
 - [x] First 10 personal fragments in `seeds/angel_fragments/`
 - [x] Influence registry (24 poets)
@@ -22,13 +23,11 @@
 
 ## IN PROGRESS
 
-- [ ] Phase 3D: BriefBuilder — assemble generation prompts from:
-  - Retrieved fragments
-  - Expanded seeds
-  - Influence anchors
-  - Form spec + tone
+- [ ] Phase 3E: Integration
+  - Wire BriefBuilder into CandidateGenerator
+  - Wire retrieval into GalerIA
 
-## BACKLOG (Phase 3 Integration)
+## BACKLOG
 
 - [ ] Wire brief into CandidateGenerator
 - [ ] Wire retrieval into GalerIA for style anchoring

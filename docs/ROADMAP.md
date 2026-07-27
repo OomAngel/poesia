@@ -48,14 +48,14 @@
 - [x] Influence registry (24 poets) in `docs/INFLUENCE_REGISTRY.md`
 - [ ] Ingestion CLI: `poesia memoria add-fragment|add-seed|add-influence`
 
-### 3D: Pre-Generation Enrichment (see `ENRICHMENT_ARCHITECTURE.md`)
-- [ ] `BriefBuilder` class — assembles generation brief from:
+### 3D: Pre-Generation Enrichment ✅ (see `ENRICHMENT_ARCHITECTURE.md`)
+- [x] `BriefBuilder` class — assembles generation brief from:
   - Form spec + tone/theme inputs
   - Retrieved fragments (semantic similarity)
   - Expanded seeds (rhymes, synonyms via WordNet/datamuse)
-  - Exemplar lines from your past work
-  - Influence anchors
-- [ ] Brief → LLM prompt formatting (see `GENERATION_BRIEF.md`)
+  - Influence anchors (matched by tone)
+- [x] `GenerationBrief.to_prompt()` — renders brief as LLM prompt
+- [x] Verbosity levels: minimal/standard/maximal
 
 ### 3E: Integration
 - [ ] Wire brief into `CandidateGenerator`

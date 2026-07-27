@@ -18,18 +18,17 @@ _Last updated: 2026-07-27 — Phase 3B-3C complete, entering Phase 3D._
 
 ## Current Focus
 
-**Phase 3D: BriefBuilder** — assemble generation prompts from:
-- Retrieved fragments (semantic similarity)
-- Expanded seeds (rhymes, synonyms)
-- Influence anchors (tonal grounding)
-- Form spec + tone inputs
+**Phase 3E: Integration** — wire everything together:
+- Connect BriefBuilder to CandidateGenerator
+- Wire retrieval into GalerIA for illustration
+- Create ingestion CLI commands
 
 ## Next Steps
 
-1. Build `BriefBuilder` class
-2. Wire auto-embed into GraphRAGRetriever.ingest()
-3. Create ingestion CLI: `poesia memoria add-fragment|add-seed|add-influence`
-4. Integrate brief into `CandidateGenerator`
+1. Wire `BriefBuilder` into `CandidateGenerator`
+2. Auto-embed on GraphRAGRetriever.ingest()
+3. Ingestion CLI: `poesia memoria add-fragment|add-seed|add-influence`
+4. Wire retrieval into GalerIA
 
 ## Key Files
 
