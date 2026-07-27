@@ -16,6 +16,19 @@ from pathlib import Path
 
 
 @dataclass
+class PoemProvenance:
+    """Provenance metadata for reproducibility and lineage tracking (P1 hardening)."""
+
+    model: str | None = None  # LLM model used (e.g., "gemini-1.5-flash")
+    embedding_model: str | None = None  # Embedding model (e.g., "multilingual-e5-base")
+    brief_level: str | None = None  # "minimal", "standard", or "maximal"
+    seeds: list[str] = field(default_factory=list)  # Seed words used
+    tone: list[str] = field(default_factory=list)  # Tone descriptors
+    fragments_used: list[str] = field(default_factory=list)  # IDs of context fragments
+    influences_used: list[str] = field(default_factory=list)  # IDs of influences matched
+
+
+@dataclass
 class PoemRecord:
     """A single saved poem with the metadata needed for later retrieval."""
 
@@ -26,6 +39,7 @@ class PoemRecord:
     created_at: datetime = field(default_factory=datetime.now)
     tags: list[str] = field(default_factory=list)
     id: str | None = None
+    provenance: PoemProvenance | None = None  # P1: generation provenance
 
 
 class Library:
@@ -86,17 +100,38 @@ class Library:
 
         if not self.is_memory:
             filepath = self.storage_dir / filename
-            md_content = (
-                f"---\n"
-                f"id: {record.id}\n"
-                f"language: {record.language}\n"
-                f"form: {record.form}\n"
-                f"theme: {record.theme}\n"
-                f"created_at: {created_str}\n"
-                f"tags: [{tags_str}]\n"
-                f"---\n\n"
-                f"{content_str}\n"
-            )
+
+            # Build frontmatter with optional provenance (P1 hardening)
+            frontmatter_lines = [
+                "---",
+                f"id: {record.id}",
+                f"language: {record.language}",
+                f"form: {record.form}",
+                f"theme: {record.theme}",
+                f"created_at: {created_str}",
+                f"tags: [{tags_str}]",
+            ]
+
+            if record.provenance:
+                prov = record.provenance
+                if prov.model:
+                    frontmatter_lines.append(f"model: {prov.model}")
+                if prov.embedding_model:
+                    frontmatter_lines.append(f"embedding_model: {prov.embedding_model}")
+                if prov.brief_level:
+                    frontmatter_lines.append(f"brief_level: {prov.brief_level}")
+                if prov.seeds:
+                    frontmatter_lines.append(f"seeds: [{', '.join(prov.seeds)}]")
+                if prov.tone:
+                    frontmatter_lines.append(f"tone: [{', '.join(prov.tone)}]")
+                if prov.fragments_used:
+                    frontmatter_lines.append(f"fragments_used: [{', '.join(prov.fragments_used)}]")
+                if prov.influences_used:
+                    frontmatter_lines.append(f"influences_used: [{', '.join(prov.influences_used)}]")
+
+            frontmatter_lines.append("---")
+            md_content = "\n".join(frontmatter_lines) + f"\n\n{content_str}\n"
+
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(md_content)
 

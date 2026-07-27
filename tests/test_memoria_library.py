@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from poesia.memoria.library import Library, PoemRecord
+from poesia.memoria.library import Library, PoemProvenance, PoemRecord
 
 
 def _record(theme: str, tags: list[str] | None = None, created_at: datetime | None = None) -> PoemRecord:
@@ -77,4 +77,91 @@ def test_markdown_file_and_sync_persistence(tmp_path: Path) -> None:
     recs = lib2.list_all()
     assert len(recs) == 1
     assert recs[0].theme == "Lluvia nocturna"
+
+
+def test_provenance_persisted_to_markdown(tmp_path: Path) -> None:
+    """P1: Provenance metadata should be written to markdown frontmatter."""
+    lib = Library(storage_dir=tmp_path)
+
+    provenance = PoemProvenance(
+        model="gemini-1.5-flash",
+        embedding_model="multilingual-e5-base",
+        brief_level="standard",
+        seeds=["luna", "noche"],
+        tone=["melancholic", "intimate"],
+        fragments_used=["frag_001", "frag_002"],
+        influences_used=["neruda", "lorca"],
+    )
+
+    rec = PoemRecord(
+        lines=["La luna brilla", "sobre la noche oscura"],
+        language="es",
+        form="copla",
+        theme="noche de luna",
+        tags=["luna"],
+        provenance=provenance,
+    )
+    lib.add(rec)
+
+    # Verify provenance fields in markdown
+    md_files = list(tmp_path.glob("*.md"))
+    assert len(md_files) == 1
+    content = md_files[0].read_text(encoding="utf-8")
+
+    assert "model: gemini-1.5-flash" in content
+    assert "embedding_model: multilingual-e5-base" in content
+    assert "brief_level: standard" in content
+    assert "seeds: [luna, noche]" in content
+    assert "tone: [melancholic, intimate]" in content
+    assert "fragments_used: [frag_001, frag_002]" in content
+    assert "influences_used: [neruda, lorca]" in content
+
+
+def test_provenance_optional_fields_omitted(tmp_path: Path) -> None:
+    """P1: Empty provenance fields should not appear in markdown."""
+    lib = Library(storage_dir=tmp_path)
+
+    # Provenance with only model set
+    provenance = PoemProvenance(model="stub")
+
+    rec = PoemRecord(
+        lines=["Test line"],
+        language="es",
+        form="haiku",
+        theme="test",
+        provenance=provenance,
+    )
+    lib.add(rec)
+
+    md_files = list(tmp_path.glob("*.md"))
+    content = md_files[0].read_text(encoding="utf-8")
+
+    assert "model: stub" in content
+    # These should NOT appear since they're empty/None
+    assert "embedding_model:" not in content
+    assert "seeds: []" not in content
+    assert "tone: []" not in content
+
+
+def test_record_without_provenance_still_works(tmp_path: Path) -> None:
+    """P1: Records without provenance should work as before."""
+    lib = Library(storage_dir=tmp_path)
+
+    rec = PoemRecord(
+        lines=["Simple line"],
+        language="es",
+        form="verso",
+        theme="simple",
+        # No provenance
+    )
+    lib.add(rec)
+
+    md_files = list(tmp_path.glob("*.md"))
+    content = md_files[0].read_text(encoding="utf-8")
+
+    # Should have basic fields
+    assert "theme: simple" in content
+    assert "Simple line" in content
+    # Should not have provenance fields
+    assert "model:" not in content
 

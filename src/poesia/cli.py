@@ -31,11 +31,20 @@ def write(
     brief_level: str = typer.Option("standard", help="Brief verbosity: minimal, standard, or maximal."),
     use_brief: bool = typer.Option(False, "--brief", help="Use BriefBuilder for rich pre-generation context."),
     llm: str = typer.Option("stub", help="LLM backend: 'stub', 'gemini', 'openai', or 'auto'."),
+    save: bool = typer.Option(False, "--save", help="Save the generated poem to the library (~/.poesia/poems/)."),
+    tags: str = typer.Option(None, help="Comma-separated tags for the saved poem."),
+    use_library: bool = typer.Option(False, "--use-library", help="Load existing poems from library for retrieval context."),
 ) -> None:
     """Generate a poem using the constrained generate/validate/repair loop.
 
     With --brief, uses BriefBuilder to assemble rich context from personal
     fragments, seed expansions, and influence matching before generation.
+
+    With --save, saves the generated poem to the personal library with full
+    provenance metadata (model, seeds, tone, fragments used).
+
+    With --use-library, loads existing poems from the library and uses them
+    as additional context for semantic retrieval during generation.
 
     LLM backends:
       - stub: Deterministic placeholder (default, no API key needed)
@@ -65,6 +74,16 @@ def write(
     embedding_client = None
     fragments = []
     influences = []
+    library_poems = []
+
+    # P1: Load library poems as additional context if requested
+    if use_library:
+        from poesia.memoria.library import Library
+
+        library = Library()
+        library_poems = library.list_all()
+        if library_poems:
+            rprint(f"[dim]Loaded {len(library_poems)} poems from library for context[/dim]")
 
     if use_brief:
         from poesia.generation.brief_builder import BriefBuilder
@@ -73,6 +92,21 @@ def write(
         # Load personal context if available
         fragments = _load_fragments()
         influences = _load_influences()
+
+        # P1: Convert library poems to fragments for retrieval
+        if library_poems:
+            from poesia.memoria.records import FragmentRecord
+
+            for poem in library_poems:
+                # Convert poem content to a fragment for semantic retrieval
+                frag = FragmentRecord(
+                    id=f"library:{poem.id}",
+                    content="\n".join(poem.lines),
+                    language=poem.language,
+                    tags=poem.tags,
+                )
+                fragments.append(frag)
+            rprint(f"[dim]Added {len(library_poems)} library poems as retrieval context[/dim]")
 
         # Use real embedding client for semantic retrieval
         try:
@@ -116,6 +150,37 @@ def write(
     rprint()
     for line in result.lines:
         rprint(line)
+
+    # P1: Save to library with full provenance
+    if save and result.lines:
+        from poesia.memoria.library import Library, PoemProvenance, PoemRecord
+
+        # Build provenance metadata
+        provenance = PoemProvenance(
+            model=getattr(llm_client, "model", None),
+            embedding_model=getattr(embedding_client, "model_id", None) if embedding_client else None,
+            brief_level=brief_level if use_brief else None,
+            seeds=seeds_list or [],
+            tone=tone_list or [],
+            fragments_used=[f.id for f, _ in result.brief.fragments] if result.brief else [],
+            influences_used=[i.id for i in result.brief.influences] if result.brief else [],
+        )
+
+        # Parse tags
+        tags_list = [t.strip() for t in tags.split(",")] if tags else []
+
+        record = PoemRecord(
+            lines=result.lines,
+            language=language,
+            form=form,
+            theme=theme,
+            tags=tags_list,
+            provenance=provenance,
+        )
+
+        library = Library()
+        library.add(record)
+        rprint(f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]")
 
 
 def _load_fragments() -> list:
