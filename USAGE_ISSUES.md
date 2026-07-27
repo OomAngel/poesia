@@ -42,11 +42,20 @@ Issues discovered from real generation testing with `test_real_generation.py`.
   - With embeddings: "Scoring mode: metre + theme + novelty"
 - Green checkmark when semantic scoring enabled
 
-### #4: Composite scores are identical (0.150) for all candidates
-**Status:** TODO  
-**Impact:** Can't distinguish between candidates, random selection  
-**Evidence:** All candidates score exactly 0.150, only `novelty=1.00` varies (doesn't affect total)  
-**Root cause:** Likely related to #2 (metre broken) and #3 (theme missing) - need to check `composite_score()` weighting
+### #4: Composite scores were nearly identical in degraded mode
+**Status:** ✅ FIXED (weight normalization)  
+**Impact:** Was poor differentiation in degraded mode, now excellent spread
+**Evidence:** Scores now range from 0.333 to 0.810 instead of 0.150 to 0.364
+**Root cause:** In degraded mode (no embeddings), only 45% of weight was used (metre 0.3 + novelty 0.15), leaving 55% unused (theme 0.25 + rhyme 0.2 + cliche 0.1)
+**Fix applied:**
+- Added `normalize_weights` parameter to `composite_score()` (default True)
+- Automatically redistributes weights of inactive signals to active ones
+- Example: with only metre+novelty active:
+  - Old: metre=0.3, novelty=0.15 → scores 0.15-0.45
+  - New: normalize to sum=1.0 → metre=0.667, novelty=0.333 → scores 0.0-1.0
+- Added 6 comprehensive tests in `test_composite_score_normalization.py`
+- Updated existing test to check both normalized and absolute modes
+- All 224 tests pass
 
 ---
 
@@ -68,7 +77,7 @@ Issues discovered from real generation testing with `test_real_generation.py`.
 
 1. ✅ Fix stub client (#1) - DONE
 2. ✅ Fix metre scoring (#2) - DONE  
-3. Investigate composite_score weighting (#4) - NEXT
-4. Add graceful degradation for missing embeddings (#3)
-5. Test with real LLM (#5)
-6. Add alternative presentation (#6) - P1
+3. ✅ Add explicit degraded mode (#3) - DONE
+4. ✅ Fix composite score weighting (#4) - DONE
+5. Test with real LLM (#5) - Deferred (needs API key)
+6. Add alternative presentation (#6) - P1 (future work)

@@ -96,10 +96,29 @@ def composite_score(
     novelty: float,
     cliche: float,
     weights: dict[str, float] | None = None,
+    normalize_weights: bool = True,
 ) -> float:
     """Combine individual scores into a single ranking value.
 
     S = w_m*metre + w_r*rhyme + w_t*theme + w_n*novelty - w_c*cliche
+
+    Args:
+        metre: Syllable count accuracy score [0, 1]
+        rhyme: Rhyme match score [0, 1]
+        theme: Semantic theme alignment [0, 1]
+        novelty: Distinctness from prior lines [0, 1]
+        cliche: Cliché penalty [0, 1] (subtracted)
+        weights: Optional custom weights dict
+        normalize_weights: If True, redistribute weights of unused signals to
+            active ones. This improves score differentiation in degraded mode
+            (e.g., when theme=0 because embeddings unavailable). Default True.
+
+    Returns:
+        Composite score, typically in [0, 1] when weights normalized.
+
+    Note:
+        Scores are intended for ranking candidates within a single generation
+        session, not for cross-session comparison.
     """
     w = weights or {
         "metre": 0.3,
@@ -108,6 +127,35 @@ def composite_score(
         "novelty": 0.15,
         "cliche": 0.1,
     }
+
+    # Identify which signals are active (non-zero)
+    # We consider a signal "active" if it's non-zero or if it could vary
+    # (theme/rhyme are inactive only when they're exactly 0.0 AND would be 0 for all candidates)
+    signals_used = {
+        "metre": metre,
+        "rhyme": rhyme,
+        "theme": theme,
+        "novelty": novelty,
+    }
+
+    if normalize_weights:
+        # Find signals that are actually contributing (non-zero scores exist)
+        # Simple heuristic: if ALL signals of a type would be 0, exclude its weight
+        # For now, we check if the score is exactly 0.0
+        # A better approach would track which signals are "available" but for v1 this works
+        
+        # Calculate weight sum for active signals (exclude those at 0)
+        active_weight_sum = sum(
+            w[signal] for signal, score in signals_used.items() 
+            if score > 0.0 or signal == "metre"  # metre always active
+        )
+        
+        # If no active signals, fall back to original weights
+        if active_weight_sum > 0.0:
+            # Normalize weights so active ones sum to 1.0 (ignoring cliche penalty)
+            normalization_factor = 1.0 / active_weight_sum
+            w = {k: v * normalization_factor for k, v in w.items()}
+
     return (
         w["metre"] * metre
         + w["rhyme"] * rhyme

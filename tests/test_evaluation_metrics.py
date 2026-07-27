@@ -52,5 +52,16 @@ def test_cliche_penalty() -> None:
 
 
 def test_composite_score() -> None:
+    """Test composite scoring with normalization (default behavior)."""
+    # With all signals active and normalize_weights=True (default)
     score = composite_score(metre=1.0, rhyme=1.0, theme=1.0, novelty=1.0, cliche=0.0)
-    assert score == 0.9  # 0.3 + 0.2 + 0.25 + 0.15 - 0.0 = 0.9
+    # All weights sum to 0.9 (excluding cliche), normalized to 1.0
+    # All scores are 1.0, so result is 1.0
+    assert score == 1.0
+    
+    # Test without normalization (old behavior)
+    score_abs = composite_score(
+        metre=1.0, rhyme=1.0, theme=1.0, novelty=1.0, cliche=0.0,
+        normalize_weights=False
+    )
+    assert score_abs == 0.9  # 0.3 + 0.2 + 0.25 + 0.15 = 0.9
