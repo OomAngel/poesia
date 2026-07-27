@@ -2,8 +2,9 @@
 
 ## IN PROGRESS
 
-- [ ] **P3 source fingerprints**: hash ingested content to detect a stale index
-  when source files change without an explicit rebuild call.
+- [ ] P4: reviewed multilingual evaluation corpus (ES + EN minimum).
+- [ ] P4: retrieval relevance evaluation on real fragments.
+- [ ] P4: generation grounding evaluation (formal validity + context use).
 
 ## BACKLOG
 
@@ -21,7 +22,7 @@
 
 ## DONE
 
-All phases through P3-compatibility are complete (327 tests passing):
+All phases through P3-source-fingerprints are complete (350 tests passing):
 - Core phonology, evaluation, forms, generation loop.
 - `eufonia`, `galeria`, `armonia` sub-brands.
 - `memoria` Library (Markdown + SQLite), real CLI list/search.
@@ -30,5 +31,6 @@ All phases through P3-compatibility are complete (327 tests passing):
 - e5 query/passage prefix fix across all callers.
 - IndexCompatibilityError, check_index_compatibility(), rebuild(), index_info().
 - Atomic JSON write; versioned persistence header with load-time enforcement.
+- P3 source fingerprints: _compute_fingerprint(), is_stale(), content_fingerprint in JSON header, CLI stale-index warning.
 - Groq/Gemini/OpenAI backends, RhymeTracker, directive prompts.
 - --interactive, --show-retrieval (with graph paths), --show-alternatives.

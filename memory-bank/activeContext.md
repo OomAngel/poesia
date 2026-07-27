@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-07-27_
+_Last updated: 2026-07-27 (P3 source fingerprints DONE)_
 
 ---
 
@@ -20,24 +20,15 @@ poesia write --theme "luna sobre el mar" --form haiku --language es --llm groq -
 
 ---
 
-## Current focus: finish P3 — source fingerprints
+## Current focus: P4 — evaluation corpus & retrieval relevance
 
-One item remains in P3 before moving to P4:
+P3 is fully complete (350 tests passing). Moving to P4:
 
-**Source fingerprints** — hash the ingested content so the index can detect
-when source files have changed without a rebuild. Currently there is no way
-to tell if `graphrag.json` is stale relative to the library it was built from.
+- [ ] P4: reviewed multilingual evaluation corpus (ES + EN minimum).
+- [ ] P4: retrieval relevance evaluation on real fragments.
+- [ ] P4: generation grounding evaluation (formal validity + context use).
 
-Approach:
-- Add a `content_fingerprint` field to the JSON header: a deterministic hash
-  over the set of (record.id, embeddable_text) pairs ingested.
-- Expose `is_stale(records)` on `GraphRAGRetriever`: returns `True` if the
-  current records produce a different fingerprint than the stored one.
-- Print a warning in the CLI when the index appears stale.
-- Tests: fingerprint changes when records change; is stable on re-ingest of
-  the same records; matches across save/load round-trips.
-
-Key file: `src/poesia/memoria/graphrag.py`
+Key files remain the same as P3.
 
 ---
 
