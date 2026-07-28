@@ -20,7 +20,7 @@ poesia write --theme "luna sobre el mar" --form haiku --language es --llm groq -
 
 ---
 
-## Current focus: P5 — retry, structured failure, token/cost metadata
+## Current focus: P5 — monitoring (deferred) / Ollama integration complete
 
 P5 items 1-2 complete (privacy + lineage). Remaining:
 - [x] Multilingual evaluation corpus (13 ES + 13 EN)
@@ -29,7 +29,8 @@ P5 items 1-2 complete (privacy + lineage). Remaining:
 - [x] Embedding profile frozen to intfloat/multilingual-e5-small
 - [x] P5.1: privacy confirmation with --yes skip
 - [x] P5.2: provider/run lineage in saved frontmatter
-- [ ] P5.3: structured failure types, token/cost capture
+- [x] P5.3: structured failure types, token/cost capture
+- [x] OllamaClient: local LLM backend for offline generation
 
 ### Key files
 
