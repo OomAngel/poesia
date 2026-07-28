@@ -79,7 +79,7 @@ def main():
     print(f"Train: {len(train_ds)}, Eval: {len(eval_ds)}")
 
     def tokenize(ex):
-        return tokenizer(ex["text"], truncation=True, max_length=512)
+        return tokenizer(ex["text"], truncation=True, max_length=192)
 
     train_ds = train_ds.map(tokenize, remove_columns=["text"])
     eval_ds = eval_ds.map(tokenize, remove_columns=["text"])
@@ -94,7 +94,7 @@ def main():
         per_device_train_batch_size=4,
         per_device_eval_batch_size=4,
         gradient_accumulation_steps=4,       # Effective batch = 16
-        num_train_epochs=3,
+        num_train_epochs=2,
         learning_rate=2e-4,
         fp16=True,
         logging_steps=10,
@@ -102,7 +102,7 @@ def main():
         eval_steps=200,
         save_strategy="steps",
         save_steps=500,
-        save_total_limit=2,
+        save_total_limit=1,
         report_to="none",
         remove_unused_columns=False,
     )
