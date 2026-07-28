@@ -510,6 +510,7 @@ def _parse_fragment_frontmatter(content: str) -> dict:
 def _parse_yaml_list(yaml_block: str, key: str) -> list[str] | None:
     """Helper: parse a YAML list value for *key* -- either inline [a, b] or block - a."""
     import re
+    # First pass: try inline list [a, b]
     for line in yaml_block.splitlines():
         ls = line.strip()
         if ls.startswith(key + ":"):
@@ -517,8 +518,13 @@ def _parse_yaml_list(yaml_block: str, key: str) -> list[str] | None:
             if val.startswith("[") and val.endswith("]"):
                 raw = val[1:-1]
                 return [x.strip().strip('"').strip("'") for x in raw.split(",") if x.strip()]
-            return None
-    # Block list: - item
+            # Non-empty inline value that is not a list? Not a list at all.
+            if val:
+                return None
+            # Empty value -> fall through to block-list parser below
+            break
+
+    # Second pass: block list - item
     in_list = False
     items = []
     for line in yaml_block.splitlines():
