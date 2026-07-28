@@ -59,3 +59,15 @@ When you add new data:
 - New poetry sources added to the corpus
 - Current adapter quality degrades for your use case
 - Better base model becomes available (e.g. Llama 4 3B)
+
+## Model artifacts
+
+The trained adapter is at `models/poetry-lora-3b/final_adapter/` (gitignored).
+To reproduce it:
+
+```bash
+python scripts/train_poetry_lora.py
+```
+
+This uses the versioned training data in `seeds/poetry_corpus/training_data/`
+and the versioned training script in `scripts/train_poetry_lora.py`.
