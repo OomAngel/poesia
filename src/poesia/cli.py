@@ -37,6 +37,7 @@ def write(
     show_alternatives: int = typer.Option(0, "--show-alternatives", help="Show top N alternative candidates per line with score breakdowns."),
     show_retrieval: bool = typer.Option(False, "--show-retrieval", help="Show which fragments and influences were retrieved for context."),
     interactive: bool = typer.Option(False, "--interactive", help="Choose each line interactively from scored candidates."),
+    yes: bool = typer.Option(False, "--yes", help="Skip privacy confirmation when sending personal context to a hosted LLM."),
 ) -> None:
     """Generate a poem using the constrained generate/validate/repair loop.
 
@@ -48,6 +49,10 @@ def write(
 
     With --use-library, loads existing poems from the library and uses them
     as additional context for semantic retrieval during generation.
+
+    With --yes, skips the privacy confirmation prompt when --brief sends
+    personal fragments to a hosted LLM provider (Groq, Gemini, OpenAI).
+    Use in scripts or when you have already consented in this session.
 
     With --show-retrieval, prints which personal fragments and influences were
     retrieved and their similarity scores before generation begins.
@@ -220,6 +225,33 @@ def write(
                     rprint("  [red]Enter a number, or press Enter[/red]")
         line_selector = _interactive_selector
 
+    # P5: Privacy confirmation — warn before personal context reaches a hosted provider
+    _hosted_providers = {"groq", "gemini", "openai", "auto"}
+    if (
+        use_brief
+        and fragments
+        and llm.lower() in _hosted_providers
+        and not yes
+    ):
+        provider_name = llm_client.provider if hasattr(llm_client, "provider") else llm
+        rprint()
+        rprint("[bold yellow]⚠ PRIVACY NOTICE[/bold yellow]")
+        rprint(f"  [yellow]Personal fragments will be sent to [bold]{provider_name}[/bold].[/yellow]")
+        rprint(f"  [yellow]Fragments ({len(fragments)} loaded):[/yellow]")
+        for frag in fragments[:5]:
+            rprint(f"    [dim]- {frag.id}[/dim]")
+        if len(fragments) > 5:
+            rprint(f"    [dim]- ... and {len(fragments) - 5} more[/dim]")
+        rprint()
+        try:
+            confirm = input("  Type [bold]yes[/bold] to continue, or anything else to cancel: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            confirm = "no"
+        if confirm != "yes":
+            rprint("[red]✗[/red] Generation cancelled. Use [bold]--yes[/bold] to skip this prompt.")
+            raise typer.Exit(0)
+        rprint()
+
     loop = ConstrainedLoop(
         language=language,
         form=form,
@@ -229,6 +261,9 @@ def write(
         fragments=fragments,
         influences=influences,
     )
+    # P5: Time the generation for latency provenance
+    import time as _time
+    _t0 = _time.time()
     result = loop.run(
         theme=theme,
         n_candidates=n_candidates,
@@ -237,6 +272,7 @@ def write(
         brief_level=brief_level,
         line_selector=line_selector,
     )
+    _gen_latency_ms = int((_time.time() - _t0) * 1000)
 
     rprint(f"[bold]Theme:[/bold] {theme}  [bold]Form:[/bold] {form}  [bold]Language:[/bold] {language}")
     if tone_list:
@@ -304,12 +340,16 @@ def write(
         # Build provenance metadata
         provenance = PoemProvenance(
             model=getattr(llm_client, "model", None),
+            provider=getattr(llm_client, "provider", None),
             embedding_model=getattr(embedding_client, "model_id", None) if embedding_client else None,
             brief_level=brief_level if use_brief else None,
             seeds=seeds_list or [],
             tone=tone_list or [],
             fragments_used=[f.id for f, _ in result.brief.fragments] if result.brief else [],
             influences_used=[i.id for i in result.brief.influences] if result.brief else [],
+            n_candidates=n_candidates,
+            temperature=getattr(llm_client, "temperature", None),
+            latency_ms=_gen_latency_ms,
         )
 
         # Parse tags

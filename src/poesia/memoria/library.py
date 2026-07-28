@@ -17,15 +17,27 @@ from pathlib import Path
 
 @dataclass
 class PoemProvenance:
-    """Provenance metadata for reproducibility and lineage tracking (P1 hardening)."""
+    """Provenance metadata for reproducibility and lineage tracking (P1/P5 hardening).
+
+    P5 additions:
+    - ``provider``: the LLM provider name (groq, gemini, openai, stub)
+    - ``n_candidates``: number of candidates requested per line
+    - ``temperature``: generation temperature (if available)
+    - ``latency_ms``: approximate generation time in milliseconds
+    - ``token_count``: approximate token count (if reported by provider)
+    """
 
     model: str | None = None  # LLM model used (e.g., "gemini-1.5-flash")
-    embedding_model: str | None = None  # Embedding model (e.g., "multilingual-e5-base")
+    embedding_model: str | None = None  # Embedding model (e.g., "multilingual-e5-small")
+    provider: str | None = None  # P5: provider name (groq, gemini, openai, stub)
     brief_level: str | None = None  # "minimal", "standard", or "maximal"
     seeds: list[str] = field(default_factory=list)  # Seed words used
     tone: list[str] = field(default_factory=list)  # Tone descriptors
     fragments_used: list[str] = field(default_factory=list)  # IDs of context fragments
     influences_used: list[str] = field(default_factory=list)  # IDs of influences matched
+    n_candidates: int | None = None  # P5: candidates requested per line
+    temperature: float | None = None  # P5: generation temperature
+    latency_ms: int | None = None  # P5: approximate generation time
 
 
 @dataclass
@@ -116,6 +128,8 @@ class Library:
                 prov = record.provenance
                 if prov.model:
                     frontmatter_lines.append(f"model: {prov.model}")
+                if prov.provider:
+                    frontmatter_lines.append(f"provider: {prov.provider}")
                 if prov.embedding_model:
                     frontmatter_lines.append(f"embedding_model: {prov.embedding_model}")
                 if prov.brief_level:
@@ -128,6 +142,12 @@ class Library:
                     frontmatter_lines.append(f"fragments_used: [{', '.join(prov.fragments_used)}]")
                 if prov.influences_used:
                     frontmatter_lines.append(f"influences_used: [{', '.join(prov.influences_used)}]")
+                if prov.n_candidates is not None:
+                    frontmatter_lines.append(f"n_candidates: {prov.n_candidates}")
+                if prov.temperature is not None:
+                    frontmatter_lines.append(f"temperature: {prov.temperature}")
+                if prov.latency_ms is not None:
+                    frontmatter_lines.append(f"latency_ms: {prov.latency_ms}")
 
             frontmatter_lines.append("---")
             md_content = "\n".join(frontmatter_lines) + f"\n\n{content_str}\n"
