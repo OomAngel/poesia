@@ -9,6 +9,10 @@
 - [ ] Phase 4E: literary taxonomy auto-tagging.
 - [ ] romance form: add default line count spec.
 - [ ] P5.4: monitoring (when a deployed instance exists)
+- [ ] Distillation pipeline (Groq → clean sonetos)
+- [ ] Multi-form training (romance, décima, haiku)
+- [ ] WordNet Spanish (retry when server is up)
+- [ ] Exact syllable filtering for training data
 
 ## DONE
 
