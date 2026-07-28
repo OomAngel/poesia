@@ -95,7 +95,7 @@ class SentenceTransformerClient:
     Lazy-imports sentence-transformers to keep base package light.
     """
 
-    DEFAULT_MODEL = "intfloat/multilingual-e5-base"
+    DEFAULT_MODEL = "intfloat/multilingual-e5-small"
 
     def __init__(self, model_name: str | None = None) -> None:
         self._model_name = model_name or self.DEFAULT_MODEL
