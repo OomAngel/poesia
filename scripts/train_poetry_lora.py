@@ -23,7 +23,7 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
 def main():
     # ── Config ────────────────────────────────────────────────────────
-    model_name = "Qwen/Qwen2.5-3B-Instruct"
+    model_name = "Qwen/Qwen2.5-1.5B-Instruct"
     train_path = "seeds/poetry_corpus/training_data/train.jsonl"
     eval_path = "seeds/poetry_corpus/training_data/eval.jsonl"
     output_dir = "models/poetry-lora-3b"
@@ -91,9 +91,9 @@ def main():
     # ── Train ─────────────────────────────────────────────────────────
     args = TrainingArguments(
         output_dir=output_dir,
-        per_device_train_batch_size=4,
-        per_device_eval_batch_size=4,
-        gradient_accumulation_steps=4,       # Effective batch = 16
+        per_device_train_batch_size=8,
+        per_device_eval_batch_size=8,
+        gradient_accumulation_steps=2,       # Effective batch = 16
         num_train_epochs=2,
         learning_rate=2e-4,
         fp16=True,
