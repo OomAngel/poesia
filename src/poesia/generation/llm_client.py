@@ -434,3 +434,147 @@ class HostedLLMClient:
                     provider=provider_label.lower(),
                 ) from e
 
+                raise LLMProviderError(
+                    f"{provider_label} API request failed: {e}",
+                    provider=provider_label.lower(),
+                ) from e
+
+
+class OllamaClient:
+    """Local LLM via Ollama (https://ollama.com).
+
+    Calls the Ollama REST API at ``http://localhost:11434/api/chat`` (default)
+    or ``OLLAMA_HOST`` env var. Uses ``OLLAMA_MODEL`` env var or a default model.
+
+    Requires Ollama to be installed and running. No API key needed.
+    Designed for offline/private generation on local hardware.
+
+    Default model: ``gemma2:2b`` (~1.5 GB download, ~3 GB RAM during inference).
+    This is the smallest viable model for poetry generation.
+
+    Supported models (from smallest to most capable):
+    - gemma2:2b (1.5 GB, 3 GB RAM) — runs on any laptop with 4 GB RAM
+    - llama3.2:3b (2.0 GB, 4 GB RAM) — good balance of size and quality
+    - phi3:mini (2.3 GB, 4.5 GB RAM) — strong for structured output
+    - qwen2.5:7b (4.1 GB, 8 GB RAM) — best multilingual (ES+EN)
+    - llama3.1:8b (4.7 GB, 8 GB RAM) — best quality offline
+    """
+
+    _DEFAULT_HOST = "http://localhost:11434"
+    _DEFAULT_MODEL = "gemma2:2b"
+
+    def __init__(
+        self,
+        model: str | None = None,
+        host: str | None = None,
+        timeout: float = 120.0,
+    ) -> None:
+        self.host = (host or os.environ.get("OLLAMA_HOST") or self._DEFAULT_HOST).rstrip("/")
+        self.model = model or os.environ.get("OLLAMA_MODEL") or self._DEFAULT_MODEL
+        self.timeout = timeout
+        self.usage: LLMUsage = LLMUsage()
+        self.provider = "ollama"
+        self._checked = False  # Lazy connectivity check
+
+    def _check_available(self) -> None:
+        """Verify Ollama is running and the model is available."""
+        if self._checked:
+            return
+        from poesia.exceptions import LLMProviderError
+
+        health_url = f"{self.host}/api/tags"
+        try:
+            with urllib.request.urlopen(health_url, timeout=5) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                models = [m["name"] for m in data.get("models", [])]
+                # Check if model is pulled (accept partial match)
+                available = any(self.model in m for m in models)
+                if not available:
+                    # Model not pulled yet — try to pull it
+                    # (This can take minutes; warn the user)
+                    import warnings
+                    warnings.warn(
+                        f"Model '{self.model}' not found in Ollama. "
+                        f"Run: ollama pull {self.model}"
+                    )
+        except urllib.error.HTTPError:
+            raise LLMProviderError(
+                f"Ollama is not running at {self.host}. "
+                "Start Ollama first (system tray or 'ollama serve').",
+                provider="ollama",
+            )
+        except (urllib.error.URLError, ConnectionError, OSError) as e:
+            raise LLMProviderError(
+                f"Cannot connect to Ollama at {self.host}: {e}. "
+                "Is Ollama installed and running? https://ollama.com",
+                provider="ollama",
+            )
+        self._checked = True
+
+    def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
+        """Generate candidate lines via Ollama.
+
+        For n>1, issues n sequential calls (Ollama's /api/chat returns
+        a single response per request).
+        """
+        from poesia.exceptions import LLMProviderError
+
+        self._check_available()
+        self.usage = LLMUsage()
+        results: list[str] = []
+        t0 = time.time()
+
+        for i in range(n):
+            if i > 0:
+                time.sleep(0.1)  # Small delay between sequential calls
+            payload = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": False,
+                "options": {
+                    "temperature": temperature,
+                },
+            }
+            data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                f"{self.host}/api/chat",
+                data=data,
+                headers={"Content-Type": "application/json"},
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    res = json.loads(resp.read().decode("utf-8"))
+                    content = res.get("message", {}).get("content", "").strip()
+                    if content:
+                        results.append(content)
+            except urllib.error.HTTPError as e:
+                err_body = e.read().decode("utf-8")
+                raise LLMProviderError(
+                    f"Ollama API HTTP Error {e.code}: {err_body}",
+                    provider="ollama",
+                    status_code=e.code,
+                    response_body=err_body,
+                ) from e
+            except Exception as e:
+                raise LLMProviderError(
+                    f"Ollama request failed: {e}",
+                    provider="ollama",
+                ) from e
+
+        self.usage.latency_ms = (time.time() - t0) * 1000
+        # Ollama doesn't report token counts in the response,
+        # but we can estimate from response length
+        self.usage.completion_tokens = sum(len(r.split()) for r in results)
+        return results
+
+    def repair(self, line: str, defect_description: str) -> str:
+        """Ask Ollama to fix one explicit defect in a line."""
+        prompt = (
+            f"Fix the following poetic line to resolve this defect: {defect_description}.\n"
+            f'Line: "{line}"\n'
+            "Output ONLY the corrected single line without quotation marks, intro, or explanation."
+        )
+        candidates = self.generate(prompt, n=1, temperature=0.7)
+        if candidates:
+            return candidates[0].strip().strip('"\'')
+        return line
