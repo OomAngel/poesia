@@ -218,6 +218,34 @@ def main():
         json.dump(registry, f, indent=2, ensure_ascii=False)
     print(f"Registered in {registry_path}")
 
+    # ── Auto-evaluate ───────────────────────────────────────────────────
+    print("\n=== Auto-evaluating adapter ===")
+    try:
+        sys.path.insert(0, "mlops")
+        from evaluate_adapter import evaluate
+        eval_results = evaluate(adapter_path)
+        run_log["eval_syllable_deviation"] = eval_results["summary"]["avg_syllable_deviation"]
+        run_log["eval_line_count_accuracy"] = eval_results["summary"]["line_count_accuracy"]
+        run_log["eval_avg_line_count"] = eval_results["summary"]["avg_line_count"]
+        run_log["status"] = "evaluated"
+        with open(run_log_path, "w") as f:
+            json.dump(run_log, f, indent=2)
+        # Update registry with eval metrics
+        with open(registry_path) as f:
+            registry = json.load(f)
+        for entry in registry["adapters"]:
+            if entry["id"] == run_id:
+                entry["eval_syllable_deviation"] = eval_results["summary"]["avg_syllable_deviation"]
+                entry["eval_line_count_accuracy"] = eval_results["summary"]["line_count_accuracy"]
+                break
+        with open(registry_path, "w") as f:
+            json.dump(registry, f, indent=2, ensure_ascii=False)
+        print(f"  Line count accuracy: {eval_results['summary']['line_count_accuracy']:.1%}")
+        print(f"  Avg syllable deviation: {eval_results['summary']['avg_syllable_deviation']:.2f} per line")
+    except Exception as eval_err:
+        print(f"  [WARN] Evaluation failed (will not block training): {eval_err}")
+        run_log["status"] = "trained (eval failed)"
+
     # ── Test ──────────────────────────────────────────────────────────
     print("\n=== Testing ===")
     prompt = "Write a Spanish poem about the sea.\n"
