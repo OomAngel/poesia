@@ -38,6 +38,7 @@ class PoemProvenance:
     n_candidates: int | None = None  # P5: candidates requested per line
     temperature: float | None = None  # P5: generation temperature
     latency_ms: int | None = None  # P5: approximate generation time
+    total_tokens: int | None = None  # P5: total tokens used (from provider)
 
 
 @dataclass
@@ -148,6 +149,8 @@ class Library:
                     frontmatter_lines.append(f"temperature: {prov.temperature}")
                 if prov.latency_ms is not None:
                     frontmatter_lines.append(f"latency_ms: {prov.latency_ms}")
+                if prov.total_tokens is not None:
+                    frontmatter_lines.append(f"total_tokens: {prov.total_tokens}")
 
             frontmatter_lines.append("---")
             md_content = "\n".join(frontmatter_lines) + f"\n\n{content_str}\n"

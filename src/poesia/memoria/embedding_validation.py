@@ -10,8 +10,14 @@ import math
 from typing import Any
 
 
-class EmbeddingValidationError(ValueError):
-    """Raised when an embedding violates expected shape or value constraints."""
+from poesia.exceptions import EmbeddingValidationError as _PoesiaEmbeddingError
+
+class EmbeddingValidationError(_PoesiaEmbeddingError, ValueError):
+    """Raised when an embedding violates expected shape or value constraints.
+
+    Multiple inheritance: caught by ``except PoesiaError`` (generic handling)
+    or ``except ValueError`` (legacy compatibility).
+    """
 
     pass
 
