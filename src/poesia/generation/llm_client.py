@@ -578,3 +578,92 @@ class OllamaClient:
         if candidates:
             return candidates[0].strip().strip('"\'')
         return line
+
+class LoRAClient:
+    """Fine-tuned poetry model via QLoRA adapter.
+
+    Loads a base 3B model in 4-bit and merges a LoRA adapter fine-tuned
+    on Spanish poetry. Runs on GPU with ~4-5 GB VRAM.
+
+    Default adapter path: ``models/poetry-lora-3b/final_adapter``
+    If the adapter is not found, falls back to the base model.
+    """
+
+    _DEFAULT_BASE = "Qwen/Qwen2.5-3B-Instruct"
+    _DEFAULT_ADAPTER = None
+
+    def __init__(
+        self,
+        adapter_path: str | None = None,
+        base_model: str | None = None,
+    ) -> None:
+        from poesia.exceptions import LLMProviderError
+        import os
+
+        self.usage: LLMUsage = LLMUsage()
+        self.provider = "lora"
+        self.model = base_model or self._DEFAULT_BASE
+
+        if adapter_path is None:
+            pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            candidate = os.path.join(pkg_root, "models", "poetry-lora-3b", "final_adapter")
+            if os.path.exists(candidate):
+                adapter_path = candidate
+
+        self._model = None
+        self._tokenizer = None
+        self._adapter_path = adapter_path
+
+    def _load(self) -> None:
+        if self._model is not None:
+            return
+        from poesia.exceptions import LLMProviderError
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+
+        bnb = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+        )
+        try:
+            self._tokenizer = AutoTokenizer.from_pretrained(self.model)
+            self._tokenizer.pad_token = self._tokenizer.eos_token
+            self._model = AutoModelForCausalLM.from_pretrained(
+                self.model, quantization_config=bnb,
+                device_map="auto", torch_dtype=torch.bfloat16,
+            )
+            if self._adapter_path and os.path.exists(self._adapter_path):
+                from peft import PeftModel
+                self._model = PeftModel.from_pretrained(self._model, self._adapter_path)
+        except Exception as e:
+            raise LLMProviderError(f"Failed to load model '{self.model}': {e}", provider="lora") from e
+
+    def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
+        from poesia.exceptions import LLMProviderError
+        import time, torch
+        self._load()
+        self.usage = LLMUsage()
+        t0 = time.time()
+        results = []
+        for i in range(n):
+            if i > 0:
+                time.sleep(0.1)
+            inputs = self._tokenizer(prompt, return_tensors="pt").to("cuda")
+            with torch.no_grad():
+                out = self._model.generate(
+                    **inputs, max_new_tokens=100,
+                    temperature=temperature, do_sample=True,
+                    pad_token_id=self._tokenizer.pad_token_id,
+                )
+            text = self._tokenizer.decode(out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True).strip()
+            if text:
+                results.append(text)
+        self.usage.latency_ms = (time.time() - t0) * 1000
+        return results
+
+    def repair(self, line: str, defect_description: str) -> str:
+        prompt = f"Fix this poetic line: {defect_description}\nLine: \"{line}\"\nOutput ONLY the corrected line.\n"
+        candidates = self.generate(prompt, n=1, temperature=0.7)
+        return candidates[0].strip().strip('"\'') if candidates else line
+
