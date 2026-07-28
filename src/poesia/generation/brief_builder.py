@@ -53,6 +53,12 @@ class GenerationBrief:
         """Render the brief as an LLM prompt string."""
         lines = [f"# Generation Brief — {self.created_at.isoformat()}\n"]
 
+        # ── HARD LANGUAGE CONSTRAINT ────────────────────────────────
+        lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch"}.get(
+            self.form_spec.language, self.form_spec.language
+        )
+        lines.append(f"IMPORTANT: You MUST write in {lang_name}. Do NOT write in any other language.\n")
+
         # Form
         lines.append("## FORM")
         lines.append(f"- Name: {self.form_spec.name}")
@@ -68,6 +74,16 @@ class GenerationBrief:
             lines.append("## TONE")
             lines.extend(f"- {t}" for t in self.tone)
             lines.append("")
+
+        # ── POETIC QUALITY DIRECTIVE ─────────────────────────────────
+        lines.append(
+            "## QUALITY\n"
+            "- Write with poetic imagery, metaphor, and musicality.\n"
+            "- Prefer concrete images over abstract statements.\n"
+            "- Each line should stand on its own as a beautiful phrase.\n"
+            "- Avoid clichés, inverted word order for the sake of rhyme, "
+            "and padding syllables with unnecessary words.\n"
+        )
 
         # Theme
         lines.append(f"## THEME\n- {self.theme}\n")
