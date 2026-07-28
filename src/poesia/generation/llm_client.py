@@ -578,6 +578,78 @@ class OllamaClient:
         if candidates:
             return candidates[0].strip().strip('"\'')
         return line
+class OutlinesClient:
+    """LLMClient with grammar-constrained generation via Outlines."""
+
+    _DEFAULT_BASE = "Qwen/Qwen2.5-1.5B-Instruct"
+
+    def __init__(self, base_model=None, adapter_path=None):
+        import os
+        self.usage = LLMUsage()
+        self.provider = "outlines"
+        self.model = base_model or self._DEFAULT_BASE
+        self._model_wrapper = None
+        self._tokenizer = None
+        if adapter_path is None:
+            pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            candidate = os.path.join(pkg_root, "models", "poetry-lora-3b", "final_adapter")
+            self._adapter_path = candidate if os.path.exists(candidate) else None
+        else:
+            self._adapter_path = adapter_path if os.path.exists(adapter_path) else None
+
+    def _load(self):
+        if self._model_wrapper is not None:
+            return
+        from poesia.exceptions import LLMProviderError
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+        import outlines
+        bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16)
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(self.model)
+            tokenizer.pad_token = tokenizer.eos_token
+            model = AutoModelForCausalLM.from_pretrained(self.model, quantization_config=bnb, device_map="auto", torch_dtype=torch.bfloat16)
+            if self._adapter_path:
+                from peft import PeftModel
+                model = PeftModel.from_pretrained(model, self._adapter_path)
+            self._tokenizer = tokenizer
+            self._model_wrapper = outlines.from_transformers(model, tokenizer)
+        except Exception as e:
+            raise LLMProviderError(f"Failed to load model: {e}", provider="outlines") from e
+
+    def generate(self, prompt, n=1, temperature=0.9):
+        import time, torch
+        import outlines.generator as og
+        self._load()
+        self.usage = LLMUsage()
+        t0 = time.time()
+        results = []
+        line_regex = r"[^\n]+"
+        lp = og.get_regex_logits_processor(None, self._model_wrapper, line_regex)
+        for i in range(n):
+            if i > 0:
+                time.sleep(0.1)
+            try:
+                text = self._model_wrapper(prompt, logits_processor=lp, temperature=temperature, max_tokens=40)
+                text = str(text).strip() if text else ""
+                if text:
+                    results.append(text)
+            except Exception:
+                inputs = self._tokenizer(prompt, return_tensors="pt").to("cuda")
+                with torch.no_grad():
+                    out = self._model_wrapper.model.generate(**inputs, max_new_tokens=40, temperature=temperature, do_sample=True)
+                text = self._tokenizer.decode(out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True).strip()
+                if text:
+                    text = text.split("\n")[0].strip()
+                    if text:
+                        results.append(text)
+        self.usage.latency_ms = (time.time() - t0) * 1000
+        return results if results else [""]
+
+    def repair(self, line, defect_description):
+        prompt = "Fix this poetic line: " + defect_description + "\nLine: \"" + line + "\"\nOutput ONLY the corrected line.\n"
+        candidates = self.generate(prompt, n=1, temperature=0.7)
+        return candidates[0].strip().strip("'\"") if candidates and candidates[0] else line
 
 class LoRAClient:
     """Fine-tuned poetry model via QLoRA adapter.
