@@ -152,6 +152,11 @@ class ConstrainedLoop:
             example_rhyme_word = rhyme_tracker.example_word_for_line(line_index)
             rhyme_candidates = rhyme_tracker.candidates_for_line(line_index)
 
+            # P4: extract fragment fidelity text from the brief (best fragment)
+            _fidelity_text: str | None = None
+            if brief and brief.fragments:
+                _fidelity_text = brief.fragments[0][0].content
+
             self._scorer = LineScorer(
                 phonology_backend=self._phonology,
                 target_syllable_count=target_syllables,
@@ -159,6 +164,7 @@ class ConstrainedLoop:
                 theme_text=theme,
                 target_rhyme_key=target_rhyme_key,
                 language=self.language,
+                fragment_fidelity_text=_fidelity_text,
             )
             candidates = self._generator.generate_lines(
                 theme=theme,

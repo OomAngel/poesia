@@ -89,18 +89,45 @@ def cliche_penalty(line: str, cliche_phrases: frozenset[str]) -> float:
     return min(1.0, hits * 0.25)
 
 
+def end_word_penalty(line: str, prior_end_words: set[str]) -> float:
+    """Return 0 if the line ends with a word already used as a prior line-end, else 1.
+
+    The penalty is 0 (no penalty) if the word is new, meaning that prior use of the
+    exact same word as a line ending incurs a score penalty of 1.0. Punctuation is
+    stripped before comparison.
+
+    Args:
+        line: Candidate line text.
+        prior_end_words: Set of ``str.lower()`` words that have already been used
+            as line-ending words in previously committed lines.
+
+    Returns:
+        1.0 if the end word is novel, 0.0 (full penalty) if repeated.
+    """
+    if not prior_end_words:
+        return 1.0
+    words = line.strip().split()
+    if not words:
+        return 1.0
+    last = words[-1].rstrip(".,;:!?¿¡\"'—").lower()
+    return 0.0 if last in prior_end_words else 1.0
+
+
 def composite_score(
     metre: float,
     rhyme: float,
     theme: float,
     novelty: float,
     cliche: float,
+    end_word: float = 1.0,
+    fragment_fidelity: float = 0.0,
     weights: dict[str, float] | None = None,
     normalize_weights: bool = True,
 ) -> float:
     """Combine individual scores into a single ranking value.
 
-    S = w_m*metre + w_r*rhyme + w_t*theme + w_n*novelty - w_c*cliche
+    S = w_m*metre + w_r*rhyme + w_t*theme + w_f*fragment_fidelity + w_n*novelty
+        - w_c*cliche - w_e*(1 - end_word)
 
     Args:
         metre: Syllable count accuracy score [0, 1]
@@ -108,51 +135,40 @@ def composite_score(
         theme: Semantic theme alignment [0, 1]
         novelty: Distinctness from prior lines [0, 1]
         cliche: Cliché penalty [0, 1] (subtracted)
+        end_word: End-word repetition penalty — 1.0 if novel, 0.0 if repeated.
+        fragment_fidelity: Cosine similarity to the source fragment embedding [0, 1].
         weights: Optional custom weights dict
         normalize_weights: If True, redistribute weights of unused signals to
-            active ones. This improves score differentiation in degraded mode
-            (e.g., when theme=0 because embeddings unavailable). Default True.
+            active ones. Improves score differentiation in degraded mode.
 
     Returns:
         Composite score, typically in [0, 1] when weights normalized.
-
-    Note:
-        Scores are intended for ranking candidates within a single generation
-        session, not for cross-session comparison.
     """
     w = weights or {
-        "metre": 0.3,
-        "rhyme": 0.2,
-        "theme": 0.25,
-        "novelty": 0.15,
-        "cliche": 0.1,
+        "metre": 0.25,
+        "rhyme": 0.15,
+        "theme": 0.20,
+        "novelty": 0.10,
+        "cliche": 0.08,
+        "end_word": 0.07,
+        "fragment_fidelity": 0.15,
     }
 
-    # Identify which signals are active (non-zero)
-    # We consider a signal "active" if it's non-zero or if it could vary
-    # (theme/rhyme are inactive only when they're exactly 0.0 AND would be 0 for all candidates)
     signals_used = {
         "metre": metre,
         "rhyme": rhyme,
         "theme": theme,
         "novelty": novelty,
+        "end_word": end_word,
+        "fragment_fidelity": fragment_fidelity,
     }
 
     if normalize_weights:
-        # Find signals that are actually contributing (non-zero scores exist)
-        # Simple heuristic: if ALL signals of a type would be 0, exclude its weight
-        # For now, we check if the score is exactly 0.0
-        # A better approach would track which signals are "available" but for v1 this works
-        
-        # Calculate weight sum for active signals (exclude those at 0)
         active_weight_sum = sum(
-            w[signal] for signal, score in signals_used.items() 
-            if score > 0.0 or signal == "metre"  # metre always active
+            w[signal] for signal, score in signals_used.items()
+            if score > 0.0 or signal == "metre"
         )
-        
-        # If no active signals, fall back to original weights
         if active_weight_sum > 0.0:
-            # Normalize weights so active ones sum to 1.0 (ignoring cliche penalty)
             normalization_factor = 1.0 / active_weight_sum
             w = {k: v * normalization_factor for k, v in w.items()}
 
@@ -162,4 +178,6 @@ def composite_score(
         + w["theme"] * theme
         + w["novelty"] * novelty
         - w["cliche"] * cliche
+        + w["end_word"] * end_word
+        + w["fragment_fidelity"] * fragment_fidelity
     )
