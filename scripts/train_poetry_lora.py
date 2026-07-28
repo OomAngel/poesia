@@ -24,10 +24,47 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 def main():
     # ── Config ────────────────────────────────────────────────────────
     model_name = "Qwen/Qwen2.5-1.5B-Instruct"
-    train_path = "seeds/poetry_corpus/training_data/train.jsonl"
-    eval_path = "seeds/poetry_corpus/training_data/eval.jsonl"
-    output_dir = "models/poetry-lora-3b"
+    train_path = "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
+    eval_path = "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
+    output_dir = "models/poetry-lora-v2"
     os.makedirs(output_dir, exist_ok=True)
+
+    # ── Experiment tracking ────────────────────────────────────────────
+    import hashlib, datetime
+    run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_log = {
+        "run_id": run_id,
+        "model": model_name,
+        "train_data": train_path,
+        "eval_data": eval_path,
+        "lora_r": 16,
+        "lora_alpha": 32,
+        "lora_dropout": 0.05,
+        "batch_size_per_device": 8,
+        "gradient_accumulation": 2,
+        "effective_batch": 16,
+        "epochs": 2,
+        "learning_rate": 2e-4,
+        "max_length": 192,
+        "fp16": True,
+        "train_samples": None,
+        "eval_samples": None,
+        "train_loss": None,
+        "eval_loss": None,
+        "train_runtime_s": None,
+        "syllable_accuracy": None,
+        "line_count_accuracy": None,
+        "status": "started",
+        "adapter_path": None,
+    }
+    # Save initial run log
+    runs_dir = "mlops/runs"
+    os.makedirs(runs_dir, exist_ok=True)
+    run_log_path = os.path.join(runs_dir, f"{run_id}.json")
+    with open(run_log_path, "w") as f:
+        json.dump(run_log, f, indent=2)
+    print(f"Run ID: {run_id}")
+    print(f"Run log: {run_log_path}")
 
     print(f"Free VRAM: {torch.cuda.mem_get_info()[0]/1e9:.1f}GB")
     print(f"Loading {model_name} in 4-bit...")
@@ -79,7 +116,7 @@ def main():
     print(f"Train: {len(train_ds)}, Eval: {len(eval_ds)}")
 
     def tokenize(ex):
-        return tokenizer(ex["text"], truncation=True, max_length=192)
+        return tokenizer(ex["text"], truncation=True, max_length=300)
 
     train_ds = train_ds.map(tokenize, remove_columns=["text"])
     eval_ds = eval_ds.map(tokenize, remove_columns=["text"])
@@ -118,11 +155,30 @@ def main():
     print("Starting training...")
     trainer.train()
     
+    # Update run log with results
+    train_result = trainer.state.log_history
+    final_loss = None
+    for entry in reversed(train_result):
+        if "loss" in entry:
+            final_loss = entry["loss"]
+            break
+    run_log["train_loss"] = final_loss
+    run_log["train_runtime_s"] = trainer.state.total_flos
+    run_log["train_samples"] = len(train_ds)
+    run_log["eval_samples"] = len(eval_ds)
+    run_log["status"] = "completed"
+    with open(run_log_path, "w") as f:
+        json.dump(run_log, f, indent=2)
+    print(f"Final loss: {final_loss}")
+    
     # Save adapter (~50MB)
     adapter_path = os.path.join(output_dir, "final_adapter")
     model.save_pretrained(adapter_path)
     tokenizer.save_pretrained(adapter_path)
     print(f"LoRA adapter saved to {adapter_path}/")
+    run_log["adapter_path"] = adapter_path
+    with open(run_log_path, "w") as f:
+        json.dump(run_log, f, indent=2)
 
     # ── Test ──────────────────────────────────────────────────────────
     print("\n=== Testing ===")
