@@ -350,6 +350,7 @@ def write(
             n_candidates=n_candidates,
             temperature=getattr(llm_client, "temperature", None),
             latency_ms=_gen_latency_ms,
+            total_tokens=getattr(llm_client, "usage", None) and llm_client.usage.total_tokens,
         )
 
         # Parse tags

@@ -44,12 +44,17 @@ from poesia.memoria.records import NodeType, RelationType
 _SCHEMA_VERSION = "2"
 
 
-class IndexCompatibilityError(RuntimeError):
+from poesia.exceptions import IndexCompatibilityError as _PoesiaIndexError
+
+class IndexCompatibilityError(_PoesiaIndexError, RuntimeError):
     """Raised when an embedding client is incompatible with the loaded index.
 
     This prevents silently mixing embeddings from different models or
     dimension sizes, which would corrupt cosine similarity without any
     visible error.
+
+    Multiple inheritance: caught by ``except PoesiaError`` (generic handling)
+    or ``except RuntimeError`` (legacy compatibility).
 
     Attributes:
         stored_model_id: The model ID recorded in the persisted index.

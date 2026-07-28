@@ -10,9 +10,24 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.error
 import urllib.request
+from dataclasses import dataclass, field
 from typing import Protocol
+
+
+@dataclass
+class LLMUsage:
+    """Token and timing metadata from an LLM generation call.
+
+    Populated on :class:`HostedLLMClient` after each ``generate()`` call.
+    """
+
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
+    latency_ms: float | None = None  # Wall-clock time for the call
 
 
 class LLMClient(Protocol):
@@ -185,6 +200,7 @@ class HostedLLMClient:
     ) -> None:
         self.provider = provider
         self.timeout = timeout
+        self.usage: LLMUsage = LLMUsage()  # P5: populated after each generate()
 
         if api_key:
             self.api_key = api_key
@@ -213,23 +229,39 @@ class HostedLLMClient:
             self.model = "gpt-4o-mini"
 
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
+        from poesia.exceptions import LLMProviderError
+
         if not self.api_key:
-            raise RuntimeError(
+            raise LLMProviderError(
                 "HostedLLMClient requires an API key. Set GEMINI_API_KEY, "
                 "GROQ_API_KEY, or OPENAI_API_KEY environment variable, or pass "
-                "api_key to HostedLLMClient."
+                "api_key to HostedLLMClient.",
+                provider=self.provider,
             )
 
-        if self.provider == "gemini":
-            return self._generate_gemini(prompt, n, temperature)
-        elif self.provider == "groq":
-            # Groq requires n=1 per request — issue n sequential calls
-            return self._generate_groq(prompt, n, temperature)
-        else:
-            return self._generate_openai_compat(
-                prompt, n, temperature,
-                base_url="https://api.openai.com/v1",
-            )
+        self.usage = LLMUsage()  # Reset for this call
+        t0 = time.time()
+
+        try:
+            if self.provider == "gemini":
+                result = self._generate_gemini(prompt, n, temperature)
+            elif self.provider == "groq":
+                result = self._generate_groq(prompt, n, temperature)
+            else:
+                result = self._generate_openai_compat(
+                    prompt, n, temperature,
+                    base_url="https://api.openai.com/v1",
+                )
+        except LLMProviderError:
+            raise  # Already structured
+        except Exception as e:
+            raise LLMProviderError(
+                f"{self.provider} API request failed: {e}",
+                provider=self.provider,
+            ) from e
+
+        self.usage.latency_ms = (time.time() - t0) * 1000
+        return result
 
     def repair(self, line: str, defect_description: str) -> str:
         prompt = (
@@ -303,9 +335,19 @@ class HostedLLMClient:
                 return candidates
         except urllib.error.HTTPError as e:
             err_msg = e.read().decode("utf-8")
-            raise RuntimeError(f"Gemini API HTTP Error {e.code}: {err_msg}") from e
+            from poesia.exceptions import LLMProviderError
+            raise LLMProviderError(
+                f"Gemini API HTTP Error {e.code}: {err_msg}",
+                provider="gemini",
+                status_code=e.code,
+                response_body=err_msg,
+            ) from e
         except Exception as e:
-            raise RuntimeError(f"Gemini API request failed: {e}") from e
+            from poesia.exceptions import LLMProviderError
+            raise LLMProviderError(
+                f"Gemini API request failed: {e}",
+                provider="gemini",
+            ) from e
 
     def _generate_groq(self, prompt: str, n: int, temperature: float) -> list[str]:
         """Groq Cloud chat completions.
@@ -350,11 +392,6 @@ class HostedLLMClient:
             },
         )
         provider_label = "Groq" if "groq.com" in base_url else "OpenAI"
-        # Retry on 429 with back-off that respects the provider's retry-after.
-        # Groq's free tier has both RPM (30) and TPM (12 000) windows.
-        # When TPM is exhausted the retry-after can be up to ~60 s.
-        # We honour the exact value from the error body; fall back to 65 s
-        # (full window reset) if we can't parse it.
         import re
         import time as _time
         last_err_msg = ""
@@ -362,28 +399,38 @@ class HostedLLMClient:
             try:
                 with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                     res = json.loads(resp.read().decode("utf-8"))
+                    # P5: capture token usage from response
+                    usage_data = res.get("usage", {})
+                    if usage_data:
+                        self.usage.prompt_tokens = usage_data.get("prompt_tokens")
+                        self.usage.completion_tokens = usage_data.get("completion_tokens")
+                        self.usage.total_tokens = usage_data.get("total_tokens")
                     return [c["message"]["content"].strip() for c in res.get("choices", [])]
             except urllib.error.HTTPError as e:
                 err_body = e.read().decode("utf-8")
                 if e.code == 429 and attempt < 3:
-                    # Parse "Please try again in Xs" or "Please try again in Xm Ys"
                     sec_match = re.search(r"try again in ([\d.]+)s", err_body)
                     min_match = re.search(r"try again in (\d+)m([\d.]+)s", err_body)
                     if min_match:
                         wait = int(min_match.group(1)) * 60 + float(min_match.group(2)) + 1.0
                     elif sec_match:
                         raw = float(sec_match.group(1))
-                        # Short waits (< 5 s) are RPM-only; TPM window is 60 s.
-                        # If we've already retried once, wait for the full window.
                         wait = raw + 1.0 if (raw > 5 or attempt == 0) else 62.0
                     else:
-                        wait = 65.0  # safe default: wait out the full 60 s window
+                        wait = 65.0
                     _time.sleep(wait)
                     continue
-                last_err_msg = err_body
-                raise RuntimeError(
-                    f"{provider_label} API HTTP Error {e.code}: {last_err_msg}"
+                from poesia.exceptions import LLMProviderError
+                raise LLMProviderError(
+                    f"{provider_label} API HTTP Error {e.code}: {err_body}",
+                    provider=provider_label.lower(),
+                    status_code=e.code,
+                    response_body=err_body,
                 ) from e
             except Exception as e:
-                raise RuntimeError(f"{provider_label} API request failed: {e}") from e
+                from poesia.exceptions import LLMProviderError
+                raise LLMProviderError(
+                    f"{provider_label} API request failed: {e}",
+                    provider=provider_label.lower(),
+                ) from e
 
