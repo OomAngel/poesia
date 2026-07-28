@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-07-27 (P3 source fingerprints DONE)_
+_Last updated: 2026-07-28 (P4 evaluation corpus + retrieval eval DONE)_
 
 ---
 
@@ -9,7 +9,7 @@ _Last updated: 2026-07-27 (P3 source fingerprints DONE)_
 ```bash
 cd /home/angel/dev/poesia
 conda activate poesia
-python -m pytest tests/ --tb=no -q   # 327 passed
+python -m pytest tests/ --tb=no -q   # 387 passed
 export GROQ_API_KEY=***REMOVED***
 ```
 
@@ -20,28 +20,20 @@ poesia write --theme "luna sobre el mar" --form haiku --language es --llm groq -
 
 ---
 
-## Current focus: P4 — evaluation corpus & retrieval relevance
+## Current focus: P4 — remaining items
 
-P3 is fully complete (350 tests passing). Moving to P4:
+P4 is partially complete. Corpus and retrieval eval harness are in place.
+Remaining:
+- [ ] P4: freeze an embedding profile after comparative evidence (requires real sentence-transformers eval)
 
-- [ ] P4: reviewed multilingual evaluation corpus (ES + EN minimum).
-- [ ] P4: retrieval relevance evaluation on real fragments.
-- [ ] P4: generation grounding evaluation (formal validity + context use).
-
-Key files remain the same as P3.
-
----
-
-## Key source files
+### Key files
 
 | File | Responsibility |
 |---|---|
-| `src/poesia/memoria/graphrag.py` | GraphRAGRetriever: ingest, traverse, retrieve_with_paths, compatibility, rebuild, atomic save |
-| `src/poesia/memoria/records.py` | NodeType, RelationType, FragmentRecord, InfluenceRecord, SeedRecord |
-| `src/poesia/memoria/embeddings.py` | EmbeddingClient protocol, StubEmbeddingClient, SentenceTransformerClient (text_type) |
-| `src/poesia/generation/brief_builder.py` | GenerationBrief (graph_paths), BriefBuilder wired to retriever |
-| `src/poesia/cli.py` | --brief, --show-retrieval (graph paths), --interactive, --save |
-| `src/poesia/memoria/library.py` | Markdown + SQLite poem library |
+| `tests/test_p4_evaluation_corpus.py` | Multilingual corpus verification (ES + EN >=10 each, frontmatter, shared themes) |
+| `tests/test_p4_retrieval_relevance.py` | Self-retrieval, cross-lingual, graph paths, language filtering |
+| `tests/test_p4_generation_grounding.py` | Brief building, formal validity, fragment fidelity scoring |
+| `seeds/angel_fragments/14-26_*.md` | 13 English fragments thematically paired with existing ES |
 
 ---
 

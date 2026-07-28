@@ -2,15 +2,10 @@
 
 ## IN PROGRESS
 
-- [ ] P4: reviewed multilingual evaluation corpus (ES + EN minimum).
-- [ ] P4: retrieval relevance evaluation on real fragments.
-- [ ] P4: generation grounding evaluation (formal validity + context use).
+- [ ] P4: freeze an embedding profile after comparative evidence.
 
 ## BACKLOG
 
-- [ ] P4: reviewed multilingual evaluation corpus (ES + EN minimum).
-- [ ] P4: retrieval relevance evaluation on real fragments.
-- [ ] P4: generation grounding evaluation (formal validity + context use).
 - [ ] P5: explicit opt-in before personal context reaches a hosted provider.
 - [ ] P5: provider/run lineage on every saved poem.
 - [ ] Phase 4E: literary taxonomy auto-tagging.
@@ -18,11 +13,11 @@
 
 ## BLOCKED
 
-(None currently)
+- [ ] P4: generation grounding evaluation with real LLM — currently tested with StubLLMClient; real LLM eval blocked on API key / cost budget.
 
 ## DONE
 
-All phases through P3-source-fingerprints are complete (350 tests passing):
+All phases through P4-evaluation-corpus are complete (387 tests passing):
 - Core phonology, evaluation, forms, generation loop.
 - `eufonia`, `galeria`, `armonia` sub-brands.
 - `memoria` Library (Markdown + SQLite), real CLI list/search.
@@ -34,3 +29,12 @@ All phases through P3-source-fingerprints are complete (350 tests passing):
 - P3 source fingerprints: _compute_fingerprint(), is_stale(), content_fingerprint in JSON header, CLI stale-index warning.
 - Groq/Gemini/OpenAI backends, RhymeTracker, directive prompts.
 - --interactive, --show-retrieval (with graph paths), --show-alternatives.
+- P4: end-word anti-repetition penalty (end_word_penalty).
+- P4: fragment fidelity scoring signal.
+- P4: Groq 429 rate-limit retry with back-off.
+- P4: fragment frontmatter parsing + CLI ingest-all command.
+- P4: 13 English fragments (multilingual corpus, ES+EN).
+- P4: _parse_yaml_list fix (block list fallthrough).
+- P4: evaluation corpus verification tests.
+- P4: retrieval relevance tests (self-retrieval, cross-lingual, graph paths, language filter).
+- P4: generation grounding tests (brief building, formal validity, scoring signals).
