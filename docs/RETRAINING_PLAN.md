@@ -88,3 +88,31 @@ Stop when:
 - The output is *formally recognizable as a soneto* even if the poetry isn't beautiful yet
 
 That's the point where the constrained loop can take over — the model produces a rough soneto, and the scorer + repair loop polish it.
+
+## What we're still missing — and references to fill the gaps
+
+### Techniques we haven't considered
+
+| Technique | What it does | Why it matters | Reference |
+|---|---|---|---|
+| **DSPy prompt optimization** | Algorithmically searches for optimal prompt format (not guessing) | Our training format `"Write a soneto..."` is a guess. DSPy's `MIPROv2` / `GEPA` optimizers would find the format that maximizes syllable accuracy | [dspy.ai](https://dspy.ai) |
+| **RL / DPO with scorer as reward** | Train the model to maximize the constrained loop's score, not just next-token loss | Directly optimizes for metre + rhyme instead of hoping they emerge from raw text | Hugging Face TRL docs |
+| **Grammar-constrained decoding** | Constrain token generation at inference to satisfy syllable/rhyme rules | No training needed — the constraint is enforced at generation time. Works with any base model | [outlines-dev.github.io](https://outlines-dev.github.io) |
+| **Knowledge distillation** | Use Groq (Llama 3.3 70B) to generate 1,000 perfect sonetos, train the 1.5B model to imitate them | The small model learns from a teacher that already knows how to write sonetos, not from noisy public domain data | Alpaca paper / Self-Instruct |
+| **Unsloth** | 2x faster training, 50% less memory via optimized kernels | Proposed 10-min training could become 5 min. Also enables larger LoRA rank in same VRAM | [github.com/unslothai/unsloth](https://github.com/unslothai/unsloth) |
+| **Synthetic data augmentation** | Generate variations: change theme, swap synonyms, introduce syllable errors as negative examples | Multiplies effective dataset size without collecting more real poems | Stanford Alpaca recipe |
+
+### Training time estimate — it's actually FASTER than the first run
+
+| | First run | Proposed retraining |
+|---|---|---|
+| Dataset | 9,622 poems | 200 sonetos (48× smaller) |
+| LoRA rank | 16 | 64 (4× more params) |
+| Max length | 192 | 256 (33% longer) |
+| Epochs | 2 | 10 (5× more) |
+| Steps per epoch | 601 | 13 (46× fewer) |
+| Total steps | 1,202 | 130 |
+| Time per step | ~2.3s | ~4.5s (2× slower) |
+| **Total time** | **~52 min** | **~10 min** |
+
+The 48× smaller dataset dominates the 2× slower step time. The retraining would take **~10 minutes**, not longer.
