@@ -111,10 +111,10 @@ E5 query/passage prefix fixed across all callers.
 2. ✅ Provider/run lineage stored alongside every saved poem:
    PoemProvenance extended with provider, n_candidates, temperature, latency_ms.
    All fields written to markdown frontmatter on --save.
-3. ☐ Retry, structured failure, latency, token, and cost metadata.
+3. ✅ Structured failure types: ``PoesiaError`` hierarchy (10 types), dual-inheritance
+   for legacy compatibility, ``LLMProviderError`` with structured attributes,
+   ``LLMUsage`` dataclass with token/count/latency tracking from provider responses.
 4. ☐ Monitoring only when a deployed instance exists.
-
----
 
 ## Definition of done
 
