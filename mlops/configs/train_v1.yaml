@@ -1,4 +1,7 @@
 # Training configuration — v1: structured sonetos
+experiment: "soneto-structured"
+run_name: "v1-structured-sonetos"
+tags: ["soneto", "structured", "r16", "golden-age"]
 # Each config file represents one experiment.
 # The training script reads this to reproduce a run.
 
