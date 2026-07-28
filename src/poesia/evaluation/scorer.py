@@ -77,6 +77,7 @@ class LineScorer:
         theme_text: str | None = None,
         target_rhyme_key: str | None = None,
         language: str = "es",
+        fragment_fidelity_text: str | None = None,
     ) -> None:
         self._phonology = phonology_backend
         self._target_syllable_count = target_syllable_count
@@ -88,23 +89,37 @@ class LineScorer:
         self._theme_embedding: list[float] | None = None
         if embedding_client and theme_text:
             try:
-                # Use embed_one() for scalar text, not embed() which expects list[str]
                 raw_theme = embedding_client.embed_one(theme_text)
-                # P0: validate theme embedding
                 self._theme_embedding = validate_embedding_vector(
                     raw_theme,
                     expected_dimension=embedding_client.dimension,
                     context="theme embedding",
                 )
             except EmbeddingValidationError as e:
-                # P0: expose validation failure explicitly
                 raise ValueError(f"Invalid theme embedding: {e}") from e
             except Exception as e:
-                # Other failures (network, model load)
                 raise RuntimeError(f"Failed to embed theme text: {e}") from e
+
+        # P4: fragment fidelity — pre-compute embedding of the source fragment
+        self._fragment_fidelity_embedding: list[float] | None = None
+        if embedding_client and fragment_fidelity_text:
+            try:
+                raw_frag = embedding_client.embed_one(fragment_fidelity_text, text_type="passage")
+                self._fragment_fidelity_embedding = validate_embedding_vector(
+                    raw_frag,
+                    expected_dimension=embedding_client.dimension,
+                    context="fragment fidelity embedding",
+                )
+            except EmbeddingValidationError:
+                pass  # silently degrade — optional signal
+            except Exception:
+                pass
 
         # Track prior line embeddings for novelty scoring
         self._prior_embeddings: list[list[float]] = []
+
+        # Track prior line-ending words (P4: anti-end-repetition)
+        self._prior_end_words: set[str] = set()
 
         # Select cliché set by language
         self._cliches = SPANISH_CLICHES if language == "es" else ENGLISH_CLICHES
@@ -144,6 +159,14 @@ class LineScorer:
                     # Other failures
                     raise RuntimeError(f"Failed to embed prior line {i}: {e}") from e
 
+        # Build set of prior line-ending words (P4: anti-end-repetition)
+        self._prior_end_words = set()
+        if prior_lines:
+            for pl in prior_lines:
+                words = pl.strip().split()
+                if words:
+                    self._prior_end_words.add(words[-1].rstrip(".,;:!?¿¡\"'—").lower())
+
         scored: list[ScoredCandidate] = []
         for line in candidates:
             scan = self._phonology.scan_line(line)
@@ -162,9 +185,7 @@ class LineScorer:
             candidate_embedding: list[float] | None = None
             if self._embedding_client and self._theme_embedding:
                 try:
-                    # Use embed_one() for scalar text
                     raw_cand = self._embedding_client.embed_one(line)
-                    # P0: validate candidate embedding
                     candidate_embedding = validate_embedding_vector(
                         raw_cand,
                         expected_dimension=self._embedding_client.dimension,
@@ -172,16 +193,24 @@ class LineScorer:
                     )
                     t_score = theme_score(candidate_embedding, self._theme_embedding)
                 except EmbeddingValidationError as e:
-                    # P0: expose validation failure explicitly
                     raise ValueError(f"Invalid candidate embedding: {e}") from e
                 except Exception as e:
-                    # Other failures
                     raise RuntimeError(f"Failed to embed candidate line: {e}") from e
 
             # Novelty score (if we have prior embeddings)
             n_score = 1.0  # Maximum novelty if no priors
             if candidate_embedding and self._prior_embeddings:
                 n_score = novelty_score(candidate_embedding, self._prior_embeddings)
+
+            # P4: fragment fidelity score (how close to source fragment)
+            ff_score = 0.0
+            if candidate_embedding and self._fragment_fidelity_embedding:
+                from poesia.evaluation.metrics import theme_score as _fidelity
+                ff_score = _fidelity(candidate_embedding, self._fragment_fidelity_embedding)
+
+            # P4: end-word repetition penalty
+            from poesia.evaluation.metrics import end_word_penalty
+            ew_score = end_word_penalty(line, self._prior_end_words)
 
             # Cliché penalty
             c_penalty = cliche_penalty(line, self._cliches)
@@ -192,6 +221,8 @@ class LineScorer:
                 "theme": t_score,
                 "novelty": n_score,
                 "cliche": c_penalty,
+                "end_word": ew_score,
+                "fragment_fidelity": ff_score,
             }
             total = composite_score(**breakdown)
             scored.append(ScoredCandidate(line=line, scan=scan, score=total, breakdown=breakdown))

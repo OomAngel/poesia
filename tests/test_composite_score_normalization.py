@@ -7,7 +7,7 @@ from poesia.evaluation.metrics import composite_score
 
 def test_composite_score_without_normalization():
     """Original behavior: absolute weights, scores in narrow range."""
-    # Degraded mode: only metre and novelty active
+    # Degraded mode: only metre, novelty, end_word active
     score = composite_score(
         metre=0.5,
         rhyme=0.0,
@@ -16,8 +16,8 @@ def test_composite_score_without_normalization():
         cliche=0.0,
         normalize_weights=False,
     )
-    # 0.3*0.5 + 0.15*1.0 = 0.15 + 0.15 = 0.30
-    assert abs(score - 0.30) < 0.01
+    # 0.25*0.5 + 0.10*1.0 + 0.07*1.0 = 0.125 + 0.10 + 0.07 = 0.295
+    assert abs(score - 0.295) < 0.01
 
 
 def test_composite_score_with_normalization():
@@ -31,11 +31,11 @@ def test_composite_score_with_normalization():
         cliche=0.0,
         normalize_weights=True,
     )
-    # Active weights: metre (0.3) + novelty (0.15) = 0.45
-    # Normalization factor: 1.0 / 0.45 = 2.222...
-    # Normalized: metre=0.667, novelty=0.333
-    # Score: 0.667*0.5 + 0.333*1.0 = 0.333 + 0.333 = 0.666
-    assert abs(score - 0.667) < 0.01
+    # Active weights: metre (0.25) + novelty (0.10) + end_word (0.07) = 0.42
+    # Normalization factor: 1.0 / 0.42 = 2.381...
+    # Normalized: metre=0.595, novelty=0.238, end_word=0.167
+    # Score: 0.595*0.5 + 0.238*1.0 + 0.167*1.0 = 0.298 + 0.238 + 0.167 = 0.703
+    assert abs(score - 0.703) < 0.01
 
 
 def test_normalization_with_all_signals_active():
@@ -58,11 +58,11 @@ def test_normalization_with_all_signals_active():
         normalize_weights=False,
     )
     
-    # With all signals active, weights sum to 1.0 already, so normalization ≈ no-op
-    # (slight difference due to cliche being subtracted)
-    # Absolute: 0.3*0.8 + 0.2*0.6 + 0.25*0.7 + 0.15*0.5 - 0.1*0.1
-    #         = 0.24 + 0.12 + 0.175 + 0.075 - 0.01 = 0.60
-    assert abs(score_absolute - 0.60) < 0.01
+    # With all signals active, weights sum to 0.92 (excluding fragment_fidelity=0)
+    # Normalization redistributes based on active signals
+    # Absolute: 0.25*0.8 + 0.15*0.6 + 0.20*0.7 + 0.10*0.5 + 0.07*1.0 - 0.08*0.1
+    #         = 0.20 + 0.09 + 0.14 + 0.05 + 0.07 - 0.008 = 0.542
+    assert abs(score_absolute - 0.542) < 0.01
     # Normalized should give same ranking order even if absolute values differ slightly
     assert score_normalized > 0.5  # Reasonable score with all positive signals
 
@@ -113,11 +113,12 @@ def test_metre_always_considered_active():
         normalize_weights=True,
     )
     
-    # Should still normalize based on metre + novelty
-    # Active: metre (0.3) + novelty (0.15) = 0.45
-    # Normalized novelty: 0.15 / 0.45 = 0.333
-    # Score: 0.333 * 1.0 = 0.333
-    assert abs(score - 0.333) < 0.01
+    # Should still normalize based on metre + novelty + end_word
+    # Active: metre (0.25) + novelty (0.10) + end_word (0.07) = 0.42
+    # Normalized novelty: 0.10 / 0.42 = 0.238
+    # Normalized end_word: 0.07 / 0.42 = 0.167
+    # Score: 0.238 * 1.0 + 0.167 * 1.0 = 0.405
+    assert abs(score - 0.405) < 0.01
 
 
 def test_cliche_penalty_not_affected_by_normalization():

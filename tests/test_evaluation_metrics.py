@@ -64,4 +64,5 @@ def test_composite_score() -> None:
         metre=1.0, rhyme=1.0, theme=1.0, novelty=1.0, cliche=0.0,
         normalize_weights=False
     )
-    assert score_abs == 0.9  # 0.3 + 0.2 + 0.25 + 0.15 = 0.9
+    # 0.25 + 0.15 + 0.20 + 0.10 + 0.07 + 0.15*0.0 - 0.08*0.0 = 0.77
+    assert abs(score_abs - 0.77) < 0.01
