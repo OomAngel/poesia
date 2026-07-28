@@ -589,8 +589,7 @@ class LoRAClient:
     If the adapter is not found, falls back to the base model.
     """
 
-    _DEFAULT_BASE = "Qwen/Qwen2.5-3B-Instruct"
-    _DEFAULT_ADAPTER = None
+    _DEFAULT_BASE = "Qwen/Qwen2.5-1.5B-Instruct"
 
     def __init__(
         self,
@@ -605,10 +604,16 @@ class LoRAClient:
         self.model = base_model or self._DEFAULT_BASE
 
         if adapter_path is None:
-            pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            # Resolve relative to repo root (3 levels up from llm_client.py)
+            pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
             candidate = os.path.join(pkg_root, "models", "poetry-lora-3b", "final_adapter")
             if os.path.exists(candidate):
                 adapter_path = candidate
+            else:
+                print(f"[LoRA] No adapter found at {candidate}. Using base model only.")
+        else:
+            if not os.path.exists(adapter_path):
+                print(f"[LoRA] Adapter path {adapter_path} not found. Using base model only.")
 
         self._model = None
         self._tokenizer = None
