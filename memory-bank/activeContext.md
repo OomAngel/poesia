@@ -20,9 +20,9 @@ poesia write --theme "luna sobre el mar" --form haiku --language es --llm groq -
 
 ---
 
-## Current focus: (none — P0–P5 all complete)
+## Current focus: training infrastructure complete — multi-form training and distillation pending
 
-P0–P5 are fully complete.
+P0–P5 complete. Training infrastructure (MLOps) built. Multi-form datasets ready for next training run.
 - [x] Multilingual evaluation corpus (13 ES + 13 EN)
 - [x] Retrieval relevance tests (self-retrieval, cross-lingual, graph paths)
 - [x] Generation grounding tests (formal validity, scoring signals)
