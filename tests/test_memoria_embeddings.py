@@ -66,7 +66,7 @@ def test_get_embedding_client_default_returns_sentence_transformer() -> None:
 
     client = get_embedding_client(use_stub=False)
     assert isinstance(client, SentenceTransformerClient)
-    assert client.model_id == "intfloat/multilingual-e5-base"
+    assert client.model_id == "intfloat/multilingual-e5-small"
 
 
 # Integration test — only runs if sentence-transformers is installed
