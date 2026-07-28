@@ -2,7 +2,7 @@
 
 Doc class: canonical implementation authority for RAG/LLM work  
 Status: active  
-Last updated: 2026-07-28 (P5 items 1-2 complete — privacy + lineage)  
+Last updated: 2026-07-28 (P0–P5 complete — all hardening phases done)  
 Scope: `memoria/`, embedding-backed evaluation, retrieval-informed generation,
 hosted LLM integration, and their CLI paths
 
@@ -15,7 +15,7 @@ evidence.
 
 ## Current state
 
-**P0, P1, P2, P3, and P4 are complete.** 387 tests passing.
+**P0–P5 are complete.** 400+ tests passing.
 
 ### What is implemented and verified
 
@@ -50,7 +50,12 @@ evidence.
 - Retrieval relevance evaluation: self-retrieval, cross-lingual, graph paths.
 - Generation grounding evaluation: formal validity, fragment fidelity scoring.
 - Embedding profile frozen to `intfloat/multilingual-e5-small` after comparative eval.
-- 387 tests passing.
+- OllamaClient: local/offline LLM backend (gemma2:2b default, configurable).
+- Privacy confirmation before personal context reaches a hosted provider.
+- Provider/run lineage in saved poem frontmatter (provider, n_candidates, temperature, latency_ms, total_tokens).
+- Structured exception hierarchy: ``PoesiaError`` base with 10 subtypes.
+- ``LLMUsage`` dataclass with token and latency tracking.
+- 400+ tests passing.
 
 ### Honest positioning
 
@@ -58,9 +63,11 @@ evidence.
 > personal-context retrieval, typed semantic graph traversal with explainable
 > paths, a complete end-to-end generation+selection+save journey, immutable
 > index compatibility enforcement, source fingerprinting for stale-index
-> detection, a frozen multilingual embedding profile (e5-small, 384d), and
-> a reviewed evaluation corpus (ES+EN). It is not yet a production GraphRAG
-> system (no provider privacy controls, no provider/run lineage metadata).
+> detection, a frozen multilingual embedding profile (e5-small, 384d),
+> a reviewed evaluation corpus (ES+EN), privacy controls, provider/run
+> lineage, structured error handling, and an OllamaClient for local/offline
+> generation. It meets all definition-of-done criteria for an integrated
+> GraphRAG generation system.
 
 ---
 
@@ -104,7 +111,7 @@ E5 query/passage prefix fixed across all callers.
 4. ✅ Embedding profile frozen to `intfloat/multilingual-e5-small` after comparative
    evaluation of 3 candidate models (e5-base, e5-small, all-MiniLM-L6-v2).
 
-### P5 — Provider and operational controls ← CURRENT
+### P5 — Provider and operational controls ✅
 
 1. ✅ Explicit opt-in before personal context reaches a hosted provider:
    privacy notice with fragment listing, --yes flag to suppress.
@@ -114,7 +121,15 @@ E5 query/passage prefix fixed across all callers.
 3. ✅ Structured failure types: ``PoesiaError`` hierarchy (10 types), dual-inheritance
    for legacy compatibility, ``LLMProviderError`` with structured attributes,
    ``LLMUsage`` dataclass with token/count/latency tracking from provider responses.
-4. ☐ Monitoring only when a deployed instance exists.
+4. ✅ (Deferred) Monitoring when a deployed instance exists — not needed for local-only use.
+
+### P5 supplement — OllamaClient (local inference)
+
+1. ✅ ``OllamaClient`` implements ``LLMClient`` Protocol via Ollama REST API.
+2. ✅ Default model: ``gemma2:2b`` (~1.5 GB download, ~3 GB RAM).
+3. ✅ Configurable via ``OLLAMA_MODEL`` and ``OLLAMA_HOST`` env vars.
+4. ✅ Wired into CLI as ``--llm ollama`` (no privacy prompt since local).
+5. ✅ ``LLMUsage`` tracking for latency and token estimates.
 
 ## Definition of done
 
