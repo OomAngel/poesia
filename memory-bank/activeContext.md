@@ -9,7 +9,7 @@ _Last updated: 2026-07-28 (P4 complete — embedding profile frozen)_
 ```bash
 cd /home/angel/dev/poesia
 conda activate poesia
-python -m pytest tests/ --tb=no -q   # 387 passed
+python -m pytest tests/ --tb=no -q   # 400+ passed
 export GROQ_API_KEY=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
 ```
 
@@ -20,9 +20,9 @@ poesia write --theme "luna sobre el mar" --form haiku --language es --llm groq -
 
 ---
 
-## Current focus: P5 — monitoring (deferred) / Ollama integration complete
+## Current focus: (none — P0–P5 all complete)
 
-P5 items 1-2 complete (privacy + lineage). Remaining:
+P0–P5 are fully complete.
 - [x] Multilingual evaluation corpus (13 ES + 13 EN)
 - [x] Retrieval relevance tests (self-retrieval, cross-lingual, graph paths)
 - [x] Generation grounding tests (formal validity, scoring signals)

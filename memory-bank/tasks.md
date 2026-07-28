@@ -2,21 +2,17 @@
 
 ## IN PROGRESS
 
-- [ ] P5: monitoring (deferred until deployed instance exists)
+(None — all active phases complete)
 
 ## BACKLOG
 
-- [ ] P5: provider/run lineage on every saved poem.
 - [ ] Phase 4E: literary taxonomy auto-tagging.
 - [ ] romance form: add default line count spec.
-
-## BLOCKED
-
-- [ ] P4: generation grounding evaluation with real LLM — currently tested with StubLLMClient; real LLM eval blocked on API key / cost budget.
+- [ ] P5.4: monitoring (when a deployed instance exists)
 
 ## DONE
 
-All phases through P4 are complete (387 tests passing):
+All phases P0–P5 complete (400+ tests passing):
 - Core phonology, evaluation, forms, generation loop.
 - `eufonia`, `galeria`, `armonia` sub-brands.
 - `memoria` Library (Markdown + SQLite), real CLI list/search.
@@ -39,5 +35,8 @@ All phases through P4 are complete (387 tests passing):
 - P4: retrieval relevance tests (self-retrieval, cross-lingual, graph paths, language filter).
 - P4: generation grounding tests (brief building, formal validity, scoring signals).
 - P5: privacy confirmation before personal context reaches a hosted LLM.
-- P5: provider/run lineage on saved poems (provider, n_candidates, latency, temperature).
 - P5: --yes flag to skip privacy prompt.
+- P5: provider/run lineage in saved frontmatter (provider, n_candidates, latency, temperature, total_tokens).
+- P5: structured exception hierarchy (PoesiaError, 10 subtypes).
+- P5: LLMUsage tracking (prompt_tokens, completion_tokens, latency_ms).
+- P5: OllamaClient for local/offline LLM generation.
