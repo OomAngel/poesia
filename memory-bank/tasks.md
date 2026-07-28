@@ -2,7 +2,7 @@
 
 ## IN PROGRESS
 
-- [ ] P5: retry, structured failure, latency, token, and cost metadata.
+- [ ] P5: monitoring (deferred until deployed instance exists)
 
 ## BACKLOG
 
