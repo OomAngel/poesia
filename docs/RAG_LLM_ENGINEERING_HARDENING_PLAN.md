@@ -2,7 +2,7 @@
 
 Doc class: canonical implementation authority for RAG/LLM work  
 Status: active  
-Last updated: 2026-07-27 (P3 compatibility check complete)  
+Last updated: 2026-07-28 (P4 complete — embedding profile frozen)  
 Scope: `memoria/`, embedding-backed evaluation, retrieval-informed generation,
 hosted LLM integration, and their CLI paths
 
@@ -15,7 +15,7 @@ evidence.
 
 ## Current state
 
-**P0, P1, P2, and P3-compatibility are complete.** 327 tests passing.
+**P0, P1, P2, P3, and P4 are complete.** 387 tests passing.
 
 ### What is implemented and verified
 
@@ -43,17 +43,24 @@ evidence.
 - Atomic JSON write (temp → `os.replace`) — no partial writes on crash.
 - Versioned `graphrag.json` header: schema_version, model_id, embedding_dimension
   restored on load and checked against active client.
+- Source fingerprints: `_compute_fingerprint()` + `is_stale()` detect stale indices.
 - Markdown/SQLite `Library` with real `list`/`search` CLI.
 - `--interactive` human line-by-line selection with typed-own-line support.
-- 327 tests passing.
+- Multilingual evaluation corpus (13 ES + 13 EN fragments).
+- Retrieval relevance evaluation: self-retrieval, cross-lingual, graph paths.
+- Generation grounding evaluation: formal validity, fragment fidelity scoring.
+- Embedding profile frozen to `intfloat/multilingual-e5-small` after comparative eval.
+- 387 tests passing.
 
 ### Honest positioning
 
 > PoesIA is a hybrid deterministic/LLM poetry system with verified dense
 > personal-context retrieval, typed semantic graph traversal with explainable
-> paths, a complete end-to-end generation+selection+save journey, and immutable
-> index compatibility enforcement. It is not yet a production GraphRAG system
-> (no evaluated multilingual corpus, no provider privacy controls).
+> paths, a complete end-to-end generation+selection+save journey, immutable
+> index compatibility enforcement, source fingerprinting for stale-index
+> detection, a frozen multilingual embedding profile (e5-small, 384d), and
+> a reviewed evaluation corpus (ES+EN). It is not yet a production GraphRAG
+> system (no provider privacy controls, no provider/run lineage metadata).
 
 ---
 
@@ -77,7 +84,7 @@ Evidence gate: `test_dense_vs_graph_retrieval_differ()` proves graph
 reaches nodes unreachable by dense-only retrieval.
 E5 query/passage prefix fixed across all callers.
 
-### P3 — Make artifacts reproducible ← CURRENT (compatibility check done)
+### P3 — Make artifacts reproducible ✅
 
 1. ✅ Immutable index compatibility: `IndexCompatibilityError`, `check_index_compatibility()`,
    `rebuild()`, `index_info()`. Compatibility enforced in `ingest()`,
@@ -85,18 +92,17 @@ E5 query/passage prefix fixed across all callers.
 2. ✅ Atomic write: `_save()` writes to `.tmp` then `os.replace()`.
 3. ✅ Versioned header: schema_version, model_id, embedding_dimension
    in JSON; restored and enforced on load.
-4. ☐ Source fingerprints: hash ingested content to detect stale index
-   when source files change without a full rebuild.
+4. ✅ Source fingerprints: `_compute_fingerprint()` hashes ingested content;
+   `is_stale(records)` detects when source files changed without a full rebuild;
+   `content_fingerprint` in JSON header; CLI stale-index warning.
 
-P3 is considered complete when source fingerprinting lands. That is the
-only remaining item.
+### P4 — Establish evaluation ✅
 
-### P4 — Establish evaluation
-
-1. Build a reviewed multilingual corpus (ES + EN minimum).
-2. Evaluate retrieval: relevance of returned fragments and graph paths.
-3. Evaluate generation: formal validity + contextual grounding.
-4. Freeze an embedding profile only after comparative evidence.
+1. ✅ Multilingual evaluation corpus (13 ES + 13 EN fragments).
+2. ✅ Retrieval relevance eval: self-retrieval MRR@5, cross-lingual, graph paths.
+3. ✅ Generation grounding eval: formal validity, fragment fidelity scoring signal.
+4. ✅ Embedding profile frozen to `intfloat/multilingual-e5-small` after comparative
+   evaluation of 3 candidate models (e5-base, e5-small, all-MiniLM-L6-v2).
 
 ### P5 — Provider and operational controls
 
