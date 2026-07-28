@@ -465,6 +465,75 @@ def galeria_illustrate(
 app.add_typer(galeria_app, name="galeria")
 
 
+# --- Helper functions for fragment frontmatter parsing -----------------------
+
+
+def _parse_fragment_frontmatter(content: str) -> dict:
+    """Minimal YAML frontmatter parser for markdown fragment files.
+
+    Returns a dict with keys: id, tags, language, themes, tone, type.
+    All values are optional and default to None/empty.
+    """
+    result: dict = {"tags": [], "language": None, "id": None, "themes": [], "tone": [], "type": None}
+    stripped = content.strip()
+    if not stripped.startswith("---"):
+        return result
+    parts = stripped.split("---", 2)
+    if len(parts) < 3:
+        return result
+    yaml_block = parts[1]
+    for line in yaml_block.strip().splitlines():
+        line = line.strip()
+        if ":" in line:
+            key, _, val = line.partition(":")
+            key = key.strip()
+            val = val.strip()
+            if key == "tags":
+                # Parse list: ["a", "b"] or - a\n- b
+                if val.startswith("[") or not val:
+                    result["tags"] = _parse_yaml_list(yaml_block, key) or []
+                else:
+                    result["tags"] = [t.strip().strip('"').strip("'") for t in val.split(",")]
+            elif key == "themes":
+                result["themes"] = _parse_yaml_list(yaml_block, key) or []
+            elif key == "tone":
+                result["tone"] = _parse_yaml_list(yaml_block, key) or []
+            elif key == "language":
+                result["language"] = val.strip('"').strip("'")
+            elif key == "id":
+                result["id"] = val.strip('"').strip("'")
+            elif key == "type":
+                result["type"] = val.strip('"').strip("'")
+    return result
+
+
+def _parse_yaml_list(yaml_block: str, key: str) -> list[str] | None:
+    """Helper: parse a YAML list value for *key* -- either inline [a, b] or block - a."""
+    import re
+    for line in yaml_block.splitlines():
+        ls = line.strip()
+        if ls.startswith(key + ":"):
+            val = ls[len(key) + 1:].strip()
+            if val.startswith("[") and val.endswith("]"):
+                raw = val[1:-1]
+                return [x.strip().strip('"').strip("'") for x in raw.split(",") if x.strip()]
+            return None
+    # Block list: - item
+    in_list = False
+    items = []
+    for line in yaml_block.splitlines():
+        ls = line.strip()
+        if ls.startswith(key + ":"):
+            in_list = True
+            continue
+        if in_list:
+            if ls.startswith("- "):
+                items.append(ls[2:].strip().strip('"').strip("'"))
+            elif not ls or ls.startswith("#") or ":" in ls.split("#")[0]:
+                break
+    return items or None
+
+
 # --- MemorIA: collections / future Graph RAG ---------------------------------
 
 memoria_app = typer.Typer(help="MemorIA: personal poem collection (Graph RAG in Phase 3).")
@@ -537,9 +606,11 @@ def memoria_add_fragment(
     tags: str = typer.Option("", help="Comma-separated tags for the fragment."),
     language: str = typer.Option("es", help="Language code: 'es' or 'en'."),
 ) -> None:
-    """Add a personal fragment to the memoria collection."""
+    """Add a personal fragment to the memoria collection and the graph index."""
     from pathlib import Path
 
+    from poesia.memoria.embeddings import get_embedding_client
+    from poesia.memoria.graphrag import GraphRAGRetriever
     from poesia.memoria.records import FragmentRecord
 
     file_path = Path(path)
@@ -549,16 +620,100 @@ def memoria_add_fragment(
 
     content = file_path.read_text(encoding="utf-8")
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    # Parse YAML frontmatter for language/tags override
+    fm = _parse_fragment_frontmatter(content)
+    frag_id = fm.get("id") or file_path.stem
+    lang = fm.get("language") or language
+    frag_tags = fm.get("tags") or tag_list
 
-    frag = FragmentRecord(id=file_path.stem, content=content, language=language, tags=tag_list)
+    frag = FragmentRecord(id=frag_id, content=content, language=lang, tags=frag_tags)
 
     # Copy to seeds/angel_fragments/ for persistence
     target_dir = Path(__file__).parent.parent.parent / "seeds" / "angel_fragments"
     target_dir.mkdir(parents=True, exist_ok=True)
     target_path = target_dir / file_path.name
     target_path.write_text(content, encoding="utf-8")
+    rprint(f"[green]✓[/green] Copied fragment → {target_path}")
 
-    rprint(f"[green]✓[/green] Added fragment '{frag.id}' → {target_path}")
+    # Add to graph index
+    retriever = GraphRAGRetriever()
+    try:
+        client = get_embedding_client()
+        retriever.add_fragment_node(
+            frag_id, content, language=lang, tags=frag_tags, embedding_client=client
+        )
+        rprint(f"[green]✓[/green] Added fragment '{frag_id}' to graph index")
+    except Exception as exc:
+        # Fall back to no-embedding add
+        retriever.add_fragment_node(frag_id, content, language=lang, tags=frag_tags)
+        rprint(f"[yellow]⚠[/yellow] Added '{frag_id}' to graph index (no embeddings: {exc})")
+
+
+@memoria_app.command("ingest-all")
+def memoria_ingest_all() -> None:
+    """Batch-ingest all fragments and library poems into the graph index.
+
+    Reads every .md file from ``seeds/angel_fragments/`` and every saved poem
+    from the library, then rebuilds the ``graphrag.json`` index with embeddings.
+    """
+    from pathlib import Path
+
+    from poesia.memoria.embeddings import get_embedding_client
+    from poesia.memoria.graphrag import GraphRAGRetriever
+    from poesia.memoria.library import Library
+    from poesia.memoria.records import FragmentRecord
+
+    fragments_dir = Path(__file__).parent.parent.parent / "seeds" / "angel_fragments"
+    if not fragments_dir.exists():
+        rprint("[yellow]⚠[/yellow] No seeds/angel_fragments/ directory found")
+        return
+
+    try:
+        embedding_client = get_embedding_client()
+        rprint(f"[dim]Using embedding model: {embedding_client.model_id}[/dim]")
+    except Exception as exc:
+        rprint(f"[red]✗[/red] No embedding client available: {exc}")
+        rprint("  Install with: pip install -e '.[nlp]'")
+        raise typer.Exit(1)
+
+    # Read fragments from disk
+    fragments: list[FragmentRecord] = []
+    for md_file in sorted(fragments_dir.glob("*.md")):
+        content = md_file.read_text(encoding="utf-8")
+        fm = _parse_fragment_frontmatter(content)
+        fragment = FragmentRecord(
+            id=fm.get("id") or md_file.stem,
+            content=content,
+            language=fm.get("language") or "es",
+            tags=fm.get("tags") or [],
+        )
+        fragments.append(fragment)
+    rprint(f"[dim]Loaded {len(fragments)} fragments from seeds/[/dim]")
+
+    # Load library poems
+    library = Library()
+    library_poems = library.list_all()
+    rprint(f"[dim]Loaded {len(library_poems)} poems from library[/dim]")
+
+    if not fragments and not library_poems:
+        rprint("[yellow]⚠[/yellow] Nothing to ingest")
+        return
+
+    # Rebuild graph: start fresh, add fragments as fragment nodes, then
+    # ingest library poems as poem nodes
+    retriever = GraphRAGRetriever()
+    for frag in fragments:
+        retriever.add_fragment_node(
+            frag.id, frag.content, language=frag.language,
+            tags=frag.tags, embedding_client=embedding_client,
+        )
+    if library_poems:
+        retriever.ingest(library_poems, embedding_client=embedding_client)
+
+    info = retriever.index_info()
+    rprint(f"[green]✓[/green] Index rebuilt: {info['node_count']} nodes, {info['edge_count']} edges")
+    rprint(f"[dim]  Model: {info['model_id']}  Dim: {info['embedding_dimension']}[/dim]")
+    rprint(f"[dim]  Content fingerprint: {info['content_fingerprint']}[/dim]")
 
 
 @memoria_app.command("add-seed")
