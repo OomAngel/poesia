@@ -36,6 +36,61 @@ if TYPE_CHECKING:
     from poesia.memoria.records import FragmentRecord, InfluenceRecord
 
 
+# ── Language detection filter ────────────────────────────────────────────
+
+
+def _filter_by_language(candidates: list[str], target_lang: str) -> list[str]:
+    """Filter candidate lines by target language using lightweight heuristics.
+
+    Keeps only lines that appear to be in the target language.
+    This prevents the LLM from ignoring the language instruction
+    and producing e.g. English lines for a Spanish poem.
+
+    Args:
+        candidates: Generated candidate lines.
+        target_lang: ``"es"``, ``"en"``, or ``"nl"``.
+
+    Returns:
+        Candidates that pass the language check, preserving order.
+        If all candidates are rejected, returns the originals (fail open).
+    """
+    if target_lang == "es":
+        _es_words = frozenset({
+            "el", "la", "los", "las", "que", "con", "por", "para",
+            "del", "una", "como", "más", "pero", "sus", "era", "son",
+            "entre", "todo", "sin", "cada", "este", "esta", "ese", "esa",
+            "tiene", "donde", "siempre", "nunca", "tiempo", "mundo",
+        })
+
+        def _is_es(line: str) -> bool:
+            low = line.lower()
+            if "ñ" in low or "¿" in low or "¡" in low:
+                return True
+            words = set(low.split())
+            return len(words & _es_words) >= 1
+
+        filtered = [c for c in candidates if _is_es(c)]
+        return filtered if filtered else candidates  # Fail open
+
+    elif target_lang == "en":
+        _es_signals = frozenset({
+            "el", "la", "los", "las", "que", "del", "por", "para",
+            "como", "más", "pero", "sus", "entre", "todo", "sin",
+        })
+
+        def _is_en(line: str) -> bool:
+            low = line.lower()
+            if "ñ" in low or "¿" in low or "¡" in low:
+                return False
+            words = set(low.split())
+            return len(words & _es_signals) < 1
+
+        filtered = [c for c in candidates if _is_en(c)]
+        return filtered if filtered else candidates  # Fail open
+
+    return candidates
+
+
 def _phonology_for(language: str):
     if language == "es":
         return SpanishPhonology()
@@ -177,6 +232,12 @@ class ConstrainedLoop:
                 example_rhyme_word=example_rhyme_word,
                 rhyme_candidates=rhyme_candidates,
             )
+            # Filter out candidates not in the target language
+            candidates = _filter_by_language(candidates, self.language)
+            if not candidates:
+                # Should not happen (fail-open in _filter_by_language),
+                # but guard against empty list
+                continue
             scored = self._scorer.score_candidates(candidates, prior_lines=result.lines)
             result.scored_history.append(scored)
 
