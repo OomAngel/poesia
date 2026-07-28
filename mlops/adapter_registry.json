@@ -1,0 +1,17 @@
+{
+  "adapters": [],
+  "description": "Registry of all trained LoRA adapters. Each entry records the adapter path, config used, data hash, and evaluation metrics. Updated manually or via training script.",
+  "fields": {
+    "id": "unique identifier",
+    "created": "ISO timestamp",
+    "config": "path to YAML config file used",
+    "data_sha256": "SHA256 hash of training data",
+    "base_model": "base model name",
+    "lora_r": "LoRA rank",
+    "train_loss": "final training loss",
+    "eval_syllable_accuracy": "fraction of lines with correct syllable count",
+    "eval_line_count_accuracy": "fraction of generated poems with correct line count",
+    "adapter_path": "path to saved adapter",
+    "notes": "free text notes"
+  }
+}

@@ -1,0 +1,34 @@
+# Training configuration — v1: structured sonetos
+# Each config file represents one experiment.
+# The training script reads this to reproduce a run.
+
+# Model
+model: "Qwen/Qwen2.5-1.5B-Instruct"
+quantization: "4bit"  # 4bit, 8bit, fp16
+
+# Data
+train_data: "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
+eval_data: "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
+max_length: 300
+
+# LoRA
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+# Training
+batch_size: 8
+gradient_accumulation: 2  # effective batch = 16
+epochs: 10
+learning_rate: 0.0002
+lr_scheduler: "cosine"
+warmup_steps: 50
+weight_decay: 0.01
+fp16: true
+logging_steps: 10
+eval_steps: 50
+save_steps: 100
+
+# Output
+output_dir: "models/poetry-lora-v2"
