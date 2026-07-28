@@ -8,7 +8,12 @@ Requires: pip install transformers datasets peft bitsandbytes accelerate
 
 import json
 import os
+import sys
+import yaml
 import torch
+import hashlib
+import datetime
+from pathlib import Path
 from datasets import Dataset
 from transformers import (
     AutoModelForCausalLM,
@@ -23,47 +28,60 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
 def main():
     # ── Config ────────────────────────────────────────────────────────
-    model_name = "Qwen/Qwen2.5-1.5B-Instruct"
-    train_path = "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
-    eval_path = "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
-    output_dir = "models/poetry-lora-v2"
+    # Load from YAML config file (passed via --config or default)
+    config_path = sys.argv[1] if len(sys.argv) > 1 else "mlops/configs/train_v1.yaml"
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+
+    model_name = cfg["model"]
+    train_path = cfg["train_data"]
+    eval_path = cfg.get("eval_data", train_path)
+    output_dir = cfg["output_dir"]
     os.makedirs(output_dir, exist_ok=True)
 
+    # Compute data manifest
+    sys.path.insert(0, "mlops")
+    from data_manifest import compute_manifest
+    data_manifest = compute_manifest(train_path)
+    print(f"Data: {data_manifest['record_count']} records, SHA256: {data_manifest['sha256'][:16]}...")
+
     # ── Experiment tracking ────────────────────────────────────────────
-    import hashlib, datetime
     run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     run_log = {
         "run_id": run_id,
+        "config": config_path,
         "model": model_name,
+        "data_sha256": data_manifest["sha256"],
+        "data_records": data_manifest["record_count"],
         "train_data": train_path,
         "eval_data": eval_path,
-        "lora_r": 16,
-        "lora_alpha": 32,
-        "lora_dropout": 0.05,
-        "batch_size_per_device": 8,
-        "gradient_accumulation": 2,
-        "effective_batch": 16,
-        "epochs": 2,
-        "learning_rate": 2e-4,
-        "max_length": 192,
-        "fp16": True,
+        "lora_r": cfg.get("lora_r", 16),
+        "lora_alpha": cfg.get("lora_alpha", 32),
+        "lora_dropout": cfg.get("lora_dropout", 0.05),
+        "batch_size_per_device": cfg.get("batch_size", 8),
+        "gradient_accumulation": cfg.get("gradient_accumulation", 2),
+        "effective_batch": cfg.get("batch_size", 8) * cfg.get("gradient_accumulation", 2),
+        "epochs": cfg.get("epochs", 10),
+        "learning_rate": cfg.get("learning_rate", 2e-4),
+        "max_length": cfg.get("max_length", 300),
+        "fp16": cfg.get("fp16", True),
         "train_samples": None,
         "eval_samples": None,
         "train_loss": None,
         "eval_loss": None,
         "train_runtime_s": None,
-        "syllable_accuracy": None,
-        "line_count_accuracy": None,
+        "data_sources": data_manifest["sources"],
+        "data_forms": data_manifest["forms"],
         "status": "started",
         "adapter_path": None,
     }
-    # Save initial run log
     runs_dir = "mlops/runs"
     os.makedirs(runs_dir, exist_ok=True)
     run_log_path = os.path.join(runs_dir, f"{run_id}.json")
     with open(run_log_path, "w") as f:
         json.dump(run_log, f, indent=2)
     print(f"Run ID: {run_id}")
+    print(f"Config: {config_path}")
     print(f"Run log: {run_log_path}")
 
     print(f"Free VRAM: {torch.cuda.mem_get_info()[0]/1e9:.1f}GB")
@@ -90,10 +108,10 @@ def main():
 
     # ── LoRA config ───────────────────────────────────────────────────
     lora = LoraConfig(
-        r=16,
-        lora_alpha=32,
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-        lora_dropout=0.05,
+        r=cfg.get("lora_r", 16),
+        lora_alpha=cfg.get("lora_alpha", 32),
+        target_modules=cfg.get("lora_target_modules", ["q_proj", "k_proj", "v_proj", "o_proj"]),
+        lora_dropout=cfg.get("lora_dropout", 0.05),
         bias="none",
         task_type="CAUSAL_LM",
     )
@@ -116,7 +134,7 @@ def main():
     print(f"Train: {len(train_ds)}, Eval: {len(eval_ds)}")
 
     def tokenize(ex):
-        return tokenizer(ex["text"], truncation=True, max_length=300)
+        return tokenizer(ex["text"], truncation=True, max_length=cfg.get("max_length", 300))
 
     train_ds = train_ds.map(tokenize, remove_columns=["text"])
     eval_ds = eval_ds.map(tokenize, remove_columns=["text"])
@@ -128,17 +146,17 @@ def main():
     # ── Train ─────────────────────────────────────────────────────────
     args = TrainingArguments(
         output_dir=output_dir,
-        per_device_train_batch_size=8,
-        per_device_eval_batch_size=8,
-        gradient_accumulation_steps=2,       # Effective batch = 16
-        num_train_epochs=2,
-        learning_rate=2e-4,
+        per_device_train_batch_size=cfg.get("batch_size", 8),
+        per_device_eval_batch_size=cfg.get("batch_size", 8),
+        gradient_accumulation_steps=cfg.get("gradient_accumulation", 2),
+        num_train_epochs=cfg.get("epochs", 10),
+        learning_rate=cfg.get("learning_rate", 2e-4),
         fp16=True,
-        logging_steps=10,
+        logging_steps=cfg.get('logging_steps', 10),
         eval_strategy="steps",
-        eval_steps=200,
+        eval_steps=cfg.get('eval_steps', 50),
         save_strategy="steps",
-        save_steps=500,
+        save_steps=cfg.get('save_steps', 100),
         save_total_limit=1,
         report_to="none",
         remove_unused_columns=False,
@@ -177,8 +195,28 @@ def main():
     tokenizer.save_pretrained(adapter_path)
     print(f"LoRA adapter saved to {adapter_path}/")
     run_log["adapter_path"] = adapter_path
+    run_log["status"] = "saved"
     with open(run_log_path, "w") as f:
         json.dump(run_log, f, indent=2)
+
+    # Register in adapter registry
+    registry_path = "mlops/adapter_registry.json"
+    with open(registry_path) as f:
+        registry = json.load(f)
+    registry["adapters"].append({
+        "id": run_id,
+        "created": datetime.datetime.now().isoformat(),
+        "config": config_path,
+        "data_sha256": data_manifest["sha256"],
+        "base_model": model_name,
+        "lora_r": cfg.get("lora_r", 16),
+        "train_loss": run_log.get("train_loss"),
+        "adapter_path": adapter_path,
+        "notes": "",
+    })
+    with open(registry_path, "w") as f:
+        json.dump(registry, f, indent=2, ensure_ascii=False)
+    print(f"Registered in {registry_path}")
 
     # ── Test ──────────────────────────────────────────────────────────
     print("\n=== Testing ===")
