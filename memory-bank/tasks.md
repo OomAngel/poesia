@@ -2,7 +2,7 @@
 
 ## IN PROGRESS
 
-- [ ] P5: explicit opt-in before personal context reaches a hosted provider.
+- [ ] P5: retry, structured failure, latency, token, and cost metadata.
 
 ## BACKLOG
 
@@ -38,3 +38,6 @@ All phases through P4 are complete (387 tests passing):
 - P4: embedding profile frozen to intfloat/multilingual-e5-small.
 - P4: retrieval relevance tests (self-retrieval, cross-lingual, graph paths, language filter).
 - P4: generation grounding tests (brief building, formal validity, scoring signals).
+- P5: privacy confirmation before personal context reaches a hosted LLM.
+- P5: provider/run lineage on saved poems (provider, n_candidates, latency, temperature).
+- P5: --yes flag to skip privacy prompt.

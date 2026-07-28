@@ -2,7 +2,7 @@
 
 Doc class: canonical implementation authority for RAG/LLM work  
 Status: active  
-Last updated: 2026-07-28 (P4 complete — embedding profile frozen)  
+Last updated: 2026-07-28 (P5 items 1-2 complete — privacy + lineage)  
 Scope: `memoria/`, embedding-backed evaluation, retrieval-informed generation,
 hosted LLM integration, and their CLI paths
 
@@ -104,12 +104,15 @@ E5 query/passage prefix fixed across all callers.
 4. ✅ Embedding profile frozen to `intfloat/multilingual-e5-small` after comparative
    evaluation of 3 candidate models (e5-base, e5-small, all-MiniLM-L6-v2).
 
-### P5 — Provider and operational controls
+### P5 — Provider and operational controls ← CURRENT
 
-1. Explicit opt-in before personal context reaches a hosted provider.
-2. Provider/run lineage stored alongside every saved poem.
-3. Retry, structured failure, latency, token, and cost metadata.
-4. Monitoring only when a deployed instance exists.
+1. ✅ Explicit opt-in before personal context reaches a hosted provider:
+   privacy notice with fragment listing, --yes flag to suppress.
+2. ✅ Provider/run lineage stored alongside every saved poem:
+   PoemProvenance extended with provider, n_candidates, temperature, latency_ms.
+   All fields written to markdown frontmatter on --save.
+3. ☐ Retry, structured failure, latency, token, and cost metadata.
+4. ☐ Monitoring only when a deployed instance exists.
 
 ---
 
