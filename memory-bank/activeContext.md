@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-07-28 (P4 evaluation corpus + retrieval eval DONE)_
+_Last updated: 2026-07-28 (P4 complete — embedding profile frozen)_
 
 ---
 
@@ -20,11 +20,13 @@ poesia write --theme "luna sobre el mar" --form haiku --language es --llm groq -
 
 ---
 
-## Current focus: P4 — remaining items
+## Current focus: P5 — provider and operational controls
 
-P4 is partially complete. Corpus and retrieval eval harness are in place.
-Remaining:
-- [ ] P4: freeze an embedding profile after comparative evidence (requires real sentence-transformers eval)
+P4 is fully complete. All items done:
+- [x] Multilingual evaluation corpus (13 ES + 13 EN)
+- [x] Retrieval relevance tests (self-retrieval, cross-lingual, graph paths)
+- [x] Generation grounding tests (formal validity, scoring signals)
+- [x] Embedding profile frozen to intfloat/multilingual-e5-small
 
 ### Key files
 
