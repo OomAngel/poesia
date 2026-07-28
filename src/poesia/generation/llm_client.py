@@ -310,16 +310,18 @@ class HostedLLMClient:
     def _generate_groq(self, prompt: str, n: int, temperature: float) -> list[str]:
         """Groq Cloud chat completions.
 
-        Groq's API is OpenAI-compatible but does NOT support n>1 in a single
-        request. We issue n sequential calls with a small inter-call delay to
-        stay within the free-tier rate limit (30 RPM = 2 s between requests).
+        Groq's API does not support n>1 per request. We issue n sequential
+        calls. The free tier allows 30 RPM and 12 000 TPM. We pace at 2.1 s
+        between calls (RPM budget) and honour the exact retry-after value from
+        any 429 response (TPM budget) — waiting up to 65 s to let the window
+        reset before retrying.
         """
         import time
 
         results = []
         for i in range(n):
             if i > 0:
-                time.sleep(2.1)  # 30 RPM → ~2 s between requests; 2.1 adds margin
+                time.sleep(2.1)  # 30 RPM = 1 req/2 s; 2.1 s adds margin
             batch = self._generate_openai_compat(
                 prompt, 1, temperature, base_url=self._GROQ_BASE_URL
             )
@@ -348,13 +350,40 @@ class HostedLLMClient:
             },
         )
         provider_label = "Groq" if "groq.com" in base_url else "OpenAI"
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                res = json.loads(resp.read().decode("utf-8"))
-                return [c["message"]["content"].strip() for c in res.get("choices", [])]
-        except urllib.error.HTTPError as e:
-            err_msg = e.read().decode("utf-8")
-            raise RuntimeError(f"{provider_label} API HTTP Error {e.code}: {err_msg}") from e
-        except Exception as e:
-            raise RuntimeError(f"{provider_label} API request failed: {e}") from e
+        # Retry on 429 with back-off that respects the provider's retry-after.
+        # Groq's free tier has both RPM (30) and TPM (12 000) windows.
+        # When TPM is exhausted the retry-after can be up to ~60 s.
+        # We honour the exact value from the error body; fall back to 65 s
+        # (full window reset) if we can't parse it.
+        import re
+        import time as _time
+        last_err_msg = ""
+        for attempt in range(4):
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    res = json.loads(resp.read().decode("utf-8"))
+                    return [c["message"]["content"].strip() for c in res.get("choices", [])]
+            except urllib.error.HTTPError as e:
+                err_body = e.read().decode("utf-8")
+                if e.code == 429 and attempt < 3:
+                    # Parse "Please try again in Xs" or "Please try again in Xm Ys"
+                    sec_match = re.search(r"try again in ([\d.]+)s", err_body)
+                    min_match = re.search(r"try again in (\d+)m([\d.]+)s", err_body)
+                    if min_match:
+                        wait = int(min_match.group(1)) * 60 + float(min_match.group(2)) + 1.0
+                    elif sec_match:
+                        raw = float(sec_match.group(1))
+                        # Short waits (< 5 s) are RPM-only; TPM window is 60 s.
+                        # If we've already retried once, wait for the full window.
+                        wait = raw + 1.0 if (raw > 5 or attempt == 0) else 62.0
+                    else:
+                        wait = 65.0  # safe default: wait out the full 60 s window
+                    _time.sleep(wait)
+                    continue
+                last_err_msg = err_body
+                raise RuntimeError(
+                    f"{provider_label} API HTTP Error {e.code}: {last_err_msg}"
+                ) from e
+            except Exception as e:
+                raise RuntimeError(f"{provider_label} API request failed: {e}") from e
 
