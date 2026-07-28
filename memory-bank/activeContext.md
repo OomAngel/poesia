@@ -20,13 +20,16 @@ poesia write --theme "luna sobre el mar" --form haiku --language es --llm groq -
 
 ---
 
-## Current focus: P5 — provider and operational controls
+## Current focus: P5 — retry, structured failure, token/cost metadata
 
-P4 is fully complete. All items done:
+P5 items 1-2 complete (privacy + lineage). Remaining:
 - [x] Multilingual evaluation corpus (13 ES + 13 EN)
 - [x] Retrieval relevance tests (self-retrieval, cross-lingual, graph paths)
 - [x] Generation grounding tests (formal validity, scoring signals)
 - [x] Embedding profile frozen to intfloat/multilingual-e5-small
+- [x] P5.1: privacy confirmation with --yes skip
+- [x] P5.2: provider/run lineage in saved frontmatter
+- [ ] P5.3: structured failure types, token/cost capture
 
 ### Key files
 
