@@ -2,11 +2,10 @@
 
 ## IN PROGRESS
 
-- [ ] P4: freeze an embedding profile after comparative evidence.
+- [ ] P5: explicit opt-in before personal context reaches a hosted provider.
 
 ## BACKLOG
 
-- [ ] P5: explicit opt-in before personal context reaches a hosted provider.
 - [ ] P5: provider/run lineage on every saved poem.
 - [ ] Phase 4E: literary taxonomy auto-tagging.
 - [ ] romance form: add default line count spec.
@@ -17,7 +16,7 @@
 
 ## DONE
 
-All phases through P4-evaluation-corpus are complete (387 tests passing):
+All phases through P4 are complete (387 tests passing):
 - Core phonology, evaluation, forms, generation loop.
 - `eufonia`, `galeria`, `armonia` sub-brands.
 - `memoria` Library (Markdown + SQLite), real CLI list/search.
@@ -36,5 +35,6 @@ All phases through P4-evaluation-corpus are complete (387 tests passing):
 - P4: 13 English fragments (multilingual corpus, ES+EN).
 - P4: _parse_yaml_list fix (block list fallthrough).
 - P4: evaluation corpus verification tests.
+- P4: embedding profile frozen to intfloat/multilingual-e5-small.
 - P4: retrieval relevance tests (self-retrieval, cross-lingual, graph paths, language filter).
 - P4: generation grounding tests (brief building, formal validity, scoring signals).
