@@ -203,7 +203,7 @@ def write(
     line_selector = None
     if interactive:
         def _interactive_selector(line_index: int, candidates: list) -> str:
-            rprint(f"\n[bold]── Line {line_index + 1} — choose a candidate ──[/bold]")
+            rprint(f"\n[bold]── Line {line_index + 1} —— choose a candidate ──[/bold]")
             for i, cand in enumerate(candidates[:8], 1):
                 score_color = "green" if cand.score >= 0.7 else ("yellow" if cand.score >= 0.4 else "red")
                 marker = " [bold green]★ top[/bold green]" if i == 1 else ""
@@ -228,6 +228,24 @@ def write(
                 except ValueError:
                     rprint("  [red]Enter a number, or press Enter[/red]")
         line_selector = _interactive_selector
+    elif not yes and llm not in ("stub",):
+        # Default when using a real LLM without --yes: quick 3-choice picker
+        def _quick_selector(line_index: int, candidates: list) -> str:
+            rprint(f"\n[bold]Line {line_index + 1}:[/bold] pick a candidate (Enter = best)")
+            for i, cand in enumerate(candidates[:3], 1):
+                marker = " [bold green]★ best[/bold green]" if i == 1 else ""
+                rprint(f"  [{i}] {cand.line}{marker}")
+            try:
+                raw = input("  Your choice [1-3, Enter=best]: ").strip()
+                if raw == "":
+                    return candidates[0].line
+                idx = int(raw) - 1
+                if 0 <= idx < min(3, len(candidates)):
+                    return candidates[idx].line
+            except (ValueError, EOFError):
+                pass
+            return candidates[0].line
+        line_selector = _quick_selector
 
     # P5: Privacy confirmation — warn before personal context reaches a hosted provider
     _hosted_providers = {"groq", "gemini", "openai", "auto"}

@@ -126,6 +126,48 @@ class GenerationBrief:
                 lines.append(f"**{inf.name}**: {', '.join(inf.tone[:3])}")
             lines.append("")
 
+        # ── FEW-SHOT EXAMPLES ────────────────────────────────────────────
+        # Show the model what a good poem in *this* form looks like
+        form_name = self.form_spec.name.lower()
+        lang = self.form_spec.language
+
+        if form_name == "haiku" and lang == "es":
+            lines.append("## EXAMPLES (Spanish haiku)\n")
+            lines.append("Tarde me viste,")
+            lines.append("y al verte yo en el agua,")
+            lines.append("tarde, lloraste.\n")
+            lines.append("---\n")
+            lines.append("Lluvia en el campo:")
+            lines.append("sobre la tierra seca,")
+            lines.append("olor a vida.\n")
+
+        elif form_name == "haiku" and lang == "en":
+            lines.append("## EXAMPLES (English haiku)\n")
+            lines.append("An old silent pond")
+            lines.append("A frog jumps into the pond—")
+            lines.append("Splash! Silence again.\n")
+            lines.append("---\n")
+            lines.append("Light of the moon")
+            lines.append("Moves west, flowers' shadows")
+            lines.append("Creep eastward.\n")
+
+        elif form_name == "soneto" and lang == "es":
+            lines.append("## EXAMPLE (Spanish soneto — 11 syllables, ABBA ABBA CDC DCD)\n")
+            lines.append("Un soneto me manda hacer Violante,")
+            lines.append("que en mi vida me he visto en tal aprieto;")
+            lines.append("catorce versos dicen que es soneto:")
+            lines.append("burla burlando, van los tres delante.\n")
+            lines.append("Yo pensé que no hallara consonante")
+            lines.append("y estoy a la mitad de otro cuarteto;")
+            lines.append("mas si me veo en el primer terceto,")
+            lines.append("no hay cosa en los cuartetos que me espante.\n")
+            lines.append("Por el primer terceto voy entrando,")
+            lines.append("y parece que entré con pie derecho,")
+            lines.append("pues fin con este verso le voy dando.\n")
+            lines.append("Ya estoy en el segundo, y aun sospecho")
+            lines.append("que voy los trece versos acabando:")
+            lines.append("contad si son catorce, y está hecho.\n")
+
         # Instruction
         lines.append("---")
         lines.append(f"Generate a {self.form_spec.name} on '{self.theme}'.")
