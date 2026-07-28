@@ -47,8 +47,21 @@ def main():
 
     # ── Experiment tracking ────────────────────────────────────────────
     run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Capture git commit hash for reproducibility
+    git_hash = "unknown"
+    try:
+        import subprocess
+        git_hash = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()[:12]
+    except Exception:
+        pass
+
+    start_time = datetime.datetime.now().isoformat()
+
     run_log = {
         "run_id": run_id,
+        "experiment": cfg.get("experiment", "default"),
+        "run_name": cfg.get("run_name", f"run_{run_id}"),
+        "git_commit": git_hash,
         "config": config_path,
         "model": model_name,
         "data_sha256": data_manifest["sha256"],
@@ -65,6 +78,10 @@ def main():
         "learning_rate": cfg.get("learning_rate", 2e-4),
         "max_length": cfg.get("max_length", 300),
         "fp16": cfg.get("fp16", True),
+        "tags": cfg.get("tags", []),
+        "start_time": start_time,
+        "end_time": None,
+        "duration_s": None,
         "train_samples": None,
         "eval_samples": None,
         "train_loss": None,
@@ -72,17 +89,23 @@ def main():
         "train_runtime_s": None,
         "data_sources": data_manifest["sources"],
         "data_forms": data_manifest["forms"],
-        "status": "started",
+        "status": "RUNNING",
         "adapter_path": None,
     }
+    # Append to experiments database (JSONL) — MLflow-style
     runs_dir = "mlops/runs"
     os.makedirs(runs_dir, exist_ok=True)
+    experiments_db = os.path.join(runs_dir, "experiments.jsonl")
+    with open(experiments_db, "a") as f:
+        f.write(json.dumps(run_log) + "\n")
+    # Also save individual run file for human readability
     run_log_path = os.path.join(runs_dir, f"{run_id}.json")
     with open(run_log_path, "w") as f:
         json.dump(run_log, f, indent=2)
     print(f"Run ID: {run_id}")
     print(f"Config: {config_path}")
     print(f"Run log: {run_log_path}")
+    print(f"DB: {experiments_db}")
 
     print(f"Free VRAM: {torch.cuda.mem_get_info()[0]/1e9:.1f}GB")
     print(f"Loading {model_name} in 4-bit...")
@@ -185,6 +208,8 @@ def main():
     run_log["train_samples"] = len(train_ds)
     run_log["eval_samples"] = len(eval_ds)
     run_log["status"] = "completed"
+    run_log["end_time"] = datetime.datetime.now().isoformat()
+    run_log["duration_s"] = (datetime.datetime.fromisoformat(run_log["end_time"]) - datetime.datetime.fromisoformat(run_log["start_time"])).total_seconds()
     with open(run_log_path, "w") as f:
         json.dump(run_log, f, indent=2)
     print(f"Final loss: {final_loss}")

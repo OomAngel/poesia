@@ -1,4 +1,7 @@
 # Training configuration — v2: distilled sonetos from Groq
+experiment: "soneto-distilled"
+run_name: "v1-distilled"
+tags: ["soneto", "distilled", "groq"]
 model: "Qwen/Qwen2.5-1.5B-Instruct"
 quantization: "4bit"
 
