@@ -1,0 +1,33 @@
+# DPO training — learn to prefer good lines over bad ones
+# Uses existing LineScorer metrics as reward signal
+experiment: "soneto-dpo"
+run_name: "v1-dpo"
+tags: ["soneto", "dpo", "r16-dpo"]
+
+model: "Qwen/Qwen2.5-1.5B-Instruct"
+quantization: "4bit"
+
+# Data: same structured sonetos — DPO generates preference pairs
+train_data: "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
+max_length: 256
+
+# LoRA
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+# DPO
+dpo_beta: 0.1  # lower = more aggressive preference learning
+
+# Training
+batch_size: 4
+gradient_accumulation: 2
+epochs: 5
+learning_rate: 5e-5
+fp16: true
+logging_steps: 10
+save_steps: 50
+
+# Output
+output_dir: "models/poetry-lora-dpo"
