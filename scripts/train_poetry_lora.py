@@ -71,10 +71,9 @@ def main():
     # Requires Docker PostgreSQL running (docker compose up -d)
     db_url = os.environ.get("DATABASE_URL")
     if not db_url:
-        print("ERROR: DATABASE_URL not set. Start CronologIA first:")
-        print("  cd cronologia && docker compose up -d")
-        print("  export DATABASE_URL=postgresql://mlflow:mlflow@localhost:5432/mlflow")
-        sys.exit(1)
+        # Fallback to SQLite when Docker is not running
+        os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
+        db_url = "file:./mlruns"
     mlflow.set_tracking_uri(db_url)
     experiment_name = cfg.get("experiment", "poesia-training")
     try:
@@ -83,6 +82,7 @@ def main():
         pass  # Experiment already exists
     mlflow.set_experiment(experiment_name)
     
+    run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     with mlflow.start_run(run_name=cfg.get("run_name", f"run_{run_id}")):
         # Log all config params
         mlflow.log_param("model", model_name)
@@ -105,7 +105,6 @@ def main():
     
         # ── Experiment tracking ────────────────────────────────────────────
     run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    # Capture git commit hash for reproducibility
     git_hash = "unknown"
     try:
         import subprocess
