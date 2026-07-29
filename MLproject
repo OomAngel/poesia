@@ -1,0 +1,27 @@
+name: PoesIA-Training
+
+conda_env: environment.yml
+
+entry_points:
+  train:
+    parameters:
+      config: {type: str, default: mlops/configs/train_v1.yaml}
+    command: python scripts/train_poetry_lora.py {config}
+
+  distill:
+    parameters:
+      count: {type: int, default: 100}
+    command: python scripts/distill_sonetos.py --count {count}
+
+  dpo:
+    parameters:
+      config: {type: str, default: mlops/configs/dpo_v1.yaml}
+    command: python scripts/train_poetry_dpo.py {config}
+
+  pipeline:
+    parameters:
+      distill_count: {type: int, default: 100}
+      config: {type: str, default: mlops/configs/train_distilled.yaml}
+    command: |
+      python scripts/distill_sonetos.py --count {distill_count} && \
+      python scripts/train_poetry_lora.py {config}
