@@ -201,21 +201,25 @@ def main():
 
     # ── Load data ─────────────────────────────────────────────────────
     def load_jsonl(path):
-        prompts, completions = [], []
+        texts, weights = [], []
         with open(path) as f:
             for line in f:
                 ex = json.loads(line)
-                # Format: prompt + completion + EOS
                 text = ex["prompt"] + ex["completion"] + tokenizer.eos_token
-                prompts.append(text)
-        return Dataset.from_dict({"text": prompts})
+                texts.append(text)
+                # Use pre-computed quality_score as sample weight (default 1.0)
+                weights.append(ex.get("quality_score", 1.0))
+        return Dataset.from_dict({"text": texts, "quality_weight": weights})
 
     train_ds = load_jsonl(train_path)
     eval_ds = load_jsonl(eval_path)
     print(f"Train: {len(train_ds)}, Eval: {len(eval_ds)}")
 
     def tokenize(ex):
-        return tokenizer(ex["text"], truncation=True, max_length=cfg.get("max_length", 300))
+        tokens = tokenizer(ex["text"], truncation=True, max_length=cfg.get("max_length", 300))
+        # Pass quality_weight through (not tokenized, used by PoetryTrainer)
+        tokens["quality_weight"] = ex["quality_weight"]
+        return tokens
 
     train_ds = train_ds.map(tokenize, remove_columns=["text"])
     eval_ds = eval_ds.map(tokenize, remove_columns=["text"])
