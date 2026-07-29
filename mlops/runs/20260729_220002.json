@@ -1,0 +1,44 @@
+{
+  "run_id": "20260729_220002",
+  "experiment": "soneto-composite",
+  "run_name": "v1-composite",
+  "git_commit": "0c536e086a3a",
+  "config": "mlops/configs/train_composite.yaml",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "data_sha256": "0a17d4913d06545e1946d87566b41c11b3ef16a12e985a55c1115b2a6abb38ad",
+  "data_records": 47,
+  "train_data": "seeds/poetry_corpus/training_data_structured/sonetos_filtered_t2.jsonl",
+  "eval_data": "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl",
+  "lora_r": 16,
+  "lora_alpha": 32,
+  "lora_dropout": 0.05,
+  "batch_size_per_device": 8,
+  "gradient_accumulation": 2,
+  "effective_batch": 16,
+  "epochs": 10,
+  "learning_rate": 0.0002,
+  "max_length": 256,
+  "fp16": true,
+  "loss_fn": "composite",
+  "tags": [
+    "soneto",
+    "composite-loss",
+    "r16-ce+scorer"
+  ],
+  "start_time": "2026-07-29T22:00:02.239980",
+  "end_time": null,
+  "duration_s": null,
+  "train_samples": null,
+  "eval_samples": null,
+  "train_loss": null,
+  "eval_loss": null,
+  "train_runtime_s": null,
+  "data_sources": [
+    "disco"
+  ],
+  "data_forms": [
+    "soneto"
+  ],
+  "status": "RUNNING",
+  "adapter_path": null
+}

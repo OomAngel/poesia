@@ -15,6 +15,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from typing import Protocol
+import mlflow
 
 
 @dataclass
@@ -33,6 +34,7 @@ class LLMUsage:
 class LLMClient(Protocol):
     """Minimal interface the generation loop needs from any LLM backend."""
 
+    @mlflow.trace(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         """Return `n` candidate completions for `prompt`."""
         ...
@@ -100,6 +102,7 @@ class StubLLMClient:
         "in gardens where the {word} blooms in spring",
     ]
 
+    @mlflow.trace(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         """Generate plausible short lines based on prompt keywords."""
         # Extract theme/language from prompt
@@ -228,6 +231,7 @@ class HostedLLMClient:
         else:
             self.model = "gpt-4o-mini"
 
+    @mlflow.trace(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         from poesia.exceptions import LLMProviderError
 
@@ -511,6 +515,7 @@ class OllamaClient:
             )
         self._checked = True
 
+    @mlflow.trace(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         """Generate candidate lines via Ollama.
 
@@ -736,6 +741,7 @@ class LoRAClient:
         except Exception as e:
             raise LLMProviderError(f"Failed to load model '{self.model}': {e}", provider="lora") from e
 
+    @mlflow.trace(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         import time
 
