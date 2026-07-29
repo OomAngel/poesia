@@ -1,0 +1,315 @@
+{
+  "alegria": [
+    "joy"
+  ],
+  "felicidad": [
+    "joy"
+  ],
+  "gozo": [
+    "joy"
+  ],
+  "risa": [
+    "joy"
+  ],
+  "sonrisa": [
+    "joy"
+  ],
+  "dicha": [
+    "joy"
+  ],
+  "placer": [
+    "joy"
+  ],
+  "deleite": [
+    "joy"
+  ],
+  "jubilo": [
+    "joy"
+  ],
+  "euforia": [
+    "joy"
+  ],
+  "contento": [
+    "joy"
+  ],
+  "alborozo": [
+    "joy"
+  ],
+  "regocijo": [
+    "joy"
+  ],
+  "festejo": [
+    "joy"
+  ],
+  "maravilla": [
+    "joy",
+    "surprise"
+  ],
+  "belleza": [
+    "joy"
+  ],
+  "hermosura": [
+    "joy"
+  ],
+  "tristeza": [
+    "sadness"
+  ],
+  "pena": [
+    "sadness"
+  ],
+  "melancolia": [
+    "sadness"
+  ],
+  "nostalgia": [
+    "sadness"
+  ],
+  "llanto": [
+    "sadness"
+  ],
+  "lagrima": [
+    "sadness"
+  ],
+  "duelo": [
+    "sadness"
+  ],
+  "luto": [
+    "sadness"
+  ],
+  "soledad": [
+    "sadness"
+  ],
+  "ausencia": [
+    "sadness"
+  ],
+  "perdida": [
+    "sadness"
+  ],
+  "vacío": [
+    "sadness"
+  ],
+  "desconsuelo": [
+    "sadness"
+  ],
+  "desolacion": [
+    "sadness"
+  ],
+  "afliccion": [
+    "sadness"
+  ],
+  "tormento": [
+    "sadness",
+    "fear"
+  ],
+  "sufrimiento": [
+    "sadness"
+  ],
+  "ira": [
+    "anger"
+  ],
+  "rabia": [
+    "anger"
+  ],
+  "furia": [
+    "anger"
+  ],
+  "colera": [
+    "anger"
+  ],
+  "odio": [
+    "anger",
+    "disgust"
+  ],
+  "rencor": [
+    "anger"
+  ],
+  "resentimiento": [
+    "anger"
+  ],
+  "venganza": [
+    "anger"
+  ],
+  "indignacion": [
+    "anger"
+  ],
+  "protesta": [
+    "anger"
+  ],
+  "miedo": [
+    "fear"
+  ],
+  "temor": [
+    "fear"
+  ],
+  "terror": [
+    "fear"
+  ],
+  "panico": [
+    "fear"
+  ],
+  "horror": [
+    "fear"
+  ],
+  "espanto": [
+    "fear"
+  ],
+  "angustia": [
+    "fear",
+    "sadness"
+  ],
+  "ansiedad": [
+    "fear"
+  ],
+  "inquietud": [
+    "fear"
+  ],
+  "sombra": [
+    "fear"
+  ],
+  "muerte": [
+    "fear",
+    "sadness"
+  ],
+  "sorpresa": [
+    "surprise"
+  ],
+  "asombro": [
+    "surprise"
+  ],
+  "pasmo": [
+    "surprise"
+  ],
+  "estupor": [
+    "surprise"
+  ],
+  "asombroso": [
+    "surprise"
+  ],
+  "milagro": [
+    "surprise",
+    "joy"
+  ],
+  "confianza": [
+    "trust"
+  ],
+  "fe": [
+    "trust"
+  ],
+  "esperanza": [
+    "anticipation",
+    "trust"
+  ],
+  "seguridad": [
+    "trust"
+  ],
+  "paz": [
+    "trust"
+  ],
+  "calma": [
+    "trust"
+  ],
+  "serenidad": [
+    "trust"
+  ],
+  "sosiego": [
+    "trust"
+  ],
+  "amor": [
+    "trust",
+    "joy"
+  ],
+  "carino": [
+    "trust"
+  ],
+  "afecto": [
+    "trust"
+  ],
+  "asco": [
+    "disgust"
+  ],
+  "repugnancia": [
+    "disgust"
+  ],
+  "desprecio": [
+    "disgust",
+    "anger"
+  ],
+  "repulsion": [
+    "disgust"
+  ],
+  "abominacion": [
+    "disgust"
+  ],
+  "anhelo": [
+    "anticipation"
+  ],
+  "deseo": [
+    "anticipation"
+  ],
+  "sueno": [
+    "anticipation"
+  ],
+  "porvenir": [
+    "anticipation"
+  ],
+  "futuro": [
+    "anticipation"
+  ],
+  "amanecer": [
+    "anticipation",
+    "joy"
+  ],
+  "alba": [
+    "anticipation"
+  ],
+  "luna": [
+    "trust",
+    "joy"
+  ],
+  "sol": [
+    "joy",
+    "trust"
+  ],
+  "luz": [
+    "joy"
+  ],
+  "estrella": [
+    "surprise",
+    "joy"
+  ],
+  "cielo": [
+    "trust"
+  ],
+  "mar": [
+    "trust",
+    "fear"
+  ],
+  "rio": [
+    "trust"
+  ],
+  "flor": [
+    "joy"
+  ],
+  "jardin": [
+    "joy"
+  ],
+  "primavera": [
+    "joy",
+    "anticipation"
+  ],
+  "noche": [
+    "fear",
+    "trust"
+  ],
+  "viento": [
+    "fear",
+    "anticipation"
+  ],
+  "lluvia": [
+    "sadness",
+    "trust"
+  ],
+  "fuego": [
+    "anger",
+    "fear"
+  ]
+}

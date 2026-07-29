@@ -19,12 +19,14 @@ Phase 3E: now supports BriefBuilder integration for rich pre-generation context.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 from poesia.evaluation.scorer import LineScorer, ScoredCandidate
 from poesia.forms.definitions import FormSpec, get_form
 from poesia.generation.candidate_generator import CandidateGenerator
+from poesia.generation.hooks import HookEvent
 from poesia.generation.llm_client import LLMClient, StubLLMClient
 from poesia.generation.rhyme_tracker import RhymeTracker
 from poesia.phonology.english import EnglishPhonology
@@ -150,6 +152,13 @@ class ConstrainedLoop:
         self._influences = influences or []
         # Scorer is created per-run with theme, so store config here
         self._scorer: LineScorer | None = None
+        # Observer hooks
+        from poesia.generation.hooks import CompositeHook
+        self._hooks = CompositeHook()
+
+    def add_hook(self, hook: GenerationHook) -> None:
+        """Attach a hook to observe generation events."""
+        self._hooks.add(hook)
 
     def run(
         self,
@@ -159,7 +168,9 @@ class ConstrainedLoop:
         tone: list[str] | None = None,
         seeds: list[str] | None = None,
         brief_level: str = "standard",
-        line_selector: "LineSelector | None" = None,
+        line_selector: LineSelector | None = None,
+        total_lines_override: int | None = None,
+        movement: str | None = None,
     ) -> LoopResult:
         """Generate a full poem, one line at a time, for `total_lines` lines.
 
@@ -174,6 +185,9 @@ class ConstrainedLoop:
                 If provided, called after scoring each line position so the human
                 can choose among candidates. If None (default) the top-scored
                 candidate is selected automatically.
+            total_lines_override: Override the form's total_lines. Used for
+                variable-length forms like romance (which has lines_per_stanza=[])
+                where the user specifies the desired line count via --lines.
 
         Returns:
             LoopResult with generated lines, scoring history, and brief used.
@@ -190,6 +204,7 @@ class ConstrainedLoop:
                 seeds=seeds,
                 level=brief_level,
                 language=self.language,
+                movement=movement,
             )
             result.brief = brief
 
@@ -200,8 +215,12 @@ class ConstrainedLoop:
             language=self.language,
         )
 
+        # Determine total lines: use override for variable-length forms (e.g., romance),
+        # otherwise use the form's defined total_lines.
+        total_lines = total_lines_override if total_lines_override is not None else self.form_spec.total_lines
+
         # Generate lines one by one, updating scorer target for variable patterns (e.g., haiku)
-        for line_index in range(self.form_spec.total_lines):
+        for line_index in range(total_lines):
             target_syllables = self.form_spec.syllables_for_line(line_index)
             target_rhyme_key = rhyme_tracker.target_key_for_line(line_index)
             example_rhyme_word = rhyme_tracker.example_word_for_line(line_index)
@@ -211,6 +230,13 @@ class ConstrainedLoop:
             _fidelity_text: str | None = None
             if brief and brief.fragments:
                 _fidelity_text = brief.fragments[0][0].content
+
+            # Observer: before generation
+            self._hooks.on_event(HookEvent(
+                line_index=line_index,
+                phase="before_generate",
+                data={"target_syllables": target_syllables, "theme": theme},
+            ))
 
             self._scorer = LineScorer(
                 phonology_backend=self._phonology,
@@ -240,6 +266,17 @@ class ConstrainedLoop:
                 continue
             scored = self._scorer.score_candidates(candidates, prior_lines=result.lines)
             result.scored_history.append(scored)
+
+            # Observer: after scoring
+            self._hooks.on_event(HookEvent(
+                line_index=line_index,
+                phase="after_score",
+                data={
+                    "n_candidates": len(scored),
+                    "best_score": scored[0].score if scored else 0,
+                    "best_line": scored[0].line if scored else "",
+                },
+            ))
 
             best = scored[0] if scored else None
             attempts = 0

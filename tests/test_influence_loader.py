@@ -127,3 +127,55 @@ class TestGetInfluencesByTone:
         upper = get_influences_by_tone("MELANCHOLIC")
         lower = get_influences_by_tone("melancholic")
         assert len(upper) == len(lower)
+
+
+class TestGetInfluencesByMovement:
+    """Tests for filtering by literary movement."""
+
+    def test_filters_generacion_del_98(self) -> None:
+        """Get influences from Generacion del 98."""
+        from poesia.memoria.influence_loader import get_influences_by_movement
+        results = get_influences_by_movement("Generación del 98")
+        assert len(results) >= 1
+        assert any(i.name == "Antonio Machado" for i in results)
+
+    def test_filters_romanticism(self) -> None:
+        """Get influences from Romanticism (matches both English and Spanish)."""
+        from poesia.memoria.influence_loader import get_influences_by_movement
+        results = get_influences_by_movement("Romanticism")
+        assert len(results) >= 2
+        assert any(i.name == "William Wordsworth" for i in results)
+        assert any(i.name == "John Keats" for i in results)
+
+    def test_case_insensitive_movement(self) -> None:
+        """Movement matching is case-insensitive."""
+        from poesia.memoria.influence_loader import get_influences_by_movement
+        upper = get_influences_by_movement("ROMANTICISM")
+        lower = get_influences_by_movement("romanticism")
+        assert len(upper) == len(lower) > 0
+
+    def test_returns_empty_for_unknown_movement(self) -> None:
+        """Unknown movement returns empty list."""
+        from poesia.memoria.influence_loader import get_influences_by_movement
+        results = get_influences_by_movement("NonExistentMovementXYZ")
+        assert len(results) == 0
+
+
+class TestGetInfluencesByEra:
+    """Tests for filtering by era/date range."""
+
+    def test_filters_1900s(self) -> None:
+        """Get influences active around 1900 (spanning turn of century)."""
+        from poesia.memoria.influence_loader import get_influences_by_era
+        results = get_influences_by_era("1890-1910")
+        ids = [i.id for i in results]
+        assert "antonio_machado" in ids  # 1875-1939
+        assert "ruben_dario" in ids     # 1867-1916
+
+    def test_filters_range(self) -> None:
+        """Get influences active in a date range."""
+        from poesia.memoria.influence_loader import get_influences_by_era
+        results = get_influences_by_era("1850-1900")
+        ids = [i.id for i in results]
+        assert "gustavo_adolfo_becquer" in ids  # 1836-1870
+        assert "manuel_acuna" in ids  # 1849-1873

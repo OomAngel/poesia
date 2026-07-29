@@ -8,7 +8,7 @@ P2: BriefBuilder now calls the injected GraphRAGRetriever (when available)
 via retrieve_with_paths() to obtain graph-traversal context. The retrieved
 paths are stored in GenerationBrief.graph_paths for CLI display.
 
-See docs/GENERATION_BRIEF.md for the full specification.
+See docs/ENRICHMENT.md (Generation Brief section) for the full specification.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from poesia.memoria.seed_expander import SeedExpander
 
 if TYPE_CHECKING:
     from poesia.memoria.embeddings import EmbeddingClient
-    from poesia.memoria.graphrag import GraphPath, GraphRAGRetriever
+    from poesia.memoria.graphrag import GraphRAGRetriever
 
 
 @dataclass
@@ -44,6 +44,8 @@ class GenerationBrief:
     rhyme_options: dict[str, list[str]] = field(default_factory=dict)
     exemplar_lines: list[str] = field(default_factory=list)
     influences: list[InfluenceRecord] = field(default_factory=list)
+    # Phase 4E: literary movement filter for influence matching
+    movement: str | None = None
     # P2: graph retrieval results — (node_id, score, GraphPath|None)
     graph_paths: list[tuple[str, float, Any]] = field(default_factory=list)
     level: str = "standard"
@@ -119,11 +121,12 @@ class GenerationBrief:
                 lines.append(f'> "{ex}"')
             lines.append("")
 
-        # Influences
-        if self.influences and self.level == "maximal":
+        # Influences — include at standard+ level (not just maximal)
+        if self.influences and self.level != "minimal":
             lines.append("## INFLUENCES\n")
             for inf in self.influences[:2]:
-                lines.append(f"**{inf.name}**: {', '.join(inf.tone[:3])}")
+                movement_tag = f" ({inf.movement})" if inf.movement else ""
+                lines.append(f"**{inf.name}**{movement_tag}: {', '.join(inf.tone[:3])}")
             lines.append("")
 
         # ── FEW-SHOT EXAMPLES ────────────────────────────────────────────
@@ -180,8 +183,8 @@ class BriefBuilder:
 
     def __init__(
         self,
-        embedding_client: "EmbeddingClient | None" = None,
-        retriever: "GraphRAGRetriever | None" = None,
+        embedding_client: EmbeddingClient | None = None,
+        retriever: GraphRAGRetriever | None = None,
         fragments: list[FragmentRecord] | None = None,
         influences: list[InfluenceRecord] | None = None,
     ) -> None:
@@ -216,6 +219,7 @@ class BriefBuilder:
         seeds: list[str] | None = None,
         level: Literal["minimal", "standard", "maximal"] = "standard",
         language: str | None = None,
+        movement: str | None = None,
     ) -> GenerationBrief:
         """Build a generation brief.
 
@@ -226,6 +230,7 @@ class BriefBuilder:
             seeds: List of seed words to expand.
             level: Brief verbosity (minimal/standard/maximal).
             language: Override language for seed expansion.
+            movement: Filter influences by literary movement (e.g., "Generacion del 98").
 
         Returns:
             GenerationBrief ready for LLM prompt rendering.
@@ -263,10 +268,10 @@ class BriefBuilder:
                 # Graph retrieval is best-effort; never crash brief assembly
                 graph_paths = []
 
-        # Match influences by tone
+        # Match influences by tone and/or movement
         matched_influences: list[InfluenceRecord] = []
-        if tone and self._influences:
-            matched_influences = self._match_influences(tone)
+        if self._influences:
+            matched_influences = self._match_influences(tone or [], movement)
 
         return GenerationBrief(
             form_spec=form_spec,
@@ -275,6 +280,7 @@ class BriefBuilder:
             fragments=fragments_scored,
             seeds_expanded=seeds_expanded,
             influences=matched_influences,
+            movement=movement,
             graph_paths=graph_paths,
             level=level,
         )
@@ -309,11 +315,34 @@ class BriefBuilder:
         scores.sort(key=lambda x: x[1], reverse=True)
         return scores[:k]
 
-    def _match_influences(self, tone: list[str]) -> list[InfluenceRecord]:
-        """Find influences matching the requested tone."""
+    def _match_influences(self, tone: list[str], movement: str | None = None) -> list[InfluenceRecord]:
+        """Find influences matching the requested tone and/or literary movement.
+
+        Args:
+            tone: List of tonal qualities to match.
+            movement: Optional literary movement to filter by (e.g. "Romanticism").
+
+        Returns:
+            Up to 3 best-matching influence records.
+        """
+        candidates = self._influences
+
+        # Filter by movement first if specified
+        if movement:
+            from poesia.memoria.influence_loader import get_influences_by_movement
+            movement_ids = {i.id for i in get_influences_by_movement(movement)}
+            candidates = [i for i in candidates if i.id in movement_ids]
+            if not candidates:
+                # Movement filter narrowed to zero — return empty gracefully
+                return []
+
+        # Then score by tone overlap
+        if not tone:
+            return candidates[:3]
+
         tone_set = set(t.lower() for t in tone)
         scored = []
-        for inf in self._influences:
+        for inf in candidates:
             inf_tones = set(t.lower() for t in inf.tone)
             overlap = len(tone_set & inf_tones)
             if overlap > 0:

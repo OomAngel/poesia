@@ -22,80 +22,65 @@ app = typer.Typer(help="PoesIA: a hybrid poetry-writing engine.")
 
 @app.command()
 def write(
-    theme: str = typer.Option(..., help="Thematic anchor, e.g. 'lluvia sobre piedra'."),
-    language: str = typer.Option("es", help="Language code: 'es', 'en', or 'nl'."),
-    form: str = typer.Option("soneto", help="Registered form name, see poesia.forms.definitions."),
-    n_candidates: int = typer.Option(16, help="Candidate lines generated per position."),
-    tone: str = typer.Option(None, help="Comma-separated tone descriptors, e.g. 'melancholic,intimate'."),
-    seeds: str = typer.Option(None, help="Comma-separated seed words to expand for rhymes/synonyms."),
-    brief_level: str = typer.Option("standard", help="Brief verbosity: minimal, standard, or maximal."),
-    use_brief: bool = typer.Option(False, "--brief", help="Use BriefBuilder for rich pre-generation context."),
-    llm: str = typer.Option("stub", help="LLM backend: 'stub', 'ollama', 'lora', 'outlines', 'gemini', 'openai', 'groq', or 'auto'."),
-    save: bool = typer.Option(False, "--save", help="Save the generated poem to the library (~/.poesia/poems/)."),
-    tags: str = typer.Option(None, help="Comma-separated tags for the saved poem."),
-    use_library: bool = typer.Option(False, "--use-library", help="Load existing poems from library for retrieval context."),
-    show_alternatives: int = typer.Option(0, "--show-alternatives", help="Show top N alternative candidates per line with score breakdowns."),
-    show_retrieval: bool = typer.Option(False, "--show-retrieval", help="Show which fragments and influences were retrieved for context."),
-    interactive: bool = typer.Option(False, "--interactive", help="Choose each line interactively from scored candidates."),
-    yes: bool = typer.Option(False, "--yes", help="Skip privacy confirmation when sending personal context to a hosted LLM."),
+    theme: str = typer.Option(..., help="Thematic anchor."),
+    language: str = typer.Option("es", help="Language code: 'es', 'en', 'nl'."),
+    form: str = typer.Option("soneto", help="Registered form name."),
+    n_candidates: int = typer.Option(16, help="Candidate lines per position."),
+    tone: str = typer.Option(None, help="Comma-separated tone descriptors."),
+    seeds: str = typer.Option(None, help="Comma-separated seed words."),
+    brief_level: str = typer.Option("standard", help="Brief verbosity."),
+    use_brief: bool = typer.Option(False, "--brief", help="Use BriefBuilder."),
+    llm: str = typer.Option("stub", help="LLM backend."),
+    save: bool = typer.Option(False, "--save", help="Save to library."),
+    tags: str = typer.Option(None, help="Comma-separated tags."),
+    use_library: bool = typer.Option(False, "--use-library"),
+    show_alternatives: int = typer.Option(0, "--show-alternatives"),
+    show_retrieval: bool = typer.Option(False, "--show-retrieval"),
+    interactive: bool = typer.Option(False, "--interactive"),
+    yes: bool = typer.Option(False, "--yes"),
+    lines: int = typer.Option(None, "--lines"),
+    movement: str = typer.Option(None, "--movement"),
 ) -> None:
-    """Generate a poem using the constrained generate/validate/repair loop.
+    """Generate a poem using WriteConfig + Registry pattern."""
+    from poesia.config.types import WriteConfig
+    from poesia.generation.registry import get_llm, list_backends
 
-    With --brief, uses BriefBuilder to assemble rich context from personal
-    fragments, seed expansions, and influence matching before generation.
-
-    With --save, saves the generated poem to the personal library with full
-    provenance metadata (model, seeds, tone, fragments used).
-
-    With --use-library, loads existing poems from the library and uses them
-    as additional context for semantic retrieval during generation.
-
-    With --yes, skips the privacy confirmation prompt when --brief sends
-    personal fragments to a hosted LLM provider (Groq, Gemini, OpenAI).
-    Use in scripts or when you have already consented in this session.
-
-    With --show-retrieval, prints which personal fragments and influences were
-    retrieved and their similarity scores before generation begins.
-
-    With --interactive, pauses after generating and scoring candidates for each
-    line and lets you pick the one you want. Press Enter to accept the top-scored
-    candidate, or type a number to choose another.
-
-    LLM backends:
-      - stub: Deterministic placeholder (default, no API key needed)
-      - ollama: Local Ollama instance (requires ollama serve running)
-      - lora: Fine-tuned 3B model via QLoRA (requires trained adapter)
-      - outlines: Grammar-constrained generation via Outlines (single-line enforcement)
-      - gemini: Google Gemini API (requires GEMINI_API_KEY env var)
-      - openai: OpenAI API (requires OPENAI_API_KEY env var)
-      - groq: Groq Cloud API (requires GROQ_API_KEY env var)
-      - auto: Use first available API key (Gemini → Groq → OpenAI)
-    """
-    from poesia.generation.constrained_loop import ConstrainedLoop
-    from poesia.generation.llm_client import HostedLLMClient, LoRAClient, OllamaClient, OutlinesClient, StubLLMClient
-
-    # Parse comma-separated options
+    # Build validated config
     tone_list = [t.strip() for t in tone.split(",")] if tone else None
     seeds_list = [s.strip() for s in seeds.split(",")] if seeds else None
 
-    # Select LLM backend
-    if llm == "stub":
-        llm_client = StubLLMClient()
-    elif llm == "ollama":
-        llm_client = OllamaClient()
-        rprint(f"[dim]Using LLM: Ollama ({llm_client.model})[/dim]")
-    elif llm == "lora":
-        llm_client = LoRAClient()
-        rprint(f"[dim]Using LLM: LoRA ({llm_client.model})[/dim]")
-    elif llm == "outlines":
-        llm_client = OutlinesClient()
-        rprint(f"[dim]Using LLM: Outlines-constrained ({llm_client.model})[/dim]")
-    elif llm in ("gemini", "openai", "groq", "auto"):
-        llm_client = HostedLLMClient(provider=llm)
-        rprint(f"[dim]Using LLM: {llm_client.provider} ({llm_client.model})[/dim]")
-    else:
-        rprint(f"[red]Unknown LLM backend: {llm}. Using stub.[/red]")
-        llm_client = StubLLMClient()
+    config = WriteConfig.build(
+        theme=theme,
+        form=form,
+        language=language,
+        llm=llm,
+        n_candidates=n_candidates,
+        max_repair_attempts=2,
+        tone=tone_list,
+        seeds=seeds_list,
+        brief_level=brief_level,
+        use_brief=use_brief,
+        save=save,
+        tags=[t.strip() for t in tags.split(",")] if tags else None,
+        use_library=use_library,
+        show_alternatives=show_alternatives,
+        show_retrieval=show_retrieval,
+        interactive=interactive,
+        yes=yes,
+        lines=lines,
+        movement=movement,
+    )
+
+    # Resolve LLM client via registry
+    try:
+        llm_client = get_llm(config.llm)
+    except ValueError as e:
+        rprint(f"[red]{e}[/red]")
+        rprint(f"[dim]Available backends: {', '.join(list_backends())}[/dim]")
+        raise typer.Exit(1)
+
+    rprint(f"[dim]Using LLM: {llm_client.provider + ' ' if hasattr(llm_client, 'provider') else ''}"
+           f"({llm_client.model if hasattr(llm_client, 'model') else config.llm})[/dim]")
 
     # Build the loop with optional brief builder
     brief_builder = None
@@ -158,8 +143,8 @@ def write(
         except Exception as e:
             from poesia.memoria.embeddings import StubEmbeddingClient
             embedding_client = StubEmbeddingClient()
-            rprint(f"[yellow]⚠[/yellow]  [bold]Degraded mode:[/bold] No sentence-transformers available")
-            rprint(f"[dim]   Theme and novelty scoring disabled. Install with: pip install -e '.[nlp]'[/dim]")
+            rprint("[yellow]⚠[/yellow]  [bold]Degraded mode:[/bold] No sentence-transformers available")
+            rprint("[dim]   Theme and novelty scoring disabled. Install with: pip install -e '.[nlp]'[/dim]")
             rprint(f"[dim]   Error: {e}[/dim]")
 
         brief_builder = BriefBuilder(
@@ -178,6 +163,7 @@ def write(
             seeds=seeds_list,
             level=brief_level,
             language=language,
+            movement=movement,
         )
         rprint("\n[bold]── Retrieved context ──[/bold]")
         if preview_brief.fragments:
@@ -201,7 +187,7 @@ def write(
             for inf in preview_brief.influences:
                 rprint(f"  [cyan]{inf.name}[/cyan]  tone: {', '.join(inf.tone[:3])}")
         if preview_brief.seeds_expanded:
-            rprint(f"\n[bold]Seed expansions[/bold]:")
+            rprint("\n[bold]Seed expansions[/bold]:")
             for word, exp in preview_brief.seeds_expanded.items():
                 syns = ", ".join(exp.synonyms[:4]) if exp.synonyms else "—"
                 rprint(f"  [cyan]{word}[/cyan] → synonyms: {syns}")
@@ -301,6 +287,8 @@ def write(
         seeds=seeds_list,
         brief_level=brief_level,
         line_selector=line_selector,
+        total_lines_override=lines,
+        movement=movement,
     )
     _gen_latency_ms = int((_time.time() - _t0) * 1000)
 
@@ -487,47 +475,72 @@ galeria_app = typer.Typer(help="GalerIA: illustration for a poem (auca-style).")
 
 @galeria_app.command("illustrate")
 def galeria_illustrate(
-    path: str = typer.Argument(..., help="Path to a text file with the poem."),
+    path: str = typer.Argument(None, help="Path to a text file with the poem."),
     style: str = typer.Option("grabado español", help="Style tag passed to the image backend."),
     output: str = typer.Option("auca.pdf", help="Output PDF path."),
     use_influences: bool = typer.Option(False, "--style-from-influences", help="Derive style from matched influences."),
     tone: str = typer.Option(None, help="Comma-separated tones for influence matching."),
+    from_library: str = typer.Option(None, "--from-library", help="Load poem from library by ID."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print the image prompt without generating."),
 ) -> None:
     """Generate an illustrated auca-style sheet for a poem.
 
-    With --style-from-influences, derives visual style from poetic influences
-    matched by the provided tones. Maps movements like Generación del 98,
-    Romanticism, Surrealism to appropriate visual styles.
+    Provide a poem file path, or use --from-library <id> to load from the library.
+    With --dry-run, prints the image prompt that would be used.
     """
     from poesia.galeria.auca import AucaComposer, AucaPanel
     from poesia.galeria.backends import StubImageBackend
 
-    with open(path, encoding="utf-8") as f:
-        lines = [ln.strip() for ln in f if ln.strip()]
+    lines: list[str] = []
+
+    if from_library:
+        from poesia.memoria.library import Library
+        library = Library()
+        poem = library.get(from_library)
+        if poem is None:
+            rprint(f"[red]Poem '{from_library}' not found in library.[/red]")
+            raise typer.Exit(1)
+        lines = [l.strip() for l in poem.content.strip().split("\n") if l.strip()]
+        rprint(f"[dim]Loaded poem '{poem.id}' from library ({len(lines)} lines)[/dim]")
+    elif path:
+        with open(path, encoding="utf-8") as f:
+            lines = [ln.strip() for ln in f if ln.strip()]
+    else:
+        rprint("[red]Provide a poem file path or use --from-library <id>.[/red]")
+        raise typer.Exit(1)
 
     # Phase 4C: Style anchoring from influences
     final_style = style
     if use_influences:
         from poesia.galeria.style_anchoring import style_from_influences
-
         influences = _load_influences()
         if tone:
             tone_list = [t.strip().lower() for t in tone.split(",")]
-            # Filter influences by matching tones
             matched = [
                 inf for inf in influences
                 if any(t in [it.lower() for it in inf.tone] for t in tone_list)
             ]
         else:
-            matched = influences[:5]  # Use first 5 if no tone specified
-
+            matched = influences[:5]
         influence_style = style_from_influences(matched)
         if influence_style:
             final_style = f"{influence_style}, {style}"
             rprint(f"[dim]Style from influences: {influence_style}[/dim]")
 
+    # Build image prompt from poem imagery
+    from poesia.galeria.imagery import build_image_prompt, extract_imagery
+    imagery = extract_imagery(lines, language="es")
+    image_prompt = build_image_prompt(imagery, theme="", style=final_style)
+
+    rprint(f"[dim]Imagery extracted: {len(imagery['nouns'])} nouns, {len(imagery['phrases'])} phrases, "
+           f"{len(imagery['sensory_modalities'])} senses[/dim]")
+
+    if dry_run:
+        rprint(f"\n[bold]Image prompt:[/bold]\n{image_prompt}\n")
+        return
+
     backend = StubImageBackend()
-    image_bytes = backend.generate_image(prompt=" ".join(lines), style=final_style)
+    image_bytes = backend.generate_image(prompt=image_prompt, style=final_style)
     panel = AucaPanel(image_bytes=image_bytes, caption_lines=lines)
     composer = AucaComposer()
     composer.export_pdf([panel], output_path=output)  # raises NotImplementedError today
@@ -580,7 +593,6 @@ def _parse_fragment_frontmatter(content: str) -> dict:
 
 def _parse_yaml_list(yaml_block: str, key: str) -> list[str] | None:
     """Helper: parse a YAML list value for *key* -- either inline [a, b] or block - a."""
-    import re
     # First pass: try inline list [a, b]
     for line in yaml_block.splitlines():
         ls = line.strip()
@@ -829,7 +841,7 @@ def memoria_add_influence(
         id=name.lower().replace(" ", "_"), name=name, language=language, tone=tone_list
     )
     rprint(f"[green]✓[/green] Added influence '{influence.name}' — tone: {', '.join(tone_list)}")
-    rprint(f"[dim]  (To persist, add to docs/INFLUENCE_REGISTRY.md)[/dim]")
+    rprint("[dim]  (To persist, add to docs/INFLUENCE_REGISTRY.md)[/dim]")
 
 
 @memoria_app.command("list-fragments")

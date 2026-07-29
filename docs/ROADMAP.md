@@ -34,21 +34,21 @@
 - [x] `GraphRAGRetriever.ingest` / `.retrieve` in `memoria/graphrag.py`
 
 ### 3B: Embedding Layer ✅
-- [x] `EmbeddingClient` Protocol + `SentenceTransformerClient` (`e5-base`)
+- [x] `EmbeddingClient` Protocol + `SentenceTransformerClient` (`e5-base` → `e5-small`)
 - [x] `StubEmbeddingClient` for testing (deterministic)
 - [x] `get_embedding_client()` factory
-- [ ] Auto-embed on ingest (wiring pending)
+- [x] Auto-embed on ingest (wired in Phase 4D)
 
-### 3C: Extended Node Types ✅ (see `INGESTION_SCHEMA.md`)
+### 3C: Extended Node Types ✅ (see `docs/ENRICHMENT.md` — Ingestion Schema)
 - [x] `FragmentRecord` — life moments, feelings, emotional states
 - [x] `SeedRecord` + `SeedExpansion` — word/image clusters with 11 expansion dimensions
 - [x] `InfluenceRecord` — poets/works that resonate
 - [x] `SeedExpander` — WordNet + rhyme + semantic + Datamuse expansion
-- [x] First 10 personal fragments in `seeds/angel_fragments/`
+- [x] First 10 personal fragments in `seeds/angel_fragments/` (now 26)
 - [x] Influence registry (24 poets) in `docs/INFLUENCE_REGISTRY.md`
-- [ ] Ingestion CLI: `poesia memoria add-fragment|add-seed|add-influence`
+- [x] Ingestion CLI: `poesia memoria add-fragment|add-seed|add-influence|list-fragments|list-influences`
 
-### 3D: Pre-Generation Enrichment ✅ (see `ENRICHMENT_ARCHITECTURE.md`)
+### 3D: Pre-Generation Enrichment ✅ (see `docs/ENRICHMENT.md`)
 - [x] `BriefBuilder` class — assembles generation brief from:
   - Form spec + tone/theme inputs
   - Retrieved fragments (semantic similarity)
@@ -63,7 +63,7 @@
 - [x] CLI: `poesia write --theme X --tone Y --seeds "a,b" --brief-level standard --brief`
 - [x] CLI: `poesia memoria add-fragment|add-seed|add-influence|list-fragments|list-influences`
 - [x] Integration tests in `tests/test_integration_phase3e.py`
-- [ ] Wire retrieval into `GalerIA` for illustration style anchoring (deferred to Phase 4)
+- [ ] Wire retrieval into `GalerIA` for illustration style anchoring (deferred to future phase)
 
 ## Workflow Model
 
@@ -145,15 +145,52 @@ See `ENRICHMENT_ARCHITECTURE.md` for the full design.
 
 **Total tests after Phase 5: 285**
 
-## Phase 6 — Next (P2: Graph structure)
+## Phase 6 — P2 Graph structure ✅
 
-- [ ] Typed graph nodes and relations (poem→influence `inspired_by`, poem→theme `explores`, etc.)
-- [ ] Bounded graph expansion with explainable paths
-- [ ] `--show-retrieval` extended to show graph path, not just cosine score
-- [ ] Compare dense-only vs graph-enhanced context on same prompt
+- [x] Typed graph nodes and relations (`NodeType`, `RelationType`: poem, fragment, influence, seed, theme)
+- [x] Bounded graph expansion with explainable paths (`GraphHop`, `GraphPath`, `traverse()`)
+- [x] `--show-retrieval` extended to show graph path chains
+- [x] Dense-only vs graph-enhanced comparison via `retrieve_with_paths()`
+- [x] P2 evidence gate: `test_dense_vs_graph_retrieval_differ()`
 
 ## Explicit non-goals for now
 
 - No web frontend until concrete need emerges — Python-only
 - No C++ code — `llama.cpp`, eSpeak NG, OpenFst only if scale demands
 - No neo4j — NetworkX + JSON sufficient for personal corpus size
+
+---
+
+## Retraining history & approach
+
+### Why the first fine-tune fell short
+
+| What we did | What we should have done |
+|---|---|
+| Format: `"Poem:\n{text}"` | Format: explicit form/language/syllable/rhyme annotations |
+| 9,622 poems, unfiltered | 1,000-2,000 fully structured poems |
+| 2 epochs (52 min) | 10 epochs (4-5 hours) |
+| LoRA r=16, 3 modules | LoRA r=64, all linear layers |
+| Loss only metric | Loss + phonological validity + human eval |
+
+### Second run (v2) results
+
+- 500 structured sonetos, LoRA r=16, 10 epochs, loss=2.69
+- Line count: 100% (14/14), Syllable deviation: 1.1 (56% improvement over v1)
+- Adapter: `models/poetry-lora-v2/final_adapter/`
+- Run ID: `20260728_231807`
+
+### Proposed retraining (v3: multi-form)
+
+See `mlops/configs/train_multiform.yaml` — r=32, 12 epochs, 1,246 poems across 5 forms.
+
+### Key techniques still to explore
+
+| Technique | What it does |
+|---|---|
+| **DSPy prompt optimization** | Algorithmically searches for optimal prompt format |
+| **RL / DPO with scorer as reward** | Train to maximize metre+rhyme score, not next-token loss |
+| **Grammar-constrained decoding** | Constrain token generation at inference (Outlines) |
+| **Knowledge distillation** | Use Groq to generate perfect sonetos, train 1.5B to imitate |
+| **Unsloth** | 2x faster training, 50% less memory |
+| **Synthetic data augmentation** | Generate variations with theme swaps, syllable errors |

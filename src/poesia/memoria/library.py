@@ -201,6 +201,37 @@ class Library:
             )
         return records
 
+    def get(self, poem_id: str) -> PoemRecord | None:
+        """Fetch a single poem by its ID.
+
+        Args:
+            poem_id: The unique poem identifier.
+
+        Returns:
+            PoemRecord if found, None otherwise.
+        """
+        cursor = self._conn.cursor()
+        cursor.execute(
+            """SELECT id, language, form, theme, created_at, tags, content
+               FROM poems WHERE id = ?""",
+            (poem_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        pid, lang, form, theme, created_at, tags_str, content = row
+        record = PoemRecord(
+            id=pid,
+            language=lang,
+            form=form,
+            theme=theme,
+            created_at=datetime.fromisoformat(created_at) if created_at else datetime.now(),
+            tags=[t.strip() for t in tags_str.split(",") if t.strip()],
+            lines=content.split("\n") if content else [],
+            content=content or "",
+        )
+        return record
+
     def search(self, query: str) -> list[PoemRecord]:
         """Substring search across theme, tags and line text using SQLite index."""
         q = f"%{query.lower()}%"
@@ -240,7 +271,7 @@ class Library:
 
         for filepath in self.storage_dir.glob("*.md"):
             try:
-                with open(filepath, "r", encoding="utf-8") as f:
+                with open(filepath, encoding="utf-8") as f:
                     text = f.read()
 
                 match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", text, re.DOTALL)

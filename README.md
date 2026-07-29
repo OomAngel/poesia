@@ -95,7 +95,7 @@ ArmonIA turns the poem into music. They are neighbors, not synonyms.
 | English  | `pronouncing` + CMUdict, `prosodic`, `phonemizer` (OOV) | iambic pentameter, syllabics, free verse |
 | Multilingual | `phonemizer` (eSpeak NG backend), `epitran` (IPA) | — |
 
-See `docs/PACKAGES_SURVEYED.md` for the full package survey, including
+See `docs/ARCHITECTURE.md` (Package survey section) for the full package survey, including
 illustration and music backends.
 
 ---
@@ -131,6 +131,8 @@ See `docs/ROADMAP.md`.
 **Phase 2 ✅**: GalerIA (DALL-E/Replicate) + ArmonIA (MIDI/TTS).
 **Phase 3 ✅**: Graph RAG in MemorIA, BriefBuilder enrichment, seed expansion.
 **Phase 4 ✅**: Real LLM integration, richer influences, GalerIA style anchoring.
+**Phase 5 ✅**: P0–P5 hardening: Groq, directive prompts, rhyme tracking, interactive CLI,
+              privacy controls, structured errors, index compatibility, evaluation corpus.
 
 ### Current capabilities
 - **Spanish sinalefa handling** — correct metrical syllable counting with vowel elision
@@ -166,15 +168,46 @@ poesia/
 
 ## Status
 
-**Phase 4 complete + P0/P1 RAG/LLM hardening** (2026-07-27). **228 tests passing.**
+**Phases 0–5 complete + P0–P5 RAG/LLM hardening** (2026-07-28). **400+ tests passing.**
 
-### Recent Updates (2026-07-27)
-- ✅ Fixed haiku 5-7-5 syllable pattern (was broken)
-- ✅ Adaptive weight normalization for better score differentiation
-- ✅ Explicit degraded mode messaging when embeddings unavailable
-- ✅ `--show-alternatives` flag for candidate inspection
-- ✅ Complete library workflow verified (save → retrieve → generate → provenance)
-- ✅ Spanish sinalefa (vowel elision) for correct metrical counting
-- ✅ Real semantic scoring with multilingual E5 embeddings
+### Recent Updates (2026-07-28)
+- ✅ Multi-form training infrastructure (MLOps: config-driven, experiments DB, A/B compare)
+- ✅ Grammar-constrained generation via Outlines (`--llm outlines`)
+- ✅ LoRA fine-tuning with Qwen2.5-1.5B + QLoRA (`--llm lora`)
+- ✅ Real LLM backends: Groq, Gemini, OpenAI (`--llm groq|gemini|openai`)
+- ✅ Local offline inference via Ollama (`--llm ollama`)
+- ✅ Directive prompts: syllable targets, rhyme word banks, anti-repetition
+- ✅ RhymeTracker with per-letter-group commitments + Datamuse/CMUdict word banks
+- ✅ Typed graph nodes/edges + bounded traversal with explainable paths
+- ✅ Interactive line selection (`--interactive`) and retrieval display (`--show-retrieval`)
+- ✅ Privacy confirmation before personal context reaches hosted providers
+- ✅ Structured exception hierarchy (`PoesiaError`, 10 subtypes)
+- ✅ Embedding profile frozen to `intfloat/multilingual-e5-small` (384-dim)
+- ✅ Index compatibility enforcement, atomic writes, source fingerprinting
+- ✅ Distillation pipeline (Groq → clean sonetos) for synthetic training data
 
-See `USAGE_GUIDE.md` for complete feature documentation and `LIBRARY_WORKFLOW_TEST.md` for P1 verification.
+See `USAGE_GUIDE.md` for complete feature documentation and `docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md` for the full hardening scope.
+
+---
+
+## Naming rationale
+
+### PoesIA — the hidden pun
+
+*Poesía* is simply the Spanish word for "poetry." Read the last three letters as **IA** (*Inteligencia Artificial* — "AI") and the pun is already there, unforced. Nothing invented.
+
+Every sub-brand follows the same pattern — a genuine Spanish noun ending in "-ía" whose literal meaning matches the module's responsibility (see the -IA family table above).
+
+### Naming search history
+
+Earlier candidates that were explored and rejected:
+- **poiesis** (Greek "making") — fine but not bilingual EN/ES-flavored enough
+- root+suffix mashups (`coplai`, `rimagraph`, `silvagraph`) — felt mechanical
+- "hidden pun in a real word" tricks in English (`SoNNet`) — collides with Anthropic's Claude Sonnet
+- movie-pastiche jokes (`Rhymenator`, `Trovatron`) — fun but not durable branding
+
+**PoesIA** won because it is the *exact* real word, works identically in speech and text, and the -IA family pattern reproduces cleanly across every other relevant Spanish "-ía" word.
+
+### PyPI availability
+
+`poesia` is unregistered on PyPI (HTTP 404 at check). Irrelevant until/unless this repo is ever published — it remains a local, personal repository.

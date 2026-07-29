@@ -13,6 +13,9 @@ import yaml
 import torch
 import hashlib
 import datetime
+import os
+# MLflow tracking URI: DATABASE_URL env var, or fallback to SQLite
+import mlflow
 from pathlib import Path
 from datasets import Dataset
 from transformers import (
@@ -44,8 +47,55 @@ def main():
     from data_manifest import compute_manifest
     data_manifest = compute_manifest(train_path)
     print(f"Data: {data_manifest['record_count']} records, SHA256: {data_manifest['sha256'][:16]}...")
-
-    # ── Experiment tracking ────────────────────────────────────────────
+    
+    # ── Data lineage (provenance tracking) ────────────────────────────
+    data_lineage = {
+        "dataset_version": "v1",
+        "source_files": data_manifest.get("sources", [train_path]),
+        "data_forms": data_manifest.get("forms", []),
+        "record_count": data_manifest["record_count"],
+        "data_sha256": data_manifest["sha256"][:16],
+        "git_commit": git_hash,
+        "config_file": config_path,
+    }
+    
+    # ── MLflow tracking ────────────────────────────────────────────────
+    # Requires Docker PostgreSQL running (docker compose up -d)
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        print("ERROR: DATABASE_URL not set. Start CronologIA first:")
+        print("  cd cronologia && docker compose up -d")
+        print("  export DATABASE_URL=postgresql://mlflow:mlflow@localhost:5432/mlflow")
+        sys.exit(1)
+    mlflow.set_tracking_uri(db_url)
+    experiment_name = cfg.get("experiment", "poesia-training")
+    try:
+        mlflow.create_experiment(experiment_name, artifact_location=f"./mlruns/{experiment_name}")
+    except Exception:
+        pass  # Experiment already exists
+    mlflow.set_experiment(experiment_name)
+    
+    with mlflow.start_run(run_name=cfg.get("run_name", f"run_{run_id}")):
+        # Log all config params
+        mlflow.log_param("model", model_name)
+        mlflow.log_param("lora_r", cfg.get("lora_r", 16))
+        mlflow.log_param("lora_alpha", cfg.get("lora_alpha", 32))
+        mlflow.log_param("lora_dropout", cfg.get("lora_dropout", 0.05))
+        mlflow.log_param("batch_size", cfg.get("batch_size", 8))
+        mlflow.log_param("gradient_accumulation", cfg.get("gradient_accumulation", 2))
+        mlflow.log_param("epochs", cfg.get("epochs", 10))
+        mlflow.log_param("learning_rate", cfg.get("learning_rate", 2e-4))
+        mlflow.log_param("max_length", cfg.get("max_length", 300))
+        mlflow.log_param("data_records", data_manifest["record_count"])
+        mlflow.log_param("data_sha256", data_manifest["sha256"][:16])
+        mlflow.log_param("config", config_path)
+        mlflow.log_param("data_lineage", json.dumps(data_lineage, indent=2))
+        mlflow.log_param("data_forms", ",".join(data_manifest.get("forms", [])))
+        mlflow.log_param("git_commit", git_hash)
+        run_id_mlflow = mlflow.active_run().info.run_id
+        print(f"MLflow run ID: {run_id_mlflow}")
+    
+        # ── Experiment tracking ────────────────────────────────────────────
     run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     # Capture git commit hash for reproducibility
     git_hash = "unknown"
@@ -181,7 +231,7 @@ def main():
         save_strategy="steps",
         save_steps=cfg.get('save_steps', 100),
         save_total_limit=1,
-        report_to="none",
+        report_to="mlflow",
         remove_unused_columns=False,
     )
 
@@ -196,8 +246,33 @@ def main():
     print("Starting training...")
     trainer.train()
     
-    # Update run log with results
+    # Log final metrics to MLflow
     train_result = trainer.state.log_history
+    final_loss = None
+    if train_result:
+        # Get the last logged loss (train or eval)
+        for entry in reversed(train_result):
+            if "loss" in entry:
+                final_loss = entry["loss"]
+                break
+        if final_loss is not None:
+            mlflow.log_metric("final_loss", final_loss)
+    
+    # Log training metrics
+    if hasattr(trainer.state, "log_history"):
+        for entry in trainer.state.log_history:
+            if "loss" in entry and "step" in entry:
+                mlflow.log_metric("train_loss", entry["loss"], step=entry["step"])
+            if "eval_loss" in entry:
+                mlflow.log_metric("eval_loss", entry["eval_loss"], step=entry.get("step", 0))
+    
+    # Log adapter as artifact
+    adapter_final = os.path.join(output_dir, "final_adapter")
+    if os.path.exists(adapter_final):
+        mlflow.log_artifacts(adapter_final, artifact_path="adapter")
+        mlflow.log_param("adapter_path", adapter_final)
+    
+    # Update run log with results
     final_loss = None
     for entry in reversed(train_result):
         if "loss" in entry:

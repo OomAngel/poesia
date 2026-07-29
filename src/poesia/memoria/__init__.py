@@ -14,7 +14,9 @@ The Graph RAG layer uses semantic embeddings to retrieve personal context
 
 from poesia.memoria.influence_loader import (
     get_influence_by_id,
+    get_influences_by_era,
     get_influences_by_language,
+    get_influences_by_movement,
     get_influences_by_tone,
     load_influences,
 )

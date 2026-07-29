@@ -13,7 +13,7 @@ import os
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Protocol
 
 
@@ -600,10 +600,11 @@ class OutlinesClient:
     def _load(self):
         if self._model_wrapper is not None:
             return
-        from poesia.exceptions import LLMProviderError
+        import outlines
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-        import outlines
+
+        from poesia.exceptions import LLMProviderError
         bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16)
         try:
             tokenizer = AutoTokenizer.from_pretrained(self.model)
@@ -618,8 +619,10 @@ class OutlinesClient:
             raise LLMProviderError(f"Failed to load model: {e}", provider="outlines") from e
 
     def generate(self, prompt, n=1, temperature=0.9):
-        import time, torch
+        import time
+
         import outlines.generator as og
+        import torch
         self._load()
         self.usage = LLMUsage()
         t0 = time.time()
@@ -663,26 +666,42 @@ class LoRAClient:
 
     _DEFAULT_BASE = "Qwen/Qwen2.5-1.5B-Instruct"
 
+    # Known adapter paths tried in priority order (newest first)
+    _KNOWN_ADAPTERS = [
+        "models/poetry-lora-distilled/final_adapter",
+        "models/poetry-lora-multiform/final_adapter",
+        "models/poetry-lora-v2/final_adapter",
+        "models/poetry-lora-3b/final_adapter",
+    ]
+
     def __init__(
         self,
         adapter_path: str | None = None,
         base_model: str | None = None,
     ) -> None:
-        from poesia.exceptions import LLMProviderError
         import os
 
         self.usage: LLMUsage = LLMUsage()
         self.provider = "lora"
         self.model = base_model or self._DEFAULT_BASE
 
+        # Resolve adapter path: env var > explicit arg > known paths
         if adapter_path is None:
-            # Resolve relative to repo root (3 levels up from llm_client.py)
-            pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-            candidate = os.path.join(pkg_root, "models", "poetry-lora-3b", "final_adapter")
-            if os.path.exists(candidate):
-                adapter_path = candidate
+            env_path = os.environ.get("LORA_ADAPTER_PATH")
+            if env_path and os.path.exists(env_path):
+                adapter_path = env_path
+                print(f"[LoRA] Using adapter from LORA_ADAPTER_PATH: {adapter_path}")
             else:
-                print(f"[LoRA] No adapter found at {candidate}. Using base model only.")
+                # Resolve relative to repo root (3 levels up from llm_client.py)
+                pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                for candidate_rel in self._KNOWN_ADAPTERS:
+                    candidate = os.path.join(pkg_root, candidate_rel)
+                    if os.path.exists(candidate):
+                        adapter_path = candidate
+                        print(f"[LoRA] Found adapter: {candidate_rel}")
+                        break
+                if adapter_path is None:
+                    print(f"[LoRA] No adapter found. Tried: {', '.join(self._KNOWN_ADAPTERS)}. Using base model only.")
         else:
             if not os.path.exists(adapter_path):
                 print(f"[LoRA] Adapter path {adapter_path} not found. Using base model only.")
@@ -694,9 +713,10 @@ class LoRAClient:
     def _load(self) -> None:
         if self._model is not None:
             return
-        from poesia.exceptions import LLMProviderError
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+
+        from poesia.exceptions import LLMProviderError
 
         bnb = BitsAndBytesConfig(
             load_in_4bit=True,
@@ -717,8 +737,9 @@ class LoRAClient:
             raise LLMProviderError(f"Failed to load model '{self.model}': {e}", provider="lora") from e
 
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
-        from poesia.exceptions import LLMProviderError
-        import time, torch
+        import time
+
+        import torch
         self._load()
         self.usage = LLMUsage()
         t0 = time.time()

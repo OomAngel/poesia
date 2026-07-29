@@ -1,0 +1,47 @@
+{
+  "run_id": "20260729_144938",
+  "experiment": "soneto-distilled",
+  "run_name": "v1-distilled",
+  "git_commit": "1d8fe71dc723",
+  "config": "mlops/configs/train_distilled.yaml",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "data_sha256": "9ddde4bd9fec0a95d2057a909ea0302c0460186165a3325ee6607215b8ea4f43",
+  "data_records": 200,
+  "train_data": "seeds/poetry_corpus/training_data_distilled/sonetos.jsonl",
+  "eval_data": "seeds/poetry_corpus/training_data_distilled/sonetos.jsonl",
+  "lora_r": 32,
+  "lora_alpha": 64,
+  "lora_dropout": 0.1,
+  "batch_size_per_device": 8,
+  "gradient_accumulation": 2,
+  "effective_batch": 16,
+  "epochs": 10,
+  "learning_rate": 0.0001,
+  "max_length": 300,
+  "fp16": true,
+  "tags": [
+    "soneto",
+    "distilled",
+    "groq",
+    "r32"
+  ],
+  "start_time": "2026-07-29T14:49:38.803461",
+  "end_time": "2026-07-29T14:57:36.112126",
+  "duration_s": 477.308665,
+  "train_samples": 200,
+  "eval_samples": 200,
+  "train_loss": 1.1208845138549806,
+  "eval_loss": null,
+  "train_runtime_s": 3237535455363072.0,
+  "data_sources": [
+    "distilled"
+  ],
+  "data_forms": [
+    "soneto"
+  ],
+  "status": "evaluated",
+  "adapter_path": "models/poetry-lora-distilled/final_adapter",
+  "eval_syllable_deviation": 2.11,
+  "eval_line_count_accuracy": 1.0,
+  "eval_avg_line_count": 14.0
+}
