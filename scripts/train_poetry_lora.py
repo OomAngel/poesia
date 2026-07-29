@@ -48,6 +48,14 @@ def main():
     data_manifest = compute_manifest(train_path)
     print(f"Data: {data_manifest['record_count']} records, SHA256: {data_manifest['sha256'][:16]}...")
     
+    # Capture git commit hash for reproducibility
+    git_hash = "unknown"
+    try:
+        import subprocess
+        git_hash = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()[:12]
+    except Exception:
+        pass
+    
     # ── Data lineage (provenance tracking) ────────────────────────────
     data_lineage = {
         "dataset_version": "v1",
