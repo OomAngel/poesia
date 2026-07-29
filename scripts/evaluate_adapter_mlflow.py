@@ -9,6 +9,16 @@ import argparse
 import json
 import os
 import mlflow
+
+# MLflow setup
+mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "sqlite:///mlruns/mlflow.db"))
+# Ensure default experiment exists
+try:
+    mlflow.create_experiment("poesia-evaluation", artifact_location="./mlruns/poesia-evaluation")
+except Exception:
+    pass
+mlflow.set_experiment("poesia-evaluation")
+
 from poesia.generation.llm_client import LoRAClient
 from poesia.phonology.spanish import SpanishPhonology
 from poesia.evaluation.scorer import LineScorer

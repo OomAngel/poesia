@@ -40,8 +40,7 @@ def search_best_adapter(metric="eval_loss", goal="minimize", experiment=None):
     Returns:
         (run_id, adapter_path, metric_value) or None
     """
-    os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
-    mlflow.set_tracking_uri("file:./mlruns")
+    mlflow.set_tracking_uri("sqlite:///mlruns/mlflow.db")
     from mlflow.tracking import MlflowClient
     client = MlflowClient()
     
@@ -328,62 +327,7 @@ def main():
     print("Starting training...")
     trainer.train()
     
-    # Save training curve as figure
-    try:
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-        
-        fig, ax = plt.subplots(figsize=(10, 6))
-        steps = []
-        losses = []
-        eval_steps = []
-        eval_losses = []
-        for entry in trainer.state.log_history:
-            if "loss" in entry and "step" in entry:
-                steps.append(entry["step"])
-                losses.append(entry["loss"])
-            if "eval_loss" in entry:
-                eval_steps.append(entry.get("step", len(steps)))
-                eval_losses.append(entry["eval_loss"])
-        if steps:
-            ax.plot(steps, losses, label="Train Loss", color="#2196F3")
-        if eval_steps:
-            ax.plot(eval_steps, eval_losses, label="Eval Loss", color="#FF5722", marker="o")
-        ax.set_xlabel("Step")
-        ax.set_ylabel("Loss")
-        ax.set_title(f"Training Run: {run_id}")
-        ax.legend()
-        ax.grid(True, alpha=0.3)
-        plot_path = os.path.join(output_dir, "training_curve.png")
-        fig.savefig(plot_path, dpi=100, bbox_inches="tight")
-        plt.close(fig)
-        mlflow.log_figure(fig, "training_curve.png")
-        print(f"Training curve saved to {plot_path}")
-    except Exception as e:
-        print(f"[MLflow] Could not save training curve: {e}")
-    
-    # Log quality breakdown to MLflow
-    if os.path.exists(eval_path):
-        try:
-            quality_data = []
-            with open(eval_path) as f:
-                for line in f:
-                    ex = json.loads(line)
-                    if "quality_breakdown" in ex:
-                        quality_data.append(ex["quality_breakdown"])
-            if quality_data:
-                avg_breakdown = {}
-                for k in quality_data[0].keys():
-                    vals = [qd.get(k, 0) for qd in quality_data]
-                    avg_breakdown[k] = round(sum(vals) / len(vals), 3)
-                if avg_breakdown:
-                    mlflow.log_dict(avg_breakdown, "quality_breakdown.json")
-                    print(f"Quality breakdown: {avg_breakdown}")
-        except Exception as e:
-            print(f"[MLflow] Could not log quality breakdown: {e}")
-    
-    # Log final metrics to MLflow
+    # Log final metrics to MLflow (autolog captures most — we log what matters)
     train_result = trainer.state.log_history
     final_loss = None
     if train_result:
