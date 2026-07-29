@@ -128,6 +128,7 @@ def main():
         "learning_rate": cfg.get("learning_rate", 2e-4),
         "max_length": cfg.get("max_length", 300),
         "fp16": cfg.get("fp16", True),
+        "loss_fn": cfg.get("loss_fn", "ce"),
         "tags": cfg.get("tags", []),
         "start_time": start_time,
         "end_time": None,
@@ -235,13 +236,37 @@ def main():
         remove_unused_columns=False,
     )
 
-    trainer = Trainer(
-        model=model,
-        args=args,
-        train_dataset=train_ds,
-        eval_dataset=eval_ds,
-        data_collator=collator,
-    )
+    # Select trainer based on loss function
+    loss_fn = cfg.get("loss_fn", "ce")
+    if loss_fn == "composite":
+        from poesia.training.poetry_trainer import PoetryTrainer
+        trainer = PoetryTrainer(
+            model=model,
+            args=args,
+            train_dataset=train_ds,
+            eval_dataset=eval_ds,
+            data_collator=collator,
+            scorer_weight=cfg.get("scorer_weight", 0.15),
+            syll_target=11,
+            language=cfg.get("language", "es"),
+        )
+        print(f"Using PoetryTrainer with composite loss (weight={cfg.get('scorer_weight', 0.15)})")
+    elif loss_fn == "dpo":
+        print("Use scripts/train_poetry_dpo.py for DPO training")
+        sys.exit(1)
+    else:
+        from transformers import Trainer
+        trainer = Trainer(
+            model=model,
+            args=args,
+            train_dataset=train_ds,
+            eval_dataset=eval_ds,
+            data_collator=collator,
+        )
+        print("Using standard Trainer with cross-entropy loss")
+    
+    # Add loss_fn to run log
+    cfg["loss_fn"] = loss_fn
 
     print("Starting training...")
     trainer.train()
