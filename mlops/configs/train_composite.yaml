@@ -7,8 +7,9 @@ tags: ["soneto", "composite-loss", "r16-ce+scorer"]
 model: "Qwen/Qwen2.5-1.5B-Instruct"
 quantization: "4bit"
 
-train_data: "seeds/poetry_corpus/training_data_structured/sonetos_filtered_t2.jsonl"
-eval_data: "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
+# Pre-scored with syllable + line quality (scripts/score_training_data.py)
+train_data: "seeds/poetry_corpus/training_data_structured/sonetos_filtered_t2_scored.jsonl"
+eval_data: "seeds/poetry_corpus/training_data_structured/sonetos_scored.jsonl"
 max_length: 256
 
 # LoRA
