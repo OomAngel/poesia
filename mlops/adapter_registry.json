@@ -1,5 +1,45 @@
 {
-  "adapters": [],
+  "adapters": [
+    {
+      "id": "20260728_231807",
+      "created": "2026-07-28T23:34:42.678617",
+      "config": "mlops/configs/train_v1.yaml",
+      "data_sha256": "2c9d207c4965d91ddcdbe80118ea86e9174f329694558634a125bd952a09ad36",
+      "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "lora_r": 16,
+      "train_loss": 2.6917901992797852,
+      "adapter_path": "models/poetry-lora-v2/final_adapter",
+      "notes": "",
+      "eval_syllable_deviation": 1.1,
+      "eval_line_count_accuracy": 1.0
+    },
+    {
+      "id": "20260729_123255",
+      "created": "2026-07-29T14:20:37.915260",
+      "config": "mlops/configs/train_multiform.yaml",
+      "data_sha256": "d93dc38dcbb0a187ab7b601999bf1f340c949f0344f8b51301b66bf4b543b0d1",
+      "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "lora_r": 32,
+      "train_loss": 2.6640392303466798,
+      "adapter_path": "models/poetry-lora-multiform/final_adapter",
+      "notes": "",
+      "eval_syllable_deviation": 2.14,
+      "eval_line_count_accuracy": 1.0
+    },
+    {
+      "id": "20260729_144938",
+      "created": "2026-07-29T14:57:36.547127",
+      "config": "mlops/configs/train_distilled.yaml",
+      "data_sha256": "9ddde4bd9fec0a95d2057a909ea0302c0460186165a3325ee6607215b8ea4f43",
+      "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "lora_r": 32,
+      "train_loss": 1.1208845138549806,
+      "adapter_path": "models/poetry-lora-distilled/final_adapter",
+      "notes": "",
+      "eval_syllable_deviation": 2.11,
+      "eval_line_count_accuracy": 1.0
+    }
+  ],
   "description": "Registry of all trained LoRA adapters. Each entry records the adapter path, config used, data hash, and evaluation metrics. Updated manually or via training script.",
   "fields": {
     "id": "unique identifier",

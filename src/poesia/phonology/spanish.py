@@ -224,7 +224,6 @@ class SpanishPhonology:
 
     def rhyme_key(self, line: str) -> RhymeKey:
         """Extract consonant + assonant rhyme signature from a line's ending."""
-        import re
 
         clean = re.sub(r"[^\w\s]", "", line.strip().lower())
         if not clean:

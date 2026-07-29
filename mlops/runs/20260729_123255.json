@@ -1,0 +1,53 @@
+{
+  "run_id": "20260729_123255",
+  "experiment": "multiform",
+  "run_name": "v1-multiform",
+  "git_commit": "1d8fe71dc723",
+  "config": "mlops/configs/train_multiform.yaml",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "data_sha256": "d93dc38dcbb0a187ab7b601999bf1f340c949f0344f8b51301b66bf4b543b0d1",
+  "data_records": 1246,
+  "train_data": "seeds/poetry_corpus/training_data_structured/multiform_train.jsonl",
+  "eval_data": "seeds/poetry_corpus/training_data_structured/sonetos.jsonl",
+  "lora_r": 32,
+  "lora_alpha": 64,
+  "lora_dropout": 0.1,
+  "batch_size_per_device": 8,
+  "gradient_accumulation": 2,
+  "effective_batch": 16,
+  "epochs": 12,
+  "learning_rate": 0.0001,
+  "max_length": 300,
+  "fp16": true,
+  "tags": [
+    "multiform",
+    "soneto",
+    "romance",
+    "decima",
+    "haiku",
+    "cuarteto"
+  ],
+  "start_time": "2026-07-29T12:32:55.655238",
+  "end_time": "2026-07-29T14:20:37.521090",
+  "duration_s": 6461.865852,
+  "train_samples": 1246,
+  "eval_samples": 500,
+  "train_loss": 2.6640392303466798,
+  "eval_loss": null,
+  "train_runtime_s": 3.283289845726003e+16,
+  "data_sources": [
+    ""
+  ],
+  "data_forms": [
+    "cuarteto",
+    "decima",
+    "haiku",
+    "romance",
+    "soneto"
+  ],
+  "status": "evaluated",
+  "adapter_path": "models/poetry-lora-multiform/final_adapter",
+  "eval_syllable_deviation": 2.14,
+  "eval_line_count_accuracy": 1.0,
+  "eval_avg_line_count": 14.0
+}

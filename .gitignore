@@ -46,3 +46,12 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+mlruns/
+
+# CronologIA
+cronologia/volumes/
+cronologia/.env
+cronologia/*.db
+
+# MLflow
+mlruns/

@@ -15,7 +15,7 @@ silent fallback.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from poesia.evaluation.metrics import (
     cliche_penalty,
@@ -56,6 +56,14 @@ ENGLISH_CLICHES: frozenset[str] = frozenset([
     "heart of gold", "break my heart", "eternal love",
     "tears of joy", "light of my life", "soul mate",
 ])
+
+
+
+@runtime_checkable
+class ScorerProtocol(Protocol):
+    """Protocol for line scoring."""
+    def score_candidates(self, candidates, prior_lines=None):
+        ...
 
 
 class LineScorer:

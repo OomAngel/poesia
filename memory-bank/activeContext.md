@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-07-28 (full session — MLOps, Outlines, multi-form datasets, WordNet/spaCy wired)_
+_Last updated: 2026-07-29 (documentation audit, consolidation, and fixes across all docs)_
 
 ---
 
@@ -20,31 +20,51 @@ poesia write --theme "luna sobre el mar" --form haiku --llm outlines --brief --y
 
 ---
 
-## Current focus — next session starts here
+## Current focus
 
-**Priority: Multi-form training → Distillation → Syllable filtering**
+**Training complete** — multi-form adapter saved to `models/poetry-lora-multiform/final_adapter/`
 
-### Immediate next action (run first)
-```bash
-python scripts/train_poetry_lora.py mlops/configs/train_multiform.yaml
-```
-- 1,246 poems (sonetos, romances, décimas, cuartetos, haikus)
-- r=32, 12 epochs, lr=1e-4, batch=16 effective
-- Expected: ~30 min on RTX 2000 Ada
-- Track in: `mlops/runs/experiments.jsonl`
-- Compare afterwards: `python mlops/experiments.py compare --ids 20260728_231807 <new_run_id>`
+| Metric | Soneto-only (v2) | Multi-form (v3) |
+|--------|:-:|:-:|
+| Line accuracy | 100% | 100% |
+| Syllable deviation | 1.1 | 2.14 |
+| Train loss | 2.69 | 2.66 |
+| Forms | 1 (soneto) | 5 |
 
-### Then (priority 2)
-```bash
-GROQ_API_KEY=***REMOVED*** \
-  python scripts/distill_sonetos.py --count 200
-python scripts/train_poetry_lora.py mlops/configs/train_distilled.yaml
-```
+v2 is better for sonetos (more precise syllables). v3 is the only option for other forms.
+Switch adapters: `LORA_ADAPTER_PATH=models/poetry-lora-v2/final_adapter`
 
-### Then (known issues)
-- `wn` Spanish WordNet server 503 — retry later
-- 500 structured sonetos avg 10.5 syll, not exactly 11 — can filter if needed
-- Exact syllable filtering for training data
+### 🔄 Running now
+
+**Distillation v3**: `scripts/distill_sonetos.py` — 17/50 valid sonetos, ~5% success rate (strict quality filter)
+
+### Architecture improvements implemented this session
+
+| # | Pattern | Files | Status |
+|---|---------|-------|--------|
+| 1 | **WriteConfig Builder** — replaces 16-param god function | `src/poesia/config/types.py`, `cli.py` | ✅ |
+| 2 | **CQS** — ConstrainedLoop separated from scoring | `scorer.py` (ScorerProtocol) | ✅ |
+| 3 | **LLM Registry** — `@register_llm` decorator, `get_llm()` factory | `src/poesia/generation/registry.py` | ✅ |
+| 4 | **ScorerProtocol** — evaluation layer now follows Protocol seam | `src/poesia/evaluation/scorer.py` | ✅ |
+| 5 | **Composite Config** — WriteConfig validates + serialises | `src/poesia/config/types.py` | ✅ |
+| 6 | **Observer hooks** — HookEvent system in generation loop | `src/poesia/generation/hooks.py` + `constrained_loop.py` | ✅ |
+| 7 | **Facade API** — `from poesia.api import write_poem` | `src/poesia/api.py` | ✅ |
+| 8 | **Data Lineage** — source files, git hash, filter params tracked | `scripts/train_poetry_lora.py` | ✅ |
+| 9 | **CronologIA** — Docker + PostgreSQL MLflow stack | `cronologia/docker-compose.yml` | ✅ |
+
+### What was done this session (2026-07-29)
+1. **Documentation consolidation**: 26 → 13 files. Deleted 6 stale records, absorbed 8 files into 5 targets, merged 3 enrichment docs into 1.
+2. **Romance form fix**: Added `--lines N` CLI param for variable-length forms. Wired through CLI → ConstrainedLoop.run() as `total_lines_override`.
+3. **Syllable filter script**: `scripts/filter_exact_syllables.py` — scans poems via phonology backend, filters by configurable tolerance. Generated `sonetos_filtered_t2.jsonl` (47 poems with ≤2 off-target lines).
+5. **LoRAClient adapter resolution**: Now auto-discovers newest adapter (multiform -> v2 -> v3b). Supports `LORA_ADAPTER_PATH` env var override.
+6. **Distillation script hardened**: Added User-Agent header (Cloudflare fix), 429 retry, correct output config reference.
+7. **WordNet Spanish**: Still 503/unavailable. NLTK WordNet (EN) fallback working.
+
+### Next after training completes
+1. Compare: `python mlops/experiments.py compare --ids 20260728_231807 <new_run_id>`
+2. Evaluation: `python mlops/evaluate_adapter.py --adapter models/poetry-lora-multiform/final_adapter`
+3. Distillation: `GROQ_API_KEY=... python scripts/distill_sonetos.py --count 200`
+4. Distilled training: `python scripts/train_poetry_lora.py mlops/configs/train_distilled.yaml`
 
 ---
 
@@ -105,10 +125,13 @@ python scripts/train_poetry_lora.py mlops/configs/train_distilled.yaml
 | What | Where |
 |---|---|
 | RAG/LLM sequencing and DoD | `docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md` |
-| Feature roadmap | `docs/ROADMAP.md` |
+| Feature roadmap + retraining history | `docs/ROADMAP.md` |
 | Kanban | `memory-bank/tasks.md` |
 | CLI usage | `USAGE_GUIDE.md` |
-| Architecture rules | `docs/ARCHITECTURE.md` |
-| Full session handoff | `docs/SESSION_HANDOFF.md` |
-| All tunable parameters | `docs/ALL_TUNABLE_PARAMETERS.md` |
-| Retraining plan + missing techniques | `docs/RETRAINING_PLAN.md` |
+| Architecture + package survey | `docs/ARCHITECTURE.md` |
+| Pre-generation enrichment | `docs/ENRICHMENT.md` |
+| Arquitectura pattern | `docs/ARQUITECTURA.md` |
+| Cloud migration guide | `docs/CRONOLOGIA_CLOUD.md` |
+| AnalogIA plan | `docs/ANALOGIA_PLAN.md` |
+| CronologIA deployment | `cronologia/docker-compose.yml` + `.env.example` |
+| Retraining history + missing techniques | `docs/ROADMAP.md` (Retraining section) |

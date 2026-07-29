@@ -72,3 +72,29 @@ def test_formspec_is_frozen() -> None:
         pass
     else:
         raise AssertionError("FormSpec should be frozen (immutable)")
+
+
+def test_romance_total_lines_override() -> None:
+    """The --lines CLI flag overrides total_lines for variable-length forms."""
+    from poesia.generation.constrained_loop import ConstrainedLoop
+    from poesia.generation.llm_client import StubLLMClient
+
+    loop = ConstrainedLoop(language="es", form="romance", llm=StubLLMClient())
+
+    # Without override, romance total_lines=0 means no lines generated
+    result_no_override = loop.run(theme="test", n_candidates=2)
+    assert len(result_no_override.lines) == 0, (
+        f"Without --lines, romance should produce 0 lines, got {len(result_no_override.lines)}"
+    )
+
+    # With total_lines_override=8, should generate 8 lines
+    result_override = loop.run(theme="test", n_candidates=2, total_lines_override=8)
+    assert len(result_override.lines) == 8, (
+        f"With --lines 8, romance should produce 8 lines, got {len(result_override.lines)}"
+    )
+
+    # With total_lines_override=16, should generate 16 lines
+    result_16 = loop.run(theme="test", n_candidates=2, total_lines_override=16)
+    assert len(result_16.lines) == 16, (
+        f"With --lines 16, romance should produce 16 lines, got {len(result_16.lines)}"
+    )

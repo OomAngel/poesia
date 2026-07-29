@@ -1,7 +1,9 @@
 # Training configuration — v2: distilled sonetos from Groq
+# Uses lessons from v2 (soneto-structured, r=16) and v3 (multiform, r=32)
+# Distilled data is cleaner (Groq-generated, validated), so r=32 should learn more patterns
 experiment: "soneto-distilled"
 run_name: "v1-distilled"
-tags: ["soneto", "distilled", "groq"]
+tags: ["soneto", "distilled", "groq", "r32"]
 model: "Qwen/Qwen2.5-1.5B-Instruct"
 quantization: "4bit"
 
@@ -10,17 +12,17 @@ train_data: "seeds/poetry_corpus/training_data_distilled/sonetos.jsonl"
 eval_data: "seeds/poetry_corpus/training_data_distilled/sonetos.jsonl"
 max_length: 300
 
-# LoRA
-lora_r: 16
-lora_alpha: 32
-lora_dropout: 0.05
+# LoRA — increased from r=16 to r=32 for more capacity on clean data
+lora_r: 32
+lora_alpha: 64
+lora_dropout: 0.1
 lora_target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
 
-# Training
+# Training — lower LR with cosine decay for stable convergence
 batch_size: 8
 gradient_accumulation: 2
 epochs: 10
-learning_rate: 0.0002
+learning_rate: 0.0001
 lr_scheduler: "cosine"
 warmup_steps: 50
 weight_decay: 0.01

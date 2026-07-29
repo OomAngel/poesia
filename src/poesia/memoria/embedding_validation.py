@@ -9,8 +9,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
-
 from poesia.exceptions import EmbeddingValidationError as _PoesiaEmbeddingError
+
 
 class EmbeddingValidationError(_PoesiaEmbeddingError, ValueError):
     """Raised when an embedding violates expected shape or value constraints.

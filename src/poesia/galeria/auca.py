@@ -37,6 +37,7 @@ class AucaComposer:
         """Render a single AucaPanel to a PNG with the caption stamped below."""
         try:
             import io
+
             from PIL import Image, ImageDraw, ImageFont  # type: ignore[import-untyped]
         except ImportError as exc:  # pragma: no cover - environment dependent
             raise RuntimeError(
@@ -103,6 +104,7 @@ class AucaComposer:
         try:
             import io
             import math
+
             from PIL import Image, ImageDraw, ImageFont  # type: ignore[import-untyped]
         except ImportError as exc:  # pragma: no cover
             raise RuntimeError(

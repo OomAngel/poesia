@@ -93,8 +93,8 @@ class HostedImageBackend:
 
     def _generate_openai(self, prompt: str) -> bytes:
         import json
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         url = "https://api.openai.com/v1/images/generations"
         payload = {
@@ -127,9 +127,9 @@ class HostedImageBackend:
 
     def _generate_replicate(self, prompt: str) -> bytes:
         import json
-        import urllib.request
-        import urllib.error
         import time
+        import urllib.error
+        import urllib.request
 
         url = "https://api.replicate.com/v1/predictions"
         payload = {

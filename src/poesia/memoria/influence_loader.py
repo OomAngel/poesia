@@ -14,7 +14,6 @@ import yaml
 
 from poesia.memoria.records import InfluenceRecord
 
-
 # Language code mapping from section names
 _SECTION_LANG_MAP = {
     "spanish": "es",
@@ -85,6 +84,69 @@ def get_influences_by_tone(tone: str) -> list[InfluenceRecord]:
     """Get all influences that have a specific tone."""
     tone_lower = tone.lower()
     return [inf for inf in load_influences() if tone_lower in [t.lower() for t in inf.tone]]
+
+
+def get_influences_by_movement(movement: str) -> list[InfluenceRecord]:
+    """Get all influences matching a literary movement (case-insensitive, accent-insensitive).
+
+    Args:
+        movement: Movement name to search for, e.g. "Generacion del 98", "Romanticism".
+
+    Returns:
+        List of influence records whose movement field contains the query.
+    """
+    import unicodedata
+
+    def _strip_accents(s: str) -> str:
+        """Remove diacritics/accents from a string for matching."""
+        return "".join(
+            c for c in unicodedata.normalize("NFKD", s)
+            if not unicodedata.combining(c)
+        )
+
+    q = _strip_accents(movement.lower())
+    return [
+        inf for inf in load_influences()
+        if inf.movement and q in _strip_accents(inf.movement.lower())
+    ]
+
+
+def get_influences_by_era(era_query: str) -> list[InfluenceRecord]:
+    """Get all influences within a date range (year-based).
+
+    Args:
+        era_query: A year or range like "1900" or "1800-1900".
+
+    Returns:
+        List of influence records whose era overlaps the query.
+    """
+    from poesia.exceptions import PoesiaError
+
+    def _parse_year_range(era_str: str) -> tuple[int, int]:
+        """Parse an era string like '1875-1939' or '1770-1850' into (start, end)."""
+        parts = era_str.replace(" ", "").split("-")
+        try:
+            return int(parts[0]), int(parts[1]) if len(parts) > 1 else int(parts[0])
+        except (ValueError, IndexError):
+            return (0, 9999)
+
+    def _parse_query(q: str) -> tuple[int, int]:
+        """Parse a query like '1900' or '1800-1900' into (start, end)."""
+        parts = q.replace(" ", "").split("-")
+        try:
+            return int(parts[0]), int(parts[1]) if len(parts) > 1 else int(parts[0])
+        except (ValueError, IndexError):
+            raise PoesiaError(f"Invalid era query: '{q}'. Use '1900' or '1800-1900'.")
+
+    q_start, q_end = _parse_query(era_query)
+    results = []
+    for inf in load_influences():
+        if inf.era:
+            i_start, i_end = _parse_year_range(inf.era)
+            # Check overlap: ranges intersect
+            if i_start <= q_end and i_end >= q_start:
+                results.append(inf)
+    return results
 
 
 def clear_cache() -> None:

@@ -46,6 +46,7 @@ _SCHEMA_VERSION = "2"
 
 from poesia.exceptions import IndexCompatibilityError as _PoesiaIndexError
 
+
 class IndexCompatibilityError(_PoesiaIndexError, RuntimeError):
     """Raised when an embedding client is incompatible with the loaded index.
 
@@ -726,7 +727,7 @@ class GraphRAGRetriever:
         relation_types: list[RelationType] | None = None,
         form_filter: str | None = None,
         language_filter: str | None = None,
-    ) -> list[tuple[str, float, "GraphPath | None"]]:
+    ) -> list[tuple[str, float, GraphPath | None]]:
         """Graph-enhanced retrieval returning (node_id, score, GraphPath|None).
 
         Seeds found by dense cosine; each seed is expanded via traverse().
@@ -750,7 +751,7 @@ class GraphRAGRetriever:
         if not seed_results:
             return []
 
-        candidate_paths: dict[str, tuple[float, "GraphPath | None"]] = {}
+        candidate_paths: dict[str, tuple[float, GraphPath | None]] = {}
         for seed_id, seed_score in seed_results:
             candidate_paths[seed_id] = (seed_score, None)
 
@@ -953,7 +954,7 @@ class GraphRAGRetriever:
         if not self.storage_path or not self.storage_path.exists():
             return
         try:
-            with open(self.storage_path, "r", encoding="utf-8") as f:
+            with open(self.storage_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             # P2/P3: restore versioning metadata

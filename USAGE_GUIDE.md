@@ -17,6 +17,8 @@ pip install -e ".[nlp]"
 pip install -e ".[all]"
 ```
 
+> **Note:** This project uses a conda environment. Activate with `conda activate poesia`.
+
 ---
 
 ## Quick Start
@@ -41,6 +43,26 @@ poesia write --theme "soledad" --form haiku --save --tags "noche,introspección"
 poesia write --theme "cielo nocturno" --form haiku --use-library --brief --show-alternatives 3
 ```
 
+### Generate with a Real LLM Backend
+```bash
+# Groq (requires GROQ_API_KEY)
+poesia write --theme "luna" --form soneto --llm groq --brief
+
+# Local Ollama (requires running ollama serve)
+poesia write --theme "luna" --form haiku --llm ollama
+
+# LoRA fine-tuned adapter
+poesia write --theme "luna" --form soneto --llm lora --brief
+
+# Grammar-constrained (Outlines / Qwen 1.5B)
+poesia write --theme "luna" --form soneto --llm outlines
+```
+
+### Interactive Generation
+```bash
+poesia write --theme "noche" --form haiku --interactive --show-alternatives 5
+```
+
 ## Core Commands
 
 ### `poesia write` - Generate Poetry
@@ -57,24 +79,34 @@ poesia write --theme "<theme>" --form <form> [OPTIONS]
 | Option | Description | Default |
 |--------|-------------|---------|  
 | `--theme TEXT` | Thematic anchor (REQUIRED) | - |
-| `--form NAME` | Poetic form: haiku, soneto, romance | `soneto` |
+| `--form NAME` | Poetic form: haiku, soneto, romance, sonnet_shakespearean | `soneto` |
 | `--language CODE` | Language: es, en, nl | `es` |
-| `--llm BACKEND` | LLM backend: stub, gemini, openai, auto | `stub` |
-| `--brief` | Use BriefBuilder for rich context | off |
+| `--llm BACKEND` | LLM backend: stub, groq, gemini, openai, ollama, outlines, lora, auto | `stub` |
+| `--brief` | Use BriefBuilder for rich context (fragments, seeds, influences) | off |
+| `--brief-level LEVEL` | Verbosity: minimal, standard, maximal | `standard` |
+| `--tone TONES` | Comma-separated tone descriptors (e.g., "melancholic,tender") | - |
+| `--seeds SEEDS` | Comma-separated seed words for expansion | - |
 | `--use-library` | Load library poems as context | off |
 | `--save` | Save to library with provenance | off |
 | `--show-alternatives N` | Show top-N candidates per line | `0` (off) |
+| `--show-retrieval` | Display retrieved fragments/scores/graph paths | off |
+| `--interactive` | Human line-by-line selection from scored candidates | off |
+| `--yes` | Skip privacy confirmation (when using personal context) | off |
+| `--lines N` | Override total line count for variable-length forms (e.g., romance) | auto |
+| `--movement MOVEMENT` | Filter influences by literary movement (e.g., "Romanticism", "Generacion del 98") | - |
 
 ---
 
 ## Poetic Forms
 
-| Form | Lines | Syllables | Language |
-|------|-------|-----------|----------|
-| `haiku` | 3 | 5-7-5 | en, es |
-| `soneto` | 14 | 11 | es |
-| `romance` | variable | 8 | es |
-| `sonnet_shakespearean` | 14 | 10 | en |
+| Form | Lines | Syllables | Language | Status |
+|------|-------|-----------|----------|--------|
+| `haiku` | 3 | 5-7-5 | en, es | ✅ |
+| `soneto` | 14 | 11 | es | ✅ |
+| `romance` | variable | 8 | es | ⚠️ Needs `--lines` param |
+| `sonnet_shakespearean` | 14 | 10 | en | ✅ |
+
+See `FORM_TESTING_RESULTS.md` for detailed form verification history.
 
 ---
 
@@ -115,6 +147,50 @@ Line 1 (target: 5 syllables):
 - Red: score < 0.4 (poor)
 - ✓ checkmark: selected candidate
 
+## Interactive Mode
+
+The `--interactive` flag lets you choose each line manually:
+
+```
+Line 1 (target: 5 syllables) — pick a candidate:
+   1. [0.810] luna en la noche
+   2. [0.600] luna sobre el mar
+   3. [0.450] noche de luna llena
+Enter choice (Enter=top, #=number, t=type own): 
+```
+
+- **Enter**: Accept the top-scored candidate
+- **Number**: Pick a specific numbered candidate
+- **t**: Type your own line (will be scanned and scored)
+
+## Retrieval Display
+
+The `--show-retrieval` flag shows which personal fragments and graph paths influenced generation:
+
+```
+Retrieved 5 fragments for brief:
+
+--- Fragment: pattern-finder (score: 0.87) ---
+  Path: pattern-finder -[similar_to 0.82]-> hound -[inspired_by]-> Garcia Lorca
+  Content: There is a pattern in the way things break...
+
+--- Influence: Antonio Machado (score: 0.72) ---
+  spare, meditative, austere
+```
+
+## LLM Backends
+
+| Backend | CLI Flag | Key/Setup | Notes |
+|---------|----------|-----------|-------|
+| Stub (dev/test) | `--llm stub` | None | Deterministic templates, no network |
+| Groq | `--llm groq` | `GROQ_API_KEY` | Llama 3.3 70B, fast, free tier (30 RPM) |
+| Gemini | `--llm gemini` | `GEMINI_API_KEY` | Google's Gemini API |
+| OpenAI | `--llm openai` | `OPENAI_API_KEY` | OpenAI API |
+| Ollama | `--llm ollama` | `ollama serve` running | Local, offline, gemma2:2b default |
+| Outlines | `--llm outlines` | None | Qwen 1.5B + regex constraints, local |
+| LoRA | `--llm lora` | Trained adapter | Qwen 1.5B + QLoRA fine-tune |
+| Auto | `--llm auto` | Any available | Priority: Gemini → Groq → OpenAI |
+
 ---
 
 ## Library Workflow
@@ -125,6 +201,15 @@ poesia write --theme "luna" --form haiku --save --tags "noche,luna"
 ```
 
 Saved to: `~/.poesia/poems/<id>.md` with provenance metadata.
+
+### List and Search Library
+```bash
+poesia memoria list                     # All poems
+poesia memoria list --form haiku        # Filter by form
+poesia memoria list --language es       # Filter by language
+poesia memoria list --limit 10          # Limit results
+poesia memoria search luna              # SQLite substring search
+```
 
 ### Generate Using Library Context
 ```bash
@@ -169,3 +254,40 @@ grep -A 50 "Alternative Candidates" debug.txt
 ---
 
 For more details, see README.md and LIBRARY_WORKFLOW_TEST.md.
+
+---
+
+## Training (MLOps)
+
+PoesIA includes a lightweight fine-tuning pipeline for QLoRA training of Qwen2.5-1.5B-Instruct.
+
+### Structure
+
+| Path | Purpose |
+|---|---|
+| `seeds/poetry_corpus/training_data/` | Versioned training/eval splits (JSONL, in git) |
+| `scripts/train_poetry_lora.py` | QLoRA training script |
+| `mlops/runs/` | Training run logs (not in git) |
+| `models/` | Trained adapters (not in git) |
+| `mlops/configs/` | Training configs (hyperparameters, data path) |
+| `mlops/experiments.py` | Query DB: `list`, `best`, `compare`, `tag` |
+| `mlops/ab_compare.py` | A/B comparison of two adapters |
+| `mlops/evaluate_adapter.py` | Full eval across 5 themes |
+| `mlops/pipeline.py --all` | Full pipeline: distill -> train -> eval -> compare |
+
+### How to train
+
+```bash
+conda activate poesia
+python scripts/train_poetry_lora.py mlops/configs/train_v1.yaml  # 500 sonetos, r=16
+python scripts/train_poetry_lora.py mlops/configs/train_multiform.yaml  # 1,246 poems, r=32
+```
+
+### Evaluation
+
+```bash
+python mlops/experiments.py list
+python mlops/experiments.py best --metric line_count_accuracy
+python mlops/experiments.py compare --ids <a> <b>
+python mlops/ab_compare.py --adapter-a <path> --adapter-b <path>
+```

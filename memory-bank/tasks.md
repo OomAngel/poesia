@@ -6,13 +6,12 @@
 
 ## BACKLOG
 
-- [ ] Phase 4E: literary taxonomy auto-tagging.
-- [ ] romance form: add default line count spec.
-- [ ] P5.4: monitoring (when a deployed instance exists)
-- [ ] Distillation pipeline (Groq → clean sonetos)
-- [ ] Multi-form training (romance, décima, haiku)
-- [ ] WordNet Spanish (retry when server is up)
-- [ ] Exact syllable filtering for training data
+- [x] romance form: add `--lines` CLI param for variable-length support
+- [ ] Phase 4E: literary taxonomy auto-tagging (movement/era retrieval, brief context)
+- [ ] Wire retrieval into GalerIA for illustration style anchoring
+- [ ] WordNet Spanish (`omw-es:1.4`) — retry when server is up
+- [ ] Exact syllable filtering for training data (500 structured sonetos avg 10.5 syll)
+- [ ] Monitoring (when a deployed instance exists — not needed for local-only use)
 
 ## DONE
 

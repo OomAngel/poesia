@@ -1,0 +1,65 @@
+# ── CronologIA — MLflow Experiment Tracking ──────────────────────
+#
+# Start:   docker compose up -d
+# Stop:    docker compose down
+# Reset:   docker compose down -v
+# Backup:  docker exec cronologia-db pg_dump -U mlflow mlflow > backup.sql
+# Restore: cat backup.sql | docker exec -i cronologia-db psql -U mlflow mlflow
+#
+# ── Cloud migration ───────────────────────────────────────────────
+# To use Neon (serverless Postgres) instead of local:
+#   1. Create free DB at https://neon.tech
+#   2. Replace DATABASE_URL below with your Neon connection string
+#   3. Remove the postgres service from this file
+#
+# To deploy fully on Railway / Fly.io:
+#   1. Set DATABASE_URL to Neon/Cloud Postgres
+#   2. Deploy mlflow-ui as a web service
+#   3. Point MLFLOW_TRACKING_URI to the deployed service
+# See docs/CRONOLOGIA_CLOUD.md for detailed guides
+# ──────────────────────────────────────────────────────────────────
+
+services:
+  # ── PostgreSQL — experiment metadata storage ────────────────────
+  cronologia-db:
+    image: postgres:16-alpine
+    container_name: cronologia-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mlflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mlflow}
+      POSTGRES_DB: ${POSTGRES_DB:-mlflow}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - cronologia_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mlflow} -d ${POSTGRES_DB:-mlflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── MLflow UI — experiment dashboard ────────────────────────────
+  cronologia-ui:
+    image: ghcr.io/mlflow/mlflow:v3.14.0
+    container_name: cronologia-ui
+    restart: unless-stopped
+    depends_on:
+      cronologia-db:
+        condition: service_healthy
+    environment:
+      MLFLOW_TRACKING_USERNAME: ${MLFLOW_TRACKING_USERNAME:-admin}
+      MLFLOW_TRACKING_PASSWORD: ${MLFLOW_TRACKING_PASSWORD:-admin}
+    ports:
+      - "${MLFLOW_PORT:-5000}:5000"
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://${POSTGRES_USER:-mlflow}:${POSTGRES_PASSWORD:-mlflow}@cronologia-db:5432/${POSTGRES_DB:-mlflow}
+      --default-artifact-root ${MLFLOW_ARTIFACT_ROOT:-./volumes/artifacts}
+      --host 0.0.0.0
+      --port 5000
+    volumes:
+      - ./volumes/artifacts:/workspace/volumes/artifacts
+
+volumes:
+  cronologia_pgdata:

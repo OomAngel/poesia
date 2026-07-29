@@ -78,3 +78,71 @@ module maps to something the user explicitly asked for during scoping
 importable/testable independently because of the Protocol seam discipline
 above. Nothing here requires standing up infrastructure (a database, a GPU,
 an API key) to import the package and run its tests.
+
+---
+
+## Package survey
+
+### Phonology / prosody
+
+| Package | Language | Role | Assessment |
+|---|---|---|---|---|
+| `rantanplan` | ES | metric scansion, ~45 stanza types | Primary Spanish backend |
+| `silabeador` | ES | syllabification + stress | Good fallback |
+| `fonemas` | ES | phonological transcription | Needed for rhyme validation |
+| `pronouncing` + `cmudict` | EN | rhyme, phonemes, stress | Simplest English combo |
+| `prosodic` | EN (+ FI) | full metrical parsing, feet | Foot-level scansion |
+| `phonemizer` | multi | phoneme via eSpeak NG | Best multilingual layer |
+| `epitran` | multi | IPA transcription | Consistent IPA across languages |
+| `gruut` | multi | G2P without eSpeak binary | Lighter fallback |
+| `g2p_en` | EN | neural G2P backoff | CMUdict OOV words |
+| `pyphen` | multi | hyphenation | Cheap syllable count check |
+| `CLTK` | Latin/Greek | classical metrical scansion | LLM-validity study reference |
+
+### Linguistic / semantic
+
+| Package | Role |
+|---|---|
+| `spaCy` | lemmatization, POS, dependency parsing (ES+EN) |
+| `sentence-transformers` | semantic similarity, reranking |
+| `wn` / NLTK WordNet | semantic relations |
+| `wordfreq` | lexical-frequency prior |
+| `python-datamuse` | interactive rhyme/near-rhyme discovery |
+| `markovify` | Markov-chain baseline sanity check |
+
+### LLM generation / constrained decoding
+
+| Package | Role |
+|---|---|
+| `transformers` | local inference, custom LogitsProcessor |
+| `llama-cpp-python` | C++ inference, GBNF grammars |
+| `guidance` / `outlines` | constrained generation (regex/schema) |
+
+### Illustration (GalerIA)
+
+| Package | Role |
+|---|---|
+| `openai` | DALL-E / gpt-image API |
+| `replicate` | hosted SDXL + specialized models |
+| `diffusers` | local SDXL |
+| `Pillow` | raster compositing, text stamping |
+| `svgwrite` / `drawsvg` | vector illustration |
+| `weasyprint` | HTML/CSS to PDF |
+
+### Music (ArmonIA)
+
+| Package | Tier | Role |
+|---|---|---|
+| `music21` | symbolic | stress pattern to rhythm, MusicXML/MIDI |
+| `pretty_midi` / `mido` | symbolic | raw MIDI manipulation |
+| `pyfluidsynth` + .sf2 | audio | render MIDI to audio |
+| `audiocraft` | AI generation | local text to music |
+| `piper` | TTS | fast local TTS |
+| Coqui `TTS` | TTS | local TTS (heavier) |
+
+### Graph RAG storage
+
+| Option | Tradeoff |
+|---|---|
+| `networkx` (in-memory) | Zero infra, fast, does not scale past personal corpus |
+| `neo4j` | Real graph DB, adds infra dependency |
