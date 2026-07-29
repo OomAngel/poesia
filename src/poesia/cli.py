@@ -545,6 +545,25 @@ def galeria_illustrate(
     composer = AucaComposer()
     composer.export_pdf([panel], output_path=output)  # raises NotImplementedError today
 
+    # Log illustration to MLflow
+    try:
+        import mlflow, os
+        mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "file:./mlruns"))
+        
+        with mlflow.start_run(run_name=f"galeria-{from_library or 'manual'}", nested=True):
+            image_path = output.replace(".pdf", ".png")
+            if os.path.exists(output) and not os.path.exists(image_path):
+                # Try to log the image bytes directly
+                mlflow.log_image(image_bytes, f"galeria_{from_library or 'manual'}.png")
+            mlflow.log_param("from_library", from_library or path)
+            mlflow.log_param("style", final_style)
+            mlflow.log_param("nouns", len(imagery["nouns"]))
+            mlflow.log_param("senses", len(imagery["sensory_modalities"]))
+            mlflow.log_text(image_prompt, "image_prompt.txt")
+            rprint(f"[dim]Illustration logged to MLflow[/dim]")
+    except Exception as e:
+        rprint(f"[dim]MLflow logging skipped: {e}[/dim]")
+
 
 app.add_typer(galeria_app, name="galeria")
 
