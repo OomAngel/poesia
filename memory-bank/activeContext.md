@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-07-29 (documentation audit, consolidation, and fixes across all docs)_
+_Last updated: 2026-07-30 (massive architecture + MLflow + training overhaul)_
 
 ---
 
@@ -9,129 +9,102 @@ _Last updated: 2026-07-29 (documentation audit, consolidation, and fixes across 
 ```bash
 cd /home/angel/dev/poesia
 conda activate poesia
-python -m pytest tests/ --tb=no -q   # 400+ passed
-export GROQ_API_KEY=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
+source .env_mlflow  # sets MLFLOW_TRACKING_URI
 ```
 
 Quick sanity:
 ```bash
-poesia write --theme "luna sobre el mar" --form haiku --llm outlines --brief --yes
-```
+poesia write --theme "luna sobre el mar" --form haiku --llm stub
 
----
+# Test MLflow data exists:
+python3 -c "import mlflow; mlflow.set_tracking_uri('sqlite:///mlruns/mlflow.db'); from mlflow.tracking import MlflowClient; c=MlflowClient(); print(sum(len(c.search_runs([e.experiment_id])) for e in c.search_experiments()), 'runs')"
+```
 
 ## Current focus
 
-**Training complete** — multi-form adapter saved to `models/poetry-lora-multiform/final_adapter/`
+**Full training pipeline needs a complete run.** MLflow has data (9 runs, 6 experiments) but no fully trained adapter with composite loss. The last composite run was killed (was 1000s/step due to live scorer penalty — fixed with pre-computed weights).
 
-| Metric | Soneto-only (v2) | Multi-form (v3) |
-|--------|:-:|:-:|
-| Line accuracy | 100% | 100% |
-| Syllable deviation | 1.1 | 2.14 |
-| Train loss | 2.69 | 2.66 |
-| Forms | 1 (soneto) | 5 |
+### Available to run
 
-v2 is better for sonetos (more precise syllables). v3 is the only option for other forms.
-Switch adapters: `LORA_ADAPTER_PATH=models/poetry-lora-v2/final_adapter`
+| Command | What | Time |
+|---------|------|------|
+| `python scripts/train_poetry_lora.py mlops/configs/train_composite.yaml` | Composite loss on 500 scored sonetos | ~2h |
+| `python scripts/train_poetry_dpo.py mlops/configs/dpo_v1.yaml` | DPO preference learning | ~1h |
+| `python scripts/evaluate_poetry.py --adapter models/poetry-lora-v2/final_adapter` | MLflow 3.x genai.evaluate | ~5min |
+| `python scripts/run_experiment_grid.py --grid loss_compare` | Compare CE vs Composite vs DPO | ~5h |
 
-### 🔄 Running now
+### What was built this session
 
-**Distillation v3**: `scripts/distill_sonetos.py` — 17/50 valid sonetos, ~5% success rate (strict quality filter)
+#### 1. Architecture Patterns (VerifIA)
+- WriteConfig Builder — 16-param god function fixed (`src/poesia/config/types.py`)
+- LLM Registry — `@register_llm` decorator, `get_llm()` factory (`src/poesia/generation/registry.py`)
+- ScorerProtocol — evaluation now follows Protocol seam
+- Observer hooks — HookEvent system in generation loop
+- Facade API — `from poesia.api import write_poem`
+- VerifIA pattern documented — `docs/ARQUITECTURA.md`
 
-### Architecture improvements implemented this session
+#### 2. Training Infrastructure
+- PoetryTrainer — weighted CE with pre-computed quality scores
+- 8-metric scoring — syllable, rhyme, lexical diversity, abstract ratio, emotion, imagery, readability, line count
+- DPO training — `scripts/train_poetry_dpo.py`
+- Experiment grid — `scripts/run_experiment_grid.py`
 
-| # | Pattern | Files | Status |
-|---|---------|-------|--------|
-| 1 | **WriteConfig Builder** — replaces 16-param god function | `src/poesia/config/types.py`, `cli.py` | ✅ |
-| 2 | **CQS** — ConstrainedLoop separated from scoring | `scorer.py` (ScorerProtocol) | ✅ |
-| 3 | **LLM Registry** — `@register_llm` decorator, `get_llm()` factory | `src/poesia/generation/registry.py` | ✅ |
-| 4 | **ScorerProtocol** — evaluation layer now follows Protocol seam | `src/poesia/evaluation/scorer.py` | ✅ |
-| 5 | **Composite Config** — WriteConfig validates + serialises | `src/poesia/config/types.py` | ✅ |
-| 6 | **Observer hooks** — HookEvent system in generation loop | `src/poesia/generation/hooks.py` + `constrained_loop.py` | ✅ |
-| 7 | **Facade API** — `from poesia.api import write_poem` | `src/poesia/api.py` | ✅ |
-| 8 | **Data Lineage** — source files, git hash, filter params tracked | `scripts/train_poetry_lora.py` | ✅ |
-| 9 | **CronologIA** — Docker + PostgreSQL MLflow stack | `cronologia/docker-compose.yml` | ✅ |
+#### 3. MLflow (finally correct)
+- Backend: SQLite (`sqlite:///mlruns/mlflow.db`)
+- Training: `mlflow.transformers.autolog()` replaces 100+ lines of manual logging
+- Traces: `@mlflow.trace()` on all 4 LLM clients
+- Evaluation: `mlflow.genai.evaluate()` with custom `@scorer` decorators
+- Model Registry: auto-promotes to Production
+- **9 runs across 6 experiments** with real data
 
-### What was done this session (2026-07-29)
-1. **Documentation consolidation**: 26 → 13 files. Deleted 6 stale records, absorbed 8 files into 5 targets, merged 3 enrichment docs into 1.
-2. **Romance form fix**: Added `--lines N` CLI param for variable-length forms. Wired through CLI → ConstrainedLoop.run() as `total_lines_override`.
-3. **Syllable filter script**: `scripts/filter_exact_syllables.py` — scans poems via phonology backend, filters by configurable tolerance. Generated `sonetos_filtered_t2.jsonl` (47 poems with ≤2 off-target lines).
-5. **LoRAClient adapter resolution**: Now auto-discovers newest adapter (multiform -> v2 -> v3b). Supports `LORA_ADAPTER_PATH` env var override.
-6. **Distillation script hardened**: Added User-Agent header (Cloudflare fix), 429 retry, correct output config reference.
-7. **WordNet Spanish**: Still 503/unavailable. NLTK WordNet (EN) fallback working.
+#### 4. Emotion & Imagery Pipeline
+- pysentimiento (sentence-level emotion, ES+EN)
+- Spanish Emotion Lexicon (98 words, 8 NRC emotions)
+- textstat readability (Spanish)
+- Imagery extraction (spaCy noun phrases -> sensory modalities)
+- Image prompt builder (-> DALL-E/SDXL)
 
-### Next after training completes
-1. Compare: `python mlops/experiments.py compare --ids 20260728_231807 <new_run_id>`
-2. Evaluation: `python mlops/evaluate_adapter.py --adapter models/poetry-lora-multiform/final_adapter`
-3. Distillation: `GROQ_API_KEY=... python scripts/distill_sonetos.py --count 200`
-4. Distilled training: `python scripts/train_poetry_lora.py mlops/configs/train_distilled.yaml`
+#### 5. Documentation
+- `docs/ARQUITECTURA.md` — VerifIA pattern + benchmarks vs Hexagonal/LangChain
+- `docs/EXPERIMENTS_PLAN.md` — 6 models x 6 techniques x 3 loss functions
+- `docs/CRONOLOGIA_CLOUD.md` — Local -> Neon -> Fly.io migration
+- `docs/ANALOGIA_PLAN.md` — A/B, memory mining, stylistic fingerprinting
 
----
+## Quick commands for next session
 
-## What has been built
+```bash
+# Start MLflow UI
+python3 -m mlflow server --backend-store-uri sqlite:///mlruns/mlflow.db --host 0.0.0.0 --port 5000
 
-### Generation clients (6 total)
-| Client | Flag | Backend |
-|---|---|---|
-| `StubLLMClient` | `--llm stub` | Mock (dev/test) |
-| `HostedLLMClient` | `--llm groq/gemini/openai` | API-based |
-| `OllamaClient` | `--llm ollama` | Local Ollama |
-| `LoRAClient` | `--llm lora` | Qwen 1.5B + LoRA adapter |
-| `OutlinesClient` | `--llm outlines` | Qwen 1.5B + regex constraints |
+# Train with composite loss
+python scripts/train_poetry_lora.py mlops/configs/train_composite.yaml
 
-### Training infrastructure (MLOps)
-| Tool | Purpose |
-|---|---|
-| `scripts/train_poetry_lora.py` | Config-driven QLoRA training (reads .yaml) |
-| `mlops/configs/` | Training configs (hyperparameters, data path, tags) |
-| `mlops/experiments.py` | Query DB: `list`, `best`, `compare`, `tag` |
-| `mlops/ab_compare.py` | A/B comparison of two adapters (metric table + winner) |
-| `mlops/evaluate_adapter.py` | Full eval across 5 themes (line count, syllable dev) |
-| `mlops/adapter_registry.json` | Registry of all trained adapters |
-| `mlops/pipeline.py --all` | Full pipeline: distill → train → eval → compare |
-| `mlops/runs/` | Experiment logs and database |
+# Evaluate adapter with MLflow 3.x scorers
+python scripts/evaluate_poetry.py --adapter models/poetry-lora-v2/final_adapter
 
-### Training data (curated)
-| Dataset | Count | Location |
-|---|---|---|
-| Raw corpus (mixed) | 9,140 | `seeds/poetry_corpus/training_data/train.jsonl` |
-| Row sonetos | 5,060 | `seeds/poetry_corpus/sonetos_curated/sonetos.jsonl` |
-| Structured sonetos | 500 | `seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl` |
-| Romances | 500 | `seeds/poetry_corpus/training_data_structured/romances.jsonl` |
-| Décimas | 133 | `seeds/poetry_corpus/training_data_structured/decimas.jsonl` |
-| Cuartetos | 86 | `seeds/poetry_corpus/training_data_structured/cuartetos.jsonl` |
-| Haikus | 27 | `seeds/poetry_corpus/training_data_structured/haikus.jsonl` |
-| **Multi-form combined** | **1,246** | **`seeds/poetry_corpus/training_data_structured/multiform_train.jsonl`** |
+# Find best adapter by metric
+python3 -c "from scripts.train_poetry_lora import search_best_adapter; print(search_best_adapter('syllable_accuracy'))"
 
-### Trained adapters
-| Run ID | Experiment | Config | Line acc | Syll dev | Location |
-|---|---|---|---|---|---|
-| `20260728_231807` | soneto-structured | `train_v1.yaml` | 100% | 1.1 | `models/poetry-lora-v2/final_adapter/` |
+# Run DPO
+python scripts/train_poetry_dpo.py mlops/configs/dpo_v1.yaml
 
-### Semantic resources wired
-| Resource | Language | Status |
-|---|---|---|
-| NLTK WordNet | English | ✅ synonyms, antonyms, hypernyms, hyponyms |
-| spaCy es_core_news_sm | Spanish | ✅ lemmatization, POS |
-| Datamuse API (ml=) | Spanish/English | ✅ synonyms, collocations |
-| Open Multilingual Wordnet (wn) | Spanish | ❌ server 503, retry later |
-| SeedExpander | Multi | ✅ fallback chain: wn → NLTK → Datamuse |
-| Sentence Transformers (e5-small) | Multi | ✅ cached (384-dim) |
-
----
+# Run experiment grid
+python scripts/run_experiment_grid.py --grid loss_compare
+```
 
 ## Document authority
 
 | What | Where |
-|---|---|
-| RAG/LLM sequencing and DoD | `docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md` |
-| Feature roadmap + retraining history | `docs/ROADMAP.md` |
-| Kanban | `memory-bank/tasks.md` |
+|------|-------|
+| VerifIA pattern + benchmarks | `docs/ARQUITECTURA.md` |
+| Experiment plan (models, techniques, loss) | `docs/EXPERIMENTS_PLAN.md` |
+| Cloud migration guide | `docs/CRONOLOGIA_CLOUD.md` |
+| AnalogIA (A/B + memory mining) plan | `docs/ANALOGIA_PLAN.md` |
+| RAG/LLM sequencing | `docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md` |
+| Feature roadmap | `docs/ROADMAP.md` |
 | CLI usage | `USAGE_GUIDE.md` |
+| Kanban | `memory-bank/tasks.md` |
 | Architecture + package survey | `docs/ARCHITECTURE.md` |
 | Pre-generation enrichment | `docs/ENRICHMENT.md` |
-| Arquitectura pattern | `docs/ARQUITECTURA.md` |
-| Cloud migration guide | `docs/CRONOLOGIA_CLOUD.md` |
-| AnalogIA plan | `docs/ANALOGIA_PLAN.md` |
 | CronologIA deployment | `cronologia/docker-compose.yml` + `.env.example` |
-| Retraining history + missing techniques | `docs/ROADMAP.md` (Retraining section) |
+| Retraining history | `docs/ROADMAP.md` (Retraining section) |
