@@ -1,5 +1,24 @@
 name: PoesIA-Training
 
+# ═══════════════════════════════════════════════════════════════════════
+# MLproject — entry points for mlflow run
+#
+# Updated 2026-07-30: reflects Docker environment, new configs, and
+# the full MLflow pipeline (autologging, registry, data versioning).
+#
+# Usage:
+#     mlflow run . -e train -P config=mlops/configs/train_v1.yaml
+#     mlflow run . -e train-qwen3b
+#     mlflow run . -e train-docker
+# ═══════════════════════════════════════════════════════════════════════
+
+# Docker is preferred over conda for reproducibility.
+# To use Docker: ensure docker/buildkit is available, then run:
+#   docker compose -f docker/docker-compose.yml run training
+docker_env:
+  image: "poesia-train:latest"
+
+# Conda fallback (used when Docker is not available)
 conda_env: environment.yml
 
 entry_points:
@@ -8,15 +27,44 @@ entry_points:
       config: {type: str, default: mlops/configs/train_v1.yaml}
     command: python scripts/train_poetry_lora.py {config}
 
-  distill:
+  train-qwen3b:
+    command: python scripts/train_poetry_lora.py mlops/configs/train_qwen3b.yaml
+
+  train-composite:
+    command: python scripts/train_poetry_lora.py mlops/configs/train_composite.yaml
+
+  train-multiform:
+    command: python scripts/train_poetry_lora.py mlops/configs/train_multiform.yaml
+
+  train-smoke:
+    command: python scripts/train_poetry_lora.py mlops/configs/train_smoke.yaml
+
+  evaluate:
     parameters:
-      count: {type: int, default: 100}
-    command: python scripts/distill_sonetos.py --count {count}
+      adapter: {type: str}
+      parent_run_id: {type: str, default: ""}
+    command: python scripts/evaluate_adapter_mlflow.py --adapter {adapter} --parent-run-id {parent_run_id}
 
   dpo:
     parameters:
       config: {type: str, default: mlops/configs/dpo_v1.yaml}
     command: python scripts/train_poetry_dpo.py {config}
+
+  hpo:
+    parameters:
+      n_trials: {type: int, default: 20}
+      study_name: {type: str, default: "poesia-hpo-v1"}
+    command: python scripts/hpo_search.py --n-trials {n_trials} --study-name {study_name}
+
+  monitor:
+    parameters:
+      dry_run: {type: int, default: 0}
+    command: python scripts/monitor_health.py {"--dry-run" if dry_run else ""}
+
+  distill:
+    parameters:
+      count: {type: int, default: 100}
+    command: python scripts/distill_sonetos.py --count {count}
 
   pipeline:
     parameters:
@@ -25,3 +73,4 @@ entry_points:
     command: |
       python scripts/distill_sonetos.py --count {distill_count} && \
       python scripts/train_poetry_lora.py {config}
+

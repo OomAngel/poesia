@@ -1,0 +1,78 @@
+# ── CI: Quality Gate + Scheduled Health Check ───────────────────────
+# Runs on every push/PR (lint, test, security).
+# Runs weekly health monitoring (evaluates latest production model).
+# ─────────────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "0 6 * * 1"  # Every Monday 06:00 UTC
+
+jobs:
+  lint:
+    name: "Lint & Type Check"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -e ".[dev]"
+      - run: ruff check src/ mlops/
+      - run: mypy src/ --ignore-missing-imports
+
+  test:
+    name: "Tests (CPU-safe)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: |
+          pip install -e ".[spanish,english,dev]"
+          pip install sentence-transformers
+      - run: |
+          pytest tests/ \
+            --ignore=tests/test_generation_llm_client.py \
+            --ignore=tests/test_hosted_llm_common.py \
+            --ignore=tests/test_hosted_llm_gemini.py \
+            --ignore=tests/test_hosted_llm_groq.py \
+            --ignore=tests/test_hosted_llm_openai.py \
+            --ignore=tests/test_ollama_client.py \
+            --ignore=tests/test_integration_phase3e.py \
+            --ignore=tests/test_p4_generation_grounding.py \
+            --ignore=tests/test_p1_interactive_retrieval.py \
+            --ignore=tests/test_hosted_image_openai.py \
+            --ignore=tests/test_hosted_image_replicate.py \
+            -v --tb=short
+
+  security:
+    name: "Security Audit"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install bandit safety
+      - run: bandit -r src/ -x tests,models,seeds,.git,mlruns --skip B101
+      - run: safety check --full-report || true
+
+  monitor:
+    name: "Model Health Check"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: |
+          pip install mlflow pandas
+          pip install -e ".[spanish]"
+      - name: Check latest production model
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/monitor_health.py
