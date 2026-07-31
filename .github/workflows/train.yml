@@ -1,0 +1,114 @@
+# ── Train: Full Training Pipeline ────────────────────────────────────
+# Triggered manually (workflow_dispatch) or automatically on merge to main.
+# Runs on a GPU-enabled runner.
+# ─────────────────────────────────────────────────────────────────────
+
+name: Train
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: "Training config path"
+        required: true
+        default: "mlops/configs/train_v1.yaml"
+        type: choice
+        options:
+          - mlops/configs/train_v1.yaml
+          - mlops/configs/train_ruli.yaml
+          - mlops/configs/train_multiform.yaml
+          - mlops/configs/train_distilled.yaml
+          - mlops/configs/train_composite.yaml
+      model:
+        description: "Override model (leave empty to use config value)"
+        required: false
+        default: ""
+      run_name:
+        description: "MLflow run name"
+        required: false
+        default: "gha-train"
+
+  push:
+    branches: ["main"]
+    paths:
+      - "mlops/configs/*.yaml"
+      - "scripts/train_poetry_lora.py"
+      - "src/poesia/training/**"
+
+jobs:
+  train:
+    name: "Train LoRA Adapter"
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 360  # 6 hour max
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          df -h /
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build training image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/training.Dockerfile
+          tags: poesia-train:${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Override model if provided
+        id: config
+        run: |
+          if [ -n "${{ github.event.inputs.model }}" ]; then
+            echo "Overriding model to ${{ github.event.inputs.model }}"
+            # Inject model override via env var (handled by training script)
+            echo "MODEL_OVERRIDE=${{ github.event.inputs.model }}" >> $GITHUB_ENV
+          fi
+          echo "config=${{ github.event.inputs.config || 'mlops/configs/train_v1.yaml' }}" >> $GITHUB_OUTPUT
+
+      - name: Run training
+        run: |
+          docker run --gpus all \
+            -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            -e MLFLOW_TRACKING_URI="${{ secrets.DATABASE_URL }}" \
+            -e MODEL_OVERRIDE="${{ env.MODEL_OVERRIDE }}" \
+            -v ${{ github.workspace }}/models:/app/models \
+            -v ${{ github.workspace }}/mlruns:/app/mlruns \
+            poesia-train:${{ github.sha }} \
+            ${{ steps.config.outputs.config }}
+
+      - name: Check evaluation threshold
+        id: check
+        run: |
+          # Query MLflow for the best eval_line_count_accuracy from this run
+          ACCURACY=$(python3 -c "
+          import os, sys
+          os.environ['DATABASE_URL'] = '${{ secrets.DATABASE_URL }}'
+          sys.path.insert(0, 'mlops')
+          from experiments import _load_runs
+          runs = _load_runs()
+          latest = runs[0] if runs else {}
+          acc = latest.get('eval_line_count_accuracy', 0) or 0
+          print(f'{acc:.3f}')
+          ")
+          echo "Line accuracy: $ACCURACY"
+          THRESHOLD=0.8
+          python3 -c "assert float('$ACCURACY') >= $THRESHOLD, f'Line accuracy $ACCURACY below threshold $THRESHOLD'"
+          echo "✅ Above promotion threshold!"
+          echo "promote=true" >> $GITHUB_OUTPUT
+
+      - name: Upload adapter artifact
+        if: steps.check.outputs.promote == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-adapter
+          path: models/poetry-lora-*/
+          retention-days: 7

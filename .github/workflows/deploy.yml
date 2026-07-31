@@ -1,0 +1,84 @@
+# ── Deploy: Model Promotion & Release ───────────────────────────────
+# Triggered after successful training. Registers the model, stages it,
+# creates a git tag, and (if serving is deployed) triggers a rolling update.
+# ─────────────────────────────────────────────────────────────────────
+
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Train"]
+    types: [completed]
+
+jobs:
+  promote:
+    name: "Promote to Model Registry"
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # needed for tagging
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install MLflow
+        run: pip install mlflow
+
+      - name: Find best run
+        id: find
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          mlflow.set_tracking_uri("$DATABASE_URL")
+          python3 -c "
+          import os, json
+          from mlflow.tracking import MlflowClient
+          client = MlflowClient(os.environ['DATABASE_URL'])
+          runs = client.search_runs(
+            experiment_ids=client.search_experiments()[0].experiment_id,
+            order_by=['attributes.start_time DESC'],
+            max_results=1,
+          )
+          if runs:
+            r = runs[0]
+            info = {
+              'run_id': r.info.run_id,
+              'experiment': client.get_experiment(r.info.experiment_id).name,
+              'model_name': f'poesia-lora-{client.get_experiment(r.info.experiment_id).name}',
+              'line_acc': r.data.metrics.get('eval_line_count_accuracy', 0),
+            }
+            print(json.dumps(info))
+          "
+
+      - name: Stage model as "Staging"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          RUN_ID=$(python3 -c "import os,json; d=json.load(open('run_info.json')); print(d['run_id'])")
+          MODEL_NAME=$(python3 -c "import os,json; d=json.load(open('run_info.json')); print(d['model_name'])")
+          
+          # Transition to Staging
+          mlflow set_tag --run-id $RUN_ID --key "mlflow.stage" --value "Staging"
+
+      - name: Create git tag
+        run: |
+          DATE=$(date +%Y%m%d)
+          GITSHA=$(git rev-parse --short HEAD)
+          git config user.email "bot@poesia.local"
+          git config user.name "PoesIA Bot"
+          git tag -a "adapter-${DATE}-${GITSHA}" -m "Auto-deployed adapter from training run"
+          git push origin "adapter-${DATE}-${GITSHA}"
+
+      - name: Trigger serving redeploy (if deployed)
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.DEPLOY_HOOK_URL }}
+        if: env.DEPLOY_HOOK_URL != ''
+        run: |
+          curl -X POST "${{ secrets.DEPLOY_HOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{"event": "model-updated", "status": "staging"}'
+          echo "Serving redeploy triggered"

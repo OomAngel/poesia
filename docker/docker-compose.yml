@@ -1,0 +1,92 @@
+# ── PoesIA Unified Docker Compose ────────────────────────────────────
+# Start everything:   docker compose -f docker/docker-compose.yml up -d
+# Run training:       docker compose -f docker/docker-compose.yml run training
+# Run training Ruli:  docker compose -f docker/docker-compose.yml run training python scripts/train_poetry_lora.py mlops/configs/train_ruli.yaml
+# Serve model:        docker compose -f docker/docker-compose.yml up -d serving
+# View MLflow UI:     http://localhost:5000
+# ─────────────────────────────────────────────────────────────────────
+
+services:
+  # ── PostgreSQL ─────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: poesia-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mlflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mlflow}
+      POSTGRES_DB: ${POSTGRES_DB:-mlflow}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - poesia_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mlflow} -d ${POSTGRES_DB:-mlflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── MLflow UI ──────────────────────────────────────────────────────
+  mlflow-ui:
+    build:
+      context: ..
+      dockerfile: docker/mlflow.Dockerfile
+    container_name: poesia-mlflow
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${MLFLOW_PORT:-5000}:5000"
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://${POSTGRES_USER:-mlflow}:${POSTGRES_PASSWORD:-mlflow}@postgres:5432/${POSTGRES_DB:-mlflow}
+      --default-artifact-root file:///workspace/artifacts
+      --host 0.0.0.0 --port 5000
+    volumes:
+      - ../mlruns:/workspace/artifacts
+
+  # ── Training (on-demand) ──────────────────────────────────────────
+  training:
+    build:
+      context: ..
+      dockerfile: docker/training.Dockerfile
+    container_name: poesia-train
+    profiles: ["manual"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mlflow}:${POSTGRES_PASSWORD:-mlflow}@postgres:5432/${POSTGRES_DB:-mlflow}
+      MLFLOW_TRACKING_URI: postgresql://${POSTGRES_USER:-mlflow}:${POSTGRES_PASSWORD:-mlflow}@postgres:5432/${POSTGRES_DB:-mlflow}
+    volumes:
+      - ../models:/app/models
+      - ../seeds:/app/seeds
+      - ./volumes/artifacts:/workspace/volumes/artifacts
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ── Serving (inference API) ───────────────────────────────────────
+  serving:
+    build:
+      context: ..
+      dockerfile: docker/serving.Dockerfile
+    container_name: poesia-serve
+    profiles: ["serving"]
+    depends_on:
+      - postgres
+    environment:
+      MLFLOW_TRACKING_URI: postgresql://${POSTGRES_USER:-mlflow}:${POSTGRES_PASSWORD:-mlflow}@postgres:5432/${POSTGRES_DB:-mlflow}
+    ports:
+      - "${SERVE_PORT:-8000}:8000"
+    volumes:
+      - ../models:/app/models
+      - ./volumes/artifacts:/workspace/volumes/artifacts
+
+volumes:
+  poesia_pgdata:
