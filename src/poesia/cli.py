@@ -268,6 +268,8 @@ def write(
             raise typer.Exit(0)
         rprint()
 
+    from poesia.generation.constrained_loop import ConstrainedLoop
+
     loop = ConstrainedLoop(
         language=language,
         form=form,
