@@ -26,6 +26,7 @@ _DEFAULT_PARAMS: dict[str, dict[str, Any]] = {
     "ollama": {"model": "gemma2:2b"},
     "lora": {},
     "outlines": {},
+    "mlflow": {},
 }
 
 
@@ -89,6 +90,12 @@ def get_llm(name: str, **overrides) -> Any:
             model=params.get("model", "gemma2:2b"),
             host=params.get("host", os.environ.get("OLLAMA_HOST")),
         )
+    elif name == "mlflow":
+        model_uri = overrides.get(
+            "model_uri",
+            os.environ.get("MLFLOW_MODEL_URI", ""),
+        )
+        return cls(model_uri=model_uri)
     elif name in ("stub", "outlines"):
         return cls()
 
@@ -107,7 +114,7 @@ def _import_backend(name: str) -> None:
 def list_backends() -> list[str]:
     """List all registered backend names."""
     # Ensure all are imported
-    for module_name in ("stub", "groq", "gemini", "openai", "ollama", "lora", "outlines"):
+    for module_name in ("stub", "groq", "gemini", "openai", "ollama", "lora", "outlines", "mlflow"):
         _import_backend(module_name)
     return sorted(_llm_registry.keys())
 
@@ -116,6 +123,7 @@ def list_backends() -> list[str]:
 from poesia.generation.llm_client import (  # noqa: E402
     HostedLLMClient,
     LoRAClient,
+    MLflowModelClient,
     OllamaClient,
     OutlinesClient,
     StubLLMClient,
@@ -130,6 +138,7 @@ _LLM_MAP = {
     "ollama": OllamaClient,
     "lora": LoRAClient,
     "outlines": OutlinesClient,
+    "mlflow": MLflowModelClient,
 }
 
 for name, cls in _LLM_MAP.items():

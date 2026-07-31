@@ -26,8 +26,9 @@ def test_stub_llm_client() -> None:
 
 
 def test_hosted_llm_client_missing_key() -> None:
+    from poesia.exceptions import LLMProviderError
     client = HostedLLMClient(api_key="", provider="openai")
-    with pytest.raises(RuntimeError, match="requires an API key"):
+    with pytest.raises(LLMProviderError, match="requires an API key"):
         client.generate("hello")
 
 

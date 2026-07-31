@@ -287,6 +287,17 @@ class ConstrainedLoop:
                 rescored = self._scorer.score_candidates([repaired_text], prior_lines=result.lines)
                 best = rescored[0]
                 attempts += 1
+                # Safety: if repair produced same text, it will never improve — move on
+                if attempts > 0 and best.line == scored[0].line:
+                    break
+
+            if best is not None and not best.scan.is_valid and attempts >= max_repair_attempts:
+                # Fallback: accept best scored candidate even if invalid,
+                # otherwise the loop hangs forever with a bad LLM.
+                best = scored[0]
+                print(f"  [WARN] Line {line_index+1}: accepted best candidate despite invalid metre "
+                      f"(syllables={scored[0].scan.metrical_syllable_count}, "
+                      f"target={target_syllables})")
 
             if best is not None:
                 # Human selection callback: may override auto-selected best

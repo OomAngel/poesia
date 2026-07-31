@@ -588,6 +588,15 @@ class OutlinesClient:
 
     _DEFAULT_BASE = "Qwen/Qwen2.5-1.5B-Instruct"
 
+    # Shared adapter registry (same priority order as LoRAClient)
+    _KNOWN_ADAPTERS: list[tuple[str, str | None]] = [
+        ("models/poetry-lora-qwen3b/final_adapter", "Qwen/Qwen2.5-3B-Instruct"),
+        ("models/poetry-lora-distilled/final_adapter", None),
+        ("models/poetry-lora-multiform/final_adapter", None),
+        ("models/poetry-lora-v2/final_adapter", None),
+        ("models/poetry-lora-3b/final_adapter", None),
+    ]
+
     def __init__(self, base_model=None, adapter_path=None):
         import os
         self.usage = LLMUsage()
@@ -595,12 +604,28 @@ class OutlinesClient:
         self.model = base_model or self._DEFAULT_BASE
         self._model_wrapper = None
         self._tokenizer = None
+        self._adapter_path = None
+
         if adapter_path is None:
             pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-            candidate = os.path.join(pkg_root, "models", "poetry-lora-3b", "final_adapter")
-            self._adapter_path = candidate if os.path.exists(candidate) else None
+            for candidate_rel, candidate_base in self._KNOWN_ADAPTERS:
+                candidate = os.path.join(pkg_root, candidate_rel)
+                if os.path.exists(candidate):
+                    self._adapter_path = candidate
+                    self.model = candidate_base or self._DEFAULT_BASE
+                    print(f"[Outlines] Found adapter: {candidate_rel} (base: {self.model})")
+                    break
+            if self._adapter_path is None:
+                print(f"[Outlines] No adapter found — using base model only")
         else:
             self._adapter_path = adapter_path if os.path.exists(adapter_path) else None
+            if base_model is None and self._adapter_path:
+                pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                for candidate_rel, candidate_base in self._KNOWN_ADAPTERS:
+                    if adapter_path.endswith(candidate_rel) or adapter_path == os.path.join(pkg_root, candidate_rel):
+                        self.model = candidate_base or self._DEFAULT_BASE
+                        print(f"[Outlines] Auto-detected base model for adapter: {self.model}")
+                        break
 
     def _load(self):
         if self._model_wrapper is not None:
@@ -672,11 +697,14 @@ class LoRAClient:
     _DEFAULT_BASE = "Qwen/Qwen2.5-1.5B-Instruct"
 
     # Known adapter paths tried in priority order (newest first)
-    _KNOWN_ADAPTERS = [
-        "models/poetry-lora-distilled/final_adapter",
-        "models/poetry-lora-multiform/final_adapter",
-        "models/poetry-lora-v2/final_adapter",
-        "models/poetry-lora-3b/final_adapter",
+    # Each entry: (relative_path, base_model_name)
+    # If base_model_name is None, uses _DEFAULT_BASE (1.5B).
+    _KNOWN_ADAPTERS: list[tuple[str, str | None]] = [
+        ("models/poetry-lora-qwen3b/final_adapter", "Qwen/Qwen2.5-3B-Instruct"),
+        ("models/poetry-lora-distilled/final_adapter", None),
+        ("models/poetry-lora-multiform/final_adapter", None),
+        ("models/poetry-lora-v2/final_adapter", None),
+        ("models/poetry-lora-3b/final_adapter", None),
     ]
 
     def __init__(
@@ -697,19 +725,29 @@ class LoRAClient:
                 adapter_path = env_path
                 print(f"[LoRA] Using adapter from LORA_ADAPTER_PATH: {adapter_path}")
             else:
-                # Resolve relative to repo root (3 levels up from llm_client.py)
+                # Resolve relative to repo root (4 levels up from llm_client.py)
                 pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-                for candidate_rel in self._KNOWN_ADAPTERS:
+                for candidate_rel, candidate_base in self._KNOWN_ADAPTERS:
                     candidate = os.path.join(pkg_root, candidate_rel)
                     if os.path.exists(candidate):
                         adapter_path = candidate
-                        print(f"[LoRA] Found adapter: {candidate_rel}")
+                        self.model = candidate_base or self._DEFAULT_BASE
+                        print(f"[LoRA] Found adapter: {candidate_rel} (base: {self.model})")
                         break
                 if adapter_path is None:
-                    print(f"[LoRA] No adapter found. Tried: {', '.join(self._KNOWN_ADAPTERS)}. Using base model only.")
+                    paths_only = [p for p, _ in self._KNOWN_ADAPTERS]
+                    print(f"[LoRA] No adapter found. Tried: {', '.join(paths_only)}. Using base model only.")
         else:
             if not os.path.exists(adapter_path):
                 print(f"[LoRA] Adapter path {adapter_path} not found. Using base model only.")
+            # If explicit adapter_path given but no base_model, infer from known list
+            if base_model is None:
+                pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                for candidate_rel, candidate_base in self._KNOWN_ADAPTERS:
+                    if adapter_path.endswith(candidate_rel) or adapter_path == os.path.join(pkg_root, candidate_rel):
+                        self.model = candidate_base or self._DEFAULT_BASE
+                        print(f"[LoRA] Auto-detected base model for adapter: {self.model}")
+                        break
 
         self._model = None
         self._tokenizer = None
@@ -743,26 +781,48 @@ class LoRAClient:
 
     @mlflow.trace(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
-        import time
+        import time, re
 
         import torch
         self._load()
         self.usage = LLMUsage()
         t0 = time.time()
         results = []
+        # A single hendecasyllable is ~7-10 words ≈ 20-30 tokens. 50 gives room.
+        max_new = 50 if "Write line" in prompt or "Output ONLY" in prompt else 100
         for i in range(n):
             if i > 0:
                 time.sleep(0.1)
             inputs = self._tokenizer(prompt, return_tensors="pt").to("cuda")
             with torch.no_grad():
                 out = self._model.generate(
-                    **inputs, max_new_tokens=100,
+                    **inputs, max_new_tokens=max_new,
                     temperature=temperature, do_sample=True,
                     pad_token_id=self._tokenizer.pad_token_id,
                 )
             text = self._tokenizer.decode(out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True).strip()
             if text:
-                results.append(text)
+                # Clean up: remove instruction-echo if the model parroted the prompt
+                lines = text.split("\n")
+                clean = ""
+                for l in lines:
+                    l = l.strip().strip('"').strip("'").strip(".")
+                    # Skip lines that are clearly instruction-echo
+                    skip_words = ["rhyme", "scheme", "syllable", "Write line",
+                                  "Output ONLY", "line must", "Task", "Poem so far"]
+                    if any(sw.lower() in l.lower() for sw in skip_words):
+                        continue
+                    # Skip lines that are just numbers or punctuation
+                    if len(l) < 3 or l.isdigit():
+                        continue
+                    if l and len(l) > len(clean):
+                        clean = l
+                if clean:
+                    results.append(clean)
+                else:
+                    results.append(lines[-1].strip().strip('"').strip("'") if lines else text)
+            if len(results) >= n:
+                break
         self.usage.latency_ms = (time.time() - t0) * 1000
         return results
 
@@ -770,4 +830,52 @@ class LoRAClient:
         prompt = f"Fix this poetic line: {defect_description}\nLine: \"{line}\"\nOutput ONLY the corrected line.\n"
         candidates = self.generate(prompt, n=1, temperature=0.7)
         return candidates[0].strip().strip('"\'') if candidates else line
+
+class MLflowModelClient:
+    """LLMClient that loads a registered model from the MLflow Model Registry.
+
+    Uses ``PoetryModelWrapper`` under the hood via ``mlflow.pyfunc.load_model()``,
+    enabling ``mlflow models serve``-compatible serving through the CLI.
+
+    Usage:
+        client = MLflowModelClient(model_uri="models:/poesia-lora-soneto-qwen3b/1")
+        client = MLflowModelClient(model_uri="runs:/<run_id>/model")
+    """
+
+    def __init__(self, model_uri: str = ""):
+        import os
+
+        self.usage = LLMUsage()
+        self.provider = "mlflow"
+        self.model = model_uri or os.environ.get("MLFLOW_MODEL_URI", "")
+        self._model = None
+
+    def _load(self) -> None:
+        if self._model is not None:
+            return
+        if not self.model:
+            raise LLMProviderError(
+                "MLflowModelClient requires a model_uri. Set MLFLOW_MODEL_URI "
+                "environment variable or pass model_uri to the constructor.",
+                provider="mlflow",
+            )
+        try:
+            import mlflow.pyfunc
+            self._model = mlflow.pyfunc.load_model(self.model)
+        except Exception as e:
+            raise LLMProviderError(
+                f"Failed to load MLflow model from '{self.model}': {e}",
+                provider="mlflow",
+            ) from e
+
+    def generate(self, prompt: str, n: int = 1, temperature: float = 0.8) -> list[str]:
+        self._load()
+        import pandas as pd
+        inputs = pd.DataFrame({
+            "prompt": [prompt] * n,
+            "temperature": [temperature] * n,
+            "max_tokens": [100] * n,
+        })
+        return self._model.predict(inputs)
+
 
