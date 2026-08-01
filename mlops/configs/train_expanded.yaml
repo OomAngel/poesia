@@ -1,0 +1,30 @@
+# Training — 5029 quality-filtered poems (6 forms)
+experiment: "soneto-expanded-filtered"
+run_name: "v1-expanded-5029"
+tags: ["soneto", "expanded", "5029-poems", "multi-form", "quality-filtered"]
+
+model: "Qwen/Qwen2.5-1.5B-Instruct"
+quantization: "4bit"
+
+train_data: "seeds/poetry_corpus/training_data_structured/master_train_filtered.jsonl"
+eval_data: "seeds/poetry_corpus/training_data_structured/master_sonetos.jsonl"
+max_length: 300
+
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+batch_size: 8
+gradient_accumulation: 2
+epochs: 10
+learning_rate: 0.0002
+lr_scheduler: "cosine"
+warmup_steps: 50
+weight_decay: 0.01
+fp16: true
+logging_steps: 10
+eval_steps: 50
+save_steps: 100
+
+output_dir: "models/poetry-lora-expanded"

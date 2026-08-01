@@ -1,0 +1,30 @@
+# Smoke test — validates the entire MLflow pipeline without waiting hours.
+# Runs 1 epoch on a tiny slice of data. If this works, the full run will too.
+experiment: "smoke-test-mlflow-pipeline"
+run_name: "smoke-v1"
+tags: ["smoke", "test", "pipeline-validation"]
+
+model: "Qwen/Qwen2.5-1.5B-Instruct"
+quantization: "4bit"
+train_data: "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
+eval_data: "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
+max_length: 128  # shorter for speed
+
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.05
+lora_target_modules: ["q_proj", "v_proj"]
+
+batch_size: 4
+gradient_accumulation: 1
+epochs: 1
+learning_rate: 0.0002
+lr_scheduler: "cosine"
+warmup_steps: 5
+weight_decay: 0.01
+fp16: true
+logging_steps: 5
+eval_steps: 10
+save_steps: 10
+
+output_dir: "models/smoke-test-adapter"
