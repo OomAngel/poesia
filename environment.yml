@@ -160,4 +160,3 @@ dependencies:
       - wn==1.1.0
       - wrapt==2.2.2
       - zipp==4.1.0
-prefix: /home/angel/miniconda3/envs/poesia
