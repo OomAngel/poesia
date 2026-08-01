@@ -31,7 +31,7 @@
 | 9 | **No HPO infrastructure** | `run_experiment_grid.py` only, no Optuna. | ✅ **Phase 7**: `scripts/hpo_search.py` with Optuna. |
 | 10 | **No serving standardization** | LoRA adapters loaded via hardcoded paths. | ✅ **Phase 6**: `PoetryModelWrapper` as `mlflow.pyfunc.PythonModel`. New `MLflowModelClient` CLI backend (`--llm mlflow`). |
 | 11 | **Not containerized** | No Dockerfile for training/serving. | ✅ **Phase 8**: `docker/training.Dockerfile`, `docker/serving.Dockerfile`, `docker/docker-compose.yml`. Image built: `poesia-train:latest` (4.39GB). |
-| 12 | **No environment locking** | `environment.yml` incomplete. `requirements-lock.txt` has host-specific paths. | 🟡 Partially resolved: `requirements-lock.txt` cleaned of host paths. Dockerfile installs from pyproject.toml. Still needs `conda-lock` for full reproducibility. |
+| 12 | **No environment locking** | `environment.yml` incomplete. `requirements-lock.txt` has host-specific paths. | ✅ Resolved: `environment.yml` is a full conda-lock style export (Python 3.13 + torch + mlflow + all pip deps). `requirements-lock.txt` removed (stale, host-specific). Dockerfile installs from pyproject.toml. |
 | 13 | **No monitoring/drift detection** | No quality degradation detection. | ✅ **Phase 10**: `scripts/monitor_health.py` with threshold breach + statistical drift. Schedule only activates on GitHub. |
 | 14 | **Generation traces not linked to models** | MLflow Traces disconnected from adapters. | 🟡 Unchanged. Traces logged but not linked to model registry. |
 | 15 | **No git tags or releases** | Zero git tags. | ✅ **Phase 11**: 3 annotated tags created (v1.0, v1.1, v1.2). |
