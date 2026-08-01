@@ -20,12 +20,15 @@
 | Model | Params | VRAM 4-bit | Spanish fluency | Why try | Priority |
 |-------|--------|-----------|-----------------|---------|----------|
 | **Qwen2.5-1.5B** (current) | 1.5B | ~4GB | Good (trained on 100+ langs) | Baseline — already works | — |
+| **Qwen2.5-3B** | 3B | ~6GB | Good (trained on 100+ langs) | Bigger version of current model — direct upgrade | ★★★★ |
 | **Llama 3.2 3B** | 3.2B | ~6GB | Better than Qwen | Stronger multilingual, better poetry | ★★★ |
 | **Gemma 2 2B** | 2.5B | ~4GB | Good (trained on 100+ langs) | Faster training, lighter weight | ★★ |
-| **Ruli-3B** | 3B | ~6GB | **Spanish-native** | Pretrained on Spanish text specifically | ★★★★ |
+| ~~**Ruli-3B**~~ | 3B | — | — | ❌ **Does not exist on HuggingFace** — do not attempt | — |
 | **Llama 3.1 8B** | 8B | ❌ Won't fit 8GB | Best | Would need offloading or cloud GPU | ★ (impractical) |
 
-**Recommendation:** Try **Ruli-3B** (Spanish-native) and **Gemma 2 2B** (lightweight) first.
+**Recommendation:** Try **Qwen2.5-3B** (direct upgrade, same family) or **Llama 3.2 3B** (stronger multilingual) first.
+
+**Correction 2026-07-30:** "Ruli-3B" was listed as a candidate but the model ID does not resolve on HuggingFace. Replaced with Qwen2.5-3B in practice; config at `mlops/configs/train_qwen3b.yaml`.
 Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
 
 ---
@@ -38,7 +41,7 @@ Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
 | **QLoRA r=64** | `lora_r: 64` | More capacity for patterns | Edit one line | ★★ |
 | **LoRA all linear layers** | Add `gate_proj`, `up_proj`, `down_proj` | 2x more learnable params | Edit one line | ★★ |
 | **Unsloth** | Replace LoRA with Unsloth | **2x training speed** | Install unsloth, change 3 lines | ★★★★★ |
-| **DPO** (new script) | Use `scripts/train_poetry_dpo.py` | Directly optimises for our metrics | New script ready | ★★★★★ |
+| **DPO** (new script) | Use `scripts/train_poetry_dpo.py` | Directly optimises for our metrics | 🏃 **Running** | ★★★★★ |
 | **Multi-teacher distillation** | Ensemble Groq + Gemini outputs | More diverse training data | Run both APIs | ★★★ |
 | **Syllable-filtered data** | Use `sonetos_filtered_t2.jsonl` | Cleaner training signal | Change data path | ★★★ |
 
@@ -47,7 +50,7 @@ Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
 ## 4. Recommended Run Order
 
 ```
-1. DPO on existing v2 data (tests if preference learning helps)
+1. ✅ DPO ~~on existing v2 data~~ **Running** (2100/5625 steps) (evaluating after completion)
    → python scripts/train_poetry_dpo.py mlops/configs/dpo_v1.yaml
 
 2. Unsloth + r=64 (tests if faster training + more params helps)

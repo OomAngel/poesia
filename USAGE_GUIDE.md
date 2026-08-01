@@ -17,7 +17,7 @@ pip install -e ".[nlp]"
 pip install -e ".[all]"
 ```
 
-> **Note:** This project uses a conda environment. Activate with `conda activate poesia`.
+> **Note:** This project uses a conda environment (`poesia`). Use `scripts/poesia_env.sh` for automatic env detection and activation, or `bash scripts/launch_training.sh local <config>` for training.
 
 ---
 
@@ -188,7 +188,9 @@ Retrieved 5 fragments for brief:
 | OpenAI | `--llm openai` | `OPENAI_API_KEY` | OpenAI API |
 | Ollama | `--llm ollama` | `ollama serve` running | Local, offline, gemma2:2b default |
 | Outlines | `--llm outlines` | None | Qwen 1.5B + regex constraints, local |
-| LoRA | `--llm lora` | Trained adapter | Qwen 1.5B + QLoRA fine-tune |
+| LoRA | `--llm lora` | Trained adapter | Auto-detects best adapter + base model (1.5B or 3B) |
+| MLflow | `--llm mlflow` | `MLFLOW_MODEL_URI` env | Loads registered model via `PoetryModelWrapper.predict()` |
+| Outlines | `--llm outlines` | None | Qwen + regex constraints, auto-detects adapter | 
 | Auto | `--llm auto` | Any available | Priority: Gemini → Groq → OpenAI |
 
 ---
@@ -259,35 +261,62 @@ For more details, see README.md and LIBRARY_WORKFLOW_TEST.md.
 
 ## Training (MLOps)
 
-PoesIA includes a lightweight fine-tuning pipeline for QLoRA training of Qwen2.5-1.5B-Instruct.
+PoesIA uses MLflow for experiment tracking, model registry, and serving. All training runs log to `mlruns/mlflow.db` (SQLite).
 
-### Structure
-
-| Path | Purpose |
-|---|---|
-| `seeds/poetry_corpus/training_data/` | Versioned training/eval splits (JSONL, in git) |
-| `scripts/train_poetry_lora.py` | QLoRA training script |
-| `mlops/runs/` | Training run logs (not in git) |
-| `models/` | Trained adapters (not in git) |
-| `mlops/configs/` | Training configs (hyperparameters, data path) |
-| `mlops/experiments.py` | Query DB: `list`, `best`, `compare`, `tag` |
-| `mlops/ab_compare.py` | A/B comparison of two adapters |
-| `mlops/evaluate_adapter.py` | Full eval across 5 themes |
-| `mlops/pipeline.py --all` | Full pipeline: distill -> train -> eval -> compare |
-
-### How to train
+### Launcher (recommended)
 
 ```bash
-conda activate poesia
-python scripts/train_poetry_lora.py mlops/configs/train_v1.yaml  # 500 sonetos, r=16
-python scripts/train_poetry_lora.py mlops/configs/train_multiform.yaml  # 1,246 poems, r=32
+# Auto-activates conda env, sources .env_mlflow, validates GPU
+bash scripts/launch_training.sh local mlops/configs/train_qwen3b.yaml
+bash scripts/launch_training.sh local mlops/configs/train_smoke.yaml --dry-run
+bash scripts/launch_training.sh docker mlops/configs/train_qwen3b.yaml
+bash scripts/launch_training.sh dpo    # DPO preference learning
+
+# List available configs
+bash scripts/launch_training.sh local --list-configs
 ```
 
-### Evaluation
+### Environment setup
+
+```bash
+# Auto-detect and activate (sources conda + .env_mlflow)
+source scripts/poesia_env.sh --source
+
+# Or manually:
+conda activate poesia
+export MLFLOW_TRACKING_URI="sqlite:///mlruns/mlflow.db"
+```
+
+### Manual training
+
+```bash
+python scripts/train_poetry_lora.py mlops/configs/train_v1.yaml       # 500 sonetos, r=16
+python scripts/train_poetry_lora.py mlops/configs/train_qwen3b.yaml   # Qwen2.5-3B
+python scripts/train_poetry_dpo.py mlops/configs/dpo_v1.yaml          # DPO learning
+```
+
+### MLflow UI
+
+```bash
+# Docker stack (PostgreSQL + MLflow UI):
+docker compose -f docker/docker-compose.yml up -d
+# Open: http://localhost:5000
+
+# Or local:
+mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db
+```
+
+### Query experiments
 
 ```bash
 python mlops/experiments.py list
-python mlops/experiments.py best --metric line_count_accuracy
-python mlops/experiments.py compare --ids <a> <b>
-python mlops/ab_compare.py --adapter-a <path> --adapter-b <path>
+python mlops/experiments.py best --metric eval_line_count_accuracy
+python mlops/list_runs.py
+```
+
+### Docker (for reproducible training)
+
+```bash
+docker compose -f docker/docker-compose.yml build training
+docker compose -f docker/docker-compose.yml run training python scripts/train_poetry_lora.py mlops/configs/train_qwen3b.yaml
 ```
