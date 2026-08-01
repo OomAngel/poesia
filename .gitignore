@@ -21,9 +21,12 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
-# Environment / secrets
+# Environment / secrets (commit .env_mlflow.example, not the real file)
+# Note: .env.* does NOT match .env_mlflow (underscore) — list it explicitly.
 .env
 .env.*
+.env_mlflow
+!.env_mlflow.example
 *.key
 config_local.yaml
 
@@ -34,9 +37,24 @@ config_local.yaml
 models/
 checkpoints/
 
+# Derived / generated training data (regenerate via scripts/build_fixed_dataset.py)
+mlops/data/
+mlops/runs/
+
 # Corpora (Phase 2+ ingestion) - keep out of git by default
 data/raw/
 data/corpus/
+
+# MLflow (backend is PostgreSQL; local store is a build artifact)
+mlruns/
+
+# Docker runtime volumes
+docker/volumes/
+volumes/
+
+# Logs
+*.log
+logs/
 
 # OS
 .DS_Store
@@ -46,12 +64,8 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
-mlruns/
 
 # CronologIA
 cronologia/volumes/
 cronologia/.env
 cronologia/*.db
-
-# MLflow
-mlruns/
