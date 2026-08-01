@@ -9,9 +9,11 @@
       "lora_r": 16,
       "train_loss": 2.6917901992797852,
       "adapter_path": "models/poetry-lora-v2/final_adapter",
-      "notes": "",
+      "notes": "Imported from legacy JSONL tracking (pre-MLflow consolidation)",
       "eval_syllable_deviation": 1.1,
-      "eval_line_count_accuracy": 1.0
+      "eval_line_count_accuracy": 1.0,
+      "mlflow_run_id": "813c3821880c41019106a3ddafaccc1c",
+      "mlflow_model_name": "poesia-lora-20260728_231807"
     },
     {
       "id": "20260729_123255",
@@ -22,9 +24,11 @@
       "lora_r": 32,
       "train_loss": 2.6640392303466798,
       "adapter_path": "models/poetry-lora-multiform/final_adapter",
-      "notes": "",
+      "notes": "Imported from legacy JSONL tracking (pre-MLflow consolidation)",
       "eval_syllable_deviation": 2.14,
-      "eval_line_count_accuracy": 1.0
+      "eval_line_count_accuracy": 1.0,
+      "mlflow_run_id": "b6d53a74031a48aca0058cab7fd34d87",
+      "mlflow_model_name": "poesia-lora-20260729_123255"
     },
     {
       "id": "20260729_144938",
@@ -35,9 +39,39 @@
       "lora_r": 32,
       "train_loss": 1.1208845138549806,
       "adapter_path": "models/poetry-lora-distilled/final_adapter",
-      "notes": "",
+      "notes": "Imported from legacy JSONL tracking (pre-MLflow consolidation)",
       "eval_syllable_deviation": 2.11,
-      "eval_line_count_accuracy": 1.0
+      "eval_line_count_accuracy": 1.0,
+      "mlflow_run_id": "4380378a20404236b245a1c8a88f8ee4",
+      "mlflow_model_name": "poesia-lora-20260729_144938"
+    },
+    {
+      "id": "20260730_163543",
+      "mlflow_run_id": "0d51a36b702e44edb0bfed4143d3ec61",
+      "mlflow_model_name": "poesia-lora-smoke-test-mlflow-pipeline",
+      "created": "2026-07-30T16:41:14.400053",
+      "config": "mlops/configs/train_smoke.yaml",
+      "data_sha256": "2c9d207c4965d91ddcdbe80118ea86e9174f329694558634a125bd952a09ad36",
+      "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "lora_r": 8,
+      "train_loss": 2.9734775543212892,
+      "adapter_path": "models/smoke-test-adapter/final_adapter",
+      "notes": "",
+      "mlflow_model_version": 1
+    },
+    {
+      "id": "20260730_164422",
+      "mlflow_run_id": "ca7b58d6b7164f83912c9ebba52d6601",
+      "mlflow_model_name": "poesia-lora-soneto-qwen3b",
+      "created": "2026-07-30T17:29:02.635484",
+      "config": "mlops/configs/train_qwen3b.yaml",
+      "data_sha256": "2c9d207c4965d91ddcdbe80118ea86e9174f329694558634a125bd952a09ad36",
+      "base_model": "Qwen/Qwen2.5-3B-Instruct",
+      "lora_r": 16,
+      "train_loss": 2.4360912322998045,
+      "adapter_path": "models/poetry-lora-qwen3b/final_adapter",
+      "notes": "",
+      "mlflow_model_version": 1
     }
   ],
   "description": "Registry of all trained LoRA adapters. Each entry records the adapter path, config used, data hash, and evaluation metrics. Updated manually or via training script.",

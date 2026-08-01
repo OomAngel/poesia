@@ -1,14 +1,15 @@
 # DPO training — learn to prefer good lines over bad ones
-# Uses existing LineScorer metrics as reward signal
-experiment: "soneto-dpo"
-run_name: "v1-dpo"
-tags: ["soneto", "dpo", "r16-dpo"]
+# Uses LineScorer.composite_score() as reward signal (metre, rhyme, theme, novelty, cliché)
+# Data: expanded corpus from ingest_poems.py (1000 curated sonetos + 1000 varied poems)
+experiment: "soneto-dpo-expanded"
+run_name: "v1-dpo-expanded"
+tags: ["soneto", "dpo", "r16-dpo", "expanded-data"]
 
 model: "Qwen/Qwen2.5-1.5B-Instruct"
 quantization: "4bit"
 
-# Data: same structured sonetos — DPO generates preference pairs
-train_data: "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
+# Data: merged expanded datasets (2000+ poems)
+train_data: "seeds/poetry_corpus/training_data_structured/sonetos_expanded.jsonl"
 max_length: 256
 
 # LoRA
@@ -24,10 +25,12 @@ dpo_beta: 0.1  # lower = more aggressive preference learning
 batch_size: 4
 gradient_accumulation: 2
 epochs: 5
-learning_rate: 5e-5
-fp16: true
+learning_rate: 0.00005  # 5e-5 — explicit decimal for PyYAML 6.x compatibility
+bf16: false
+fp16: false
+optim: "adamw_torch"  # non-fused; model compute dtype from BitsAndBytesConfig
 logging_steps: 10
 save_steps: 50
 
 # Output
-output_dir: "models/poetry-lora-dpo"
+output_dir: "models/poetry-lora-dpo-expanded"

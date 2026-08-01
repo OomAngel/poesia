@@ -1,0 +1,32 @@
+# Training configuration — Qwen2.5-3B (upgraded from 1.5B)
+# NOTE: "Ruli-3B" was listed in docs/EXPERIMENTS_PLAN.md but does NOT exist
+# on HuggingFace. Using Qwen2.5-3B-Instruct instead — same model family as
+# the current 1.5B, so it's a direct upgrade with more capacity.
+experiment: "soneto-qwen3b"
+run_name: "v1-qwen3b-structured"
+tags: ["soneto", "structured", "r16", "qwen2.5-3b", "upgrade"]
+
+model: "Qwen/Qwen2.5-3B-Instruct"
+quantization: "4bit"
+train_data: "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
+eval_data: "seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl"
+max_length: 300
+
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+batch_size: 8
+gradient_accumulation: 2
+epochs: 10
+learning_rate: 0.0002
+lr_scheduler: "cosine"
+warmup_steps: 50
+weight_decay: 0.01
+fp16: true
+logging_steps: 10
+eval_steps: 50
+save_steps: 100
+
+output_dir: "models/poetry-lora-qwen3b"
