@@ -30,15 +30,15 @@ does not: **never trust an LLM to count syllables**.
 
 ---
 
-## Showcase — GalerIA, fully offline
+## Showcase — GalerIA in action
 
-In the Spanish *auca* tradition, every stanza of a poem gets its own image,
-captioned with its verses. PoesIA automates the whole chain — and it does not
-need an API key to show you what it can do. The sheet below was generated for
-the soneto *"El peso del saber"* with one command: the `procedural` backend
-renders **deterministic generative art seeded from the poem's own imagery**
-(palette and composition derive from the extracted nouns and sensory
-modalities), so the same poem always produces the same illustration.
+**Fully offline, deterministic** — every stanza of a poem gets its own image,
+captioned with its verses (the Spanish *auca* tradition). The sheet below was
+generated for the soneto *"El peso del saber"* with one command: the
+`procedural` backend renders **deterministic generative art seeded from the
+poem's own imagery** (palette and composition derive from the extracted nouns
+and sensory modalities), so the same poem always produces the same
+illustration.
 
 ```bash
 poesia galeria illustrate seeds/library/20260731_030227_142539_el_peso_del_saber__ingenuidad.md \
@@ -50,8 +50,25 @@ poesia galeria illustrate seeds/library/20260731_030227_142539_el_peso_del_saber
        alt="Auca sheet for the soneto El peso del saber: four procedural panels, one per stanza">
 </p>
 
-Four stanzas, four panels, no network, no key. Swap `procedural` for `openai`
-(DALL·E) or `replicate` (SDXL) and the same prompts produce photoreal panels.
+Four stanzas, four panels, no network, no key.
+
+**Online, real AI, free tier** — the same pipeline against Cloudflare Workers
+AI (SDXL, native 1024×1024, ~10 s per panel). This sheet was generated live
+from the free tier with a dedicated token:
+
+```bash
+poesia galeria illustrate poema.txt --backend cloudflare --output auca.png
+```
+
+<p align="center">
+  <img src="docs/examples/auca_cloudflare_la_luna.png" width="520"
+       alt="Auca sheet illustrated live with Cloudflare Workers AI (SDXL): two panels">
+</p>
+
+Two panels, two real SDXL images, ~20 s, $0. (Cloudflare output is *novel per
+request* — the served SDXL ignores the seed; use `procedural` when
+bit-for-bit reproducibility matters.)
+
 Full walkthrough in the [GalerIA section](#galeria--illustration).
 
 ---
