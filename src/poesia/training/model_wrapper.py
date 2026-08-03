@@ -15,12 +15,13 @@ Usage (after training saves adapter):
 from __future__ import annotations
 
 import os
+from typing import Any
 
 import mlflow
 import pandas as pd
 
 
-class PoetryModelWrapper(mlflow.pyfunc.PythonModel):
+class PoetryModelWrapper(mlflow.pyfunc.PythonModel):  # type: ignore[name-defined]  # mlflow ships no stubs for pyfunc.PythonModel
     """MLflow pyfunc wrapper for PoesIA's LoRA-tuned poetry models.
 
     Loads the base model + LoRA adapter at inference time and exposes a
@@ -32,10 +33,13 @@ class PoetryModelWrapper(mlflow.pyfunc.PythonModel):
 
     def __init__(self, base_model: str = "Qwen/Qwen2.5-1.5B-Instruct"):
         self._base_model = base_model
-        self._model = None
-        self._tokenizer = None
+        self._model: Any = None
+        self._tokenizer: Any = None
 
-    def load_context(self, context: mlflow.pyfunc.PythonModelContext) -> None:
+    def load_context(
+        self,
+        context: mlflow.pyfunc.PythonModelContext,  # type: ignore[name-defined]
+    ) -> None:
         """Load model + tokenizer from MLflow artifact path.
 
         Expects the adapter weights at the "adapter" artifact key.
@@ -64,7 +68,7 @@ class PoetryModelWrapper(mlflow.pyfunc.PythonModel):
         self._tokenizer = AutoTokenizer.from_pretrained(model_id)
         self._tokenizer.pad_token = self._tokenizer.eos_token
 
-        model = AutoModelForCausalLM.from_pretrained(
+        model: Any = AutoModelForCausalLM.from_pretrained(
             model_id,
             quantization_config=bnb,
             device_map="auto",
@@ -78,7 +82,7 @@ class PoetryModelWrapper(mlflow.pyfunc.PythonModel):
 
     def predict(
         self,
-        context: mlflow.pyfunc.PythonModelContext,
+        context: mlflow.pyfunc.PythonModelContext,  # type: ignore[name-defined]
         inputs: pd.DataFrame,
     ) -> list[str]:
         """Generate poem lines from prompts.

@@ -137,7 +137,7 @@ class LineScorer:
                 pass
 
         # Track prior line embeddings for novelty scoring
-        self._prior_embeddings: list[list[float]] = []
+        self._prior_embeddings: list[list[float] | tuple[float, ...]] = []
 
         # Track prior line-ending words (P4: anti-end-repetition)
         self._prior_end_words: set[str] = set()
@@ -247,7 +247,9 @@ class LineScorer:
                 "end_word": ew_score,
                 "fragment_fidelity": ff_score,
             }
-            total = composite_score(**breakdown)
+            # breakdown keys are exactly composite_score's keyword params, but
+            # mypy cannot match a plain dict unpack against a named signature.
+            total = composite_score(**breakdown)  # type: ignore[arg-type]
             scored.append(ScoredCandidate(line=line, scan=scan, score=total, breakdown=breakdown))
 
         return sorted(scored, key=lambda c: c.score, reverse=True)

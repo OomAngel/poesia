@@ -65,7 +65,7 @@ class PoetryTrainer(Trainer):
         model: torch.nn.Module,
         inputs: dict[str, torch.Tensor],
         return_outputs: bool = False,
-        num_items_in_batch: int | None = None,
+        num_items_in_batch: torch.Tensor | int | None = None,
     ) -> torch.Tensor | tuple[torch.Tensor, Any]:
         """Composite loss = cross-entropy + scorer penalty * weight."""
 
@@ -97,7 +97,7 @@ class PoetryTrainer(Trainer):
         phonology = self._get_phonology()
         batch_size = inputs.get("input_ids", torch.empty(0)).size(0)
         if batch_size == 0:
-            return torch.tensor(0.0, device=model.device)
+            return torch.tensor(0.0, device=model.device)  # type: ignore[arg-type]  # torch stubs type Module.device as Tensor|Module; runtime AttributeError is caught below
 
         # Generate one token from each sample to estimate quality
         try:
@@ -111,9 +111,9 @@ class PoetryTrainer(Trainer):
             # Decode to text (just the predicted token)
             tokenizer = self.processing_class or getattr(self, "tokenizer", None)
             if tokenizer is None:
-                return torch.tensor(0.0, device=model.device)
+                return torch.tensor(0.0, device=model.device)  # type: ignore[arg-type]
 
-            texts = tokenizer.batch_decode(pred_tokens.unsqueeze(-1), skip_special_tokens=True)
+            texts = tokenizer.batch_decode(pred_tokens.unsqueeze(-1), skip_special_tokens=True)  # type: ignore[union-attr]  # processing_class union; tokenizer verified non-None above
 
             # Score each predicted token against syllable target
             # (We check if the predicted word has correct syllable count)
@@ -134,9 +134,9 @@ class PoetryTrainer(Trainer):
                     pass
 
             if count == 0:
-                return torch.tensor(0.0, device=model.device)
+                return torch.tensor(0.0, device=model.device)  # type: ignore[arg-type]
 
-            return torch.tensor(total_penalty / count, device=model.device, dtype=torch.float32)
+            return torch.tensor(total_penalty / count, device=model.device, dtype=torch.float32)  # type: ignore[arg-type]
 
         except Exception:
-            return torch.tensor(0.0, device=model.device)
+            return torch.tensor(0.0, device=model.device)  # type: ignore[arg-type]

@@ -235,20 +235,23 @@ class ProceduralImageBackend:
 
         # --- foreground stalks / grass -------------------------------------
         for _ in range(rng.randint(10, 16)):
-            x = rng.uniform(0, size)
+            gx = rng.uniform(0, size)
             h = rng.randint(int(size * 0.10), int(size * 0.30))
             for step in range(h):
                 y0 = size - step
-                x += rng.uniform(-1.4, 1.4)
-                draw.point((int(x), y0), fill=(*pal.ink, rng.randint(150, 235)))
+                gx += rng.uniform(-1.4, 1.4)
+                draw.point((int(gx), y0), fill=(*pal.ink, rng.randint(150, 235)))
 
         # --- stars / sparks -------------------------------------------------
         if mode != "watercolor" and rng.random() < 0.85:
             for _ in range(rng.randint(24, 60)):
-                x = rng.randrange(size)
-                y = rng.randrange(0, horizon)
-                r = rng.choice([1, 1, 2])
-                draw.ellipse([x - r, y - r, x + r, y + r], fill=(*pal.glow, rng.randint(70, 190)))
+                sx = rng.randrange(size)
+                sy = rng.randrange(0, horizon)
+                sr = rng.choice([1, 1, 2])
+                draw.ellipse(
+                    [sx - sr, sy - sr, sx + sr, sy + sr],
+                    fill=(*pal.glow, rng.randint(70, 190)),
+                )
 
         # --- style-specific frame -------------------------------------------
         m = rng.randint(14, 22)

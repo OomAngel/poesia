@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, cast
 
 from poesia.evaluation.scorer import LineScorer, ScoredCandidate
 from poesia.forms.definitions import FormSpec, get_form
@@ -248,7 +248,7 @@ class ConstrainedLoop:
                 theme=theme,
                 tone=tone,
                 seeds=seeds,
-                level=brief_level,
+                level=cast(Literal["minimal", "standard", "maximal"], brief_level),
                 language=self.language,
                 movement=movement,
             )

@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from typing import Any
 
 # Registry: name -> class
@@ -30,7 +31,9 @@ _DEFAULT_PARAMS: dict[str, dict[str, Any]] = {
 }
 
 
-def register_llm(name: str, params: dict[str, Any] | None = None) -> callable:
+def register_llm(
+    name: str, params: dict[str, Any] | None = None
+) -> Callable[[type[Any]], type[Any]]:
     """Decorator: register an LLM client class under a name.
 
     Usage:

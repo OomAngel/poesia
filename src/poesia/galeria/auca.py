@@ -54,6 +54,7 @@ class AucaComposer:
         font_size = max(14, int(img_w / 25))
 
         try:
+            font: ImageFont.FreeTypeFont | ImageFont.ImageFont
             if font_path:
                 font = ImageFont.truetype(font_path, font_size)
             else:
