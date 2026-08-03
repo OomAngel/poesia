@@ -1,234 +1,248 @@
 # PoesIA
 
-[![Python](https://img.shields.io/badge/python-3.11-blue)](#)
+> *poesía* — Spanish for "poetry" — already contains **IA** (*Inteligencia Artificial*).
+> Nothing invented; just noticed.
+
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
-[![Status](https://img.shields.io/badge/status-active-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-431%20passing-brightgreen)](#development)
+[![Status](https://img.shields.io/badge/status-active-brightgreen)](#status)
 
-> *poesía* (Spanish, "poetry") — with **IA** (*Inteligencia Artificial*) already
-> hiding inside the word. Nothing invented; just noticed.
+A **hybrid poetry-writing engine**: deterministic phonology and prosody validation
+anchored to LLM semantic generation — extended into sound analysis, illustration,
+a personal library, and music.
 
-A personal hybrid poetry-writing engine: deterministic phonology/prosody validation
-anchored to LLM semantic generation, extended into illustration, collections and
-music. Later to gain Graph RAG for corpus-aware retrieval and stylistic grounding.
+The thesis is simple and evidence-backed:
 
----
+> **LLM** for imagination — metaphor, ambiguity, emotional movement.
+> **Algorithms** for the craft — syllable count, stress, rhyme, measurable repetition.
+> **Human** for taste — whether the poem deserved to exist.
 
-## Philosophy
-
-> **LLM**: semantic imagination, metaphor, ambiguity, emotional movement.
-> **Algorithms**: metre, rhyme, phonetic pattern, measurable repetition.
-> **Human**: taste, necessity, surprise — and whether the poem deserved to exist.
-
-Do not trust the LLM to count syllables, identify stress, or guarantee rhyme.
-A language-specific study on Greek poetry found that pure LLM generation produced
-fewer than 4 % formally valid poems; adding deterministic phonological verification
-raised validity to 73.1 %. The exact numbers do not transfer directly to English or
-Spanish, but the architectural lesson is persuasive.
+Pure LLM generation produces formally valid poetry less than ~4% of the time.
+Wrapping the same generation in deterministic phonological verification raises
+validity to ~73%. The exact numbers differ per language; the architectural lesson
+does not: **never trust an LLM to count syllables**.
 
 ---
 
 ## The -IA family
 
 One package, five commands, all sharing the same phonology/evaluation spine.
-Each sub-brand is a real Spanish word that already ends in "-ía" — read the
-last three letters as **IA**.
+Each sub-brand is a real Spanish word ending in *-ía* — read those three letters
+as **IA**.
 
-| Command | Word (Spanish) | Meaning | Role |
-|---|---|---|---|
-| `poesia write` / `poesia scan` | *poesía* — poetry | core generation + validation loop |
-| `poesia eufonia` | *eufonía* — euphony | **sound** analysis: rhyme, assonance, consonance, how a poem *sounds* |
-| `poesia galeria` | *galería* — gallery | **illustration**: auca-style illustrated verse sheets, image generation |
-| `poesia memoria` | *memoria* — memory | **collections**: personal library, later the Graph RAG retrieval layer |
-| `poesia armonia` | *armonía* — harmony | **music**: prosody → rhythm, symbolic score, sung/recited output |
+| Command | Word | Role |
+|---|---|---|
+| `poesia write` · `poesia scan` | *poesía* — poetry | Core generation + validation loop |
+| `poesia eufonia analyze` | *eufonía* — euphony | **Sound**: rhyme, assonance, consonance — how a poem *sounds* |
+| `poesia galeria illustrate` | *galería* — gallery | **Illustration**: auca-style image sheets, one image per stanza |
+| `poesia memoria` | *memoria* — memory | **Collections**: personal library, semantic retrieval, Graph RAG |
+| `poesia armonia` | *armonía* — harmony | **Music**: prosody → rhythm, score, sung/recited output |
 
-**Why EufonIA ≠ ArmonIA:** euphony is the pleasantness of *sound itself*
-(the acoustic/phonetic layer — rhyme, assonance, cacophony avoidance). Harmony
-is the concordant balance *among parts*, and in music specifically the
-vertical stacking of notes into chords. EufonIA judges how the words sound;
-ArmonIA turns the poem into music. They are neighbors, not synonyms.
+EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbours, not synonyms.
+
+---
+
+## Features
+
+**Core generation**
+
+- Constrained generation loop: candidate lines → validate → score → rank → LLM repair
+- 8+ LLM backends behind one `Protocol` — `stub`, `groq`, `gemini`, `openai`, `ollama`, `lora`, `outlines`, `mlflow`
+- Grammar-constrained decoding via Outlines; LoRA/QLoRA fine-tuning (Qwen2.5) with MLflow tracking
+- Directive prompts: syllable targets, rhyme word banks, anti-repetition
+- Interactive line selection, alternative ranking, privacy guardrails for hosted providers
+
+**Phonology — the deterministic spine**
+
+- Spanish sinalefa-aware syllable counting; 45 stanza types; English CMUdict scansion; Dutch pyphen
+- Lazy, pluggable backends — no network, no LLM, pure algorithms
+
+**GalerIA — illustration**
+
+- One illustrated panel per stanza (the Spanish *auca* / *aleluya* tradition)
+- Pluggable image backends: `stub` (offline), `openai` (DALL·E), `replicate` (SDXL)
+- Imagery extraction (nouns, phrases, sensory modalities) → image prompts
+- Style anchoring from literary influences and tone
+- PNG sheets and WeasyPrint PDF export
+
+**MemorIA**
+
+- Markdown + SQLite poem library with full generation provenance in YAML frontmatter
+- Graph RAG semantic retrieval with explainable paths; style anchors for your voice
+
+**Tooling**
+
+- MLOps: MLflow single source of truth, model registry, evaluation, monitoring, Docker, CI/CD
+- 431 passing tests; ruff, mypy, bandit, safety enforced in CI
+
+---
+
+## Installation
+
+Requires **Python 3.11+**.
+
+```bash
+git clone <repo-url> poesia
+cd poesia
+pip install -e ".[dev]"
+```
+
+### Optional extras
+
+| Extra | What it enables |
+|---|---|
+| `.[spanish]` | Spanish phonology (`rantanplan`, `silabeador`) |
+| `.[english]` | English phonology (`pronouncing`, CMUdict, `prosodic`) |
+| `.[nlp]` | Semantic scoring (sentence-transformers) + imagery extraction (spaCy) |
+| `.[llm]` | Hosted LLM SDKs |
+| `.[illustration]` | Image generation SDKs + Pillow + WeasyPrint (PDF export) |
+| `.[graphrag]` | Graph RAG retrieval (NetworkX, Neo4j) |
+| `.[music]` · `.[recitation]` | ArmonIA score/TTS extras |
+| `.[all-lang]` | All language backends |
+
+---
+
+## Quickstart
+
+**Scan a line** — syllables, stress, validity:
+
+```bash
+poesia scan "En el umbral de la noche callada" --language es
+```
+
+**Write a poem** — offline, no API key needed:
+
+```bash
+poesia write --theme "lluvia sobre piedra" --form soneto --language es
+```
+
+**Write and illustrate it in one go** — one image per stanza, saved as an auca sheet:
+
+```bash
+poesia write --theme "lluvia sobre piedra" --form soneto --illustrate
+# ✓ Illustrated sheet: galeria/lluvia_sobre_piedra_20260803_175942.png
+```
+
+**Illustrate an existing poem file** with a real image model:
+
+```bash
+poesia galeria illustrate poem.txt --backend openai --output auca.png
+```
+
+Requires `OPENAI_API_KEY` (or `REPLICATE_API_TOKEN`). `--backend auto` picks the
+first configured provider and falls back to the offline stub when none is set.
+
+
+---
+
+## GalerIA — illustration
+
+In the Spanish *auca* tradition, every stanza of a poem gets its own image,
+captioned with its verses. PoesIA automates the whole chain:
+
+```
+poem lines ──▶ split into stanzas
+    ──▶ extract imagery (nouns, phrases, sensory modalities)
+    ──▶ build image prompt (theme + imagery + style)
+    ──▶ generate one image per stanza  (stub | openai | replicate)
+    ──▶ compose an illustrated sheet   (PNG grid, or WeasyPrint PDF)
+```
+
+```bash
+poesia galeria illustrate soneto.txt --backend replicate --output auca.pdf
+# Generated 4 panels (4 image prompts)
+# ✓ Illustrated PDF saved: auca.pdf
+```
+
+Style anchoring ties the visuals to the poetry itself — literary movements and
+tones map to visual keywords (Modernismo → *art nouveau, jewel tones*;
+melancholic → *muted colors, twilight*):
+
+```bash
+poesia galeria illustrate soneto.txt --style-from-influences --tone melancholic
+```
+
+`--dry-run` prints the exact image prompts without calling any model — perfect
+for iterating on style.
 
 ---
 
 ## Architecture (high-level)
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  poesia CLI (Typer)                     │
-│      write · scan · eufonia · galeria · memoria · armonia│
-└────────────────────────┬────────────────────────────────┘
-                         │
-          ┌──────────────▼──────────────┐
-          │    Generation Loop           │
-          │  (generation/)               │
-          │  · generate N candidate lines│
-          │  · validate → score → rank   │
-          │  · ask LLM to repair defects │
-          └───┬──────────────────┬───────┘
-              │                  │
-   ┌──────────▼──────┐  ┌────────▼────────────┐
-   │  Phonology Layer │  │  Evaluation Layer    │
-   │  (phonology/)    │  │  (evaluation/)       │
-   │  · syllable count│  │  · metre score       │
-   │  · stress pattern│  │  · rhyme score       │
-   │  · rhyme class   │  │  · theme/semantic    │
-   │  · IPA / fonemas │  │  · novelty, cliché   │
-   └──────────────────┘  └──────────────────────┘
-              │                     │
-   ┌──────────▼─────────┐  ┌────────▼────────────┐  ┌──────────────────┐
-   │  eufonia/           │  │  galeria/            │  │  armonia/         │
-   │  sound analysis,    │  │  image backends,     │  │  prosody→rhythm,  │
-   │  consumes phonology │  │  auca layout, PDF     │  │  score/MIDI, TTS  │
-   └─────────────────────┘  └──────────────────────┘  └───────────────────┘
-                                   │
-                    ┌──────────────▼────────────┐
-                    │  memoria/ (retrieval)      │
-                    │  collections now,          │
-                    │  Graph RAG later           │
-                    │  · poet style anchors      │
-                    │  · semantic neighbourhood  │
-                    └────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                  poesia CLI (Typer)                       │
+│     write · scan · eufonia · galeria · memoria · armonia  │
+└──────────────┬───────────────────────────────────────────┘
+               │
+     ┌─────────▼──────────┐
+     │  Generation Loop   │   candidate lines → validate → score → repair
+     │  (generation/)     │
+     └─────┬──────────┬───┘
+           │          │
+  ┌────────▼───┐  ┌───▼─────────┐   ┌──────────────────────┐
+  │ phonology/ │  │ evaluation/ │   │  Feature modules      │
+  │ syllable,  │  │ metre, rhyme│   │  eufonia/ galeria/    │
+  │ stress,    │  │ theme,      │   │  memoria/ armonia/    │
+  │ rhyme keys │  │ novelty     │   │  (Protocol backends)  │
+  └────────────┘  └─────────────┘   └──────────────────────┘
 ```
 
----
-
-## Language targets
-
-| Language | Phonology stack | Form recognition |
-|----------|----------------|------------------|
-| Spanish  | `rantanplan`, `silabeador`, `fonemas`, `phonemizer` | 45 stanza types via rantanplan |
-| English  | `pronouncing` + CMUdict, `prosodic`, `phonemizer` (OOV) | iambic pentameter, syllabics, free verse |
-| Multilingual | `phonemizer` (eSpeak NG backend), `epitran` (IPA) | — |
-
-See `docs/ARCHITECTURE.md` (Package survey section) for the full package survey, including
-illustration and music backends.
+The discipline: `phonology/` and `evaluation/` are **pure and deterministic**.
+Feature modules (`galeria/`, `armonia/`, `memoria/`) talk to the outside world
+only through abstract `Protocol` backends — no vendor SDK leaks into core logic.
 
 ---
 
-## Quickstart
+## Language support
+
+| Language | Phonology stack | Forms |
+|---|---|---|
+| Spanish | `rantanplan`, `silabeador`, `fonemas`, `phonemizer` | 45 stanza types, soneto, romance… |
+| English | `pronouncing` + CMUdict, `prosodic`, `phonemizer` | iambic pentameter, sonnets, haiku, free verse |
+| Dutch | `pyphen` | syllabic validation |
+
+---
+
+## Development
 
 ```bash
-cd /home/angel/dev/poesia
 pip install -e ".[dev]"
-poesia --help
+pytest                       # 431 tests
+ruff check src/ mlops/       # lint (CI-enforced)
+ruff format --check src/ mlops/
+mypy src/ --ignore-missing-imports
 ```
 
-Demo (Spanish hendecasyllable scan):
+MLflow experiments, model registry and monitoring run against PostgreSQL
+(`docker compose -f docker/docker-compose.yml up`); training entry point:
+`bash scripts/launch_training.sh local mlops/configs/train_<config>.yaml`.
 
-```bash
-poesia scan "En el principio era el Verbo y el Verbo" --language es
-```
-
-Demo (generation loop stub, offline via StubLLMClient):
-
-```bash
-poesia write --theme "lluvia sobre piedra" --language es --form soneto
-```
-
----
-
-## Roadmap
-
-See `docs/ROADMAP.md`.
-
-**Phase 0 ✅**: Scaffold, phonology validation, all five -IA modules.
-**Phase 1 ✅**: LLM candidate generation + reranking loop.
-**Phase 2 ✅**: GalerIA (DALL-E/Replicate) + ArmonIA (MIDI/TTS).
-**Phase 3 ✅**: Graph RAG in MemorIA, BriefBuilder enrichment, seed expansion.
-**Phase 4 ✅**: Real LLM integration, richer influences, GalerIA style anchoring.
-**Phase 5 ✅**: P0–P5 hardening: Groq, directive prompts, rhyme tracking, interactive CLI,
-              privacy controls, structured errors, index compatibility, evaluation corpus.
-
-### Current capabilities
-- **Spanish sinalefa handling** — correct metrical syllable counting with vowel elision
-- **Semantic scoring** — theme/novelty via sentence-transformers embeddings
-- **Graph RAG** — NetworkX-based semantic retrieval for personal context
-- **Multi-language** — Spanish (primary), English, Dutch phonology backends
-- **Real LLM backends** — Gemini/OpenAI via `--llm` option (API key required)
-
----
-
-## Project layout
-
-```
-poesia/
-├── src/poesia/
-│   ├── phonology/       # Language-specific prosody validators (the shared spine)
-│   ├── generation/      # LLM orchestration + constrained loop
-│   ├── evaluation/      # Scoring functions (metre, rhyme, semantics, novelty)
-│   ├── forms/           # Stanza/form definitions and validators
-│   ├── eufonia/         # Sound/euphony analysis feature
-│   ├── galeria/         # Illustration: image backends, auca layout, PDF export
-│   ├── memoria/         # Collections/library; future Graph RAG retrieval
-│   ├── armonia/         # Music: prosody→rhythm, score/MIDI, TTS recitation
-│   └── cli.py           # Root Typer app mounting all five subcommands
-├── tests/               # pytest unit + integration tests
-├── docs/                # Architecture, naming rationale, package survey, roadmap
-├── notebooks/           # Exploration notebooks
-├── scripts/             # One-off tools, demos
-└── memory-bank/         # Session continuity files
-```
+**Documentation**: `docs/` — architecture, package survey, roadmap, experiment
+plan, RAG/LLM hardening plan, corpus sources, MLOps diagnosis. Full CLI reference
+in [`USAGE_GUIDE.md`](USAGE_GUIDE.md).
 
 ---
 
 ## Status
 
-**Phases 0–5 complete + P0–P5 RAG/LLM hardening** (2026-08-01). **400+ tests passing.**
-
-### Recent Updates (2026-08-01)
-- ✅ Corpus expanded: 1,059 new poems (Gutenberg + Wikisource) — 601 by Mexican poets
-- ✅ Fixed-format dataset builder (38K examples) + v2-fixed retraining (fixes the instruction-echo bug)
-- ✅ DPO training complete (loss 0.008, acc 1.0); Model Registry verified
-- ✅ Original sonetos in the library: "El peso del saber", "El umbral", RadicleCrops ×6 (13 poems total)
-- ✅ MLOps Phases 1–11: MLflow single source of truth, Registry, Docker, CI/CD, monitoring
-- ✅ Multi-form training infrastructure (MLOps: config-driven, experiments DB, A/B compare)
-- ✅ Grammar-constrained generation via Outlines (`--llm outlines`)
-- ✅ LoRA fine-tuning with Qwen2.5-1.5B + QLoRA (`--llm lora`)
-- ✅ Real LLM backends: Groq, Gemini, OpenAI (`--llm groq|gemini|openai`)
-- ✅ Local offline inference via Ollama (`--llm ollama`)
-- ✅ Directive prompts: syllable targets, rhyme word banks, anti-repetition
-- ✅ RhymeTracker with per-letter-group commitments + Datamuse/CMUdict word banks
-- ✅ Typed graph nodes/edges + bounded traversal with explainable paths
-- ✅ Interactive line selection (`--interactive`) and retrieval display (`--show-retrieval`)
-- ✅ Privacy confirmation before personal context reaches hosted providers
-- ✅ Structured exception hierarchy (`PoesiaError`, 10 subtypes)
-- ✅ Embedding profile frozen to `intfloat/multilingual-e5-small` (384-dim)
-- ✅ Index compatibility enforcement, atomic writes, source fingerprinting
-- ✅ Distillation pipeline (Groq → clean sonetos) for synthetic training data
-
-See `USAGE_GUIDE.md` for complete feature documentation and `docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md` for the full hardening scope.
-
----
-
-## Naming rationale
-
-### PoesIA — the hidden pun
-
-*Poesía* is simply the Spanish word for "poetry." Read the last three letters as **IA** (*Inteligencia Artificial* — "AI") and the pun is already there, unforced. Nothing invented.
-
-Every sub-brand follows the same pattern — a genuine Spanish noun ending in "-ía" whose literal meaning matches the module's responsibility (see the -IA family table above).
-
-### Naming search history
-
-Earlier candidates that were explored and rejected:
-- **poiesis** (Greek "making") — fine but not bilingual EN/ES-flavored enough
-- root+suffix mashups (`coplai`, `rimagraph`, `silvagraph`) — felt mechanical
-- "hidden pun in a real word" tricks in English (`SoNNet`) — collides with Anthropic's Claude Sonnet
-- movie-pastiche jokes (`Rhymenator`, `Trovatron`) — fun but not durable branding
-
-**PoesIA** won because it is the *exact* real word, works identically in speech and text, and the -IA family pattern reproduces cleanly across every other relevant Spanish "-ía" word.
-
-### PyPI availability
-
-`poesia` is unregistered on PyPI (HTTP 404 at check). Irrelevant unless this repo is ever published — it remains a personal project shared privately by invitation.
+Core engine complete; Phases 0–5 + P0–P5 hardening done, **431 tests passing**
+(2026-08). Fine-tuning and DPO pipelines operational (MLflow-tracked); GalerIA
+wired end-to-end for online (DALL·E / SDXL) and offline (stub) illustration.
 
 ---
 
 ## License & sharing
 
-**Software** — MIT License, see [`LICENSE`](LICENSE).
-**Original creative content** (`seeds/angel_fragments/`, `seeds/library/`) — © the author and **not** covered by the MIT license. See [`NOTICE`](NOTICE).
-**Corpus texts** (`seeds/poetry_corpus/`) — public domain (Project Gutenberg, es.wikisource.org); full provenance in [`docs/CORPUS_SOURCES.md`](docs/CORPUS_SOURCES.md).
+- **Software** — MIT, see [`LICENSE`](LICENSE).
+- **Original creative content** (`seeds/angel_fragments/`, `seeds/library/`) —
+  © the author, **not** covered by the MIT license. See [`NOTICE`](NOTICE).
+- **Corpus texts** (`seeds/poetry_corpus/`) — public domain (Project Gutenberg,
+  es.wikisource.org); provenance in [`docs/CORPUS_SOURCES.md`](docs/CORPUS_SOURCES.md).
 
-Contribution standards: [`CONTRIBUTING.md`](CONTRIBUTING.md) · Security: [`SECURITY.md`](SECURITY.md) · History: [`CHANGELOG.md`](CHANGELOG.md)
+Contribution standards: [`CONTRIBUTING.md`](CONTRIBUTING.md) ·
+Security: [`SECURITY.md`](SECURITY.md) · History: [`CHANGELOG.md`](CHANGELOG.md)
 
-**Author:** Angel — shared by invitation; contact details are provided personally, never published here.
+**Author:** Angel — shared by invitation; contact details are provided personally.
+
