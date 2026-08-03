@@ -165,6 +165,23 @@ MOD  mlops/experiments.py
 MOD  mlops/list_runs.py
 ```
 
+## What We Just Did (2026-08-03: Private-share pack — README, license, emails)
+
+Prepared the repo to be shared with a single contact by email:
+
+- **License**: MIT (`LICENSE`) + `NOTICE` reserving rights on original creative
+  content (`seeds/angel_fragments/`, `seeds/library/`); pyproject updated from
+  "Proprietary - personal project" to MIT.
+- **Proper-repo files**: `CONTRIBUTING.md`, `CHANGELOG.md`, `SECURITY.md`, README
+  badges + refreshed Status (2026-08-01) + new "License & sharing" section.
+- **Share kit**: `share/EMAIL_01_COVER.md` (EN+ES), `share/EMAIL_02_SETUP_TOUR.md`,
+  `share/SHARING_CHECKLIST.md`, and `scripts/package_share.sh` → verified
+  `dist/poesia-share-*.tar.gz` (13 MB, fits in one email; secret-scan abort).
+
+**Open decisions for Angel**: (1) license variant — MIT+NOTICE (implemented),
+plain MIT, or All-Rights-Reserved; (2) delivery channel — email tarball ✅ vs
+private GitHub repo ⚠️ (needs explicit instruction per AGENTS.md).
+
 ## What We Just Did (Phase 1: MLOps Consolidation)
 
 ### 1. Eliminated Dual Tracking 🏗️
