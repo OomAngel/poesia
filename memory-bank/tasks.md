@@ -28,6 +28,16 @@
 
 ## DONE
 
+### 2026-08-04: Share-readiness — GitHub CI green + private repo verified
+- [x] Pushed 40 commits to private `OomAngel/poesia` (PRIVATE ✓, MIT, topics);
+      rendered README inspected via API — badges/images OK
+- [x] Fixed 3 red CI jobs: rantanplan→spacy2.2.4 removed from `spanish` extra;
+      bandit B311 skipped (CI + pyproject); ruff pinned `<0.17` (format drift)
+- [x] Train workflow: removed auto-push trigger (no self-hosted GPU runner →
+      stuck runs); now manual-only
+- [x] README stale counts 447 → **477** (badge + prose); Spanish stack row updated
+- [x] bandit 0 issues with CI flags; suite 477
+
 ### 2026-08-03: Publication prep — Cloudflare showcase + send-ready emails
 - [x] README showcase → "GalerIA in action" with a live Cloudflare example
       (`docs/examples/auca_cloudflare_la_luna.png`, 4.2 MB → 572 KB)

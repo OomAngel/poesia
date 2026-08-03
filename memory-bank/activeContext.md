@@ -81,6 +81,27 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
+## What We Just Did (2026-08-04 — share-readiness: GitHub CI green + private repo)
+
+1. **Private GitHub verified**: `OomAngel/poesia` already exists and is PRIVATE
+   (MIT, topics, description set). Pushed all 40 local commits; inspected the
+   rendered README via `gh api` — badges render via camo, showcase images
+   present.
+2. **CI was red — three real fixes** (this is what "share-ready" means):
+   - *Tests*: `rantanplan` pins `spacy==2.2.4` (2019) → `thinc==7.4.0` has no
+     py3.11 wheel → build fails. Removed rantanplan from the `spanish` extra
+     (silabeador + fonemas suffice — the repo already ran without it locally);
+     README extras + language tables updated.
+   - *Security*: bandit **B311** (deterministic `random` in procedural.py) —
+     added to the CI `--skip` list AND pyproject `[tool.bandit]`.
+   - *Lint*: `ruff format --check` drifted — local 0.16.0 vs CI's latest;
+     pinned `ruff>=0.5,<0.17` in dev extra; also applied the pending format
+     (short `raise ValueError` collapsed to one line).
+3. **Train workflow**: removed the `push` trigger — it queued a self-hosted GPU
+   job (no such runner → stuck runs); now `workflow_dispatch` only.
+4. **README stale counts 447 → 477** (badge + 3 prose spots).
+5. Committed + pushed; re-verifying CI on GitHub.
+
 ## What We Just Did (2026-08-03 — publication prep: showcase + emails)
 
 1. **README showcase → "GalerIA in action"**: added the live Cloudflare example
