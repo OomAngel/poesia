@@ -3,23 +3,27 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
-## 2026-08-03 — Cloudflare Workers AI backend (ranked #2, implemented)
+## 2026-08-03 — Cloudflare Workers AI backend: implemented + live-tested (caveats found)
 
 - **`CloudflareImageBackend`** (`--backend cloudflare`): SDXL via Workers AI's
   free tier — 10k neurons/day, Beta SDXL listed at $0.00/step. Needs free
-  `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`; stdlib urllib POST; base64
-  `result.data` decoding (list or bare string); deterministic prompt-derived
-  seed; `--backend auto` now includes Cloudflare in its configured-provider
-  chain (openai → replicate → cloudflare → procedural)
-- **Research updated**: API reference confirms the text-to-image schema honours
-  `seed` → Cloudflare determinism score raised 3 → 4 (total 3.60 → **3.70**,
-  now sole #2 behind Pollinations). SDXL Beta listed at $0.00/step. Live test
-  deferred — needs real credentials (honest gap, documented)
-- **12 new tests** (request shape, headers, base64 list/string responses,
-  missing-credentials, HTTP errors, `success:false`, empty data, registry,
-  auto-chain); a test caught an empty-`data` parsing bug (falsy `[]` fell into
-  the wrong branch) — fixed with explicit `None` checks
-- Suite: 456 → **468 tests passing**; ruff + mypy clean
+  `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`; stdlib urllib POST; handles
+  **raw PNG bytes** (live-verified) and base64 `result.data` (defensive);
+  `--backend auto` chain: openai → replicate → cloudflare → procedural
+- **Found and reused existing Cloudflare usage**: the sibling **`hiops`** repo
+  already deploys a Cloudflare Worker + Pages with `CLOUDFLARE_ACCOUNT_ID` /
+  `CLOUDFLARE_API_TOKEN` (GitHub Actions secrets). The machine also holds a
+  cached `wrangler login` (OAuth token, scopes include **`ai:write`**, account
+  `065c2ed7…`) — used for the live test (token never printed)
+- **Live test findings** (this is why we test):
+  1. REST endpoint returns **raw PNG bytes** (0x89), not the API reference's
+     base64 `result.data` binding schema → backend fixed to pass images through
+  2. **`seed` is NOT honoured**: same prompt+seed → different images every call
+     (pixel-fingerprinted). Docs' "Random seed for reproducibility" ≠ reality.
+     Cloudflare determinism score corrected 4 → 2 → total 3.70 → **3.50**,
+     re-ranked to #4 (Pollinations remains the only deterministic cloud pick)
+  3. Output: native **1024×1024 PNG** in ~10 s — full resolution, reliable infra
+- 14 new tests (incl. raw-bytes + non-image error paths); suite 456 → **470**
 
 ## 2026-08-03 — Free image-gen provider research + Pollinations backend
 

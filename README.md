@@ -95,7 +95,7 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 - Pluggable image backends: `procedural` (offline generative art), `pollinations` (free online, no key), `cloudflare` (free tier, needs account), `stub`, `openai` (DALL·E), `replicate` (SDXL)
 - `procedural` renders deterministic, poem-seeded art with zero API keys — reproducible by design
 - `pollinations` adds a free online path (community service, ≈1 image/15 s anonymous) with the same seed-driven reproducibility
-- `cloudflare` runs SDXL on Workers AI's free tier (10k neurons/day) with the same deterministic seed
+- `cloudflare` runs SDXL on Workers AI's free tier (10k neurons/day; reliable infra — but output is novel per request, no seed reproducibility)
 - Imagery extraction (nouns, phrases, sensory modalities) → image prompts
 - Style anchoring from literary influences and tone
 - PNG sheets and WeasyPrint PDF export
