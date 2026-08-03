@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 from poesia.galeria.auca import AucaPanel
 from poesia.galeria.backends import HostedImageBackend, ImageBackend, StubImageBackend
 from poesia.galeria.imagery import build_image_prompt, extract_imagery
+from poesia.galeria.procedural import ProceduralImageBackend
 
 if TYPE_CHECKING:
     from poesia.memoria.records import InfluenceRecord
@@ -63,14 +64,18 @@ def get_image_backend(
 ) -> ImageBackend:
     """Resolve a backend name to an ImageBackend instance.
 
-    ``auto``: use the first configured hosted provider, else the offline stub.
-    ``stub``: deterministic offline backend (tests / no network).
+    ``auto``: use the first configured hosted provider, else the deterministic
+    offline procedural renderer (no key needed).
+    ``stub``: tiny 1x1 PNG for tests.
+    ``procedural``: deterministic offline generative art (no key needed).
     ``openai`` / ``replicate``: hosted backends (requires an API key, from the
     ``api_key`` argument or the environment).
     """
     name = backend.lower()
     if name == "stub":
         return StubImageBackend()
+    if name == "procedural":
+        return ProceduralImageBackend()
     if name in ("openai", "replicate"):
         return HostedImageBackend(provider=name, api_key=api_key)
     if name == "auto":
@@ -78,9 +83,9 @@ def get_image_backend(
 
         if api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("REPLICATE_API_TOKEN"):
             return HostedImageBackend(provider="auto", api_key=api_key)
-        return StubImageBackend()
+        return ProceduralImageBackend()
     raise ValueError(
-        f"Unknown image backend: {backend!r}. Available: auto, stub, openai, replicate."
+        f"Unknown image backend: {backend!r}. Available: auto, stub, procedural, openai, replicate."
     )
 
 

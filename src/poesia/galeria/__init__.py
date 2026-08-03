@@ -7,7 +7,6 @@ composition, and export (PNG/SVG/PDF).
 
 Backends are injected via the `ImageBackend` Protocol (see `backends.py`) so
 no specific SDK (openai, replicate, diffusers) is a hard dependency of this
-package.
-
-Phase 0 status: interfaces + stub backend only.
+package. `procedural` renders deterministic offline generative art with
+Pillow — no API key required, reproducible by design.
 """

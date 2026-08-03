@@ -146,6 +146,9 @@ ignore = ["E501"]
 # endpoints (OpenAI, Groq, Gemini, Ollama, Datamuse, Replicate). Intentional.
 "src/poesia/generation/llm_client.py" = ["S310"]
 "src/poesia/galeria/backends.py" = ["S310"]
+# Deterministic art seeds derive from a prompt hash; random.Random is
+# deliberate (reproducible composition), never cryptography.
+"src/poesia/galeria/procedural.py" = ["S311"]
 "src/poesia/generation/rhyme_fetcher.py" = ["S310"]
 # Intentional silent handling of optional/best-effort features.
 "src/poesia/evaluation/scorer.py" = ["S110"]
