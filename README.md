@@ -1,5 +1,9 @@
 # PoesIA
 
+[![Python](https://img.shields.io/badge/python-3.11-blue)](#)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
+[![Status](https://img.shields.io/badge/status-active-brightgreen)](#)
+
 > *poesía* (Spanish, "poetry") — with **IA** (*Inteligencia Artificial*) already
 > hiding inside the word. Nothing invented; just noticed.
 
@@ -168,9 +172,14 @@ poesia/
 
 ## Status
 
-**Phases 0–5 complete + P0–P5 RAG/LLM hardening** (2026-07-28). **400+ tests passing.**
+**Phases 0–5 complete + P0–P5 RAG/LLM hardening** (2026-08-01). **400+ tests passing.**
 
-### Recent Updates (2026-07-28)
+### Recent Updates (2026-08-01)
+- ✅ Corpus expanded: 1,059 new poems (Gutenberg + Wikisource) — 601 by Mexican poets
+- ✅ Fixed-format dataset builder (38K examples) + v2-fixed retraining (fixes the instruction-echo bug)
+- ✅ DPO training complete (loss 0.008, acc 1.0); Model Registry verified
+- ✅ Original sonetos in the library: "El peso del saber", "El umbral", RadicleCrops ×6 (13 poems total)
+- ✅ MLOps Phases 1–11: MLflow single source of truth, Registry, Docker, CI/CD, monitoring
 - ✅ Multi-form training infrastructure (MLOps: config-driven, experiments DB, A/B compare)
 - ✅ Grammar-constrained generation via Outlines (`--llm outlines`)
 - ✅ LoRA fine-tuning with Qwen2.5-1.5B + QLoRA (`--llm lora`)
@@ -210,4 +219,16 @@ Earlier candidates that were explored and rejected:
 
 ### PyPI availability
 
-`poesia` is unregistered on PyPI (HTTP 404 at check). Irrelevant until/unless this repo is ever published — it remains a local, personal repository.
+`poesia` is unregistered on PyPI (HTTP 404 at check). Irrelevant unless this repo is ever published — it remains a personal project shared privately by invitation.
+
+---
+
+## License & sharing
+
+**Software** — MIT License, see [`LICENSE`](LICENSE).
+**Original creative content** (`seeds/angel_fragments/`, `seeds/library/`) — © the author and **not** covered by the MIT license. See [`NOTICE`](NOTICE).
+**Corpus texts** (`seeds/poetry_corpus/`) — public domain (Project Gutenberg, es.wikisource.org); full provenance in [`docs/CORPUS_SOURCES.md`](docs/CORPUS_SOURCES.md).
+
+Contribution standards: [`CONTRIBUTING.md`](CONTRIBUTING.md) · Security: [`SECURITY.md`](SECURITY.md) · History: [`CHANGELOG.md`](CHANGELOG.md)
+
+**Author:** Angel — shared by invitation; contact details are provided personally, never published here.
