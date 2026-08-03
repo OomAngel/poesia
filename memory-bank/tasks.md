@@ -28,6 +28,17 @@
 
 ## DONE
 
+### 2026-08-03: Cloudflare Workers AI backend — ranked #2, implemented
+- [x] **`CloudflareImageBackend`** (`--backend cloudflare`): SDXL on Workers AI
+      free tier (10k neurons/day; Beta SDXL $0.00/step); stdlib urllib POST;
+      base64 `result.data` decoding (list or str); deterministic seed;
+      `auto` chain now: openai → replicate → cloudflare → procedural
+- [x] Doc updated: API reference confirms `seed` honoured → Cloudflare 3.60 → **3.70**
+      (sole #2); SDXL $0.00/step noted; live test deferred (needs credentials — gap)
+- [x] 12 new tests (incl. empty-data parsing bug caught + fixed)
+- [x] Suite 456 → **468 tests passing**; ruff + mypy clean
+- [ ] (next) Cloudflare live test once credentials exist; Gemini free tier (quality)
+
 ### 2026-08-03: Free image-gen research + Pollinations backend (live-tested)
 - [x] **`docs/IMAGE_GENERATION_PROVIDERS.md`** — 8-criterion weighted ranking of
       6 free providers (Pollinations #1 4.15/5; Cloudflare/Gemini/Horde tied 3.60;
