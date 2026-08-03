@@ -146,6 +146,9 @@ ignore = ["E501"]
 # endpoints (OpenAI, Groq, Gemini, Ollama, Datamuse, Replicate). Intentional.
 "src/poesia/generation/llm_client.py" = ["S310"]
 "src/poesia/galeria/backends.py" = ["S310"]
+# Network client: urlopen only ever touches the validated HTTPS Pollinations
+# endpoint (image.pollinations.ai). Intentional.
+"src/poesia/galeria/pollinations.py" = ["S310"]
 # Deterministic art seeds derive from a prompt hash; random.Random is
 # deliberate (reproducible composition), never cryptography.
 "src/poesia/galeria/procedural.py" = ["S311"]

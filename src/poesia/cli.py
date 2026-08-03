@@ -51,7 +51,7 @@ def write(
     image_backend: str = typer.Option(
         "auto",
         "--image-backend",
-        help="Image backend for --illustrate: auto, stub, procedural, openai, replicate.",
+        help="Image backend for --illustrate: auto, stub, procedural, pollinations, openai, replicate.",
     ),
 ) -> None:
     """Generate a poem using WriteConfig + Registry pattern."""
@@ -604,7 +604,7 @@ def galeria_illustrate(
     path: str = typer.Argument(None, help="Path to a text file with the poem."),
     style: str = typer.Option("grabado español", help="Style tag appended to the image prompt."),
     backend: str = typer.Option(
-        "auto", help="Image backend: auto, stub, procedural, openai, replicate."
+        "auto", help="Image backend: auto, stub, procedural, pollinations, openai, replicate."
     ),
     api_key: str = typer.Option(
         None,
