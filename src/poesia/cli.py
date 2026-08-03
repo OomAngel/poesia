@@ -641,6 +641,11 @@ def galeria_illustrate(
     ),
     tone: str = typer.Option(None, help="Comma-separated tones for influence matching."),
     from_library: str = typer.Option(None, "--from-library", help="Load poem from library by ID."),
+    panel_mode: str = typer.Option(
+        "stanza",
+        "--panel-mode",
+        help="stanza = one image per stanza (auca, default); poem = a single longer image for the whole poem.",
+    ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Print the image prompts without generating."
     ),
@@ -718,6 +723,7 @@ def galeria_illustrate(
             backend=backend,
             api_key=api_key,
             influences=matched_influences,
+            panel_mode=cast(Literal["stanza", "poem"], panel_mode),
         )
     except (IllustrateError, ValueError) as e:
         rprint(f"[red]✗[/red] Illustration failed: {e}")

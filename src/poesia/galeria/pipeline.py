@@ -13,7 +13,7 @@ pipeline always works out of the box.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from poesia.galeria.auca import AucaPanel
 from poesia.galeria.backends import HostedImageBackend, ImageBackend, StubImageBackend
@@ -135,24 +135,45 @@ def illustrate_poem(
     api_key: str | None = None,
     influences: list[InfluenceRecord] | None = None,
     max_lines_per_stanza: int = 8,
+    panel_mode: Literal["stanza", "poem"] = "stanza",
 ) -> tuple[list[AucaPanel], list[str]]:
-    """Generate one illustrated panel per stanza of a poem.
+    """Generate illustrated panels for a poem.
+
+    ``panel_mode``:
+      - ``stanza`` (default): one panel per stanza — the auca tradition,
+        captioned with each stanza's verses.
+      - ``poem``: a single panel for the whole poem, built from one longer,
+        holistic prompt over the entire text (theme + imagery + style).
 
     Args:
         lines: Poem lines (may include blank lines between stanzas).
         language: Language code for imagery extraction ('es' or 'en').
         theme: Optional thematic anchor prepended to image prompts.
         style: Base style tag appended by the image backend.
-        backend: 'auto', 'stub', 'openai', or 'replicate'.
+        backend: 'auto', 'stub', 'procedural', 'pollinations', 'cloudflare',
+            'openai', or 'replicate'.
         api_key: Optional API key override for hosted backends.
         influences: Optional influence records for style anchoring (Phase 4C).
-        max_lines_per_stanza: Fallback chunk size for stanza-less poems.
+        max_lines_per_stanza: Fallback chunk size for stanza-less poems
+            (ignored in ``poem`` mode).
+        panel_mode: 'stanza' or 'poem'.
 
     Returns:
-        ``(panels, prompts)`` — one AucaPanel per stanza plus the exact image
-        prompts used, so callers can show or log them.
+        ``(panels, prompts)`` — one AucaPanel per unit (stanza or whole poem)
+        plus the exact image prompts used, so callers can show or log them.
+
+    Raises:
+        ValueError: Unknown ``panel_mode``.
     """
-    stanzas = split_stanzas(lines, max_lines_per_stanza=max_lines_per_stanza)
+    if panel_mode == "poem":
+        stanzas = [lines]
+    elif panel_mode == "stanza":
+        stanzas = split_stanzas(lines, max_lines_per_stanza=max_lines_per_stanza)
+    else:
+        raise ValueError(
+            f"Unknown panel_mode: {panel_mode!r}. Available: stanza, poem."
+        )
+
     img_backend = get_image_backend(backend, api_key)
     final_style = derive_style(style, influences)
 
