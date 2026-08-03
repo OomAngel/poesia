@@ -14,10 +14,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 
-class NodeType(str, Enum):
+class NodeType(StrEnum):
     """Typed node categories in the GraphRAG semantic graph.
 
     Each node in the graph is one of these types. Having distinct types
@@ -32,7 +32,7 @@ class NodeType(str, Enum):
     theme = "theme"
 
 
-class RelationType(str, Enum):
+class RelationType(StrEnum):
     """Typed edge categories in the GraphRAG semantic graph.
 
     Each directed edge has a relation type. This enables:

@@ -142,7 +142,9 @@ class Library:
                 if prov.fragments_used:
                     frontmatter_lines.append(f"fragments_used: [{', '.join(prov.fragments_used)}]")
                 if prov.influences_used:
-                    frontmatter_lines.append(f"influences_used: [{', '.join(prov.influences_used)}]")
+                    frontmatter_lines.append(
+                        f"influences_used: [{', '.join(prov.influences_used)}]"
+                    )
                 if prov.n_candidates is not None:
                     frontmatter_lines.append(f"n_candidates: {prov.n_candidates}")
                 if prov.temperature is not None:
@@ -295,8 +297,6 @@ class Library:
                 tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
                 lines = body.strip().split("\n")
 
-                created_at = datetime.fromisoformat(created_str)
-
                 with self._conn:
                     self._conn.execute(
                         """
@@ -316,4 +316,3 @@ class Library:
                     )
             except Exception:
                 continue
-

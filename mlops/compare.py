@@ -6,11 +6,12 @@ Usage:
 Generates the same prompt with both models and scores the outputs.
 """
 
-import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+import sys
 
-from poesia.generation.llm_client import LoRAClient, StubLLMClient
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from poesia.generation.llm_client import LoRAClient
 from poesia.phonology.spanish import SpanishPhonology
 
 TEST_THEMES = [
@@ -50,8 +51,7 @@ def main():
     print("=" * 60)
 
     adapter_path = os.path.join(
-        os.path.dirname(__file__), "..", "models",
-        "poetry-lora-3b", "final_adapter"
+        os.path.dirname(__file__), "..", "models", "poetry-lora-3b", "final_adapter"
     )
 
     if not os.path.exists(adapter_path):
@@ -78,8 +78,7 @@ def main():
             print(f"\n  [{name}]")
             for line in lines:
                 print(f"    {line}")
-            print(f"    Valid: {scores['valid_pct']}%  "
-                  f"Avg syllables: {scores['avg_syllables']}")
+            print(f"    Valid: {scores['valid_pct']}%  Avg syllables: {scores['avg_syllables']}")
 
 
 if __name__ == "__main__":

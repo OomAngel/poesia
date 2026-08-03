@@ -6,41 +6,82 @@ import re
 
 _SENSORY_MAP = {
     # Visual
-    "luz": "visual", "sol": "visual", "luna": "visual", "estrella": "visual",
-    "brillo": "visual", "color": "visual", "rojo": "visual", "azul": "visual",
-    "verde": "visual", "blanco": "visual", "negro": "visual", "nube": "visual",
-    "cielo": "visual", "sombra": "visual", "rayo": "visual", "relampago": "visual",
-    "arcoiris": "visual", "llama": "visual", "fuego": "visual",
+    "luz": "visual",
+    "sol": "visual",
+    "luna": "visual",
+    "estrella": "visual",
+    "brillo": "visual",
+    "color": "visual",
+    "rojo": "visual",
+    "azul": "visual",
+    "verde": "visual",
+    "blanco": "visual",
+    "negro": "visual",
+    "nube": "visual",
+    "cielo": "visual",
+    "sombra": "visual",
+    "rayo": "visual",
+    "relampago": "visual",
+    "arcoiris": "visual",
+    "llama": "visual",
+    "fuego": "visual",
     # Auditory
-    "sonido": "auditory", "ruido": "auditory", "viento": "auditory",
-    "canto": "auditory", "grito": "auditory", "susurro": "auditory",
-    "silbido": "auditory", "trueno": "auditory", "eco": "auditory",
-    "llanto": "auditory", "risa": "auditory", "musica": "auditory",
-    "campana": "auditory", "silencio": "auditory",
+    "sonido": "auditory",
+    "ruido": "auditory",
+    "viento": "auditory",
+    "canto": "auditory",
+    "grito": "auditory",
+    "susurro": "auditory",
+    "silbido": "auditory",
+    "trueno": "auditory",
+    "eco": "auditory",
+    "llanto": "auditory",
+    "risa": "auditory",
+    "musica": "auditory",
+    "campana": "auditory",
+    "silencio": "auditory",
     # Tactile
-    "mano": "tactile", "piel": "tactile", "caricia": "tactile",
-    "calor": "tactile", "frio": "tactile", "suave": "tactile",
-    "aspero": "tactile", "espina": "tactile", "piedra": "tactile",
-    "arena": "tactile", "agua": "tactile",
+    "mano": "tactile",
+    "piel": "tactile",
+    "caricia": "tactile",
+    "calor": "tactile",
+    "frio": "tactile",
+    "suave": "tactile",
+    "aspero": "tactile",
+    "espina": "tactile",
+    "piedra": "tactile",
+    "arena": "tactile",
+    "agua": "tactile",
     # Olfactory
-    "olor": "olfactory", "aroma": "olfactory", "perfume": "olfactory",
-    "fragancia": "olfactory", "hedor": "olfactory", "flor": "olfactory",
-    "jazmin": "olfactory", "rosa": "olfactory",
+    "olor": "olfactory",
+    "aroma": "olfactory",
+    "perfume": "olfactory",
+    "fragancia": "olfactory",
+    "hedor": "olfactory",
+    "flor": "olfactory",
+    "jazmin": "olfactory",
+    "rosa": "olfactory",
     # Gustatory
-    "sabor": "gustatory", "dulce": "gustatory", "salado": "gustatory",
-    "amargo": "gustatory", "miel": "gustatory", "vino": "gustatory",
+    "sabor": "gustatory",
+    "dulce": "gustatory",
+    "salado": "gustatory",
+    "amargo": "gustatory",
+    "miel": "gustatory",
+    "vino": "gustatory",
 }
 
 
 def _get_spacy(language="es"):
     import spacy
+
     model = "es_core_news_sm" if language == "es" else "en_core_web_sm"
     try:
         return spacy.load(model)
     except OSError:
         import subprocess
         import sys
-        subprocess.run([sys.executable, "-m", "spacy", "download", model], check=True)
+
+        subprocess.run([sys.executable, "-m", "spacy", "download", model], check=True)  # noqa: S603 - pip-style trusted call
         return spacy.load(model)
 
 

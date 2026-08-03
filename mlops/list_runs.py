@@ -5,7 +5,6 @@ Usage:
     python mlops/list_runs.py --compare  # Compare runs side by side (all)
 """
 
-import json
 import os
 import sys
 
@@ -25,17 +24,19 @@ def _load_runs():
             order_by=["attributes.start_time DESC"],
         ):
             data = r.data
-            runs.append({
-                "run_id": r.info.run_id,
-                "experiment": exp.name,
-                "model": data.params.get("model", "?"),
-                "lora_r": data.params.get("lora_r", "?"),
-                "epochs": data.params.get("epochs", "?"),
-                "learning_rate": data.params.get("learning_rate", "?"),
-                "train_loss": data.metrics.get("train_loss"),
-                "status": r.info.status,
-                "adapter_path": data.params.get("adapter_path", ""),
-            })
+            runs.append(
+                {
+                    "run_id": r.info.run_id,
+                    "experiment": exp.name,
+                    "model": data.params.get("model", "?"),
+                    "lora_r": data.params.get("lora_r", "?"),
+                    "epochs": data.params.get("epochs", "?"),
+                    "learning_rate": data.params.get("learning_rate", "?"),
+                    "train_loss": data.metrics.get("train_loss"),
+                    "status": r.info.status,
+                    "adapter_path": data.params.get("adapter_path", ""),
+                }
+            )
     return runs
 
 

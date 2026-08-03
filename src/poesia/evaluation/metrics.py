@@ -34,12 +34,14 @@ def rhyme_score(candidate_key: str, target_key: str) -> float:
     return 1.0 if candidate_key == target_key else 0.0
 
 
-def _cosine_similarity(vec1: list[float] | tuple[float, ...], vec2: list[float] | tuple[float, ...]) -> float:
+def _cosine_similarity(
+    vec1: list[float] | tuple[float, ...], vec2: list[float] | tuple[float, ...]
+) -> float:
     """Compute cosine similarity between two numeric vectors in pure Python."""
     if not vec1 or not vec2 or len(vec1) != len(vec2):
         return 0.0
 
-    dot = sum(a * b for a, b in zip(vec1, vec2))
+    dot = sum(a * b for a, b in zip(vec1, vec2, strict=True))
     norm1 = sum(a * a for a in vec1) ** 0.5
     norm2 = sum(b * b for b in vec2) ** 0.5
 
@@ -49,7 +51,10 @@ def _cosine_similarity(vec1: list[float] | tuple[float, ...], vec2: list[float] 
     return max(0.0, min(1.0, dot / (norm1 * norm2)))
 
 
-def theme_score(candidate_embedding: list[float] | tuple[float, ...], theme_embedding: list[float] | tuple[float, ...]) -> float:
+def theme_score(
+    candidate_embedding: list[float] | tuple[float, ...],
+    theme_embedding: list[float] | tuple[float, ...],
+) -> float:
     """Cosine similarity between candidate vector and poem's theme anchor.
 
     Acts as baseline semantic alignment scoring. Pluggable for higher-order
@@ -72,7 +77,6 @@ def novelty_score(
 
     max_sim = max(_cosine_similarity(candidate_embedding, prior) for prior in prior_line_embeddings)
     return round(max(0.0, 1.0 - max_sim), 4)
-
 
 
 def cliche_penalty(line: str, cliche_phrases: frozenset[str]) -> float:
@@ -165,8 +169,7 @@ def composite_score(
 
     if normalize_weights:
         active_weight_sum = sum(
-            w[signal] for signal, score in signals_used.items()
-            if score > 0.0 or signal == "metre"
+            w[signal] for signal, score in signals_used.items() if score > 0.0 or signal == "metre"
         )
         if active_weight_sum > 0.0:
             normalization_factor = 1.0 / active_weight_sum

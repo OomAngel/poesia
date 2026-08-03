@@ -79,7 +79,9 @@ class AucaComposer:
         canvas.paste(src_img, (padding, padding))
 
         # Draw inner border around image
-        draw.rectangle([padding, padding, padding + img_w, padding + img_h], outline=(100, 100, 100), width=1)
+        draw.rectangle(
+            [padding, padding, padding + img_w, padding + img_h], outline=(100, 100, 100), width=1
+        )
 
         # Stamp caption text
         y_cursor = padding + img_h + caption_margin
@@ -129,14 +131,17 @@ class AucaComposer:
         draw = ImageDraw.Draw(sheet)
 
         # Header Title
-        font_size = 28
         try:
             font = ImageFont.load_default()
         except Exception:
             font = None
 
         draw.text((margin, 25), title, fill=(40, 40, 40), font=font)
-        draw.line([(margin, header_h - 10), (grid_w - margin, header_h - 10)], fill=(200, 190, 180), width=2)
+        draw.line(
+            [(margin, header_h - 10), (grid_w - margin, header_h - 10)],
+            fill=(200, 190, 180),
+            width=2,
+        )
 
         # Layout grid
         for idx, panel_img in enumerate(rendered_panels):
@@ -153,4 +158,3 @@ class AucaComposer:
     def export_pdf(self, panels: list[AucaPanel], output_path: str) -> None:
         """Export a full illustrated poem as a print-ready PDF via WeasyPrint."""
         raise NotImplementedError("PDF export pending WeasyPrint integration (Phase 2).")
-

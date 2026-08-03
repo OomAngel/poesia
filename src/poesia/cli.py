@@ -77,10 +77,12 @@ def write(
     except ValueError as e:
         rprint(f"[red]{e}[/red]")
         rprint(f"[dim]Available backends: {', '.join(list_backends())}[/dim]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
-    rprint(f"[dim]Using LLM: {llm_client.provider + ' ' if hasattr(llm_client, 'provider') else ''}"
-           f"({llm_client.model if hasattr(llm_client, 'model') else config.llm})[/dim]")
+    rprint(
+        f"[dim]Using LLM: {llm_client.provider + ' ' if hasattr(llm_client, 'provider') else ''}"
+        f"({llm_client.model if hasattr(llm_client, 'model') else config.llm})[/dim]"
+    )
 
     # Build the loop with optional brief builder
     brief_builder = None
@@ -142,9 +144,14 @@ def write(
             rprint("[green]✓[/green] [dim]Semantic scoring enabled (sentence-transformers)[/dim]")
         except Exception as e:
             from poesia.memoria.embeddings import StubEmbeddingClient
+
             embedding_client = StubEmbeddingClient()
-            rprint("[yellow]⚠[/yellow]  [bold]Degraded mode:[/bold] No sentence-transformers available")
-            rprint("[dim]   Theme and novelty scoring disabled. Install with: pip install -e '.[nlp]'[/dim]")
+            rprint(
+                "[yellow]⚠[/yellow]  [bold]Degraded mode:[/bold] No sentence-transformers available"
+            )
+            rprint(
+                "[dim]   Theme and novelty scoring disabled. Install with: pip install -e '.[nlp]'[/dim]"
+            )
             rprint(f"[dim]   Error: {e}[/dim]")
 
         brief_builder = BriefBuilder(
@@ -156,6 +163,7 @@ def write(
     # --show-retrieval: build a preview brief now just to show what was retrieved
     if show_retrieval and brief_builder is not None:
         from poesia.forms.definitions import get_form
+
         preview_brief = brief_builder.build(
             form=get_form(form),
             theme=theme,
@@ -179,7 +187,9 @@ def write(
             for node_id, score, path in preview_brief.graph_paths:
                 if path is not None:
                     path_str = path.to_display_string()
-                    rprint(f"  [cyan]{node_id}[/cyan]  score={score:.3f}  via: [dim]{path_str}[/dim]")
+                    rprint(
+                        f"  [cyan]{node_id}[/cyan]  score={score:.3f}  via: [dim]{path_str}[/dim]"
+                    )
                 else:
                     rprint(f"  [cyan]{node_id}[/cyan]  score={score:.3f}  [dim](dense seed)[/dim]")
         if preview_brief.influences:
@@ -196,12 +206,17 @@ def write(
     # --interactive: build a line_selector callback that pauses for human input
     line_selector = None
     if interactive:
+
         def _interactive_selector(line_index: int, candidates: list) -> str:
             rprint(f"\n[bold]── Line {line_index + 1} —— choose a candidate ──[/bold]")
             for i, cand in enumerate(candidates[:8], 1):
-                score_color = "green" if cand.score >= 0.7 else ("yellow" if cand.score >= 0.4 else "red")
+                score_color = (
+                    "green" if cand.score >= 0.7 else ("yellow" if cand.score >= 0.4 else "red")
+                )
                 marker = " [bold green]★ top[/bold green]" if i == 1 else ""
-                rprint(f"  [bold]{i}.[/bold] [{score_color}][{cand.score:.3f}][/{score_color}] {cand.line}{marker}")
+                rprint(
+                    f"  [bold]{i}.[/bold] [{score_color}][{cand.score:.3f}][/{score_color}] {cand.line}{marker}"
+                )
                 rprint(
                     f"     [dim]syllables={cand.scan.metrical_syllable_count}, "
                     f"metre={cand.breakdown['metre']:.2f}, "
@@ -221,6 +236,7 @@ def write(
                     rprint(f"  [red]Enter 1–{min(8, len(candidates))}[/red]")
                 except ValueError:
                     rprint("  [red]Enter a number, or press Enter[/red]")
+
         line_selector = _interactive_selector
     elif not yes and llm not in ("stub",):
         # Default when using a real LLM without --yes: quick 3-choice picker
@@ -239,20 +255,18 @@ def write(
             except (ValueError, EOFError):
                 pass
             return candidates[0].line
+
         line_selector = _quick_selector
 
     # P5: Privacy confirmation — warn before personal context reaches a hosted provider
     _hosted_providers = {"groq", "gemini", "openai", "auto"}
-    if (
-        use_brief
-        and fragments
-        and llm.lower() in _hosted_providers
-        and not yes
-    ):
+    if use_brief and fragments and llm.lower() in _hosted_providers and not yes:
         provider_name = llm_client.provider if hasattr(llm_client, "provider") else llm
         rprint()
         rprint("[bold yellow]⚠ PRIVACY NOTICE[/bold yellow]")
-        rprint(f"  [yellow]Personal fragments will be sent to [bold]{provider_name}[/bold].[/yellow]")
+        rprint(
+            f"  [yellow]Personal fragments will be sent to [bold]{provider_name}[/bold].[/yellow]"
+        )
         rprint(f"  [yellow]Fragments ({len(fragments)} loaded):[/yellow]")
         for frag in fragments[:5]:
             rprint(f"    [dim]- {frag.id}[/dim]")
@@ -260,7 +274,11 @@ def write(
             rprint(f"    [dim]- ... and {len(fragments) - 5} more[/dim]")
         rprint()
         try:
-            confirm = input("  Type [bold]yes[/bold] to continue, or anything else to cancel: ").strip().lower()
+            confirm = (
+                input("  Type [bold]yes[/bold] to continue, or anything else to cancel: ")
+                .strip()
+                .lower()
+            )
         except (EOFError, KeyboardInterrupt):
             confirm = "no"
         if confirm != "yes":
@@ -281,6 +299,7 @@ def write(
     )
     # P5: Time the generation for latency provenance
     import time as _time
+
     _t0 = _time.time()
     result = loop.run(
         theme=theme,
@@ -294,14 +313,16 @@ def write(
     )
     _gen_latency_ms = int((_time.time() - _t0) * 1000)
 
-    rprint(f"[bold]Theme:[/bold] {theme}  [bold]Form:[/bold] {form}  [bold]Language:[/bold] {language}")
+    rprint(
+        f"[bold]Theme:[/bold] {theme}  [bold]Form:[/bold] {form}  [bold]Language:[/bold] {language}"
+    )
     if tone_list:
         rprint(f"[bold]Tone:[/bold] {', '.join(tone_list)}")
     if seeds_list:
         rprint(f"[bold]Seeds:[/bold] {', '.join(seeds_list)}")
     if result.brief:
         rprint(f"[bold]Brief level:[/bold] {result.brief.level}")
-    
+
     # Show scoring mode status
     if not semantic_mode_active and not use_brief:
         rprint("[dim]Scoring mode: metre only (no semantic scoring)[/dim]")
@@ -309,7 +330,7 @@ def write(
         rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
     else:
         rprint("[dim]Scoring mode: metre + theme + novelty[/dim]")
-    
+
     rprint()
     for line in result.lines:
         rprint(line)
@@ -318,28 +339,40 @@ def write(
     if show_alternatives > 0 and result.scored_history:
         rprint()
         rprint("[bold cyan]═══ Alternative Candidates ═══[/bold cyan]")
-        
+
         for line_idx, scored_candidates in enumerate(result.scored_history):
             # Get target syllables for this line
             target_syllables = loop.form_spec.syllables_for_line(line_idx)
-            
+
             rprint(f"\n[bold]Line {line_idx + 1}[/bold] (target: {target_syllables} syllables):")
-            
+
             # Show top N alternatives
             selected_line = result.lines[line_idx] if line_idx < len(result.lines) else None
-            
+
             for rank, candidate in enumerate(scored_candidates[:show_alternatives], start=1):
                 # Format score with color coding
-                score_color = "green" if candidate.score >= 0.7 else "yellow" if candidate.score >= 0.4 else "red"
-                
+                score_color = (
+                    "green"
+                    if candidate.score >= 0.7
+                    else "yellow"
+                    if candidate.score >= 0.4
+                    else "red"
+                )
+
                 # Truncate long lines for display
-                display_line = candidate.line if len(candidate.line) <= 50 else candidate.line[:47] + "..."
-                
+                display_line = (
+                    candidate.line if len(candidate.line) <= 50 else candidate.line[:47] + "..."
+                )
+
                 # Mark selected candidate
-                selected_marker = " [bold green]✓[/bold green]" if candidate.line == selected_line else ""
-                
-                rprint(f"  {rank}. [{score_color}][{candidate.score:.3f}][/{score_color}] {display_line}{selected_marker}")
-                
+                selected_marker = (
+                    " [bold green]✓[/bold green]" if candidate.line == selected_line else ""
+                )
+
+                rprint(
+                    f"  {rank}. [{score_color}][{candidate.score:.3f}][/{score_color}] {display_line}{selected_marker}"
+                )
+
                 # Show score breakdown
                 rprint(
                     f"      [dim]syllables={candidate.scan.metrical_syllable_count}, "
@@ -347,7 +380,7 @@ def write(
                     f"theme={candidate.breakdown['theme']:.2f}, "
                     f"novelty={candidate.breakdown['novelty']:.2f}[/dim]"
                 )
-                
+
                 # Show validation issues if any
                 if not candidate.scan.is_valid and candidate.scan.violations:
                     violations = ", ".join(candidate.scan.violations[:2])  # Show first 2
@@ -361,7 +394,9 @@ def write(
         provenance = PoemProvenance(
             model=getattr(llm_client, "model", None),
             provider=getattr(llm_client, "provider", None),
-            embedding_model=getattr(embedding_client, "model_id", None) if embedding_client else None,
+            embedding_model=getattr(embedding_client, "model_id", None)
+            if embedding_client
+            else None,
             brief_level=brief_level if use_brief else None,
             seeds=seeds_list or [],
             tone=tone_list or [],
@@ -437,6 +472,7 @@ def scan(
         phonology = SpanishPhonology()
     elif language == "nl":
         from poesia.phonology.dutch import DutchPhonology
+
         phonology = DutchPhonology()
     else:
         phonology = EnglishPhonology()
@@ -480,10 +516,14 @@ def galeria_illustrate(
     path: str = typer.Argument(None, help="Path to a text file with the poem."),
     style: str = typer.Option("grabado español", help="Style tag passed to the image backend."),
     output: str = typer.Option("auca.pdf", help="Output PDF path."),
-    use_influences: bool = typer.Option(False, "--style-from-influences", help="Derive style from matched influences."),
+    use_influences: bool = typer.Option(
+        False, "--style-from-influences", help="Derive style from matched influences."
+    ),
     tone: str = typer.Option(None, help="Comma-separated tones for influence matching."),
     from_library: str = typer.Option(None, "--from-library", help="Load poem from library by ID."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print the image prompt without generating."),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Print the image prompt without generating."
+    ),
 ) -> None:
     """Generate an illustrated auca-style sheet for a poem.
 
@@ -497,12 +537,13 @@ def galeria_illustrate(
 
     if from_library:
         from poesia.memoria.library import Library
+
         library = Library()
         poem = library.get(from_library)
         if poem is None:
             rprint(f"[red]Poem '{from_library}' not found in library.[/red]")
             raise typer.Exit(1)
-        lines = [l.strip() for l in poem.content.strip().split("\n") if l.strip()]
+        lines = [line.strip() for line in poem.content.strip().split("\n") if line.strip()]
         rprint(f"[dim]Loaded poem '{poem.id}' from library ({len(lines)} lines)[/dim]")
     elif path:
         with open(path, encoding="utf-8") as f:
@@ -515,11 +556,13 @@ def galeria_illustrate(
     final_style = style
     if use_influences:
         from poesia.galeria.style_anchoring import style_from_influences
+
         influences = _load_influences()
         if tone:
             tone_list = [t.strip().lower() for t in tone.split(",")]
             matched = [
-                inf for inf in influences
+                inf
+                for inf in influences
                 if any(t in [it.lower() for it in inf.tone] for t in tone_list)
             ]
         else:
@@ -531,11 +574,14 @@ def galeria_illustrate(
 
     # Build image prompt from poem imagery
     from poesia.galeria.imagery import build_image_prompt, extract_imagery
+
     imagery = extract_imagery(lines, language="es")
     image_prompt = build_image_prompt(imagery, theme="", style=final_style)
 
-    rprint(f"[dim]Imagery extracted: {len(imagery['nouns'])} nouns, {len(imagery['phrases'])} phrases, "
-           f"{len(imagery['sensory_modalities'])} senses[/dim]")
+    rprint(
+        f"[dim]Imagery extracted: {len(imagery['nouns'])} nouns, {len(imagery['phrases'])} phrases, "
+        f"{len(imagery['sensory_modalities'])} senses[/dim]"
+    )
 
     if dry_run:
         rprint(f"\n[bold]Image prompt:[/bold]\n{image_prompt}\n")
@@ -549,9 +595,12 @@ def galeria_illustrate(
 
     # Log illustration to MLflow
     try:
-        import mlflow, os
+        import os
+
+        import mlflow
+
         mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "file:./mlruns"))
-        
+
         with mlflow.start_run(run_name=f"galeria-{from_library or 'manual'}", nested=True):
             image_path = output.replace(".pdf", ".png")
             if os.path.exists(output) and not os.path.exists(image_path):
@@ -562,7 +611,7 @@ def galeria_illustrate(
             mlflow.log_param("nouns", len(imagery["nouns"]))
             mlflow.log_param("senses", len(imagery["sensory_modalities"]))
             mlflow.log_text(image_prompt, "image_prompt.txt")
-            rprint(f"[dim]Illustration logged to MLflow[/dim]")
+            rprint("[dim]Illustration logged to MLflow[/dim]")
     except Exception as e:
         rprint(f"[dim]MLflow logging skipped: {e}[/dim]")
 
@@ -579,7 +628,14 @@ def _parse_fragment_frontmatter(content: str) -> dict:
     Returns a dict with keys: id, tags, language, themes, tone, type.
     All values are optional and default to None/empty.
     """
-    result: dict = {"tags": [], "language": None, "id": None, "themes": [], "tone": [], "type": None}
+    result: dict = {
+        "tags": [],
+        "language": None,
+        "id": None,
+        "themes": [],
+        "tone": [],
+        "type": None,
+    }
     stripped = content.strip()
     if not stripped.startswith("---"):
         return result
@@ -618,7 +674,7 @@ def _parse_yaml_list(yaml_block: str, key: str) -> list[str] | None:
     for line in yaml_block.splitlines():
         ls = line.strip()
         if ls.startswith(key + ":"):
-            val = ls[len(key) + 1:].strip()
+            val = ls[len(key) + 1 :].strip()
             if val.startswith("[") and val.endswith("]"):
                 raw = val[1:-1]
                 return [x.strip().strip('"').strip("'") for x in raw.split(",") if x.strip()]
@@ -677,7 +733,9 @@ def memoria_list(
         date_str = poem.created_at.strftime("%Y-%m-%d %H:%M")
         tags_str = f"  [dim][{', '.join(poem.tags)}][/dim]" if poem.tags else ""
         rprint(f"  [cyan]{poem.id}[/cyan]")
-        rprint(f"    [bold]{poem.theme}[/bold]  [{poem.form}, {poem.language}]  {date_str}{tags_str}")
+        rprint(
+            f"    [bold]{poem.theme}[/bold]  [{poem.form}, {poem.language}]  {date_str}{tags_str}"
+        )
         if poem.lines:
             preview = poem.lines[0][:70]
             rprint(f"    [dim]{preview}…[/dim]")
@@ -721,7 +779,6 @@ def memoria_add_fragment(
 
     from poesia.memoria.embeddings import get_embedding_client
     from poesia.memoria.graphrag import GraphRAGRetriever
-    from poesia.memoria.records import FragmentRecord
 
     file_path = Path(path)
     if not file_path.exists():
@@ -735,8 +792,6 @@ def memoria_add_fragment(
     frag_id = fm.get("id") or file_path.stem
     lang = fm.get("language") or language
     frag_tags = fm.get("tags") or tag_list
-
-    frag = FragmentRecord(id=frag_id, content=content, language=lang, tags=frag_tags)
 
     # Copy to seeds/angel_fragments/ for persistence
     target_dir = Path(__file__).parent.parent.parent / "seeds" / "angel_fragments"
@@ -784,7 +839,7 @@ def memoria_ingest_all() -> None:
     except Exception as exc:
         rprint(f"[red]✗[/red] No embedding client available: {exc}")
         rprint("  Install with: pip install -e '.[nlp]'")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Read fragments from disk
     fragments: list[FragmentRecord] = []
@@ -814,14 +869,19 @@ def memoria_ingest_all() -> None:
     retriever = GraphRAGRetriever()
     for frag in fragments:
         retriever.add_fragment_node(
-            frag.id, frag.content, language=frag.language,
-            tags=frag.tags, embedding_client=embedding_client,
+            frag.id,
+            frag.content,
+            language=frag.language,
+            tags=frag.tags,
+            embedding_client=embedding_client,
         )
     if library_poems:
         retriever.ingest(library_poems, embedding_client=embedding_client)
 
     info = retriever.index_info()
-    rprint(f"[green]✓[/green] Index rebuilt: {info['node_count']} nodes, {info['edge_count']} edges")
+    rprint(
+        f"[green]✓[/green] Index rebuilt: {info['node_count']} nodes, {info['edge_count']} edges"
+    )
     rprint(f"[dim]  Model: {info['model_id']}  Dim: {info['embedding_dimension']}[/dim]")
     rprint(f"[dim]  Content fingerprint: {info['content_fingerprint']}[/dim]")
 
@@ -883,8 +943,12 @@ def memoria_list_fragments() -> None:
     rprint(f"[bold]Personal fragments ({len(md_files)} total):[/bold]\n")
     for md_file in md_files:
         content = md_file.read_text(encoding="utf-8")
-        lines = [l.strip() for l in content.split("\n") if l.strip()]
-        preview = lines[0][:60] + "..." if lines and len(lines[0]) > 60 else (lines[0] if lines else "(empty)")
+        lines = [line.strip() for line in content.split("\n") if line.strip()]
+        preview = (
+            lines[0][:60] + "..."
+            if lines and len(lines[0]) > 60
+            else (lines[0] if lines else "(empty)")
+        )
         rprint(f"  [cyan]{md_file.stem}[/cyan]: {preview}")
 
 

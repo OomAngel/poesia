@@ -58,7 +58,7 @@ class MidiScoreBackend:
         # Set Tempo meta-event: 60,000,000 / tempo_bpm
         microseconds_per_quarter = int(60_000_000 / max(30, min(300, tempo_bpm)))
         tempo_bytes = microseconds_per_quarter.to_bytes(3, "big")
-        events.extend(b"\x00\xFF\x51\x03" + tempo_bytes)
+        events.extend(b"\x00\xff\x51\x03" + tempo_bytes)
 
         note = 60  # Middle C (C4)
         ticks_per_quarter = 96
@@ -84,7 +84,7 @@ class MidiScoreBackend:
             events.extend(delta_time + b"\x80" + bytes([note, 0]))
 
         # End of Track meta event
-        events.extend(b"\x00\xFF\x2F\x00")
+        events.extend(b"\x00\xff\x2f\x00")
 
         track_header = b"MTrk" + len(events).to_bytes(4, "big")
         return header + track_header + bytes(events)
@@ -119,8 +119,7 @@ class EspeakRecitationBackend:
         cmd = [espeak_bin, "-v", lang_code, "--stdout", text]
 
         try:
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            res = subprocess.run(cmd, capture_output=True, check=True)  # noqa: S603 - trusted fixed binary + arg list
             return res.stdout
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"eSpeak recitation failed: {e.stderr.decode('utf-8')}") from e
-

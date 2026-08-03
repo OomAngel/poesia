@@ -47,9 +47,7 @@ def validate_embedding_vector(
     - If expected_dimension provided, length must match
     """
     if not isinstance(vector, list):
-        raise EmbeddingValidationError(
-            f"{context}: expected list, got {type(vector).__name__}"
-        )
+        raise EmbeddingValidationError(f"{context}: expected list, got {type(vector).__name__}")
 
     if not vector:
         raise EmbeddingValidationError(f"{context}: empty vector")
@@ -69,15 +67,12 @@ def validate_embedding_vector(
                 f"{context}[{i}]: expected numeric value, got {type(val).__name__}"
             )
         if not math.isfinite(val):
-            raise EmbeddingValidationError(
-                f"{context}[{i}]: non-finite value ({val})"
-            )
+            raise EmbeddingValidationError(f"{context}[{i}]: non-finite value ({val})")
 
     # Validate dimension if specified
     if expected_dimension is not None and len(vector) != expected_dimension:
         raise EmbeddingValidationError(
-            f"{context}: dimension mismatch, expected {expected_dimension}, "
-            f"got {len(vector)}"
+            f"{context}: dimension mismatch, expected {expected_dimension}, got {len(vector)}"
         )
 
     return vector
@@ -102,9 +97,7 @@ def validate_embedding_batch(
         EmbeddingValidationError: If validation fails.
     """
     if not isinstance(vectors, list):
-        raise EmbeddingValidationError(
-            f"{context}: expected list, got {type(vectors).__name__}"
-        )
+        raise EmbeddingValidationError(f"{context}: expected list, got {type(vectors).__name__}")
 
     if not vectors:
         raise EmbeddingValidationError(f"{context}: empty batch")

@@ -34,6 +34,7 @@ from poesia.phonology.spanish import SpanishPhonology
 
 if TYPE_CHECKING:
     from poesia.generation.brief_builder import BriefBuilder, GenerationBrief
+    from poesia.generation.hooks import GenerationHook
     from poesia.memoria.embeddings import EmbeddingClient
     from poesia.memoria.records import FragmentRecord, InfluenceRecord
 
@@ -57,12 +58,40 @@ def _filter_by_language(candidates: list[str], target_lang: str) -> list[str]:
         If all candidates are rejected, returns the originals (fail open).
     """
     if target_lang == "es":
-        _es_words = frozenset({
-            "el", "la", "los", "las", "que", "con", "por", "para",
-            "del", "una", "como", "más", "pero", "sus", "era", "son",
-            "entre", "todo", "sin", "cada", "este", "esta", "ese", "esa",
-            "tiene", "donde", "siempre", "nunca", "tiempo", "mundo",
-        })
+        _es_words = frozenset(
+            {
+                "el",
+                "la",
+                "los",
+                "las",
+                "que",
+                "con",
+                "por",
+                "para",
+                "del",
+                "una",
+                "como",
+                "más",
+                "pero",
+                "sus",
+                "era",
+                "son",
+                "entre",
+                "todo",
+                "sin",
+                "cada",
+                "este",
+                "esta",
+                "ese",
+                "esa",
+                "tiene",
+                "donde",
+                "siempre",
+                "nunca",
+                "tiempo",
+                "mundo",
+            }
+        )
 
         def _is_es(line: str) -> bool:
             low = line.lower()
@@ -75,10 +104,25 @@ def _filter_by_language(candidates: list[str], target_lang: str) -> list[str]:
         return filtered if filtered else candidates  # Fail open
 
     elif target_lang == "en":
-        _es_signals = frozenset({
-            "el", "la", "los", "las", "que", "del", "por", "para",
-            "como", "más", "pero", "sus", "entre", "todo", "sin",
-        })
+        _es_signals = frozenset(
+            {
+                "el",
+                "la",
+                "los",
+                "las",
+                "que",
+                "del",
+                "por",
+                "para",
+                "como",
+                "más",
+                "pero",
+                "sus",
+                "entre",
+                "todo",
+                "sin",
+            }
+        )
 
         def _is_en(line: str) -> bool:
             low = line.lower()
@@ -100,6 +144,7 @@ def _phonology_for(language: str):
         return EnglishPhonology()
     if language == "nl":
         from poesia.phonology.dutch import DutchPhonology
+
         return DutchPhonology()
     raise ValueError(f"No phonology backend registered for language '{language}'.")
 
@@ -154,6 +199,7 @@ class ConstrainedLoop:
         self._scorer: LineScorer | None = None
         # Observer hooks
         from poesia.generation.hooks import CompositeHook
+
         self._hooks = CompositeHook()
 
     def add_hook(self, hook: GenerationHook) -> None:
@@ -217,7 +263,9 @@ class ConstrainedLoop:
 
         # Determine total lines: use override for variable-length forms (e.g., romance),
         # otherwise use the form's defined total_lines.
-        total_lines = total_lines_override if total_lines_override is not None else self.form_spec.total_lines
+        total_lines = (
+            total_lines_override if total_lines_override is not None else self.form_spec.total_lines
+        )
 
         # Generate lines one by one, updating scorer target for variable patterns (e.g., haiku)
         for line_index in range(total_lines):
@@ -232,11 +280,13 @@ class ConstrainedLoop:
                 _fidelity_text = brief.fragments[0][0].content
 
             # Observer: before generation
-            self._hooks.on_event(HookEvent(
-                line_index=line_index,
-                phase="before_generate",
-                data={"target_syllables": target_syllables, "theme": theme},
-            ))
+            self._hooks.on_event(
+                HookEvent(
+                    line_index=line_index,
+                    phase="before_generate",
+                    data={"target_syllables": target_syllables, "theme": theme},
+                )
+            )
 
             self._scorer = LineScorer(
                 phonology_backend=self._phonology,
@@ -268,15 +318,17 @@ class ConstrainedLoop:
             result.scored_history.append(scored)
 
             # Observer: after scoring
-            self._hooks.on_event(HookEvent(
-                line_index=line_index,
-                phase="after_score",
-                data={
-                    "n_candidates": len(scored),
-                    "best_score": scored[0].score if scored else 0,
-                    "best_line": scored[0].line if scored else "",
-                },
-            ))
+            self._hooks.on_event(
+                HookEvent(
+                    line_index=line_index,
+                    phase="after_score",
+                    data={
+                        "n_candidates": len(scored),
+                        "best_score": scored[0].score if scored else 0,
+                        "best_line": scored[0].line if scored else "",
+                    },
+                )
+            )
 
             best = scored[0] if scored else None
             attempts = 0
@@ -295,9 +347,11 @@ class ConstrainedLoop:
                 # Fallback: accept best scored candidate even if invalid,
                 # otherwise the loop hangs forever with a bad LLM.
                 best = scored[0]
-                print(f"  [WARN] Line {line_index+1}: accepted best candidate despite invalid metre "
-                      f"(syllables={scored[0].scan.metrical_syllable_count}, "
-                      f"target={target_syllables})")
+                print(
+                    f"  [WARN] Line {line_index + 1}: accepted best candidate despite invalid metre "
+                    f"(syllables={scored[0].scan.metrical_syllable_count}, "
+                    f"target={target_syllables})"
+                )
 
             if best is not None:
                 # Human selection callback: may override auto-selected best
@@ -315,8 +369,13 @@ class ConstrainedLoop:
                             line=chosen_text,
                             scan=custom_scan,
                             score=1.0,
-                            breakdown={"metre": 1.0, "rhyme": 0.0,
-                                       "theme": 0.0, "novelty": 1.0, "cliche": 0.0},
+                            breakdown={
+                                "metre": 1.0,
+                                "rhyme": 0.0,
+                                "theme": 0.0,
+                                "novelty": 1.0,
+                                "cliche": 0.0,
+                            },
                         )
 
                 result.lines.append(best.line)

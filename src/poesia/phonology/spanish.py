@@ -84,7 +84,7 @@ def _final_stress_adjustment(words: list[str], base_count: int) -> int:
         if char in "áéíóú":
             # Accent on last syllable (aguda) → +1
             # Check if this is the last vowel cluster
-            remaining = last_word[i + 1:]
+            remaining = last_word[i + 1 :]
             vowels_after = sum(1 for c in remaining if c in VOWELS)
             if vowels_after == 0:
                 return base_count + 1
@@ -121,6 +121,7 @@ class SpanishPhonology:
         if self._rantanplan is None:
             try:
                 import rantanplan  # type: ignore[import-untyped]
+
                 self._rantanplan = rantanplan
             except ImportError:
                 self._rantanplan = False  # Mark as unavailable
@@ -130,6 +131,7 @@ class SpanishPhonology:
         if self._fonemas is None:
             try:
                 from fonemas.fonemas import Transcription  # type: ignore[import-untyped]
+
                 self._fonemas = Transcription
             except ImportError:
                 self._fonemas = False
@@ -139,6 +141,7 @@ class SpanishPhonology:
         if self._silabeador is None:
             try:
                 import silabeador  # type: ignore[import-untyped]
+
                 self._silabeador = silabeador
             except ImportError:
                 self._silabeador = False
@@ -218,9 +221,7 @@ class SpanishPhonology:
             )
 
         # No backend available
-        raise RuntimeError(
-            "No Spanish phonology backend installed. Run: pip install fonemas"
-        )
+        raise RuntimeError("No Spanish phonology backend installed. Run: pip install fonemas")
 
     def rhyme_key(self, line: str) -> RhymeKey:
         """Extract consonant + assonant rhyme signature from a line's ending."""
@@ -288,4 +289,3 @@ class SpanishPhonology:
             return "pareado"
 
         return f"estanza_{count}_versos"
-

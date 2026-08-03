@@ -99,14 +99,12 @@ def get_influences_by_movement(movement: str) -> list[InfluenceRecord]:
 
     def _strip_accents(s: str) -> str:
         """Remove diacritics/accents from a string for matching."""
-        return "".join(
-            c for c in unicodedata.normalize("NFKD", s)
-            if not unicodedata.combining(c)
-        )
+        return "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
 
     q = _strip_accents(movement.lower())
     return [
-        inf for inf in load_influences()
+        inf
+        for inf in load_influences()
         if inf.movement and q in _strip_accents(inf.movement.lower())
     ]
 
@@ -136,7 +134,7 @@ def get_influences_by_era(era_query: str) -> list[InfluenceRecord]:
         try:
             return int(parts[0]), int(parts[1]) if len(parts) > 1 else int(parts[0])
         except (ValueError, IndexError):
-            raise PoesiaError(f"Invalid era query: '{q}'. Use '1900' or '1800-1900'.")
+            raise PoesiaError(f"Invalid era query: '{q}'. Use '1900' or '1800-1900'.") from None
 
     q_start, q_end = _parse_query(era_query)
     results = []

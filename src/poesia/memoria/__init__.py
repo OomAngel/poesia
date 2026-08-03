@@ -37,6 +37,8 @@ __all__ = [
     "InfluenceRecord",
     "load_influences",
     "get_influence_by_id",
+    "get_influences_by_era",
     "get_influences_by_language",
+    "get_influences_by_movement",
     "get_influences_by_tone",
 ]

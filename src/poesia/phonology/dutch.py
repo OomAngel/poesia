@@ -27,6 +27,7 @@ class DutchPhonology:
         if self._pyphen is None:
             try:
                 import pyphen  # type: ignore[import-untyped]
+
                 self._pyphen = pyphen.Pyphen(lang="nl_NL")
             except ImportError:
                 self._pyphen = False
@@ -40,9 +41,7 @@ class DutchPhonology:
         """
         pyphen = self._ensure_pyphen()
         if not pyphen:
-            raise RuntimeError(
-                "No Dutch phonology backend installed. Run: pip install pyphen"
-            )
+            raise RuntimeError("No Dutch phonology backend installed. Run: pip install pyphen")
 
         words = line.split()
         total_syllables = 0
