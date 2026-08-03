@@ -13,12 +13,26 @@ import os
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-import mlflow
-
 from poesia.exceptions import LLMProviderError
+
+
+def _trace_decorator(span_type: str, name: str) -> Callable[[Any], Any]:
+    """Return ``mlflow.trace(...)`` when mlflow is installed, else a no-op.
+
+    mlflow is an optional, heavy dependency (AGENTS.md lazy-import rule) — the
+    CLI must work without it. LoRALocalClient's ``generate`` tracing degrades
+    to an identity decorator when mlflow is absent.
+    """
+    try:
+        import mlflow
+
+        return mlflow.trace(span_type=span_type, name=name)
+    except ImportError:  # pragma: no cover - environment dependent
+        return lambda fn: fn
 
 
 @dataclass
@@ -37,7 +51,7 @@ class LLMUsage:
 class LLMClient(Protocol):
     """Minimal interface the generation loop needs from any LLM backend."""
 
-    @mlflow.trace(span_type="LLM", name="hosted_generate")
+    @_trace_decorator(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         """Return `n` candidate completions for `prompt`."""
         ...
@@ -105,7 +119,7 @@ class StubLLMClient:
         "in gardens where the {word} blooms in spring",
     ]
 
-    @mlflow.trace(span_type="LLM", name="hosted_generate")
+    @_trace_decorator(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         """Generate plausible short lines based on prompt keywords."""
         # Extract theme/language from prompt
@@ -234,7 +248,7 @@ class HostedLLMClient:
         else:
             self.model = "gpt-4o-mini"
 
-    @mlflow.trace(span_type="LLM", name="hosted_generate")
+    @_trace_decorator(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         from poesia.exceptions import LLMProviderError
 
@@ -521,7 +535,7 @@ class OllamaClient:
             ) from e
         self._checked = True
 
-    @mlflow.trace(span_type="LLM", name="hosted_generate")
+    @_trace_decorator(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         """Generate candidate lines via Ollama.
 
@@ -827,7 +841,7 @@ class LoRAClient:
                 f"Failed to load model '{self.model}': {e}", provider="lora"
             ) from e
 
-    @mlflow.trace(span_type="LLM", name="hosted_generate")
+    @_trace_decorator(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         import time
 
