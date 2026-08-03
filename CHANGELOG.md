@@ -3,6 +3,17 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-03 — Cloudflare dedicated token: live end-to-end verified
+
+- **Credentials configured**: `CLOUDFLARE_ACCOUNT_ID` + dedicated Workers AI
+  API token written to the gitignored `.env` (auto-loaded by the CLI — verified
+  `poesia` picks them up at startup)
+- **Live test**: direct backend call → **2.2 MB PNG, 1024×1024, 10.8 s**; full
+  CLI `--backend cloudflare` on a 2-stanza poem → **4.2 MB auca sheet
+  (2218×1322), 2 panels** — the one-line setup works end-to-end
+- Behaviour identical to the wrangler OAuth token (raw PNG bytes, seed ignored)
+- Empirical log + gap notes updated in `docs/IMAGE_GENERATION_PROVIDERS.md`
+
 ## 2026-08-03 — One-line provider setup: `.env` auto-load + Cloudflare quickstart
 
 - **`.env.example`** (tracked): documents Cloudflare (`CLOUDFLARE_ACCOUNT_ID` /

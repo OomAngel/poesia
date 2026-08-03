@@ -81,6 +81,20 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
+## What We Just Did (2026-08-03 — Cloudflare dedicated token, live end-to-end)
+
+1. **Configured the dedicated token**: `CLOUDFLARE_ACCOUNT_ID`
+   (`065c2ed7c015b61b9abbb15fff4285a1`) + the new Workers AI API token written
+   to the gitignored `.env`; verified the CLI auto-loads both at startup.
+2. **Live test passed**: direct `CloudflareImageBackend` call → 2.2 MB
+   1024×1024 PNG in 10.8 s; full `poesia galeria illustrate … --backend
+   cloudflare` on a 2-stanza poem → 4.2 MB auca sheet (2218×1322, 2 panels).
+   The one-line setup (`cp .env.example .env`) is now a proven reality.
+3. Behaviour identical to the wrangler OAuth token (raw PNG bytes, seed ignored
+   — no new surprises). Empirical log + gaps updated in
+   `docs/IMAGE_GENERATION_PROVIDERS.md`; docs-only commits (`.env` is
+   gitignored, never enters the tarball).
+
 ## What We Just Did (2026-08-03 — one-line provider setup via `.env`)
 
 1. **`poesia` now auto-loads `.env`** at CLI startup (`_load_dotenv` in cli.py,

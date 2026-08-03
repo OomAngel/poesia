@@ -264,6 +264,7 @@ must not depend on it.
 | **Cloudflare live — raw bytes** | `CloudflareImageBackend.generate_image` (cached wrangler OAuth token, scopes include `ai:write`) | first call raised `'utf-8' codec can't decode byte 0x89` | **REST endpoint returns raw PNG bytes**, not the base64 `result.data` JSON the API reference's binding schema implies. Backend fixed to pass image magic bytes through untouched (handles both shapes). |
 | **Cloudflare live — output** | same, after fix | **1.8–2.1 MB PNG, 1024×1024 RGB**, ≈ **10 s/image**, full native resolution | Real SDXL output at native size (better than Pollinations' 768×768 sana) |
 | **Cloudflare live — determinism** | same prompt+seed ×2, plus different-seed control | fingerprints `b308…` vs `de36…` (same seed) — **not identical**; different seed differed | **`seed` is NOT honoured** by the served SDXL wrapper despite the schema listing it. Pollinations is the only deterministic cloud backend. |
+| **Cloudflare live — dedicated Workers AI API token** | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` in gitignored `.env` (auto-loaded by the CLI), `--backend cloudflare` | direct call: **2.2 MB PNG, 1024×1024, 10.8 s**; full CLI: **2 panels → 4.2 MB auca sheet (2218×1322)** | The proper, dedicated-token setup works end-to-end — same Bearer auth, same behaviour as the wrangler OAuth token (raw PNG bytes, seed ignored). |
 
 **What this tells us**: (1) Pollinations is genuinely key-less and fast; (2) we
 must treat its response as "image bytes" (JPEG/PNG), never assert a format or
@@ -308,13 +309,13 @@ service is a moving target — pin nothing, degrade gracefully.
   unverified.
 - **AI Horde anonymous specifics**: exact anonymous kudos/parallel-job caps not
   verified against swagger this pass; see `https://aihorde.net/api/v2/swagger`.
-- **Cloudflare live verification**: ✅ done 2026-08-03 (reused the machine's
-  cached wrangler OAuth token — scopes include `ai:write`; account
-  `065c2ed7…`). Findings: REST endpoint returns **raw PNG bytes** (not the
-  base64 JSON the binding schema implies) and **`seed` is ignored** by the
-  served SDXL wrapper. Proper long-term setup: a dedicated Workers AI API token
-  (dashboard → Workers AI → "Use REST API" → create token), then
-  `cp .env.example .env` — `poesia` loads it automatically.
+- **Cloudflare live verification**: ✅ done 2026-08-03. First with the machine's
+  cached wrangler OAuth token (scopes include `ai:write`; account `065c2ed7…`),
+  then with a **dedicated Workers AI API token** stored in the gitignored
+  `.env` (auto-loaded by the CLI) — identical behaviour. Findings: REST endpoint
+  returns **raw PNG bytes** (not the base64 JSON the binding schema implies) and
+  **`seed` is ignored** by the served SDXL wrapper. Setup: dashboard → Workers
+  AI → "Use REST API" → create token → `cp .env.example .env`.
 - **Pollinations model routing**: observed `sana` despite `model=flux`;
   contradicts vendor docs — re-check at adoption, keep the backend model-agnostic.
 - **OpenRouter image models**: docs URL 404'd; treated as "emerging, unverified".
