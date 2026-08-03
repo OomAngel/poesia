@@ -110,8 +110,7 @@ class SentenceTransformerClient:
             from sentence_transformers import SentenceTransformer
         except ImportError as exc:
             raise RuntimeError(
-                "sentence-transformers is not installed. "
-                "Run: pip install -e '.[nlp]'"
+                "sentence-transformers is not installed. Run: pip install -e '.[nlp]'"
             ) from exc
 
         self._model = SentenceTransformer(self._model_name)

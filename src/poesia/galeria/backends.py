@@ -117,6 +117,7 @@ class HostedImageBackend:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 res = json.loads(resp.read().decode("utf-8"))
                 import base64
+
                 b64_data = res["data"][0]["b64_json"]
                 return base64.b64decode(b64_data)
         except urllib.error.HTTPError as e:
@@ -174,4 +175,3 @@ class HostedImageBackend:
             raise RuntimeError(f"Replicate API HTTP Error {e.code}: {err_msg}") from e
         except Exception as e:
             raise RuntimeError(f"Replicate API request failed: {e}") from e
-

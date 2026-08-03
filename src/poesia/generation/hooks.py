@@ -19,6 +19,7 @@ from typing import Any
 @dataclass
 class HookEvent:
     """Context data passed to hook callbacks."""
+
     line_index: int
     phase: str  # "before_generate", "after_score", "on_line_selected"
     data: dict[str, Any] = field(default_factory=dict)
@@ -67,4 +68,6 @@ class LoggingHook(GenerationHook):
             n = event.data.get("n_candidates", 0)
             best = event.data.get("best_score", 0)
             # Log quietly — in production this would go to MLflow
-            print(f"  [hook] line {event.line_index + 1}: {n} candidates in {elapsed:.2f}s, best={best:.3f}")
+            print(
+                f"  [hook] line {event.line_index + 1}: {n} candidates in {elapsed:.2f}s, best={best:.3f}"
+            )

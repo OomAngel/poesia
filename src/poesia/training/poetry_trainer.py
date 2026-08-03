@@ -19,7 +19,6 @@ Usage:
 
 from __future__ import annotations
 
-import math
 import re
 from typing import Any
 
@@ -53,9 +52,11 @@ class PoetryTrainer(Trainer):
         if self._phonology is None:
             if self._language == "es":
                 from poesia.phonology.spanish import SpanishPhonology
+
                 self._phonology = SpanishPhonology()
             else:
                 from poesia.phonology.english import EnglishPhonology
+
                 self._phonology = EnglishPhonology()
         return self._phonology
 
@@ -112,9 +113,7 @@ class PoetryTrainer(Trainer):
             if tokenizer is None:
                 return torch.tensor(0.0, device=model.device)
 
-            texts = tokenizer.batch_decode(
-                pred_tokens.unsqueeze(-1), skip_special_tokens=True
-            )
+            texts = tokenizer.batch_decode(pred_tokens.unsqueeze(-1), skip_special_tokens=True)
 
             # Score each predicted token against syllable target
             # (We check if the predicted word has correct syllable count)
@@ -137,9 +136,7 @@ class PoetryTrainer(Trainer):
             if count == 0:
                 return torch.tensor(0.0, device=model.device)
 
-            return torch.tensor(
-                total_penalty / count, device=model.device, dtype=torch.float32
-            )
+            return torch.tensor(total_penalty / count, device=model.device, dtype=torch.float32)
 
         except Exception:
             return torch.tensor(0.0, device=model.device)

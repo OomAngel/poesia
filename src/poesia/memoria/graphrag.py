@@ -44,7 +44,9 @@ from poesia.memoria.records import NodeType, RelationType
 _SCHEMA_VERSION = "2"
 
 
-from poesia.exceptions import IndexCompatibilityError as _PoesiaIndexError
+from poesia.exceptions import (  # noqa: E402 - lazy import to avoid a cycle
+    IndexCompatibilityError as _PoesiaIndexError,
+)
 
 
 class IndexCompatibilityError(_PoesiaIndexError, RuntimeError):
@@ -189,7 +191,7 @@ def _cosine(a: list[float], b: list[float]) -> float:
     """Pure Python cosine similarity between two vectors."""
     if not a or not b or len(a) != len(b):
         return 0.0
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
     norm_a = math.sqrt(sum(x * x for x in a))
     norm_b = math.sqrt(sum(y * y for y in b))
     if norm_a == 0.0 or norm_b == 0.0:
@@ -237,6 +239,7 @@ class GraphRAGRetriever:
     def _make_graph(self) -> Any:
         try:
             import networkx as nx  # type: ignore[import-untyped]
+
             return nx.DiGraph()
         except ImportError as exc:
             raise RuntimeError(
@@ -286,7 +289,9 @@ class GraphRAGRetriever:
                         try:
                             # Use embed_one() for scalar text, not embed() which expects list[str]
                             # text_type="passage": stored documents use passage prefix in e5 models
-                            raw_embedding = embedding_client.embed_one(embeddable_text, text_type="passage")
+                            raw_embedding = embedding_client.embed_one(
+                                embeddable_text, text_type="passage"
+                            )
                             # P0: validate embedding shape and values
                             validated = validate_embedding_vector(
                                 raw_embedding,
@@ -296,9 +301,7 @@ class GraphRAGRetriever:
                             embeddings[rec.id] = validated
                         except EmbeddingValidationError as e:
                             # P0: expose validation failures explicitly
-                            raise ValueError(
-                                f"Failed to auto-embed record {rec.id}: {e}"
-                            ) from e
+                            raise ValueError(f"Failed to auto-embed record {rec.id}: {e}") from e
                         except Exception as e:
                             # Other embedding failures (network, model load, etc.)
                             raise RuntimeError(
@@ -320,9 +323,7 @@ class GraphRAGRetriever:
                         context=f"record {rec.id} embedding",
                     )
                 except EmbeddingValidationError as e:
-                    raise ValueError(
-                        f"Invalid embedding for record {rec.id}: {e}"
-                    ) from e
+                    raise ValueError(f"Invalid embedding for record {rec.id}: {e}") from e
 
             # P2: store node_type on all poem nodes
             self._graph.add_node(
@@ -339,17 +340,19 @@ class GraphRAGRetriever:
         node_ids = [n for n in self._graph.nodes if self._graph.nodes[n].get("embedding")]
         for i, node_a in enumerate(node_ids):
             emb_a = self._graph.nodes[node_a]["embedding"]
-            for node_b in node_ids[i + 1:]:
+            for node_b in node_ids[i + 1 :]:
                 emb_b = self._graph.nodes[node_b]["embedding"]
                 score = _cosine(emb_a, emb_b)
                 if score >= self.SIMILARITY_THRESHOLD:
                     self._graph.add_edge(
-                        node_a, node_b,
+                        node_a,
+                        node_b,
                         weight=round(score, 4),
                         relation_type=RelationType.similar_to.value,
                     )
                     self._graph.add_edge(
-                        node_b, node_a,
+                        node_b,
+                        node_a,
                         weight=round(score, 4),
                         relation_type=RelationType.similar_to.value,
                     )
@@ -405,9 +408,7 @@ class GraphRAGRetriever:
         """
         # P0: validate query embedding
         try:
-            query_embedding = validate_embedding_vector(
-                query_embedding, context="query embedding"
-            )
+            query_embedding = validate_embedding_vector(query_embedding, context="query embedding")
         except EmbeddingValidationError as e:
             raise ValueError(f"Invalid query embedding: {e}") from e
 
@@ -623,15 +624,12 @@ class GraphRAGRetriever:
     ) -> None:
         """Add a typed directed edge between two existing nodes."""
         if source_id not in self._graph:
-            raise ValueError(
-                f"Source node '{source_id}' not found. Add it first."
-            )
+            raise ValueError(f"Source node '{source_id}' not found. Add it first.")
         if target_id not in self._graph:
-            raise ValueError(
-                f"Target node '{target_id}' not found. Add it first."
-            )
+            raise ValueError(f"Target node '{target_id}' not found. Add it first.")
         self._graph.add_edge(
-            source_id, target_id,
+            source_id,
+            target_id,
             weight=round(weight, 4),
             relation_type=relation_type.value,
         )
@@ -686,8 +684,12 @@ class GraphRAGRetriever:
             except ValueError:
                 nbr_type = NodeType.poem
                 rel_type = RelationType.similar_to
-            hop = GraphHop(node_id=nbr, node_type=nbr_type, relation_type=rel_type,
-                           weight=edge_data.get("weight", 1.0))
+            hop = GraphHop(
+                node_id=nbr,
+                node_type=nbr_type,
+                relation_type=rel_type,
+                weight=edge_data.get("weight", 1.0),
+            )
             queue.append(GraphPath(origin_id=start_id, hops=[hop]))
             visited.add(nbr)
 
@@ -712,8 +714,12 @@ class GraphRAGRetriever:
                     except ValueError:
                         nbr_type = NodeType.poem
                         rel_type = RelationType.similar_to
-                    hop = GraphHop(node_id=nbr, node_type=nbr_type, relation_type=rel_type,
-                                   weight=edge_data.get("weight", 1.0))
+                    hop = GraphHop(
+                        node_id=nbr,
+                        node_type=nbr_type,
+                        relation_type=rel_type,
+                        weight=edge_data.get("weight", 1.0),
+                    )
                     queue.append(GraphPath(origin_id=start_id, hops=current_path.hops + [hop]))
                     visited.add(nbr)
         return paths
@@ -758,8 +764,9 @@ class GraphRAGRetriever:
         seed_ids = [sid for sid, _ in seed_results]
         budget_per_seed = max(budget // len(seed_ids), 5) if seed_ids else budget
         for seed_id in seed_ids:
-            for path in self.traverse(seed_id, max_hops=max_hops, budget=budget_per_seed,
-                                      relation_types=relation_types):
+            for path in self.traverse(
+                seed_id, max_hops=max_hops, budget=budget_per_seed, relation_types=relation_types
+            ):
                 ep = path.endpoint_id
                 attrs = self._graph.nodes.get(ep, {})
                 if form_filter and attrs.get("form") != form_filter:
@@ -844,8 +851,7 @@ class GraphRAGRetriever:
             return
 
         model_mismatch = (
-            self._index_model_id is not None
-            and self._index_model_id != embedding_client.model_id
+            self._index_model_id is not None and self._index_model_id != embedding_client.model_id
         )
         dim_mismatch = (
             self._index_embedding_dimension is not None

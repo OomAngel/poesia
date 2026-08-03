@@ -59,7 +59,9 @@ class GenerationBrief:
         lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch"}.get(
             self.form_spec.language, self.form_spec.language
         )
-        lines.append(f"IMPORTANT: You MUST write in {lang_name}. Do NOT write in any other language.\n")
+        lines.append(
+            f"IMPORTANT: You MUST write in {lang_name}. Do NOT write in any other language.\n"
+        )
 
         # Form
         lines.append("## FORM")
@@ -107,7 +109,7 @@ class GenerationBrief:
                 if exp.synonyms:
                     lines.append(f"- Syn: {', '.join(exp.synonyms[:6])}")
                 if exp.rhymes_consonant:
-                    for end, rhy in list(exp.rhymes_consonant.items())[:1]:
+                    for _end, rhy in list(exp.rhymes_consonant.items())[:1]:
                         if rhy:
                             lines.append(f"- Rhyme: {', '.join(rhy[:6])}")
                 if exp.semantic_neighbors:
@@ -261,9 +263,7 @@ class BriefBuilder:
         if self._retriever is not None and self._embedding_client is not None:
             query_emb = self._embedding_client.embed_one(theme, text_type="query")
             try:
-                graph_paths = self._retriever.retrieve_with_paths(
-                    query_emb, k=5, max_hops=2
-                )
+                graph_paths = self._retriever.retrieve_with_paths(query_emb, k=5, max_hops=2)
             except Exception:
                 # Graph retrieval is best-effort; never crash brief assembly
                 graph_paths = []
@@ -285,9 +285,7 @@ class BriefBuilder:
             level=level,
         )
 
-    def _retrieve_fragments(
-        self, query: str, k: int = 5
-    ) -> list[tuple[FragmentRecord, float]]:
+    def _retrieve_fragments(self, query: str, k: int = 5) -> list[tuple[FragmentRecord, float]]:
         """Retrieve fragments most similar to the query."""
         import math
 
@@ -304,8 +302,8 @@ class BriefBuilder:
 
         # Score fragments
         scores = []
-        for frag, emb in zip(self._fragments, self._fragment_embeddings):
-            dot = sum(a * b for a, b in zip(query_emb, emb))
+        for frag, emb in zip(self._fragments, self._fragment_embeddings, strict=True):
+            dot = sum(a * b for a, b in zip(query_emb, emb, strict=True))
             norm_q = math.sqrt(sum(a * a for a in query_emb))
             norm_e = math.sqrt(sum(b * b for b in emb))
             sim = dot / (norm_q * norm_e) if norm_q > 0 and norm_e > 0 else 0.0
@@ -315,7 +313,9 @@ class BriefBuilder:
         scores.sort(key=lambda x: x[1], reverse=True)
         return scores[:k]
 
-    def _match_influences(self, tone: list[str], movement: str | None = None) -> list[InfluenceRecord]:
+    def _match_influences(
+        self, tone: list[str], movement: str | None = None
+    ) -> list[InfluenceRecord]:
         """Find influences matching the requested tone and/or literary movement.
 
         Args:
@@ -330,6 +330,7 @@ class BriefBuilder:
         # Filter by movement first if specified
         if movement:
             from poesia.memoria.influence_loader import get_influences_by_movement
+
             movement_ids = {i.id for i in get_influences_by_movement(movement)}
             candidates = [i for i in candidates if i.id in movement_ids]
             if not candidates:

@@ -52,9 +52,7 @@ class CandidateGenerator:
         prior_lines = prior_lines or []
 
         # --- constraint instructions ------------------------------------
-        syllable_instruction = (
-            f"Exactly {target_syllables} syllables." if target_syllables else ""
-        )
+        syllable_instruction = f"Exactly {target_syllables} syllables." if target_syllables else ""
         if target_rhyme_key and example_rhyme_word:
             word_bank = ""
             if rhyme_candidates:
@@ -62,19 +60,16 @@ class CandidateGenerator:
                 word_bank = f" Word bank (pick one or find your own): {bank_words}."
             rhyme_instruction = (
                 f'End the line with a word that rhymes with "{example_rhyme_word}" '
-                f"(same ending sound — use a DIFFERENT word, not \"{example_rhyme_word}\" itself)."
+                f'(same ending sound — use a DIFFERENT word, not "{example_rhyme_word}" itself).'
                 f"{word_bank}"
             )
         elif target_rhyme_key:
-            rhyme_instruction = (
-                f"End the line with a word whose rhyme key is '{target_rhyme_key}'."
-            )
+            rhyme_instruction = f"End the line with a word whose rhyme key is '{target_rhyme_key}'."
         else:
             rhyme_instruction = ""  # first of its rhyme group — model is free
 
         anti_repeat = (
-            "Do NOT begin the line with the same word as any prior line."
-            if prior_lines else ""
+            "Do NOT begin the line with the same word as any prior line." if prior_lines else ""
         )
 
         constraints = " ".join(filter(None, [syllable_instruction, rhyme_instruction, anti_repeat]))
@@ -85,7 +80,7 @@ class CandidateGenerator:
 
         # --- numbered prior-lines block ---------------------------------
         if prior_lines:
-            numbered = "\n".join(f"{i+1}. {ln}" for i, ln in enumerate(prior_lines))
+            numbered = "\n".join(f"{i + 1}. {ln}" for i, ln in enumerate(prior_lines))
             prior_block = f"Poem so far:\n{numbered}\n\n"
         else:
             prior_block = ""
@@ -97,7 +92,7 @@ class CandidateGenerator:
                 f"{base_prompt}\n"
                 f"## POEM IN PROGRESS\n{prior_block}"
                 f"## TASK\n"
-                f"Write line {len(prior_lines)+1}. {constraints}\n"
+                f"Write line {len(prior_lines) + 1}. {constraints}\n"
                 f"{output_rule}"
             )
         else:
@@ -105,7 +100,7 @@ class CandidateGenerator:
             prompt = (
                 f"You are writing a {lang_name} poem on the theme: {theme}.\n"
                 f"{prior_block}"
-                f"Write line {len(prior_lines)+1}. {constraints}\n"
+                f"Write line {len(prior_lines) + 1}. {constraints}\n"
                 f"{output_rule}"
             )
 

@@ -3,7 +3,7 @@
 Usage (after training saves adapter):
     from poesia.training.model_wrapper import PoetryModelWrapper
     import mlflow
-    
+
     mlflow.pyfunc.log_model(
         artifact_path="model",
         python_model=PoetryModelWrapper(),
@@ -15,7 +15,6 @@ Usage (after training saves adapter):
 from __future__ import annotations
 
 import os
-from typing import Any
 
 import mlflow
 import pandas as pd
@@ -42,12 +41,12 @@ class PoetryModelWrapper(mlflow.pyfunc.PythonModel):
         Expects the adapter weights at the "adapter" artifact key.
         """
         import torch
+        from peft import PeftModel
         from transformers import (
             AutoModelForCausalLM,
             AutoTokenizer,
             BitsAndBytesConfig,
         )
-        from peft import PeftModel
 
         adapter_path = context.artifacts.get("adapter")
 
@@ -59,9 +58,7 @@ class PoetryModelWrapper(mlflow.pyfunc.PythonModel):
 
         # Allow override via model_config if stored
         model_id = (
-            context.model_config.get("base_model")
-            if context.model_config
-            else self._base_model
+            context.model_config.get("base_model") if context.model_config else self._base_model
         ) or self._base_model
 
         self._tokenizer = AutoTokenizer.from_pretrained(model_id)
@@ -104,9 +101,7 @@ class PoetryModelWrapper(mlflow.pyfunc.PythonModel):
             temperature = float(row.get("temperature", 0.8))
             max_tokens = int(row.get("max_tokens", 100))
 
-            input_ids = self._tokenizer(prompt, return_tensors="pt").to(
-                self._model.device
-            )
+            input_ids = self._tokenizer(prompt, return_tensors="pt").to(self._model.device)
             with torch.no_grad():
                 out = self._model.generate(
                     **input_ids,
@@ -115,7 +110,7 @@ class PoetryModelWrapper(mlflow.pyfunc.PythonModel):
                     do_sample=True,
                 )
             text = self._tokenizer.decode(
-                out[0][input_ids.input_ids.shape[1]:],
+                out[0][input_ids.input_ids.shape[1] :],
                 skip_special_tokens=True,
             ).strip()
             results.append(text)

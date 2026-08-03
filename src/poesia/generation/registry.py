@@ -40,11 +40,13 @@ def register_llm(name: str, params: dict[str, Any] | None = None) -> callable:
 
     The decorated class must implement LLMClient protocol.
     """
+
     def decorator(cls: type) -> type:
         _llm_registry[name] = cls
         if params:
             _DEFAULT_PARAMS[name] = {**_DEFAULT_PARAMS.get(name, {}), **params}
         return cls
+
     return decorator
 
 
@@ -67,8 +69,7 @@ def get_llm(name: str, **overrides) -> Any:
 
     if name not in _llm_registry:
         raise ValueError(
-            f"Unknown LLM backend '{name}'. "
-            f"Registered: {', '.join(sorted(_llm_registry))}"
+            f"Unknown LLM backend '{name}'. Registered: {', '.join(sorted(_llm_registry))}"
         )
 
     cls = _llm_registry[name]
@@ -105,6 +106,7 @@ def get_llm(name: str, **overrides) -> Any:
 def _import_backend(name: str) -> None:
     """Lazy-import the module that registers a backend."""
     import importlib
+
     try:
         importlib.import_module(f"poesia.generation.{name}")
     except ImportError:

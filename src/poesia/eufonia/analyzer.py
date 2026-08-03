@@ -61,7 +61,7 @@ class EuphonyAnalyzer:
                 continue
 
             rkey = (scan.rhyme_key.consonant.lower(), scan.rhyme_key.assonant.lower())
-            
+
             # Check for existing match (consonant or assonant match)
             matched_letter = None
             for (existing_c, existing_a), letter in key_to_letter.items():
@@ -130,4 +130,3 @@ class EuphonyAnalyzer:
                 flags.append(f"Line {i}: Excessive sibilance detected ('s'/'z' frequency > 25%)")
 
         return flags
-

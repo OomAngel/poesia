@@ -18,7 +18,6 @@ from datetime import datetime
 import mlflow
 from mlflow.tracking import MlflowClient
 
-
 _TRACKING_URI = os.environ.get("DATABASE_URL", "sqlite:///mlruns/mlflow.db")
 
 
@@ -37,8 +36,7 @@ def _run_to_dict(run, experiment_name: str) -> dict:
         "run_name": data.tags.get("mlflow.runName", info.run_id[:8]),
         "status": info.status,
         "start_time": (
-            datetime.fromtimestamp(info.start_time / 1000).isoformat()
-            if info.start_time else None
+            datetime.fromtimestamp(info.start_time / 1000).isoformat() if info.start_time else None
         ),
         "tags": sorted(k for k in data.tags if k != "mlflow.runName"),
         "model": data.params.get("model", "?"),
@@ -91,11 +89,13 @@ def cmd_list(args):
         loss = f"{r['train_loss']:.3f}" if r["train_loss"] is not None else "-"
         line_acc = (
             f"{r['eval_line_count_accuracy']:.0%}"
-            if r["eval_line_count_accuracy"] is not None else "-"
+            if r["eval_line_count_accuracy"] is not None
+            else "-"
         )
         syll_dev = (
             f"{r['eval_syllable_deviation']:.1f}"
-            if r["eval_syllable_deviation"] is not None else "-"
+            if r["eval_syllable_deviation"] is not None
+            else "-"
         )
         print(
             f"{r['run_id'][:10]:<12} "
@@ -123,10 +123,18 @@ def cmd_best(args):
     print(f"  Run ID:     {best_run['run_id']}")
     if best_run.get("adapter_path"):
         print(f"  Adapter:    {best_run['adapter_path']}")
-    print(f"\n  All metrics:")
+    print("\n  All metrics:")
     for k, v in sorted(best_run.items()):
-        if k in ("run_id", "experiment", "run_name", "config",
-                 "git_commit", "tags", "adapter_path", "status"):
+        if k in (
+            "run_id",
+            "experiment",
+            "run_name",
+            "config",
+            "git_commit",
+            "tags",
+            "adapter_path",
+            "status",
+        ):
             continue
         if v is not None:
             print(f"    {k}: {v}")
@@ -135,10 +143,7 @@ def cmd_best(args):
 def cmd_compare(args):
     runs = _load_runs()
     target_ids = args.ids
-    selected = [
-        r for r in runs
-        if r["run_id"][:8] in target_ids or r["run_id"] in target_ids
-    ]
+    selected = [r for r in runs if r["run_id"][:8] in target_ids or r["run_id"] in target_ids]
     if len(selected) < 2:
         print(f"Need at least 2 matching runs. Found {len(selected)}.")
         return
@@ -149,9 +154,15 @@ def cmd_compare(args):
     print()
     print("-" * (30 + 22 * len(selected)))
     metrics = [
-        "lora_r", "epochs", "learning_rate", "train_loss",
-        "eval_line_count_accuracy", "eval_syllable_deviation",
-        "eval_avg_line_count", "train_duration_seconds", "data_records",
+        "lora_r",
+        "epochs",
+        "learning_rate",
+        "train_loss",
+        "eval_line_count_accuracy",
+        "eval_syllable_deviation",
+        "eval_avg_line_count",
+        "train_duration_seconds",
+        "data_records",
     ]
     for m in metrics:
         print(f"{m:<30}", end="")
@@ -172,8 +183,7 @@ def cmd_tag(args):
     client = _client()
     runs = _load_runs()
     target = next(
-        (r for r in runs
-         if r["run_id"].startswith(args.id) or r["run_name"] == args.id),
+        (r for r in runs if r["run_id"].startswith(args.id) or r["run_name"] == args.id),
         None,
     )
     if target is None:
@@ -188,15 +198,14 @@ def cmd_tag(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="MLflow-backed experiment DB (Phase 1)."
-    )
+    parser = argparse.ArgumentParser(description="MLflow-backed experiment DB (Phase 1).")
     sub = parser.add_subparsers(dest="command")
     p_list = sub.add_parser("list")
     p_list.add_argument("--experiment", "-e", default=None)
     p_best = sub.add_parser("best")
     p_best.add_argument(
-        "--metric", default="eval_line_count_accuracy",
+        "--metric",
+        default="eval_line_count_accuracy",
         help="Metric to optimize (default: line_count_accuracy)",
     )
     p_comp = sub.add_parser("compare")

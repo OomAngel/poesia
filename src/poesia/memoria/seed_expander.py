@@ -31,6 +31,7 @@ class SeedExpander:
         if self._nlp is None:
             try:
                 import spacy
+
                 self._nlp = spacy.load("es_core_news_sm")
             except Exception:
                 self._nlp = None
@@ -139,6 +140,7 @@ class SeedExpander:
             # Fallback: NLTK WordNet (English only)
             try:
                 from nltk.corpus import wordnet as nltk_wn
+
                 if self.language == "en":
                     for syn in nltk_wn.synsets(word):
                         for lemma in syn.lemmas():
@@ -214,6 +216,7 @@ class SeedExpander:
         result = {"consonant": {}, "assonant": {}}
         try:
             import pronouncing
+
             rhymes = pronouncing.rhymes(word.lower())
             if rhymes:
                 result["consonant"]["rhymes"] = rhymes[:20]
@@ -234,10 +237,10 @@ class SeedExpander:
         corpus_embs = embedding_client.embed(reference_corpus)
 
         scores = []
-        for ref_word, ref_emb in zip(reference_corpus, corpus_embs):
+        for ref_word, ref_emb in zip(reference_corpus, corpus_embs, strict=True):
             if ref_word.lower() == word.lower():
                 continue
-            dot = sum(a * b for a, b in zip(word_emb, ref_emb))
+            dot = sum(a * b for a, b in zip(word_emb, ref_emb, strict=True))
             norm_a = math.sqrt(sum(a * a for a in word_emb))
             norm_b = math.sqrt(sum(b * b for b in ref_emb))
             if norm_a > 0 and norm_b > 0:

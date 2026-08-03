@@ -31,13 +31,13 @@ class FormSpec:
 
     def syllables_for_line(self, line_index: int) -> int:
         """Get target syllable count for a specific line position (0-indexed).
-        
+
         If syllable_pattern is provided, uses that (e.g., haiku: [5, 7, 5]).
         Otherwise, returns the uniform syllables_per_line.
-        
+
         Args:
             line_index: 0-based line position in the poem
-            
+
         Returns:
             Target syllable count for that line position
         """

@@ -46,24 +46,37 @@ class ScoredCandidate:
 
 
 # Common Spanish clichés to penalize
-SPANISH_CLICHES: frozenset[str] = frozenset([
-    "corazón herido", "lágrimas de amor", "eterno amor",
-    "dulce mirada", "triste soledad", "amarga pena",
-    "luz de mis ojos", "alma mía", "fuego ardiente",
-])
+SPANISH_CLICHES: frozenset[str] = frozenset(
+    [
+        "corazón herido",
+        "lágrimas de amor",
+        "eterno amor",
+        "dulce mirada",
+        "triste soledad",
+        "amarga pena",
+        "luz de mis ojos",
+        "alma mía",
+        "fuego ardiente",
+    ]
+)
 
-ENGLISH_CLICHES: frozenset[str] = frozenset([
-    "heart of gold", "break my heart", "eternal love",
-    "tears of joy", "light of my life", "soul mate",
-])
-
+ENGLISH_CLICHES: frozenset[str] = frozenset(
+    [
+        "heart of gold",
+        "break my heart",
+        "eternal love",
+        "tears of joy",
+        "light of my life",
+        "soul mate",
+    ]
+)
 
 
 @runtime_checkable
 class ScorerProtocol(Protocol):
     """Protocol for line scoring."""
-    def score_candidates(self, candidates, prior_lines=None):
-        ...
+
+    def score_candidates(self, candidates, prior_lines=None): ...
 
 
 class LineScorer:
@@ -214,10 +227,12 @@ class LineScorer:
             ff_score = 0.0
             if candidate_embedding and self._fragment_fidelity_embedding:
                 from poesia.evaluation.metrics import theme_score as _fidelity
+
                 ff_score = _fidelity(candidate_embedding, self._fragment_fidelity_embedding)
 
             # P4: end-word repetition penalty
             from poesia.evaluation.metrics import end_word_penalty
+
             ew_score = end_word_penalty(line, self._prior_end_words)
 
             # Cliché penalty

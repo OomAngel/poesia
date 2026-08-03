@@ -15,7 +15,10 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from typing import Protocol
+
 import mlflow
+
+from poesia.exceptions import LLMProviderError
 
 
 @dataclass
@@ -60,7 +63,7 @@ class StubLLMClient:
         "bajo la {word}",
         "canta la {word}",
     ]
-    
+
     _SPANISH_TEMPLATES_7 = [
         "{word} sobre el mar azul",
         "la {word} brilla en silencio",
@@ -68,7 +71,7 @@ class StubLLMClient:
         "susurra la {word} eterna",
         "baila la {word} callada",
     ]
-    
+
     _SPANISH_TEMPLATES_11 = [
         "en el jardín florece la {word} de primavera",
         "bajo la {word} brillante caminan las sombras",
@@ -76,7 +79,7 @@ class StubLLMClient:
         "entre las {word}s perdidas navega el recuerdo",
         "cuando la {word} desciende se enciende la aurora",
     ]
-    
+
     # English line templates by syllable count
     _ENGLISH_TEMPLATES_5 = [
         "{word} in the night",
@@ -85,7 +88,7 @@ class StubLLMClient:
         "beneath the {word}",
         "singing {word}",
     ]
-    
+
     _ENGLISH_TEMPLATES_7 = [
         "{word} across the dark blue sea",
         "the {word} shines in silence",
@@ -93,7 +96,7 @@ class StubLLMClient:
         "whispers the eternal {word}",
         "dancing {word} so quietly",
     ]
-    
+
     _ENGLISH_TEMPLATES_10 = [
         "beneath the glowing {word} the shadows fall",
         "when {word} descends the morning star appears",
@@ -108,17 +111,17 @@ class StubLLMClient:
         # Extract theme/language from prompt
         theme_word = self._extract_theme(prompt)
         language = self._extract_language(prompt)
-        
+
         # Pick template based on context (look for syllable hints in prompt)
         templates = self._select_templates(prompt, language)
-        
+
         # Generate n candidates by cycling through templates
         results = []
         for i in range(n):
             template = templates[i % len(templates)]
             line = template.format(word=theme_word)
             results.append(line)
-        
+
         return results
 
     def repair(self, line: str, defect_description: str) -> str:
@@ -151,12 +154,12 @@ class StubLLMClient:
         # Without form info in prompt, default to short lines (5-7 syllables)
         # Real LLMs would get this from the brief or learn from examples
         prompt_lower = prompt.lower()
-        
+
         # Count existing lines to handle haiku's 5-7-5 pattern
         poem_so_far = prompt.split("Poem so far:")[-1].strip() if "Poem so far:" in prompt else ""
-        existing_lines = [l.strip() for l in poem_so_far.split("\n") if l.strip()]
+        existing_lines = [line.strip() for line in poem_so_far.split("\n") if line.strip()]
         line_number = len(existing_lines)
-        
+
         if language == "es":
             # For haiku pattern: line 0 -> 5, line 1 -> 7, line 2 -> 5
             if line_number == 1 or "7" in prompt:
@@ -253,7 +256,9 @@ class HostedLLMClient:
                 result = self._generate_groq(prompt, n, temperature)
             else:
                 result = self._generate_openai_compat(
-                    prompt, n, temperature,
+                    prompt,
+                    n,
+                    temperature,
                     base_url="https://api.openai.com/v1",
                 )
         except LLMProviderError:
@@ -270,12 +275,12 @@ class HostedLLMClient:
     def repair(self, line: str, defect_description: str) -> str:
         prompt = (
             f"Fix the following poetic line to resolve this defect: {defect_description}.\n"
-            f"Line: \"{line}\"\n"
+            f'Line: "{line}"\n'
             "Output ONLY the corrected single line without quotation marks, intro, or explanation."
         )
         candidates = self.generate(prompt, n=1, temperature=0.7)
         if candidates:
-            return candidates[0].strip().strip('"\'')
+            return candidates[0].strip().strip("\"'")
         return line
 
     def _generate_gemini(self, prompt: str, n: int, temperature: float) -> list[str]:
@@ -318,9 +323,7 @@ class HostedLLMClient:
             },
         }
         data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url, data=data, headers={"Content-Type": "application/json"}
-        )
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 res = json.loads(resp.read().decode("utf-8"))
@@ -340,6 +343,7 @@ class HostedLLMClient:
         except urllib.error.HTTPError as e:
             err_msg = e.read().decode("utf-8")
             from poesia.exceptions import LLMProviderError
+
             raise LLMProviderError(
                 f"Gemini API HTTP Error {e.code}: {err_msg}",
                 provider="gemini",
@@ -348,6 +352,7 @@ class HostedLLMClient:
             ) from e
         except Exception as e:
             from poesia.exceptions import LLMProviderError
+
             raise LLMProviderError(
                 f"Gemini API request failed: {e}",
                 provider="gemini",
@@ -398,7 +403,7 @@ class HostedLLMClient:
         provider_label = "Groq" if "groq.com" in base_url else "OpenAI"
         import re
         import time as _time
-        last_err_msg = ""
+
         for attempt in range(4):
             try:
                 with urllib.request.urlopen(req, timeout=self.timeout) as resp:
@@ -424,7 +429,6 @@ class HostedLLMClient:
                         wait = 65.0
                     _time.sleep(wait)
                     continue
-                from poesia.exceptions import LLMProviderError
                 raise LLMProviderError(
                     f"{provider_label} API HTTP Error {e.code}: {err_body}",
                     provider=provider_label.lower(),
@@ -432,7 +436,6 @@ class HostedLLMClient:
                     response_body=err_body,
                 ) from e
             except Exception as e:
-                from poesia.exceptions import LLMProviderError
                 raise LLMProviderError(
                     f"{provider_label} API request failed: {e}",
                     provider=provider_label.lower(),
@@ -484,7 +487,6 @@ class OllamaClient:
         """Verify Ollama is running and the model is available."""
         if self._checked:
             return
-        from poesia.exceptions import LLMProviderError
 
         health_url = f"{self.host}/api/tags"
         try:
@@ -497,22 +499,23 @@ class OllamaClient:
                     # Model not pulled yet — try to pull it
                     # (This can take minutes; warn the user)
                     import warnings
+
                     warnings.warn(
-                        f"Model '{self.model}' not found in Ollama. "
-                        f"Run: ollama pull {self.model}"
+                        f"Model '{self.model}' not found in Ollama. Run: ollama pull {self.model}",
+                        stacklevel=2,
                     )
         except urllib.error.HTTPError:
             raise LLMProviderError(
                 f"Ollama is not running at {self.host}. "
                 "Start Ollama first (system tray or 'ollama serve').",
                 provider="ollama",
-            )
+            ) from None
         except (urllib.error.URLError, ConnectionError, OSError) as e:
             raise LLMProviderError(
                 f"Cannot connect to Ollama at {self.host}: {e}. "
                 "Is Ollama installed and running? https://ollama.com",
                 provider="ollama",
-            )
+            ) from e
         self._checked = True
 
     @mlflow.trace(span_type="LLM", name="hosted_generate")
@@ -581,8 +584,10 @@ class OllamaClient:
         )
         candidates = self.generate(prompt, n=1, temperature=0.7)
         if candidates:
-            return candidates[0].strip().strip('"\'')
+            return candidates[0].strip().strip("\"'")
         return line
+
+
 class OutlinesClient:
     """LLMClient with grammar-constrained generation via Outlines."""
 
@@ -599,6 +604,7 @@ class OutlinesClient:
 
     def __init__(self, base_model=None, adapter_path=None):
         import os
+
         self.usage = LLMUsage()
         self.provider = "outlines"
         self.model = base_model or self._DEFAULT_BASE
@@ -607,7 +613,9 @@ class OutlinesClient:
         self._adapter_path = None
 
         if adapter_path is None:
-            pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            pkg_root = os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            )
             for candidate_rel, candidate_base in self._KNOWN_ADAPTERS:
                 candidate = os.path.join(pkg_root, candidate_rel)
                 if os.path.exists(candidate):
@@ -616,13 +624,17 @@ class OutlinesClient:
                     print(f"[Outlines] Found adapter: {candidate_rel} (base: {self.model})")
                     break
             if self._adapter_path is None:
-                print(f"[Outlines] No adapter found — using base model only")
+                print("[Outlines] No adapter found — using base model only")
         else:
             self._adapter_path = adapter_path if os.path.exists(adapter_path) else None
             if base_model is None and self._adapter_path:
-                pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                pkg_root = os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                )
                 for candidate_rel, candidate_base in self._KNOWN_ADAPTERS:
-                    if adapter_path.endswith(candidate_rel) or adapter_path == os.path.join(pkg_root, candidate_rel):
+                    if adapter_path.endswith(candidate_rel) or adapter_path == os.path.join(
+                        pkg_root, candidate_rel
+                    ):
                         self.model = candidate_base or self._DEFAULT_BASE
                         print(f"[Outlines] Auto-detected base model for adapter: {self.model}")
                         break
@@ -635,13 +647,19 @@ class OutlinesClient:
         from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
         from poesia.exceptions import LLMProviderError
-        bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16)
+
+        bnb = BitsAndBytesConfig(
+            load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
+        )
         try:
             tokenizer = AutoTokenizer.from_pretrained(self.model)
             tokenizer.pad_token = tokenizer.eos_token
-            model = AutoModelForCausalLM.from_pretrained(self.model, quantization_config=bnb, device_map="auto", torch_dtype=torch.bfloat16)
+            model = AutoModelForCausalLM.from_pretrained(
+                self.model, quantization_config=bnb, device_map="auto", torch_dtype=torch.bfloat16
+            )
             if self._adapter_path:
                 from peft import PeftModel
+
                 model = PeftModel.from_pretrained(model, self._adapter_path)
             self._tokenizer = tokenizer
             self._model_wrapper = outlines.from_transformers(model, tokenizer)
@@ -653,6 +671,7 @@ class OutlinesClient:
 
         import outlines.generator as og
         import torch
+
         self._load()
         self.usage = LLMUsage()
         t0 = time.time()
@@ -663,15 +682,21 @@ class OutlinesClient:
             if i > 0:
                 time.sleep(0.1)
             try:
-                text = self._model_wrapper(prompt, logits_processor=lp, temperature=temperature, max_tokens=40)
+                text = self._model_wrapper(
+                    prompt, logits_processor=lp, temperature=temperature, max_tokens=40
+                )
                 text = str(text).strip() if text else ""
                 if text:
                     results.append(text)
             except Exception:
                 inputs = self._tokenizer(prompt, return_tensors="pt").to("cuda")
                 with torch.no_grad():
-                    out = self._model_wrapper.model.generate(**inputs, max_new_tokens=40, temperature=temperature, do_sample=True)
-                text = self._tokenizer.decode(out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True).strip()
+                    out = self._model_wrapper.model.generate(
+                        **inputs, max_new_tokens=40, temperature=temperature, do_sample=True
+                    )
+                text = self._tokenizer.decode(
+                    out[0][inputs.input_ids.shape[1] :], skip_special_tokens=True
+                ).strip()
                 if text:
                     text = text.split("\n")[0].strip()
                     if text:
@@ -680,9 +705,16 @@ class OutlinesClient:
         return results if results else [""]
 
     def repair(self, line, defect_description):
-        prompt = "Fix this poetic line: " + defect_description + "\nLine: \"" + line + "\"\nOutput ONLY the corrected line.\n"
+        prompt = (
+            "Fix this poetic line: "
+            + defect_description
+            + '\nLine: "'
+            + line
+            + '"\nOutput ONLY the corrected line.\n'
+        )
         candidates = self.generate(prompt, n=1, temperature=0.7)
         return candidates[0].strip().strip("'\"") if candidates and candidates[0] else line
+
 
 class LoRAClient:
     """Fine-tuned poetry model via QLoRA adapter.
@@ -726,7 +758,9 @@ class LoRAClient:
                 print(f"[LoRA] Using adapter from LORA_ADAPTER_PATH: {adapter_path}")
             else:
                 # Resolve relative to repo root (4 levels up from llm_client.py)
-                pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                pkg_root = os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                )
                 for candidate_rel, candidate_base in self._KNOWN_ADAPTERS:
                     candidate = os.path.join(pkg_root, candidate_rel)
                     if os.path.exists(candidate):
@@ -736,15 +770,21 @@ class LoRAClient:
                         break
                 if adapter_path is None:
                     paths_only = [p for p, _ in self._KNOWN_ADAPTERS]
-                    print(f"[LoRA] No adapter found. Tried: {', '.join(paths_only)}. Using base model only.")
+                    print(
+                        f"[LoRA] No adapter found. Tried: {', '.join(paths_only)}. Using base model only."
+                    )
         else:
             if not os.path.exists(adapter_path):
                 print(f"[LoRA] Adapter path {adapter_path} not found. Using base model only.")
             # If explicit adapter_path given but no base_model, infer from known list
             if base_model is None:
-                pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                pkg_root = os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                )
                 for candidate_rel, candidate_base in self._KNOWN_ADAPTERS:
-                    if adapter_path.endswith(candidate_rel) or adapter_path == os.path.join(pkg_root, candidate_rel):
+                    if adapter_path.endswith(candidate_rel) or adapter_path == os.path.join(
+                        pkg_root, candidate_rel
+                    ):
                         self.model = candidate_base or self._DEFAULT_BASE
                         print(f"[LoRA] Auto-detected base model for adapter: {self.model}")
                         break
@@ -770,20 +810,26 @@ class LoRAClient:
             self._tokenizer = AutoTokenizer.from_pretrained(self.model)
             self._tokenizer.pad_token = self._tokenizer.eos_token
             self._model = AutoModelForCausalLM.from_pretrained(
-                self.model, quantization_config=bnb,
-                device_map="auto", torch_dtype=torch.bfloat16,
+                self.model,
+                quantization_config=bnb,
+                device_map="auto",
+                torch_dtype=torch.bfloat16,
             )
             if self._adapter_path and os.path.exists(self._adapter_path):
                 from peft import PeftModel
+
                 self._model = PeftModel.from_pretrained(self._model, self._adapter_path)
         except Exception as e:
-            raise LLMProviderError(f"Failed to load model '{self.model}': {e}", provider="lora") from e
+            raise LLMProviderError(
+                f"Failed to load model '{self.model}': {e}", provider="lora"
+            ) from e
 
     @mlflow.trace(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
-        import time, re
+        import time
 
         import torch
+
         self._load()
         self.usage = LLMUsage()
         t0 = time.time()
@@ -796,27 +842,39 @@ class LoRAClient:
             inputs = self._tokenizer(prompt, return_tensors="pt").to("cuda")
             with torch.no_grad():
                 out = self._model.generate(
-                    **inputs, max_new_tokens=max_new,
-                    temperature=temperature, do_sample=True,
+                    **inputs,
+                    max_new_tokens=max_new,
+                    temperature=temperature,
+                    do_sample=True,
                     pad_token_id=self._tokenizer.pad_token_id,
                 )
-            text = self._tokenizer.decode(out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True).strip()
+            text = self._tokenizer.decode(
+                out[0][inputs.input_ids.shape[1] :], skip_special_tokens=True
+            ).strip()
             if text:
                 # Clean up: remove instruction-echo if the model parroted the prompt
                 lines = text.split("\n")
                 clean = ""
-                for l in lines:
-                    l = l.strip().strip('"').strip("'").strip(".")
+                for line in lines:
+                    line = line.strip().strip('"').strip("'").strip(".")
                     # Skip lines that are clearly instruction-echo
-                    skip_words = ["rhyme", "scheme", "syllable", "Write line",
-                                  "Output ONLY", "line must", "Task", "Poem so far"]
-                    if any(sw.lower() in l.lower() for sw in skip_words):
+                    skip_words = [
+                        "rhyme",
+                        "scheme",
+                        "syllable",
+                        "Write line",
+                        "Output ONLY",
+                        "line must",
+                        "Task",
+                        "Poem so far",
+                    ]
+                    if any(sw.lower() in line.lower() for sw in skip_words):
                         continue
                     # Skip lines that are just numbers or punctuation
-                    if len(l) < 3 or l.isdigit():
+                    if len(line) < 3 or line.isdigit():
                         continue
-                    if l and len(l) > len(clean):
-                        clean = l
+                    if line and len(line) > len(clean):
+                        clean = line
                 if clean:
                     results.append(clean)
                 else:
@@ -827,9 +885,10 @@ class LoRAClient:
         return results
 
     def repair(self, line: str, defect_description: str) -> str:
-        prompt = f"Fix this poetic line: {defect_description}\nLine: \"{line}\"\nOutput ONLY the corrected line.\n"
+        prompt = f'Fix this poetic line: {defect_description}\nLine: "{line}"\nOutput ONLY the corrected line.\n'
         candidates = self.generate(prompt, n=1, temperature=0.7)
-        return candidates[0].strip().strip('"\'') if candidates else line
+        return candidates[0].strip().strip("\"'") if candidates else line
+
 
 class MLflowModelClient:
     """LLMClient that loads a registered model from the MLflow Model Registry.
@@ -861,6 +920,7 @@ class MLflowModelClient:
             )
         try:
             import mlflow.pyfunc
+
             self._model = mlflow.pyfunc.load_model(self.model)
         except Exception as e:
             raise LLMProviderError(
@@ -871,11 +931,12 @@ class MLflowModelClient:
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.8) -> list[str]:
         self._load()
         import pandas as pd
-        inputs = pd.DataFrame({
-            "prompt": [prompt] * n,
-            "temperature": [temperature] * n,
-            "max_tokens": [100] * n,
-        })
+
+        inputs = pd.DataFrame(
+            {
+                "prompt": [prompt] * n,
+                "temperature": [temperature] * n,
+                "max_tokens": [100] * n,
+            }
+        )
         return self._model.predict(inputs)
-
-
