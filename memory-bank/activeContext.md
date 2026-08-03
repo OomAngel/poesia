@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-03 (Session: mypy gate green — 54 type errors fixed; suite 447 green)_
+_Last updated: 2026-08-03 (Session: free image-gen research + Pollinations backend live-tested; suite 456 green)_
 
 ---
 
@@ -14,8 +14,12 @@ mypy src/ --ignore-missing-imports
 ruff check src/ mlops/
 ruff format --check src/ mlops/
 
-# Launch training (activates env + sources .env_mlflow automatically):
-bash scripts/launch_training.sh local mlops/configs/train_smoke.yaml --dry-run
+# Regenerate the README showcase example (deterministic, no key needed):
+poesia galeria illustrate seeds/library/20260731_030227_142539_el_peso_del_saber__ingenuidad.md \
+  --backend procedural --output docs/examples/auca_el_peso_del_saber.png
+
+# Live free-online illustration (no key; ~1 img/15s anonymous, ~10s each):
+poesia galeria illustrate poem.txt --backend pollinations --output auca.png
 
 # Regenerate the README showcase example (deterministic, no key needed):
 poesia galeria illustrate seeds/library/20260731_030227_142539_el_peso_del_saber__ingenuidad.md \
@@ -76,6 +80,30 @@ The training plan itself (when relaunched):
 6. Hand-written sonetos: "El peso del saber", "El umbral", 6 RadicleCrops versions (ES×4 + EN×1 + fresh ES×1)
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
+
+## What We Just Did (2026-08-03 — free image-gen research + Pollinations backend)
+
+1. **Deep research + ranking**: wrote `docs/IMAGE_GENERATION_PROVIDERS.md` —
+   8 weighted criteria (cost, friction, ergonomics, quality, determinism,
+   reliability, rate, privacy) scored across 6 providers. **Verdict**:
+   Pollinations 4.15/5 (#1 — wins cost+friction+ergonomics+determinism, loses
+   reliability), Cloudflare Workers AI / Gemini free tier / AI Horde tied 3.60,
+   one-time-credit platforms 3.25, HF Inference 2.85. Local diffusers = ~4.3
+   (the long-term home, excluded from online ranking).
+2. **Implemented `PollinationsImageBackend`** (`--backend pollinations`) —
+   free, key-less, single-GET, prompt-derived deterministic seed, stdlib
+   urllib, graceful RuntimeError → suggests `--backend procedural`. `auto`
+   stays offline-first.
+3. **Live-tested — and the test caught a real bug**: Sana rejected our seed
+   (`Too big: expected number to be <=2147483647`); the fix is masking the
+   prompt hash `& 0x7FFFFFFF`. A mocked unit test could never have caught this —
+   the user was right to insist on trying it.
+4. **Verified live**: 2-stanza auca sheet composed end-to-end (1.3 MB PNG,
+   1706×1046); same prompt+seed ⇒ **byte-identical images** (service-level
+   determinism holds); ~10–11 s/image + 15 s anonymous gap; output is JPEG
+   768×768 from the `sana` model regardless of the requested size/model.
+5. **Housekeeping**: README GalerIA section + badge (5 backends), CHANGELOG,
+   memory-bank updated; suite 447 → **456 tests**; ruff + mypy clean.
 
 ## What We Just Did (2026-08-03 — mypy gate green)
 
