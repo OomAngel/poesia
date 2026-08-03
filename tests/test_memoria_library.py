@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from poesia.memoria.library import Library, PoemProvenance, PoemRecord
 
 
@@ -164,4 +166,53 @@ def test_record_without_provenance_still_works(tmp_path: Path) -> None:
     assert "Simple line" in content
     # Should not have provenance fields
     assert "model:" not in content
+
+
+def test_get_returns_record_with_lines_and_content(tmp_path: Path) -> None:
+    """Library.get() must return a fully-populated PoemRecord (content mirror)."""
+    lib = Library(storage_dir=tmp_path)
+    rec = _record("luna nocturna")
+    lib.add(rec)
+    assert rec.id is not None
+
+    fetched = lib.get(rec.id)
+    assert fetched is not None
+    assert fetched.id == rec.id
+    assert fetched.lines == ["line one", "line two"]
+    assert "line one" in fetched.content
+    # Round-trip: the CLI reads poem.content.split("\\n") to recover the lines.
+    assert fetched.content.split("\n") == fetched.lines
+
+
+def test_attach_image_adds_frontmatter_field(tmp_path: Path) -> None:
+    lib = Library(storage_dir=tmp_path)
+    rec = _record("luna nocturna")
+    lib.add(rec)
+    assert rec.id is not None
+
+    lib.attach_image(rec.id, "illustrations/luna_nocturna.png")
+
+    md_files = list(tmp_path.glob("*.md"))
+    content = md_files[0].read_text(encoding="utf-8")
+    assert "image: illustrations/luna_nocturna.png" in content
+
+
+def test_attach_image_replaces_existing_field(tmp_path: Path) -> None:
+    lib = Library(storage_dir=tmp_path)
+    rec = _record("luna nocturna")
+    lib.add(rec)
+    assert rec.id is not None
+
+    lib.attach_image(rec.id, "illustrations/v1.png")
+    lib.attach_image(rec.id, "illustrations/v2.png")
+
+    content = (tmp_path / f"{rec.id}.md").read_text(encoding="utf-8")
+    assert content.count("image:") == 1
+    assert "image: illustrations/v2.png" in content
+
+
+def test_attach_image_unknown_poem_raises(tmp_path: Path) -> None:
+    lib = Library(storage_dir=tmp_path)
+    with pytest.raises(FileNotFoundError):
+        lib.attach_image("no_such_poem", "illustrations/x.png")
 

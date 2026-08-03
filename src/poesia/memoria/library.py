@@ -53,6 +53,16 @@ class PoemRecord:
     tags: list[str] = field(default_factory=list)
     id: str | None = None
     provenance: PoemProvenance | None = None  # P1: generation provenance
+    content: str = ""  # convenience mirror of ``lines``; kept in sync by __post_init__
+
+    def __post_init__(self) -> None:
+        # ``lines`` and ``content`` are two views of the same text. Some call
+        # sites construct with only ``lines`` (add), others with only ``content``
+        # (get/search). Keep both in sync so neither is ever stale.
+        if not self.content and self.lines:
+            self.content = "\n".join(self.lines)
+        elif not self.lines and self.content:
+            self.lines = self.content.split("\n")
 
 
 class Library:
@@ -177,6 +187,44 @@ class Library:
                     content_str,
                 ),
             )
+
+    def attach_image(self, poem_id: str, image_rel_path: str) -> None:
+        """Record an illustration path in a poem's YAML frontmatter.
+
+        GalerIA writes illustrated sheets next to saved poems (``illustrations/
+        <id>.png``); this keeps the link discoverable from the poem file itself.
+        The path is stored relative to the poem's Markdown file so the pair stays
+        portable together.
+
+        Args:
+            poem_id: The poem's id (== the Markdown filename stem).
+            image_rel_path: Path to the illustration, relative to the poem file.
+
+        Raises:
+            FileNotFoundError: The poem's Markdown file does not exist.
+            ValueError: The poem file has no parseable YAML frontmatter.
+        """
+        if self.is_memory:
+            return
+        filepath = self.storage_dir / f"{poem_id}.md"
+        if not filepath.exists():
+            raise FileNotFoundError(f"Poem file not found: {filepath}")
+
+        text = filepath.read_text(encoding="utf-8")
+        match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", text, re.DOTALL)
+        if not match:
+            raise ValueError(f"Poem {poem_id} has no YAML frontmatter.")
+
+        front, body = match.groups()
+        lines = front.split("\n")
+        image_line = f"image: {image_rel_path}"
+        if any(line.strip().startswith("image:") for line in lines):
+            lines = [image_line if line.strip().startswith("image:") else line for line in lines]
+        else:
+            lines.append(image_line)
+
+        new_text = f"---\n{chr(10).join(lines)}\n---\n{body}"
+        filepath.write_text(new_text, encoding="utf-8")
 
     def list_all(self) -> list[PoemRecord]:
         """Return all saved poems, most recent first."""
