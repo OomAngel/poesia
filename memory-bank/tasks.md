@@ -39,6 +39,7 @@
       works without it; CI test job installs `nlp` extra + spacy es_core_news_sm
 - [x] README stale counts 447 → **477** (badge + prose); Spanish stack row updated
 - [x] bandit 0 issues with CI flags; suite 477
+- [x] **CI green on GitHub**: latest push → Lint ✓ Tests ✓ Security ✓ (run 30862713617)
 
 ### 2026-08-03: Publication prep — Cloudflare showcase + send-ready emails
 - [x] README showcase → "GalerIA in action" with a live Cloudflare example
