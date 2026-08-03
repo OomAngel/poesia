@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-03 (Session: GalerIA offline procedural backend + README showcase, suite green 447)_
+_Last updated: 2026-08-03 (Session: mypy gate green — 54 type errors fixed; suite 447 green)_
 
 ---
 
@@ -8,6 +8,11 @@ _Last updated: 2026-08-03 (Session: GalerIA offline procedural backend + README 
 
 ```bash
 cd /home/angel/dev/poesia
+
+# Quality gates (all must be green):
+mypy src/ --ignore-missing-imports
+ruff check src/ mlops/
+ruff format --check src/ mlops/
 
 # Launch training (activates env + sources .env_mlflow automatically):
 bash scripts/launch_training.sh local mlops/configs/train_smoke.yaml --dry-run
@@ -71,6 +76,37 @@ The training plan itself (when relaunched):
 6. Hand-written sonetos: "El peso del saber", "El umbral", 6 RadicleCrops versions (ES×4 + EN×1 + fresh ES×1)
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
+
+## What We Just Did (2026-08-03 — mypy gate green)
+
+1. **Diagnosed the mypy red gate**: numpy 2.5 ships PEP 695 stubs (Python 3.12
+   `type` syntax); mypy with `python_version="3.11"` hard-aborted on parse, and
+   the numpy per-module override can't skip parse errors. That abort had been
+   **hiding 54 real type errors** across 12 source files.
+2. **Fixed the config**: `python_version = "3.12"` (mypy target only — gates
+   allowed *syntax*, package still supports Python 3.11 at runtime).
+3. **Fixed all 54 errors** — real typing bugs, not just ignores:
+   - `PhonologyBackend` **Protocol added to `phonology/base.py`** (rhyme_tracker
+     already imported it; it simply never existed) — CLI scan() now types
+     against it (Spanish/NL/EN branches no longer conflict)
+   - BriefBuilder `level` → `Literal` casts (cli + constrained_loop)
+   - `Library` Path normalisation at the 3 file-write sites (`storage_dir` is
+     `str | Path` for the `:memory:` sentinel)
+   - Scorer: `_prior_embeddings` widened to `list[list[float] | tuple[...]]`;
+     `composite_score(**breakdown)` documented with a targeted ignore
+   - Lazy-import attrs typed `Any` (`_model`, `_tokenizer`, `_nlp`,
+     model_wrapper locals) — honest for runtime-loaded transformers/mlflow/wn
+   - `_generate_openai_compat` missing return: removed a duplicated dead `raise`
+     and added an explicit exhausted-retries `raise`
+   - GalerIA: font union annotation, float/int variable renames, `log_image`
+     now converts bytes → PIL Image
+4. **Verified**: `mypy src/` → **Success (0 errors)**, ruff check + format clean,
+   full suite **exit 0 (447 tests)**. Committed + tarball regenerated.
+5. **Free image-gen API research** (for the next GalerIA provider): shortlist —
+   Pollinations (free, no key, GET endpoint, 1 req/15s anonymous), AI Horde
+   (free community grid, anonymous key `0000000000`), Cloudflare Workers AI
+   (10k neurons/day), Google Gemini/Imagen free tier, HF Inference Providers
+   (monthly credits), plus one-time-credit platforms (fal, DeepInfra, Together).
 
 ## What We Just Did (2026-08-03 — GalerIA offline backend + README showcase)
 
