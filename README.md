@@ -210,7 +210,7 @@ poesia galeria illustrate soneto.txt --backend replicate --output auca.pdf
 ```
 
 No API key? `--backend procedural` renders the same panels as deterministic
-offline art — the exact command from the [Showcase](#showcase--galeria-fully-offline).
+offline art — the exact command from the [Showcase](#showcase--galeria-in-action).
 Want real AI images without paying or signing up? `--backend pollinations`
 calls the free, key-less [Pollinations](https://pollinations.ai) service
 (≈1 image/15 s anonymously; rate-limited, so 4 panels take about a minute):
