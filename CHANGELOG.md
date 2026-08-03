@@ -3,6 +3,24 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-03 — GalerIA offline backend + README showcase
+
+- **`ProceduralImageBackend`** (`--backend procedural`): deterministic offline
+  generative art rendered with Pillow — palette + composition seeded from the
+  poem's imagery, no API key, reproducible bit-for-bit. `--backend auto` now
+  falls back to it instead of a 1×1 stub pixel
+- **Library**: `Library.get()` fixed (PoemRecord `content` mirror — it was
+  raising `TypeError`, breaking `galeria illustrate --from-library`);
+  `Library.attach_image()` persists `image:` in the poem's YAML frontmatter
+  after `poesia write --illustrate --save`
+- **CLI**: `galeria illustrate` now strips YAML frontmatter from `.md` poem
+  files; MLflow best-effort logging no longer banners the file-store warning
+- **README**: Showcase section featuring a real generated auca sheet
+  (`docs/examples/auca_el_peso_del_saber.png`), 9 badges, procedural-backend
+  walkthrough
+- Suite: 431 → **447 tests passing** (16 new: procedural backend, attach_image,
+  `get()` round-trip, markdown frontmatter stripping)
+
 ## 2026-08-03 — Share-ready repo + GalerIA end-to-end
 
 - **GalerIA wired end-to-end**: `poesia galeria illustrate` generates one image
