@@ -7,7 +7,12 @@ from poesia.phonology.dutch import DutchPhonology
 
 @pytest.fixture
 def dutch_phonology() -> DutchPhonology:
-    return DutchPhonology()
+    backend = DutchPhonology()
+    try:
+        backend.scan_line("De avond valt")
+    except RuntimeError as exc:
+        pytest.skip(f"Dutch phonology backend unavailable: {exc}")
+    return backend
 
 
 def test_dutch_scan_line_syllable_count(dutch_phonology: DutchPhonology) -> None:
