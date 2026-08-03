@@ -81,6 +81,23 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
+## What We Just Did (2026-08-03 — one-line provider setup via `.env`)
+
+1. **`poesia` now auto-loads `.env`** at CLI startup (`_load_dotenv` in cli.py,
+   best-effort, `python-dotenv` added to core deps, shell-exported vars win,
+   never raises — verified with a subprocess from a temp dir).
+2. **`.env.example`** (root, tracked): documents Cloudflare
+   (`CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_API_TOKEN`), OpenAI/Replicate, LLM host
+   vars. Git gotcha found+fixed: `.env.*` glob can't be overridden by an
+   *anchored* `!` pattern (git 2.34.1) — used unanchored `!.env.example` +
+   explicit `cronologia/.env.example` re-ignore so only the root example is
+   tracked.
+3. **README**: Cloudflare one-line setup (`cp .env.example .env` → fill in →
+   `--backend cloudflare`), with the Workers AI API-token dashboard path and the
+   novel-per-request caveat.
+4. **3 new dotenv tests**; suite 470 → **473**, mypy (50 files) + ruff clean;
+   committed in 3 blocks; tarball regenerated.
+
 ## What We Just Did (2026-08-03 — Cloudflare Workers AI backend, live-tested)
 
 1. **Found existing Cloudflare usage**: the sibling **`hiops`** repo deploys a
