@@ -1,6 +1,8 @@
 # ── Train: Full Training Pipeline ────────────────────────────────────
-# Triggered manually (workflow_dispatch) or automatically on merge to main.
-# Runs on a GPU-enabled runner.
+# Manual only (workflow_dispatch). The previous `push` trigger queued a
+# self-hosted GPU job on every training-code change — with no self-hosted
+# runner configured on this repo, those runs stayed stuck in the Actions tab.
+# Re-add a push trigger only once a self-hosted GPU runner exists.
 # ─────────────────────────────────────────────────────────────────────
 
 name: Train
@@ -27,13 +29,6 @@ on:
         description: "MLflow run name"
         required: false
         default: "gha-train"
-
-  push:
-    branches: ["main"]
-    paths:
-      - "mlops/configs/*.yaml"
-      - "scripts/train_poetry_lora.py"
-      - "src/poesia/training/**"
 
 jobs:
   train:
