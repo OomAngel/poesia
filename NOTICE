@@ -1,0 +1,40 @@
+PoesIA — Notices & Attribution
+==============================
+
+The MIT license in `LICENSE` covers the SOFTWARE (Python source code under
+`src/`, `scripts/`, `mlops/`, and the documentation files in this repository),
+subject to the reservations below.
+
+1. Original creative content — NOT covered by the MIT license
+--------------------------------------------------------------
+
+The following are original works by the author, Angel, and remain the sole
+property of their author ("All Rights Reserved"). They are shared privately
+with named recipients only, and may be read for personal reference but must
+NOT be copied, adapted, published, redistributed, or used to train models
+without the author's explicit written permission:
+
+  * `seeds/angel_fragments/`      — personal poetic fragments (the author's
+                                    emotional/existential grounding material)
+  * `seeds/library/`              — original poems written with and curated
+                                    by the author
+
+2. Corpus texts — public domain
+-------------------------------
+
+  * `seeds/poetry_corpus/` — public-domain poems collected from Project
+    Gutenberg and es.wikisource.org. Original authorship is preserved per
+    record; full provenance in `docs/CORPUS_SOURCES.md`. Note that some
+    in-corpus authors (e.g., Octavio Paz, Sabines) are not yet public domain
+    in Mexico and are excluded from commercial training.
+
+3. Names & branding
+-------------------
+
+The names "PoesIA" and the -IA family (EufonIA, GalerIA, MemorIA, ArmonIA,
+VerifIA, AnalogIA, CronologIA) are not granted by the MIT license and remain
+associated with this personal project.
+
+---
+Questions about what you may do with any part of this repository: ask the
+author directly — the shared channel that brought you this repository.

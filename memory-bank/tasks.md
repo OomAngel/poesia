@@ -28,6 +28,17 @@
 
 ## DONE
 
+### 2026-08-03: Private-share pack (README, license, emails)
+- [x] LICENSE (MIT) + NOTICE reserving rights on `seeds/` creative content
+- [x] CONTRIBUTING.md, CHANGELOG.md, SECURITY.md added
+- [x] README: badges, refreshed Status (2026-08-01), "License & sharing" section
+- [x] pyproject license field → MIT
+- [x] `share/` email drafts (cover + setup tour, EN/ES) + sharing checklist
+- [x] `scripts/package_share.sh` — verified 13 MB tarball, secret-scan safe
+- [ ] (Angel decision) pick license variant + delivery channel (email tarball vs private GitHub)
+
+## DONE
+
 ### 2026-08-01: Retraining + Corpus + Sonetos
 - [x] DPO finished: loss=0.008, acc=1.0, 5/5 epochs
 - [x] Root cause identified: training prompt ≠ inference prompt (instruction-echo)
