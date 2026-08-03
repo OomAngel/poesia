@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-01 (Session: retraining + corpus expansion + Radicle sonetos)_
+_Last updated: 2026-08-03 (Session: unstick — lint pass + LLMProviderError test fixes, suite green)_
 
 ---
 
@@ -32,8 +32,16 @@ for e in c.search_experiments():
 
 ## Current focus
 
-**v2-fixed retraining running** — fixes the instruction-echo bug
-- MLflow run: e5129188 (experiment `soneto-v2-fixed`, SQLite; auto-migrates to PG on finish)
+**Working tree is GREEN again (2026-08-03)** — the in-flight lint pass was completed,
+the 3 pre-existing red tests fixed, everything committed. 416/416 tests pass.
+
+⚠️ **v2-fixed retraining INTERRUPTED** — PID 309663 no longer running, `/tmp/train_v2_fixed.log`
+gone (WSL reboot cleared `/tmp`). PostgreSQL/MLflow is DOWN (port 5432 refused; Docker not
+available in this WSL distro), so run e5129188's final state is unverifiable.
+**Needs relaunch once PG is up**:
+`bash scripts/launch_training.sh local mlops/configs/train_v2_fixed.yaml`
+
+The training plan itself (when relaunched):
 - 38K line-by-line examples matching the inference prompt EXACTLY
 - 1 epoch ≈ 4,750 steps ≈ ~2h on RTX 2000 Ada
 - Adds title-generation examples (983 in full dataset)
@@ -181,6 +189,24 @@ Prepared the repo to be shared with a single contact by email:
 **Open decisions for Angel**: (1) license variant — MIT+NOTICE (implemented),
 plain MIT, or All-Rights-Reserved; (2) delivery channel — email tarball ✅ vs
 private GitHub repo ⚠️ (needs explicit instruction per AGENTS.md).
+
+## What We Just Did (2026-08-03: Unstick — lint pass + structured-exception tests)
+
+Resumed a session that had stalled with 41 uncommitted files and a red test suite:
+
+1. **Diagnosed the stuck state**: 38-file lint pass (ruff format on `src/ mlops/`, bandit
+   skips, mypy numpy override, CI updates) was complete but uncommitted; the suite was red
+   because `HostedLLMClient` raises `LLMProviderError` (since P5.3, commit 33c3724) while
+   3 mock tests still expected `RuntimeError`.
+2. **Fixed the red tests** (commits `84fed6b`, `5c4c423`): hosted-LLM tests now expect
+   `LLMProviderError` (matching `test_ollama_client`/`test_generation_llm_client`, which
+   were already migrated); Dutch phonology tests skip gracefully without pyphen.
+3. **Committed the lint pass** (commit `02bb8c9`, 37 files) — `ruff check`/`format` clean
+   on `src/ mlops/`, matching the CI gates added in the same commit.
+4. **Verified green**: full suite 416 tests, exit code 0 (run detached via `setsid`).
+
+Environment notes: PostgreSQL/MLflow DOWN, Docker not available in this WSL distro,
+v2-fixed retraining interrupted (see Current focus).
 
 ## What We Just Did (Phase 1: MLOps Consolidation)
 
