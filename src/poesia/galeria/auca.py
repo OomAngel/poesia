@@ -155,6 +155,55 @@ class AucaComposer:
         sheet.save(output, format="PNG")
         return output.getvalue()
 
-    def export_pdf(self, panels: list[AucaPanel], output_path: str) -> None:
-        """Export a full illustrated poem as a print-ready PDF via WeasyPrint."""
-        raise NotImplementedError("PDF export pending WeasyPrint integration (Phase 2).")
+    def export_pdf(
+        self,
+        panels: list[AucaPanel],
+        output_path: str,
+        title: str = "PoesIA — Auca",
+    ) -> None:
+        """Export a full illustrated poem as a print-ready PDF via WeasyPrint.
+
+        Requires the ``illustration`` extra (``pip install -e '.[illustration]'``).
+        Panels are laid out on a 2-column grid; each image keeps its stanza
+        caption beneath it.
+        """
+        try:
+            from weasyprint import HTML
+        except ImportError as exc:  # pragma: no cover - environment dependent
+            raise RuntimeError(
+                "WeasyPrint is not installed. Run: pip install -e '.[illustration]'"
+            ) from exc
+
+        import base64
+        from html import escape
+
+        cards: list[str] = []
+        for panel in panels:
+            b64 = base64.b64encode(panel.image_bytes).decode("ascii")
+            captions = "<br>".join(escape(line) for line in panel.caption_lines)
+            cards.append(
+                f'<div class="card">'
+                f'<img src="data:image/png;base64,{b64}" alt="auca panel"/>'
+                f'<div class="caption">{captions}</div>'
+                f"</div>"
+            )
+
+        html_doc = f"""<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<style>
+  body {{ font-family: Georgia, "Times New Roman", serif; margin: 2cm; color: #222; }}
+  h1 {{ text-align: center; font-weight: normal; font-size: 1.6em; margin-bottom: 1cm; }}
+  .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1cm; }}
+  .card {{ border: 1px solid #ccc; padding: 8px; page-break-inside: avoid; }}
+  .card img {{ width: 100%; height: auto; }}
+  .caption {{ text-align: center; font-style: italic; margin-top: 6px; line-height: 1.4; }}
+</style>
+</head>
+<body>
+<h1>{escape(title)}</h1>
+<div class="grid">{"".join(cards)}</div>
+</body>
+</html>"""
+        HTML(string=html_doc).write_pdf(output_path)

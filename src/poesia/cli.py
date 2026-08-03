@@ -40,6 +40,14 @@ def write(
     yes: bool = typer.Option(False, "--yes"),
     lines: int = typer.Option(None, "--lines"),
     movement: str = typer.Option(None, "--movement"),
+    illustrate: bool = typer.Option(
+        False, "--illustrate", help="Generate an illustrated auca sheet for the poem."
+    ),
+    image_backend: str = typer.Option(
+        "auto",
+        "--image-backend",
+        help="Image backend for --illustrate: auto, stub, openai, replicate.",
+    ),
 ) -> None:
     """Generate a poem using WriteConfig + Registry pattern."""
     from poesia.config.types import WriteConfig
@@ -424,6 +432,74 @@ def write(
         library.add(record)
         rprint(f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]")
 
+    # GalerIA: generate an illustrated sheet that goes with the poem
+    if illustrate and result.lines:
+        rprint("\n[bold]── Illustration ──[/bold]")
+        saved_id = record.id if save else None
+        sheet_path = _illustrate_lines(
+            result.lines,
+            language=language,
+            theme=theme,
+            backend=image_backend,
+            influences=[i for i in result.brief.influences] if result.brief else None,
+            poem_id=saved_id,
+        )
+        if sheet_path:
+            rprint(f"[green]✓[/green] Illustrated sheet: [bold]{sheet_path}[/bold]")
+
+
+def _illustrate_lines(
+    lines: list[str],
+    *,
+    language: str,
+    theme: str,
+    backend: str,
+    influences: list | None = None,
+    poem_id: str | None = None,
+) -> str | None:
+    """Best-effort GalerIA illustration for generated poem lines.
+
+    Saves an auca sheet PNG under ``~/.poesia/poems/illustrations/`` when the
+    poem was saved to the library, otherwise under ``galeria/`` in the current
+    directory. Returns the output path, or None when illustration was skipped.
+    """
+    import re
+    from datetime import datetime
+    from pathlib import Path
+
+    from poesia.galeria.auca import AucaComposer
+    from poesia.galeria.pipeline import illustrate_poem
+
+    try:
+        panels, _prompts = illustrate_poem(
+            lines,
+            language=language,
+            theme=theme,
+            style="grabado español",
+            backend=backend,
+            influences=influences,
+        )
+    except Exception as e:
+        rprint(f"[yellow]⚠[/yellow] [bold]Illustration skipped:[/bold] {e}")
+        return None
+
+    composer = AucaComposer()
+    sheet_png = composer.compose_sheet(panels, title=f"PoesIA — {theme or 'Auca'}")
+
+    if poem_id:
+        out_dir = Path.home() / ".poesia" / "poems" / "illustrations"
+    else:
+        out_dir = Path("galeria")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if poem_id:
+        out_path = out_dir / f"{poem_id}.png"
+    else:
+        slug = re.sub(r"[^\w\-]", "_", theme.lower())[:30] if theme else "poema"
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_path = out_dir / f"{slug}_{stamp}.png"
+    out_path.write_bytes(sheet_png)
+    return str(out_path)
+
 
 def _load_fragments() -> list:
     """Load personal fragments from seeds/angel_fragments/ if available."""
@@ -514,24 +590,33 @@ galeria_app = typer.Typer(help="GalerIA: illustration for a poem (auca-style).")
 @galeria_app.command("illustrate")
 def galeria_illustrate(
     path: str = typer.Argument(None, help="Path to a text file with the poem."),
-    style: str = typer.Option("grabado español", help="Style tag passed to the image backend."),
-    output: str = typer.Option("auca.pdf", help="Output PDF path."),
+    style: str = typer.Option("grabado español", help="Style tag appended to the image prompt."),
+    backend: str = typer.Option("auto", help="Image backend: auto, stub, openai, replicate."),
+    api_key: str = typer.Option(
+        None,
+        "--api-key",
+        help="API key override (default: OPENAI_API_KEY or REPLICATE_API_TOKEN).",
+    ),
+    language: str = typer.Option("es", help="Language code: 'es' or 'en'."),
+    theme: str = typer.Option(None, help="Optional thematic anchor for the prompts."),
+    output: str = typer.Option("auca.png", help="Output path (.png illustrated sheet, or .pdf)."),
     use_influences: bool = typer.Option(
         False, "--style-from-influences", help="Derive style from matched influences."
     ),
     tone: str = typer.Option(None, help="Comma-separated tones for influence matching."),
     from_library: str = typer.Option(None, "--from-library", help="Load poem from library by ID."),
     dry_run: bool = typer.Option(
-        False, "--dry-run", help="Print the image prompt without generating."
+        False, "--dry-run", help="Print the image prompts without generating."
     ),
 ) -> None:
     """Generate an illustrated auca-style sheet for a poem.
 
     Provide a poem file path, or use --from-library <id> to load from the library.
-    With --dry-run, prints the image prompt that would be used.
+    One image is generated per stanza. With --dry-run, prints the image prompts
+    that would be used.
     """
-    from poesia.galeria.auca import AucaComposer, AucaPanel
-    from poesia.galeria.backends import StubImageBackend
+    from poesia.galeria.auca import AucaComposer
+    from poesia.galeria.pipeline import IllustrateError, illustrate_poem
 
     lines: list[str] = []
 
@@ -543,17 +628,26 @@ def galeria_illustrate(
         if poem is None:
             rprint(f"[red]Poem '{from_library}' not found in library.[/red]")
             raise typer.Exit(1)
-        lines = [line.strip() for line in poem.content.strip().split("\n") if line.strip()]
+        lines = [line.strip() for line in poem.content.split("\n")]
+        while lines and not lines[0]:
+            lines.pop(0)
+        while lines and not lines[-1]:
+            lines.pop()
         rprint(f"[dim]Loaded poem '{poem.id}' from library ({len(lines)} lines)[/dim]")
     elif path:
         with open(path, encoding="utf-8") as f:
-            lines = [ln.strip() for ln in f if ln.strip()]
+            lines = [ln.rstrip("\r\n") for ln in f]
+        # Keep interior blank lines (stanza separators) but drop leading/trailing ones.
+        while lines and not lines[0].strip():
+            lines.pop(0)
+        while lines and not lines[-1].strip():
+            lines.pop()
     else:
         rprint("[red]Provide a poem file path or use --from-library <id>.[/red]")
         raise typer.Exit(1)
 
     # Phase 4C: Style anchoring from influences
-    final_style = style
+    matched_influences = None
     if use_influences:
         from poesia.galeria.style_anchoring import style_from_influences
 
@@ -567,33 +661,47 @@ def galeria_illustrate(
             ]
         else:
             matched = influences[:5]
-        influence_style = style_from_influences(matched)
+        matched_influences = matched or None
+        influence_style = style_from_influences(matched) if matched else ""
         if influence_style:
-            final_style = f"{influence_style}, {style}"
             rprint(f"[dim]Style from influences: {influence_style}[/dim]")
 
-    # Build image prompt from poem imagery
-    from poesia.galeria.imagery import build_image_prompt, extract_imagery
+    try:
+        panels, prompts = illustrate_poem(
+            lines,
+            language=language,
+            theme=theme or "",
+            style=style,
+            backend=backend,
+            api_key=api_key,
+            influences=matched_influences,
+        )
+    except (IllustrateError, ValueError) as e:
+        rprint(f"[red]✗[/red] Illustration failed: {e}")
+        raise typer.Exit(1) from None
 
-    imagery = extract_imagery(lines, language="es")
-    image_prompt = build_image_prompt(imagery, theme="", style=final_style)
-
-    rprint(
-        f"[dim]Imagery extracted: {len(imagery['nouns'])} nouns, {len(imagery['phrases'])} phrases, "
-        f"{len(imagery['sensory_modalities'])} senses[/dim]"
-    )
+    rprint(f"[dim]Generated {len(panels)} panels ({len(prompts)} image prompts)[/dim]")
 
     if dry_run:
-        rprint(f"\n[bold]Image prompt:[/bold]\n{image_prompt}\n")
+        for i, (prompt, panel) in enumerate(zip(prompts, panels, strict=True), 1):
+            rprint(
+                f"\n[bold]Panel {i}[/bold] — {len(panel.caption_lines)} line(s)"
+                f"\n  [dim]{prompt}[/dim]"
+            )
         return
 
-    backend = StubImageBackend()
-    image_bytes = backend.generate_image(prompt=image_prompt, style=final_style)
-    panel = AucaPanel(image_bytes=image_bytes, caption_lines=lines)
     composer = AucaComposer()
-    composer.export_pdf([panel], output_path=output)  # raises NotImplementedError today
+    title = f"PoesIA — {theme or 'Auca'}"
+    if output.lower().endswith(".pdf"):
+        composer.export_pdf(panels, output_path=output, title=title)
+        rprint(f"[green]✓[/green] Illustrated PDF saved: [bold]{output}[/bold]")
+    else:
+        sheet_png = composer.compose_sheet(panels, title=title)
+        with open(output, "wb") as f:
+            f.write(sheet_png)
+        rprint(f"[green]✓[/green] Illustrated sheet saved: [bold]{output}[/bold]")
 
-    # Log illustration to MLflow
+    # Log illustration to MLflow (best effort)
     try:
         import os
 
@@ -602,15 +710,14 @@ def galeria_illustrate(
         mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "file:./mlruns"))
 
         with mlflow.start_run(run_name=f"galeria-{from_library or 'manual'}", nested=True):
-            image_path = output.replace(".pdf", ".png")
-            if os.path.exists(output) and not os.path.exists(image_path):
-                # Try to log the image bytes directly
-                mlflow.log_image(image_bytes, f"galeria_{from_library or 'manual'}.png")
+            mlflow.log_text("\n\n".join(prompts), "image_prompts.txt")
             mlflow.log_param("from_library", from_library or path)
-            mlflow.log_param("style", final_style)
-            mlflow.log_param("nouns", len(imagery["nouns"]))
-            mlflow.log_param("senses", len(imagery["sensory_modalities"]))
-            mlflow.log_text(image_prompt, "image_prompt.txt")
+            mlflow.log_param("backend", backend)
+            mlflow.log_param("style", style)
+            mlflow.log_param("language", language)
+            mlflow.log_param("panels", len(panels))
+            if panels:
+                mlflow.log_image(panels[0].image_bytes, "panel_1.png")
             rprint("[dim]Illustration logged to MLflow[/dim]")
     except Exception as e:
         rprint(f"[dim]MLflow logging skipped: {e}[/dim]")
