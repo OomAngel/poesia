@@ -3,6 +3,26 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-04 — Share-readiness: GitHub CI green + private repo verified
+
+- **Private GitHub repo verified** (`OomAngel/poesia`, PRIVATE, MIT, topics set);
+  pushed all 40 local commits; inspected the rendered page via the API — badges
+  render, showcase images present
+- **CI was red — fixed three failures** (this is what "share-ready" really means):
+  1. **Tests**: `rantanplan` pins `spacy==2.2.4` (2019) → `thinc==7.4.0`, no
+     Python 3.11 wheel, build fails. Removed rantanplan from the `spanish`
+     extra (silabeador + fonemas cover scansion); docs updated
+  2. **Security**: bandit B311 (deterministic `random` in procedural.py) —
+     added to the CI `--skip` list and pyproject `[tool.bandit]`
+  3. **Lint**: `ruff format --check` drifted because CI installs the latest
+     ruff while local is 0.16 — pinned `ruff>=0.5,<0.17` in the dev extra
+- **Train workflow**: removed the `push` trigger (it queued a self-hosted GPU
+  job on every training-code change; no such runner exists → stuck runs) —
+  now `workflow_dispatch` only
+- **README**: stale test count 447 → **477** (badge + 3 prose spots);
+  Spanish phonology stack row updated (no rantanplan)
+- Suite: still **477 tests**; bandit 0 issues with the CI flags
+
 ## 2026-08-03 — Publication prep: Cloudflare showcase + send-ready emails
 
 - **README showcase** expanded to "GalerIA in action": the offline procedural

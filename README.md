@@ -5,7 +5,7 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-447%20passing-brightgreen)](#development)
+[![Tests](https://img.shields.io/badge/tests-477%20passing-brightgreen)](#development)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](#status)
 [![LLM backends](https://img.shields.io/badge/LLM%20backends-8%2B-blueviolet)](#core-generation)
 [![Image backends](https://img.shields.io/badge/image%20backends-6-orange)](#galeria--illustration)
@@ -125,7 +125,7 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 ### Tooling
 
 - MLOps: MLflow single source of truth, model registry, evaluation, monitoring, Docker, CI/CD
-- 447 passing tests; ruff, mypy, bandit, safety enforced in CI
+- 477 passing tests; ruff, mypy, bandit, safety enforced in CI
 
 ---
 
@@ -143,7 +143,7 @@ pip install -e ".[dev]"
 
 | Extra | What it enables |
 |---|---|
-| `.[spanish]` | Spanish phonology (`rantanplan`, `silabeador`) |
+| `.[spanish]` | Spanish phonology (`silabeador`, `fonemas`) |
 | `.[english]` | English phonology (`pronouncing`, CMUdict, `prosodic`) |
 | `.[nlp]` | Semantic scoring (sentence-transformers) + imagery extraction (spaCy) |
 | `.[llm]` | Hosted LLM SDKs |
@@ -300,7 +300,7 @@ only through abstract `Protocol` backends — no vendor SDK leaks into core logi
 
 | Language | Phonology stack | Forms |
 |---|---|---|
-| Spanish | `rantanplan`, `silabeador`, `fonemas`, `phonemizer` | 45 stanza types, soneto, romance… |
+| Spanish | `silabeador`, `fonemas`, `phonemizer` | 45 stanza types, soneto, romance… |
 | English | `pronouncing` + CMUdict, `prosodic`, `phonemizer` | iambic pentameter, sonnets, haiku, free verse |
 | Dutch | `pyphen` | syllabic validation |
 
@@ -310,7 +310,7 @@ only through abstract `Protocol` backends — no vendor SDK leaks into core logi
 
 ```bash
 pip install -e ".[dev]"
-pytest                       # 447 tests
+pytest                       # 477 tests
 ruff check src/ mlops/       # lint (CI-enforced)
 ruff format --check src/ mlops/
 mypy src/ --ignore-missing-imports
@@ -328,7 +328,7 @@ in [`USAGE_GUIDE.md`](USAGE_GUIDE.md).
 
 ## Status
 
-Core engine complete; Phases 0–5 + P0–P5 hardening done, **447 tests passing**
+Core engine complete; Phases 0–5 + P0–P5 hardening done, **477 tests passing**
 (2026-08). Fine-tuning and DPO pipelines operational (MLflow-tracked); GalerIA
 wired end-to-end for online (DALL·E / SDXL) and offline (`procedural`
 deterministic art, no key needed) illustration, with the `image:` link
