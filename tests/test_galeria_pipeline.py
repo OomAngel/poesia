@@ -94,6 +94,21 @@ class TestIllustratePoem:
             with pytest.raises(IllustrateError, match="requires an API key"):
                 illustrate_poem(["una línea"], backend="openai")
 
+    def test_panel_mode_poem_returns_single_panel(self) -> None:
+        panels, prompts = illustrate_poem(SONETO_LINES, backend="stub", panel_mode="poem")
+        assert len(panels) == 1
+        assert len(prompts) == 1
+        # the single caption is the whole poem, blank-line separator preserved
+        assert panels[0].caption_lines == SONETO_LINES
+
+    def test_panel_mode_stanza_is_default(self) -> None:
+        panels, _ = illustrate_poem(SONETO_LINES, backend="stub", panel_mode="stanza")
+        assert len(panels) == 2
+
+    def test_unknown_panel_mode_raises(self) -> None:
+        with pytest.raises(ValueError, match="Unknown panel_mode"):
+            illustrate_poem(["una línea"], backend="stub", panel_mode="nope")
+
 
 class TestAucaExportPdf:
     """PDF export degrades with an actionable message without WeasyPrint."""
@@ -192,3 +207,30 @@ class TestCliGaleria:
         assert "Generated 1 panels" in result.output
         # frontmatter metadata must not leak into a panel caption
         assert "language:" not in result.output
+
+    def test_illustrate_panel_mode_poem_writes_single_panel(self, tmp_path: Path) -> None:
+        poem = tmp_path / "poema.txt"
+        poem.write_text(
+            "La luna brilla\nsobre el agua fría\n\nel viento susurra\nen la noche oscura\n",
+            encoding="utf-8",
+        )
+        output = tmp_path / "poema.png"
+        runner = CliRunner()
+        result = runner.invoke(
+            app,
+            [
+                "galeria",
+                "illustrate",
+                str(poem),
+                "--backend",
+                "stub",
+                "--panel-mode",
+                "poem",
+                "--output",
+                str(output),
+            ],
+        )
+        assert result.exit_code == 0
+        assert "Generated 1 panels" in result.output
+        assert output.exists()
+        assert output.read_bytes().startswith(b"\x89PNG")
