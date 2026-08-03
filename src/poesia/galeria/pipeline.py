@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from poesia.galeria.auca import AucaPanel
 from poesia.galeria.backends import HostedImageBackend, ImageBackend, StubImageBackend
+from poesia.galeria.cloudflare import CloudflareImageBackend
 from poesia.galeria.imagery import build_image_prompt, extract_imagery
 from poesia.galeria.pollinations import PollinationsImageBackend
 from poesia.galeria.procedural import ProceduralImageBackend
@@ -71,6 +72,8 @@ def get_image_backend(
     ``procedural``: deterministic offline generative art (no key needed).
     ``pollinations``: free online generation (no key needed; community service,
     ≈1 req/15s anonymous — see docs/IMAGE_GENERATION_PROVIDERS.md).
+    ``cloudflare``: Workers AI free tier (needs free CLOUDFLARE_ACCOUNT_ID +
+    CLOUDFLARE_API_TOKEN; 10k neurons/day).
     ``openai`` / ``replicate``: hosted backends (requires an API key, from the
     ``api_key`` argument or the environment).
     """
@@ -81,17 +84,29 @@ def get_image_backend(
         return ProceduralImageBackend()
     if name == "pollinations":
         return PollinationsImageBackend()
+    if name == "cloudflare":
+        return CloudflareImageBackend()
     if name in ("openai", "replicate"):
         return HostedImageBackend(provider=name, api_key=api_key)
     if name == "auto":
         import os
 
-        if api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("REPLICATE_API_TOKEN"):
-            return HostedImageBackend(provider="auto", api_key=api_key)
+        has_cloudflare = bool(
+            os.environ.get("CLOUDFLARE_ACCOUNT_ID") and os.environ.get("CLOUDFLARE_API_TOKEN")
+        )
+        if (
+            api_key
+            or os.environ.get("OPENAI_API_KEY")
+            or os.environ.get("REPLICATE_API_TOKEN")
+            or has_cloudflare
+        ):
+            if os.environ.get("OPENAI_API_KEY") or os.environ.get("REPLICATE_API_TOKEN"):
+                return HostedImageBackend(provider="auto", api_key=api_key)
+            return CloudflareImageBackend()
         return ProceduralImageBackend()
     raise ValueError(
         f"Unknown image backend: {backend!r}. "
-        "Available: auto, stub, procedural, pollinations, openai, replicate."
+        "Available: auto, stub, procedural, pollinations, cloudflare, openai, replicate."
     )
 
 
