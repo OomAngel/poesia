@@ -1,0 +1,147 @@
+"""End-to-end illustration pipeline: poem text -> auca panels.
+
+Wires the GalerIA building blocks together:
+
+    lines -> split_stanzas() -> extract_imagery() -> build_image_prompt()
+        -> ImageBackend.generate_image() -> AucaPanel[]
+
+Backend selection mirrors the ``--llm`` registry pattern: ``auto`` resolves to
+the first configured hosted provider (OPENAI_API_KEY / REPLICATE_API_TOKEN)
+and falls back to the offline StubImageBackend when no key is present, so the
+pipeline always works out of the box.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from poesia.galeria.auca import AucaPanel
+from poesia.galeria.backends import HostedImageBackend, ImageBackend, StubImageBackend
+from poesia.galeria.imagery import build_image_prompt, extract_imagery
+
+if TYPE_CHECKING:
+    from poesia.memoria.records import InfluenceRecord
+
+
+class IllustrateError(RuntimeError):
+    """Raised when illustration cannot be completed for a resolvable reason."""
+
+
+def split_stanzas(lines: list[str], max_lines_per_stanza: int = 8) -> list[list[str]]:
+    """Split poem lines into stanza groups for one image per stanza.
+
+    Blank lines delimit stanzas. If the poem has no blank lines and exceeds
+    ``max_lines_per_stanza``, it is chunked so very long poems still produce
+    multiple panels instead of a single unwieldy one.
+    """
+    stanzas: list[list[str]] = []
+    current: list[str] = []
+    for line in lines:
+        if not line.strip():
+            if current:
+                stanzas.append(current)
+                current = []
+        else:
+            current.append(line.strip())
+
+    if current:
+        stanzas.append(current)
+
+    # No blank-line structure: chunk long single blocks for visual balance.
+    if len(stanzas) == 1 and len(stanzas[0]) > max_lines_per_stanza:
+        block = stanzas[0]
+        stanzas = [
+            block[i : i + max_lines_per_stanza] for i in range(0, len(block), max_lines_per_stanza)
+        ]
+
+    return stanzas if stanzas else [[]]
+
+
+def get_image_backend(
+    backend: str = "auto",
+    api_key: str | None = None,
+) -> ImageBackend:
+    """Resolve a backend name to an ImageBackend instance.
+
+    ``auto``: use the first configured hosted provider, else the offline stub.
+    ``stub``: deterministic offline backend (tests / no network).
+    ``openai`` / ``replicate``: hosted backends (requires an API key, from the
+    ``api_key`` argument or the environment).
+    """
+    name = backend.lower()
+    if name == "stub":
+        return StubImageBackend()
+    if name in ("openai", "replicate"):
+        return HostedImageBackend(provider=name, api_key=api_key)
+    if name == "auto":
+        import os
+
+        if api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("REPLICATE_API_TOKEN"):
+            return HostedImageBackend(provider="auto", api_key=api_key)
+        return StubImageBackend()
+    raise ValueError(
+        f"Unknown image backend: {backend!r}. Available: auto, stub, openai, replicate."
+    )
+
+
+def derive_style(
+    style: str | None,
+    influences: list[InfluenceRecord] | None = None,
+) -> str | None:
+    """Merge influence-derived visual keywords with the base style tag."""
+    if not influences:
+        return style
+    from poesia.galeria.style_anchoring import style_from_influences
+
+    inf_style = style_from_influences(influences)
+    if inf_style and style:
+        return f"{inf_style}, {style}"
+    return inf_style or style
+
+
+def illustrate_poem(
+    lines: list[str],
+    *,
+    language: str = "es",
+    theme: str = "",
+    style: str | None = None,
+    backend: str = "auto",
+    api_key: str | None = None,
+    influences: list[InfluenceRecord] | None = None,
+    max_lines_per_stanza: int = 8,
+) -> tuple[list[AucaPanel], list[str]]:
+    """Generate one illustrated panel per stanza of a poem.
+
+    Args:
+        lines: Poem lines (may include blank lines between stanzas).
+        language: Language code for imagery extraction ('es' or 'en').
+        theme: Optional thematic anchor prepended to image prompts.
+        style: Base style tag appended by the image backend.
+        backend: 'auto', 'stub', 'openai', or 'replicate'.
+        api_key: Optional API key override for hosted backends.
+        influences: Optional influence records for style anchoring (Phase 4C).
+        max_lines_per_stanza: Fallback chunk size for stanza-less poems.
+
+    Returns:
+        ``(panels, prompts)`` — one AucaPanel per stanza plus the exact image
+        prompts used, so callers can show or log them.
+    """
+    stanzas = split_stanzas(lines, max_lines_per_stanza=max_lines_per_stanza)
+    img_backend = get_image_backend(backend, api_key)
+    final_style = derive_style(style, influences)
+
+    panels: list[AucaPanel] = []
+    prompts: list[str] = []
+    for stanza in stanzas:
+        imagery = extract_imagery(stanza, language=language)
+        prompt = build_image_prompt(imagery, theme=theme, style=None)
+        try:
+            image_bytes = img_backend.generate_image(prompt=prompt, style=final_style)
+        except RuntimeError as exc:
+            raise IllustrateError(
+                f"Image generation failed for stanza {len(panels) + 1}: {exc}"
+            ) from exc
+        panels.append(AucaPanel(image_bytes=image_bytes, caption_lines=stanza))
+        prompts.append(prompt)
+
+    return panels, prompts
