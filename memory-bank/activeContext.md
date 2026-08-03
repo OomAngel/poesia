@@ -32,8 +32,17 @@ for e in c.search_experiments():
 
 ## Current focus
 
-**Working tree is GREEN again (2026-08-03)** — the in-flight lint pass was completed,
-the 3 pre-existing red tests fixed, everything committed. 416/416 tests pass.
+**Working tree is GREEN (2026-08-03, 431 tests)** — lint pass + test fixes committed,
+then **GalerIA wired end-to-end** and a **pro-grade README** written. Repo is
+share-ready: `dist/poesia-share-20260803.tar.gz` regenerated.
+
+GalerIA status:
+- ✅ `poesia galeria illustrate` — one image per stanza, `--backend auto|stub|openai|replicate`,
+  `--api-key`, `--language`, `--theme`, PNG sheet + WeasyPrint PDF export, `--dry-run`
+- ✅ `poesia write --illustrate` — sheet saved to `galeria/` (or `~/.poesia/poems/illustrations/<id>.png` when saved)
+- ⏭️ Next: persist `image:` path in library frontmatter; Wire retrieval into GalerIA
+  (style anchoring from retrieval — partially done via influences); real DALL·E/SDXL
+  smoke test with a key
 
 ⚠️ **v2-fixed retraining INTERRUPTED** — PID 309663 no longer running, `/tmp/train_v2_fixed.log`
 gone (WSL reboot cleared `/tmp`). PostgreSQL/MLflow is DOWN (port 5432 refused; Docker not
@@ -189,6 +198,29 @@ Prepared the repo to be shared with a single contact by email:
 **Open decisions for Angel**: (1) license variant — MIT+NOTICE (implemented),
 plain MIT, or All-Rights-Reserved; (2) delivery channel — email tarball ✅ vs
 private GitHub repo ⚠️ (needs explicit instruction per AGENTS.md).
+
+## What We Just Did (2026-08-03: GalerIA wired end-to-end + pro-grade README)
+
+**GalerIA produces images that go with the poems:**
+- New `src/poesia/galeria/pipeline.py`: stanza splitting (blank-line + chunking),
+  backend selection (`auto|stub|openai|replicate`), `illustrate_poem()` →
+  one `AucaPanel` per stanza with imagery-derived prompts.
+- `auca.py` `export_pdf()` implemented (WeasyPrint, lazy import, actionable error).
+- CLI `galeria illustrate`: real backends + `--api-key`/`--language`/`--theme`,
+  PNG sheet output (`.pdf` by extension), `--dry-run` shows per-panel prompts,
+  MLflow best-effort logging. **Fixed**: poem loading now preserves interior blank
+  lines so stanzas split correctly.
+- `poesia write --illustrate`: generates a sheet next to the poem (offline stub by
+  default via `auto`).
+- 15 new tests (`tests/test_galeria_pipeline.py`); suite now 431, green.
+
+**Pro-grade README**: rewritten from scratch — hero pitch, features, extras table,
+quickstart with real commands, GalerIA walkthrough, architecture, language support,
+development, status, license. Test-count badge updated.
+
+**Share-ready**: `dist/poesia-share-20260803.tar.gz` regenerated (13M, secret-scan clean).
+
+Commits: `256c7b1` feat(galeria) · `e52c297` docs(readme).
 
 ## What We Just Did (2026-08-03: Unstick — lint pass + structured-exception tests)
 
