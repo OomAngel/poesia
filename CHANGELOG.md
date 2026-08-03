@@ -3,6 +3,24 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-03 — Cloudflare Workers AI backend (ranked #2, implemented)
+
+- **`CloudflareImageBackend`** (`--backend cloudflare`): SDXL via Workers AI's
+  free tier — 10k neurons/day, Beta SDXL listed at $0.00/step. Needs free
+  `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`; stdlib urllib POST; base64
+  `result.data` decoding (list or bare string); deterministic prompt-derived
+  seed; `--backend auto` now includes Cloudflare in its configured-provider
+  chain (openai → replicate → cloudflare → procedural)
+- **Research updated**: API reference confirms the text-to-image schema honours
+  `seed` → Cloudflare determinism score raised 3 → 4 (total 3.60 → **3.70**,
+  now sole #2 behind Pollinations). SDXL Beta listed at $0.00/step. Live test
+  deferred — needs real credentials (honest gap, documented)
+- **12 new tests** (request shape, headers, base64 list/string responses,
+  missing-credentials, HTTP errors, `success:false`, empty data, registry,
+  auto-chain); a test caught an empty-`data` parsing bug (falsy `[]` fell into
+  the wrong branch) — fixed with explicit `None` checks
+- Suite: 456 → **468 tests passing**; ruff + mypy clean
+
 ## 2026-08-03 — Free image-gen provider research + Pollinations backend
 
 - **`docs/IMAGE_GENERATION_PROVIDERS.md`**: 8-criterion weighted ranking (cost,

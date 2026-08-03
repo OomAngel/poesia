@@ -8,7 +8,7 @@
 [![Tests](https://img.shields.io/badge/tests-447%20passing-brightgreen)](#development)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](#status)
 [![LLM backends](https://img.shields.io/badge/LLM%20backends-8%2B-blueviolet)](#core-generation)
-[![Image backends](https://img.shields.io/badge/image%20backends-5-orange)](#galeria--illustration)
+[![Image backends](https://img.shields.io/badge/image%20backends-6-orange)](#galeria--illustration)
 [![Languages](https://img.shields.io/badge/languages-es%20%7C%20en%20%7C%20nl-green)](#language-support)
 [![Retrieval](https://img.shields.io/badge/retrieval-Graph%20RAG-purple)](#memoria)
 [![MLOps](https://img.shields.io/badge/MLOps-MLflow-important)](#tooling)
@@ -92,9 +92,10 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 ### GalerIA — illustration
 
 - One illustrated panel per stanza (the Spanish *auca* / *aleluya* tradition)
-- Pluggable image backends: `procedural` (offline generative art), `pollinations` (free online, no key), `stub`, `openai` (DALL·E), `replicate` (SDXL)
+- Pluggable image backends: `procedural` (offline generative art), `pollinations` (free online, no key), `cloudflare` (free tier, needs account), `stub`, `openai` (DALL·E), `replicate` (SDXL)
 - `procedural` renders deterministic, poem-seeded art with zero API keys — reproducible by design
 - `pollinations` adds a free online path (community service, ≈1 image/15 s anonymous) with the same seed-driven reproducibility
+- `cloudflare` runs SDXL on Workers AI's free tier (10k neurons/day) with the same deterministic seed
 - Imagery extraction (nouns, phrases, sensory modalities) → image prompts
 - Style anchoring from literary influences and tone
 - PNG sheets and WeasyPrint PDF export
@@ -200,6 +201,11 @@ calls the free, key-less [Pollinations](https://pollinations.ai) service
 ```bash
 poesia galeria illustrate soneto.txt --backend pollinations --output auca.png
 ```
+
+Prefer a commercial-SLA free tier? `--backend cloudflare` runs SDXL on
+[Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/) (10,000
+neurons/day free; needs a free account — set `CLOUDFLARE_ACCOUNT_ID` and
+`CLOUDFLARE_API_TOKEN`).
 
 `--dry-run` prints the prompts without any rendering, so you can iterate on
 style before spending a single token:
