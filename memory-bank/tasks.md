@@ -28,6 +28,20 @@
 
 ## DONE
 
+### 2026-08-03: Free image-gen research + Pollinations backend (live-tested)
+- [x] **`docs/IMAGE_GENERATION_PROVIDERS.md`** — 8-criterion weighted ranking of
+      6 free providers (Pollinations #1 4.15/5; Cloudflare/Gemini/Horde tied 3.60;
+      credit platforms 3.25; HF 2.85) with live probe log + honest gaps
+- [x] **`PollinationsImageBackend`** (`--backend pollinations`): free, key-less,
+      GET-based, deterministic seed, stdlib urllib
+- [x] **Live test caught a real bug**: Sana rejects seeds > 2^31-1 (`Too big`) —
+      fixed with `& 0x7FFFFFFF`; a mocked test could never have caught it
+- [x] Verified live: 2-stanza auca sheet (1.3 MB PNG, 1706×1046); same prompt+seed
+      ⇒ byte-identical images (service-level determinism)
+- [x] `auto` stays offline-first (procedural); pollinations explicit
+- [x] Suite 447 → **456 tests passing**, ruff + mypy clean
+- [ ] (next) Cloudflare Workers AI backend (reliability); Gemini free tier (quality)
+
 ### 2026-08-03: mypy gate green — 54 type errors fixed
 - [x] Root cause: numpy 2.5 PEP 695 stubs vs `python_version="3.11"` hard-aborted
       mypy, hiding 54 real type errors in 12 files
