@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 from poesia.cli import app
 from poesia.galeria.auca import AucaComposer, AucaPanel
 from poesia.galeria.backends import HostedImageBackend, StubImageBackend
+from poesia.galeria.procedural import ProceduralImageBackend
 from poesia.galeria.pipeline import (
     IllustrateError,
     get_image_backend,
@@ -56,9 +57,12 @@ class TestGetImageBackend:
     def test_stub(self) -> None:
         assert isinstance(get_image_backend("stub"), StubImageBackend)
 
-    def test_auto_without_key_falls_back_to_stub(self) -> None:
+    def test_procedural(self) -> None:
+        assert isinstance(get_image_backend("procedural"), ProceduralImageBackend)
+
+    def test_auto_without_key_falls_back_to_procedural(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
-            assert isinstance(get_image_backend("auto"), StubImageBackend)
+            assert isinstance(get_image_backend("auto"), ProceduralImageBackend)
 
     def test_auto_with_openai_key_uses_hosted(self) -> None:
         with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}, clear=True):
@@ -140,3 +144,51 @@ class TestCliGaleria:
         result = runner.invoke(app, ["galeria", "illustrate", str(poem), "--backend", "nope"])
         assert result.exit_code == 1
         assert "Unknown image backend" in result.output
+
+    def test_illustrate_procedural_writes_real_sheet(self, tmp_path: Path) -> None:
+        poem = tmp_path / "poema.txt"
+        poem.write_text(
+            "La luna brilla\nsobre el agua fría\n\nel viento susurra\nen la noche oscura\n",
+            encoding="utf-8",
+        )
+        output = tmp_path / "auca_procedural.png"
+        runner = CliRunner()
+        result = runner.invoke(
+            app,
+            [
+                "galeria",
+                "illustrate",
+                str(poem),
+                "--backend",
+                "procedural",
+                "--output",
+                str(output),
+            ],
+        )
+        assert result.exit_code == 0
+        assert output.exists()
+        assert output.stat().st_size > 1000  # real art, not the 1x1 stub pixel
+        assert "Generated 2 panels" in result.output
+
+    def test_illustrate_markdown_strips_frontmatter(self, tmp_path: Path) -> None:
+        poem = tmp_path / "poema.md"
+        poem.write_text(
+            "---\n"
+            "id: ejemplo\n"
+            "language: es\n"
+            "form: soneto\n"
+            "theme: ejemplo\n"
+            "---\n"
+            "\n"
+            "La luna brilla en la noche,\n"
+            "y el viento susurra.\n",
+            encoding="utf-8",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            app, ["galeria", "illustrate", str(poem), "--backend", "stub", "--dry-run"]
+        )
+        assert result.exit_code == 0
+        assert "Generated 1 panels" in result.output
+        # frontmatter metadata must not leak into a panel caption
+        assert "language:" not in result.output

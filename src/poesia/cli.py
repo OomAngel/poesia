@@ -46,7 +46,7 @@ def write(
     image_backend: str = typer.Option(
         "auto",
         "--image-backend",
-        help="Image backend for --illustrate: auto, stub, openai, replicate.",
+        help="Image backend for --illustrate: auto, stub, procedural, openai, replicate.",
     ),
 ) -> None:
     """Generate a poem using WriteConfig + Registry pattern."""
@@ -446,6 +446,13 @@ def write(
         )
         if sheet_path:
             rprint(f"[green]✓[/green] Illustrated sheet: [bold]{sheet_path}[/bold]")
+            # Persist the link in the library frontmatter so the poem knows its
+            # illustration (path relative to the poem's Markdown file).
+            if save and saved_id:
+                try:
+                    library.attach_image(saved_id, f"illustrations/{saved_id}.png")
+                except (FileNotFoundError, ValueError) as e:
+                    rprint(f"[yellow]⚠[/yellow] [bold]image: not recorded:[/bold] {e}")
 
 
 def _illustrate_lines(
@@ -591,7 +598,9 @@ galeria_app = typer.Typer(help="GalerIA: illustration for a poem (auca-style).")
 def galeria_illustrate(
     path: str = typer.Argument(None, help="Path to a text file with the poem."),
     style: str = typer.Option("grabado español", help="Style tag appended to the image prompt."),
-    backend: str = typer.Option("auto", help="Image backend: auto, stub, openai, replicate."),
+    backend: str = typer.Option(
+        "auto", help="Image backend: auto, stub, procedural, openai, replicate."
+    ),
     api_key: str = typer.Option(
         None,
         "--api-key",
@@ -637,6 +646,13 @@ def galeria_illustrate(
     elif path:
         with open(path, encoding="utf-8") as f:
             lines = [ln.rstrip("\r\n") for ln in f]
+        # Library poems are Markdown with YAML frontmatter; skip it so the
+        # stanzas (not the metadata) get illustrated.
+        if lines and lines[0].strip() == "---":
+            for i in range(1, len(lines)):
+                if lines[i].strip() == "---":
+                    lines = lines[i + 1 :]
+                    break
         # Keep interior blank lines (stanza separators) but drop leading/trailing ones.
         while lines and not lines[0].strip():
             lines.pop(0)
@@ -705,6 +721,10 @@ def galeria_illustrate(
     try:
         import os
 
+        # Best-effort telemetry: allow the legacy local file store so the log
+        # works even before PostgreSQL/MLflow is provisioned, and keep the CLI
+        # output clean (no maintenance-mode banner).
+        os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
         import mlflow
 
         mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "file:./mlruns"))
