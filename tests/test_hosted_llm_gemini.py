@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from poesia.exceptions import LLMProviderError
 from poesia.generation.llm_client import HostedLLMClient
 
 
@@ -178,7 +179,7 @@ class TestGeminiBackend:
         )
 
         with patch("urllib.request.urlopen", side_effect=mock_error):
-            with pytest.raises(RuntimeError) as exc_info:
+            with pytest.raises(LLMProviderError) as exc_info:
                 client.generate("prompt")
 
         assert "Gemini API HTTP Error 429" in str(exc_info.value)

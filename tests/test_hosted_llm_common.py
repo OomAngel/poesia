@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from poesia.exceptions import LLMProviderError
 from poesia.generation.llm_client import HostedLLMClient
 
 
@@ -44,7 +45,7 @@ class TestProviderAutoDetection:
         with patch.dict("os.environ", {}, clear=True):
             client = HostedLLMClient(provider="auto")
 
-        with pytest.raises(RuntimeError) as exc_info:
+        with pytest.raises(LLMProviderError) as exc_info:
             client.generate("prompt")
 
         assert "requires an API key" in str(exc_info.value)
