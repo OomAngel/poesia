@@ -28,6 +28,14 @@
 
 ## DONE
 
+### 2026-08-03: One-line provider setup — .env auto-load + Cloudflare quickstart
+- [x] `.env.example` (tracked; `!.env.example` in gitignore) — Cloudflare, OpenAI,
+      Replicate, LLM host vars
+- [x] `poesia` auto-loads `.env` at startup (best-effort; python-dotenv core dep;
+      shell-exported vars win)
+- [x] README: Cloudflare one-line setup (`cp .env.example .env` → `--backend cloudflare`)
+- [x] 3 new dotenv tests; suite 470 → **473**
+
 ### 2026-08-03: Cloudflare Workers AI backend — implemented + live-tested (caveats found)
 - [x] **`CloudflareImageBackend`** (`--backend cloudflare`): SDXL on Workers AI
       free tier (10k neurons/day; Beta SDXL $0.00/step); stdlib urllib POST;
