@@ -19,9 +19,9 @@
 | # | Provider | Weighted score | One-line why |
 |---|----------|---------------|--------------|
 | 1 | **Pollinations.ai** | 4.15 / 5 | Free, no key, GET endpoint, seed-deterministic — but community infra (low reliability), ~1 req/15s, and observed to route to a different model than requested |
-| 2 | **Cloudflare Workers AI** | 3.70 | 10,000 neurons/day free (SDXL Beta listed at $0.00/step), **seed supported**, real infra — needs a free Cloudflare account + API token |
-| 3 | **Google Gemini free tier** | 3.60 | Best quality (Nano Banana / Imagen) — needs a Google account + key, limits are per-project and opaque |
-| 3 | **AI Horde** | 3.60 | Truly free community grid (anonymous key `0000000000`) — slow queues, priority via kudos |
+| 2 | **Google Gemini free tier** | 3.60 | Best quality (Nano Banana / Imagen) — needs a Google account + key, limits are per-project and opaque |
+| 2 | **AI Horde** | 3.60 | Truly free community grid (anonymous key `0000000000`) — slow queues, priority via kudos |
+| 4 | **Cloudflare Workers AI** | 3.50 | 10,000 neurons/day free (SDXL Beta $0.00/step, native 1024×1024), reliable infra — **seed NOT honoured** (live-verified), needs a free account + token |
 | 5 | **One-time-credit platforms** (fal, Together, DeepInfra, NVIDIA NIM…) | 3.25 | Real commercial infra + FLUX/SDXL, but ~$1 trials, not ongoing free |
 | 6 | **Hugging Face Inference Providers** | 2.85 | $0.10/month credits ≈ **one image** — a token, not a pipeline |
 
@@ -98,18 +98,21 @@ and re-rank if your priorities differ.
 - **API**: `POST https://api.cloudflare.com/client/v4/accounts/{id}/ai/run/{model}`,
   JSON `{prompt, num_steps, guidance, width, height, negative_prompt, seed}`;
   base64 image bytes come back in `result.data` (list or bare string).
-- **Determinism**: **`seed` input is supported** by the text-to-image schema
-  ("Random seed for reproducibility") — confirmed in the API reference. Same
-  prompt ⇒ same image.
+- **Determinism**: the schema lists a `seed` input ("Random seed for
+  reproducibility"), but **live testing (2026-08-03) showed the served SDXL
+  wrapper ignores it** — same prompt+seed produced different images on every
+  call. Treat output as *novel per request*; Pollinations is the deterministic
+  cloud pick.
 - **Rate limits**: bounded by the daily neuron quota; free-tier GPU requests
   may queue during demand spikes.
 - **Reliability**: commercial infrastructure, SLAs at paid tiers.
 - **Privacy**: Cloudflare account; prompts processed by Cloudflare/partner hosts.
 - **Evidence**: official pricing + models + API reference pages (fetched
-  2026-08-03). Live test **not yet run** — needs real credentials (gap).
-- **Fit**: strong #2 (and now sole #2, ahead of Gemini/Horde) — the best "real
-  infrastructure, genuinely free" option; loses to Pollinations on friction.
-  **Implemented as `--backend cloudflare`.**
+  2026-08-03) **plus a live test** using the machine's cached wrangler OAuth
+  token (scopes include `ai:write`) — see the empirical log.
+- **Fit**: solid #4 after the live correction (was #2 on the schema's word).
+  Best free *reliability + native 1024×1024 quality*, but **not reproducible**
+  (seed ignored) and needs an account. **Implemented as `--backend cloudflare`.**
 
 ### 3. Google Gemini API — free tier (AI Studio)
 
@@ -220,20 +223,21 @@ Scores 1–5 per criterion × weight (see [criteria](#ranking-criteria-the-aspec
 | Provider | Cost 20% | Friction 15% | Ergonomics 15% | Quality 15% | Determinism 10% | Reliability 10% | Rate 10% | Privacy 5% | **Total** |
 |---|---|---|---|---|---|---|---|---|---|
 | **Pollinations** | 5 | 5 | 5 | 4 | 5 | 2 | 2 | 3 | **4.15** |
-| **Cloudflare Workers AI** | 4 | 3 | 3 | 4 | 4 | 4 | 4 | 4 | **3.70** |
 | **Gemini free tier** | 4 | 3 | 3 | 5 | 2 | 4 | 4 | 3 | **3.60** |
 | **AI Horde** | 5 | 4 | 3 | 3 | 4 | 2 | 3 | 4 | **3.60** |
+| **Cloudflare Workers AI** | 4 | 3 | 3 | 4 | 2 | 4 | 4 | 4 | **3.50** |
 | **Credit platforms** (fal/Together/NIM…) | 2 | 3 | 3 | 4 | 4 | 4 | 4 | 3 | **3.25** |
 | **HF Inference Providers** | 2 | 3 | 3 | 4 | 3 | 3 | 2 | 3 | **2.85** |
 
-**Tie-breaks in the 3.60 group** (both are legitimate third picks, depending on
-the axis you care about):
-- **Gemini** beats everyone on *quality*; loses on determinism (no seed).
-- **AI Horde** beats it on *friction + privacy*; loses badly on reliability.
-- **Cloudflare** was revised **up to 3.70** after the API reference confirmed
-  the text-to-image schema honours `seed` (determinism 3 → 4) — it now sits
-  alone in second place, close to Pollinations on reproducibility but far
-  ahead on reliability.
+**Ranking notes (live-test driven)**:
+- **Cloudflare was revised *down* to 3.50 (determinism 4 → 2)**: the API
+  reference lists a `seed` input, but the live probe showed the served SDXL
+  wrapper ignores it — same prompt+seed produced different images. It was
+  originally bumped *up* to 3.70 on the schema's word; empiricism overruled it.
+- **Gemini and AI Horde tie at 3.60**: Gemini wins on *quality*, AI Horde on
+  *friction + privacy*.
+- **Pollinations remains #1 on the axes PoesIA prioritises** — and is now the
+  *only* cloud backend with proven bit-for-bit reproducibility.
 
 **Why Pollinations is #1 despite scoring 2/5 on reliability**: it wins the four
 axes PoesIA currently needs most — cost, friction, ergonomics, determinism —
@@ -257,6 +261,9 @@ must not depend on it.
 | **Service-level determinism** | same prompt+style twice (`seed` clamped) | both responses **68,893 B, byte-identical** | Same seed ⇒ same image from the live service — reproducibility holds online too |
 | Response internals | `requestParameters` echoed in error payload | `model:"sana"`, `width:768, height:768`, `nologo:true` | Confirms default model + native 768×768; `nologo` accepted anonymously (docs say it needs an account — it did not, at time of writing) |
 | Latency | timing on live calls | ≈ **10–11 s per image** (sana 768) | Plus ~15 s rate-limit gap between anonymous requests → a 4-stanza soneto ≈ 60–75 s |
+| **Cloudflare live — raw bytes** | `CloudflareImageBackend.generate_image` (cached wrangler OAuth token, scopes include `ai:write`) | first call raised `'utf-8' codec can't decode byte 0x89` | **REST endpoint returns raw PNG bytes**, not the base64 `result.data` JSON the API reference's binding schema implies. Backend fixed to pass image magic bytes through untouched (handles both shapes). |
+| **Cloudflare live — output** | same, after fix | **1.8–2.1 MB PNG, 1024×1024 RGB**, ≈ **10 s/image**, full native resolution | Real SDXL output at native size (better than Pollinations' 768×768 sana) |
+| **Cloudflare live — determinism** | same prompt+seed ×2, plus different-seed control | fingerprints `b308…` vs `de36…` (same seed) — **not identical**; different seed differed | **`seed` is NOT honoured** by the served SDXL wrapper despite the schema listing it. Pollinations is the only deterministic cloud backend. |
 
 **What this tells us**: (1) Pollinations is genuinely key-less and fast; (2) we
 must treat its response as "image bytes" (JPEG/PNG), never assert a format or
@@ -282,12 +289,9 @@ service is a moving target — pin nothing, degrade gracefully.
 2. **Re-verify at adoption** (free tiers move): Cloudflare daily quota + exact
    neuron cost of the chosen model; Gemini's per-project image limits; the
    credit amounts on fal/Together before recommending them.
-3. **Follow-ups ranked by ROI**: ~~Cloudflare~~ ✅ (implemented) → Gemini (quality,
-   needs a key) → AI Horde (async polling) → local diffusers (long-term).
-   **Cloudflare live-test is the immediate next step once credentials exist** —
-   the backend is implemented and mock-tested; the real-call verification
-   (SDXL schema behaviour, neuron burn per image, PNG output, byte-level
-   determinism with `seed`) is the same empirical pass we did for Pollinations.
+3. **Follow-ups ranked by ROI**: ~~Cloudflare~~ ✅ (implemented + live-tested,
+   with determinism caveat) → Gemini (quality, needs a key) → AI Horde (async
+   polling) → local diffusers (long-term).
 4. **Keep the README example on `procedural`** (offline, bit-for-bit stable);
    `pollinations` is documented as the free online option in the README's
    GalerIA section.
@@ -304,11 +308,13 @@ service is a moving target — pin nothing, degrade gracefully.
   unverified.
 - **AI Horde anonymous specifics**: exact anonymous kudos/parallel-job caps not
   verified against swagger this pass; see `https://aihorde.net/api/v2/swagger`.
-- **Cloudflare live verification**: implemented (`--backend cloudflare`) and
-  mock-tested, but **not live-tested** — requires real `CLOUDFLARE_ACCOUNT_ID` /
-  `CLOUDFLARE_API_TOKEN`. The response-shape handling (`result.data` list vs
-  string) is defensive but unproven against the real API; run the empirical pass
-  (as done for Pollinations) before recommending it in the README.
+- **Cloudflare live verification**: ✅ done 2026-08-03 (reused the machine's
+  cached wrangler OAuth token — scopes include `ai:write`; account
+  `065c2ed7…`). Findings: REST endpoint returns **raw PNG bytes** (not the
+  base64 JSON the binding schema implies) and **`seed` is ignored** by the
+  served SDXL wrapper. Proper long-term setup: a dedicated Workers AI API token
+  (dashboard → Workers AI → "Use REST API" → create token), not the wrangler
+  OAuth session.
 - **Pollinations model routing**: observed `sana` despite `model=flux`;
   contradicts vendor docs — re-check at adoption, keep the backend model-agnostic.
 - **OpenRouter image models**: docs URL 404'd; treated as "emerging, unverified".
