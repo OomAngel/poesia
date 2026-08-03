@@ -8,6 +8,24 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Protocol
+
+
+class PhonologyBackend(Protocol):
+    """Structural interface shared by all language phonology backends.
+
+    Spanish, English and Dutch scanners each implement ``scan_line`` and
+    ``rhyme_key`` behind their own lazy backend loading; consumers type against
+    this Protocol so the evaluation layer stays language-agnostic.
+    """
+
+    def scan_line(self, line: str) -> ScanResult:
+        """Scan one line, returning syllables, stress and validity."""
+        ...
+
+    def rhyme_key(self, line: str) -> RhymeKey:
+        """Compute the rhyme key for a line (stressed tail phonemes)."""
+        ...
 
 
 class Stress(Enum):

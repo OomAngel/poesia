@@ -175,7 +175,11 @@ ignore = []
 output = "text"
 
 [tool.mypy]
-python_version = "3.11"
+# NOTE: set to 3.12 because numpy>=2.5 ships type stubs using PEP 695
+# `type` statements (Python 3.12 syntax). mypy's python_version only gates
+# which syntax is *allowed* in checked code — the package still supports
+# Python 3.11 at runtime (requires-python = ">=3.11").
+python_version = "3.12"
 ignore_missing_imports = true
 disallow_untyped_defs = false
 
