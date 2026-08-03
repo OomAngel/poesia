@@ -226,6 +226,16 @@ poesia galeria illustrate soneto.txt --backend procedural --dry-run
 #   La luna sobre el agua fría. La noche callada. ...
 ```
 
+One panel per stanza is the *auca* default — but if you prefer a **single
+image for the whole poem**, `--panel-mode poem` builds one longer, holistic
+prompt from the entire text (theme + all imagery + style):
+
+```bash
+poesia galeria illustrate soneto.txt --backend cloudflare --panel-mode poem \
+  --output portada.png
+# Generated 1 panels (1 image prompt)
+```
+
 The free-provider landscape is evaluated and ranked in
 [`docs/IMAGE_GENERATION_PROVIDERS.md`](docs/IMAGE_GENERATION_PROVIDERS.md).
 
