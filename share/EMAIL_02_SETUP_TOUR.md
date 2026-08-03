@@ -1,6 +1,7 @@
 # Email 2 — Setup + 15-minute tour
 
-> Send after Email 1, or include both. Fill in `[brackets]`.
+> Send after Email 1, or include both. Only the recipient's `[name]` remains to
+> fill in — everything else is ready to send.
 
 **To:** [contact's email]
 **Subject:** Re: PoesIA — here's how to run it (15 minutes)
@@ -14,7 +15,7 @@ Following up on the tarball — here's the fastest way in.
 Prerequisites: Python 3.11, ~2 GB of free disk. Git is optional.
 
 ```bash
-# from the folder where you unpacked poesia-share-YYYYMMDD.tar.gz
+# from the folder where you unpacked poesia-share-20260804.tar.gz
 cd poesia
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
@@ -54,13 +55,13 @@ poesia write --theme "luna" --form soneto --llm groq --brief
 
 - Heavy features (illustration, music, embeddings, fine-tuning) install behind
   extras: `pip install -e ".[all]"`. The core works without them.
-- Sanity check: `pytest` runs the full suite (400+ tests).
+- Sanity check: `pytest` runs the full suite (**477 tests**).
 - The training/MLOps side (LoRA adapters, MLflow) is real but resource-heavy —
   happy to walk you through it separately if you're curious.
 
 Any snag, just reply — I'll help you through it.
 
-[your name]
+Angel
 
 ---
 
