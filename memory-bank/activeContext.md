@@ -81,29 +81,31 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
-## What We Just Did (2026-08-03 — Cloudflare Workers AI backend)
+## What We Just Did (2026-08-03 — Cloudflare Workers AI backend, live-tested)
 
-1. **Implemented `CloudflareImageBackend`** (`--backend cloudflare`,
-   `src/poesia/galeria/cloudflare.py`): SDXL (`@cf/stabilityai/
-   stable-diffusion-xl-base-1.0`) via Workers AI's free tier — 10k neurons/day,
-   Beta SDXL listed at **$0.00/step**. stdlib urllib POST to
-   `/accounts/{id}/ai/run/{model}`, bearer auth from `CLOUDFLARE_ACCOUNT_ID` /
-   `CLOUDFLARE_API_TOKEN`, base64 `result.data` decoding (list or bare string),
-   deterministic prompt-derived seed (schema honours `seed`).
-2. **Research refined the ranking**: the Cloudflare API reference confirms the
-   TextToImage schema has a `seed` input ("Random seed for reproducibility") —
-   determinism score raised 3 → 4, total 3.60 → **3.70**, now sole #2 behind
-   Pollinations (Gemini + AI Horde tie at 3.60). Also found SDXL Beta at
-   $0.00/step.
-3. **Tests caught a parsing bug**: empty `result.data: []` is falsy, so
-   `data or image` fell into the wrong branch; fixed with explicit `None`
-   checks. 12 new tests (request shape, headers, base64 list/string, creds,
-   errors, empty, registry, auto-chain).
-4. **`auto` chain extended**: openai → replicate → cloudflare → procedural.
-5. **Honest gap documented**: Cloudflare is mock-tested only — a live pass (the
-   same empirical treatment Pollinations got) needs real credentials; that's
-   the next step once the user creates a free account + token.
-6. **Housekeeping**: doc/README/CHANGELOG/memory-bank updated; suite 456 → 468.
+1. **Found existing Cloudflare usage**: the sibling **`hiops`** repo deploys a
+   Cloudflare Worker + Pages (`CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_API_TOKEN` in
+   GitHub Actions secrets). The machine also has a cached **`wrangler login`**
+   whose OAuth token includes **`ai:write`** — that enabled a real live test
+   (token never printed).
+2. **Implemented `CloudflareImageBackend`** (`--backend cloudflare`): SDXL on
+   Workers AI free tier (10k neurons/day; Beta SDXL $0.00/step); stdlib urllib
+   POST to `/accounts/{id}/ai/run/{model}`; `auto` chain openai → replicate →
+   cloudflare → procedural.
+3. **Live test caught two doc-vs-reality gaps** (this is why we test):
+   - the REST endpoint returns **raw PNG bytes** (0x89), not the base64
+     `result.data` JSON the API reference's binding schema implies → fixed the
+     backend to pass image magic bytes through (still handles JSON defensively)
+   - **`seed` is ignored** by the served SDXL wrapper: same prompt+seed →
+     different images every call (pixel-fingerprinted). Determinism score
+     corrected 4 → 2, Cloudflare total 3.70 → **3.50** → re-ranked to #4.
+     Pollinations is the only cloud backend with proven reproducibility.
+   - Output: native **1024×1024 PNG in ~10 s** — full resolution, reliable infra
+     (better resolution than Pollinations' 768; no rate-limit gap).
+4. **14 new tests** (incl. raw-bytes passthrough + non-image error paths);
+   suite 456 → **470**, ruff + mypy clean.
+5. **Next**: a dedicated Workers AI API token for daily use (not the wrangler
+   OAuth session — that belongs to hiops's deploy flow); then Gemini free tier.
 
 ## What We Just Did (2026-08-03 — free image-gen research + Pollinations backend)
 
