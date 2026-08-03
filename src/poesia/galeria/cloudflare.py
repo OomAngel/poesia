@@ -31,12 +31,26 @@ import urllib.error
 import urllib.request
 
 
+def _looks_like_image(data: bytes) -> bool:
+    """Detect common image magic bytes (PNG/JPEG/GIF/WebP) in a response body."""
+    return (
+        data[:8] == b"\x89PNG\r\n\x1a\n"
+        or data[:3] in (b"\xff\xd8\xff", b"GIF")
+        or data[:4] == b"RIFF"
+    )
+
+
 class CloudflareImageBackend:
     """Cloudflare Workers AI text-to-image generation (needs a free account).
 
-    Implements the ``ImageBackend`` Protocol. A deterministic seed is derived
-    from the prompt so the same stanza always requests the same image (the
-    model's ``seed`` input is honoured for reproducibility).
+    Implements the ``ImageBackend`` Protocol.
+
+    Determinism note (live-verified 2026-08-03): a prompt-derived ``seed`` is
+    sent (the TextToImage schema lists it), but the served SDXL wrapper does
+    **not** honour it in practice — the same prompt+seed produced different
+    images on every call. Treat output as *novel per request*; use
+    ``--backend pollinations`` or ``--backend procedural`` when bit-for-bit
+    reproducibility matters.
     """
 
     BASE_URL = "https://api.cloudflare.com/client/v4/accounts/{}/ai/run/{}"
@@ -80,8 +94,9 @@ class CloudflareImageBackend:
 
         style_str = style if style is not None else self.DEFAULT_STYLE
         full_prompt = f"{prompt}, {style_str}" if style_str else prompt
-        # Same reproducible-seed discipline as the other backends; the SDXL
-        # schema honours ``seed``. Mask to signed 32-bit (defensive).
+        # Prompt-derived seed: the schema lists ``seed`` and it is harmless to
+        # send, but live testing (2026-08-03) showed the SDXL wrapper ignores
+        # it — do not rely on it for reproducibility.
         seed = int(hashlib.sha256(full_prompt.encode()).hexdigest()[:8], 16) & 0x7FFFFFFF
 
         payload = {
@@ -105,7 +120,7 @@ class CloudflareImageBackend:
         )
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                res = json.loads(resp.read().decode("utf-8"))
+                body = resp.read()
         except urllib.error.HTTPError as e:
             raise RuntimeError(
                 f"Cloudflare Workers AI HTTP Error {e.code}: "
@@ -113,6 +128,20 @@ class CloudflareImageBackend:
             ) from e
         except Exception as e:
             raise RuntimeError(f"Cloudflare Workers AI request failed: {e}") from e
+
+        # Live-verified 2026-08-03: the REST endpoint returns *raw image bytes*
+        # (PNG magic 0x89) for text-to-image — despite the API reference's
+        # base64 ``result.data`` binding schema. Handle both shapes.
+        if _looks_like_image(body):
+            return body
+
+        try:
+            res = json.loads(body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise RuntimeError(
+                "Cloudflare Workers AI returned a non-image, non-JSON response "
+                f"({len(body)} bytes)."
+            ) from None
 
         if not res.get("success", True):
             errors = res.get("errors") or []
