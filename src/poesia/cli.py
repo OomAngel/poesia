@@ -19,6 +19,27 @@ from rich import print as rprint
 if TYPE_CHECKING:
     from poesia.phonology.base import PhonologyBackend
 
+
+def _load_dotenv(dotenv_path: str | None = None) -> None:
+    """Best-effort ``.env`` loading so credentials are one line to set up.
+
+    ``poesia`` reads ``.env`` from the current directory at startup
+    (``cp .env.example .env`` → fill in → done). Existing shell-exported
+    variables take precedence (``override=False``). Never raises: a broken or
+    missing ``.env`` must not stop the CLI.
+    """
+    from pathlib import Path
+
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(dotenv_path or Path.cwd() / ".env", override=False)
+    except Exception:  # pragma: no cover - defensive best-effort
+        pass
+
+
+_load_dotenv()
+
 app = typer.Typer(help="PoesIA: a hybrid poetry-writing engine.")
 
 
