@@ -3,6 +3,17 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-03 — One-line provider setup: `.env` auto-load + Cloudflare quickstart
+
+- **`.env.example`** (tracked): documents Cloudflare (`CLOUDFLARE_ACCOUNT_ID` /
+  `CLOUDFLARE_API_TOKEN`), OpenAI/Replicate keys, LLM host vars — `.gitignore`
+  now keeps the real `.env` out while allowing the example
+- **`poesia` auto-loads `.env`** at CLI startup (best-effort, `python-dotenv`
+  added to core deps; shell-exported vars take precedence; never breaks the CLI)
+- **README GalerIA section**: Cloudflare one-line setup
+  (`cp .env.example .env` → fill in → `--backend cloudflare`)
+- Suite: 470 → **473 tests passing** (3 new dotenv-loader tests)
+
 ## 2026-08-03 — Cloudflare Workers AI backend: implemented + live-tested (caveats found)
 
 - **`CloudflareImageBackend`** (`--backend cloudflare`): SDXL via Workers AI's
