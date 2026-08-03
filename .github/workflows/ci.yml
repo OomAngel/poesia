@@ -34,8 +34,8 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: |
-          pip install -e ".[spanish,english,phonology-extra,dev]"
-          pip install sentence-transformers
+          pip install -e ".[spanish,english,phonology-extra,nlp,dev]"
+          python -m spacy download es_core_news_sm  # GalerIA imagery extraction
       - run: |
           pytest tests/ \
             --ignore=tests/test_generation_llm_client.py \
