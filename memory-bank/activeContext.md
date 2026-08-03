@@ -81,10 +81,22 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
+## What We Just Did (2026-08-03 — GalerIA `--panel-mode` whole-poem image)
+
+1. **`--panel-mode stanza|poem`** on `poesia galeria illustrate`: default
+   `stanza` keeps the auca sheet; `poem` builds **one longer, holistic prompt**
+   over the whole poem (theme + all imagery + style) → a single panel captioned
+   with the full text — a "cover" illustration. Pipeline validates the mode.
+2. 4 new tests (pipeline single-panel/validation + CLI); suite 473 → **477**;
+   ruff/mypy clean. README walkthrough added.
+3. **Secret hygiene for the share**: the Cloudflare account ID was redacted to
+   `065c2ed7…` in the tracked memory-bank (identifiers shouldn't travel in the
+   share bundle); the API token lives only in the gitignored `.env`.
+
 ## What We Just Did (2026-08-03 — Cloudflare dedicated token, live end-to-end)
 
 1. **Configured the dedicated token**: `CLOUDFLARE_ACCOUNT_ID`
-   (`065c2ed7c015b61b9abbb15fff4285a1`) + the new Workers AI API token written
+   (account `065c2ed7…`) + the new Workers AI API token written
    to the gitignored `.env`; verified the CLI auto-loads both at startup.
 2. **Live test passed**: direct `CloudflareImageBackend` call → 2.2 MB
    1024×1024 PNG in 10.8 s; full `poesia galeria illustrate … --backend

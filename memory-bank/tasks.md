@@ -28,6 +28,12 @@
 
 ## DONE
 
+### 2026-08-03: GalerIA --panel-mode (single whole-poem image)
+- [x] `--panel-mode stanza|poem` on `galeria illustrate`: `poem` = one longer
+      holistic prompt from the whole poem → 1 panel captioned with full text
+- [x] Pipeline validates mode (ValueError); 4 new tests; suite 473 → **477**
+- [x] README walkthrough added
+
 ### 2026-08-03: Cloudflare dedicated token — live end-to-end verified
 - [x] `CLOUDFLARE_ACCOUNT_ID` + dedicated Workers AI API token in gitignored `.env`
 - [x] Live: direct call → 2.2 MB 1024×1024 PNG in 10.8 s; full CLI → 4.2 MB auca
