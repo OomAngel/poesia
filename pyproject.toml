@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "A hybrid poetry-writing engine: LLM generation validated by deterministic phonology/prosody, later extended with Graph RAG."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Proprietary - personal project" }
+license = { text = "MIT" }
 authors = [{ name = "Angel" }]
 
 # Core dependencies kept deliberately minimal at Phase 0.
