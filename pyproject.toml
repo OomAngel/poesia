@@ -17,6 +17,7 @@ dependencies = [
     "pydantic>=2.6",
     "typer>=0.12",
     "rich>=13.7",
+    "python-dotenv>=1.0",  # .env loading for provider credentials (best-effort)
 ]
 
 [project.optional-dependencies]
@@ -157,6 +158,7 @@ ignore = ["E501"]
 "src/poesia/galeria/procedural.py" = ["S311"]
 "src/poesia/generation/rhyme_fetcher.py" = ["S310"]
 # Intentional silent handling of optional/best-effort features.
+"src/poesia/cli.py" = ["S110"]  # .env loading must never break the CLI
 "src/poesia/evaluation/scorer.py" = ["S110"]
 "src/poesia/generation/hooks.py" = ["S110"]
 "src/poesia/memoria/seed_expander.py" = ["S110"]

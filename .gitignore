@@ -25,6 +25,8 @@ htmlcov/
 # Note: .env.* does NOT match .env_mlflow (underscore) — list it explicitly.
 .env
 .env.*
+!.env.example
+cronologia/.env.example
 .env_mlflow
 !.env_mlflow.example
 *.key
