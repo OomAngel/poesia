@@ -35,6 +35,8 @@
       bandit B311 skipped (CI + pyproject); ruff pinned `<0.17` (format drift)
 - [x] Train workflow: removed auto-push trigger (no self-hosted GPU runner →
       stuck runs); now manual-only
+- [x] Second round: mlflow made optional in llm_client (`_trace_decorator`) — CLI
+      works without it; CI test job installs `nlp` extra + spacy es_core_news_sm
 - [x] README stale counts 447 → **477** (badge + prose); Spanish stack row updated
 - [x] bandit 0 issues with CI flags; suite 477
 

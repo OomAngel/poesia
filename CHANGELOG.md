@@ -19,6 +19,15 @@ and git history (125+ commits, single author).
 - **Train workflow**: removed the `push` trigger (it queued a self-hosted GPU
   job on every training-code change; no such runner exists → stuck runs) —
   now `workflow_dispatch` only
+- **Second CI round (tests)**: after the install was fixed, pytest surfaced two
+  more missing deps that rantanplan used to drag in:
+  1. **mlflow was a module-level import in `llm_client.py`** → the whole CLI
+     `write` path crashed without it. Made it optional (lazy `_trace_decorator`
+     helper; `@mlflow.trace` degrades to a no-op) — the CLI now works without
+     mlflow installed
+  2. **spacy**: CI test job now installs the `nlp` extra
+     (`.[spanish,english,phonology-extra,nlp,dev]`) + downloads
+     `es_core_news_sm` for GalerIA imagery extraction
 - **README**: stale test count 447 → **477** (badge + 3 prose spots);
   Spanish phonology stack row updated (no rantanplan)
 - Suite: still **477 tests**; bandit 0 issues with the CI flags
