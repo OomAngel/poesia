@@ -28,6 +28,13 @@
 
 ## DONE
 
+### 2026-08-03: Publication prep — Cloudflare showcase + send-ready emails
+- [x] README showcase → "GalerIA in action" with a live Cloudflare example
+      (`docs/examples/auca_cloudflare_la_luna.png`, 4.2 MB → 572 KB)
+- [x] Email drafts filled: tarball name, author, 477 tests; only recipient
+      `[name]`/`[email]` remain
+- [x] SHARING_CHECKLIST pre-send checks ticked
+
 ### 2026-08-03: GalerIA --panel-mode (single whole-poem image)
 - [x] `--panel-mode stanza|poem` on `galeria illustrate`: `poem` = one longer
       holistic prompt from the whole poem → 1 panel captioned with full text

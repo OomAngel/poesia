@@ -3,6 +3,18 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-03 — Publication prep: Cloudflare showcase + send-ready emails
+
+- **README showcase** expanded to "GalerIA in action": the offline procedural
+  sheet **plus a live Cloudflare example** — real SDXL auca sheet generated
+  from the free tier, downscaled to `docs/examples/auca_cloudflare_la_luna.png`
+  (4.2 MB → 572 KB) so the tarball stays light
+- **Email drafts filled** (`share/EMAIL_01_COVER.md`, `share/EMAIL_02_SETUP_TOUR.md`):
+  tarball name `poesia-share-20260804.tar.gz`, author "Angel", test count 477 —
+  only the recipient's `[name]` / `[contact's email]` remain
+- **SHARING_CHECKLIST.md**: pre-send checks ticked; quick-start block updated
+- Suite still **477 tests** (docs-only changes)
+
 ## 2026-08-03 — GalerIA `--panel-mode`: single whole-poem image option
 
 - **`--panel-mode stanza|poem`** on `poesia galeria illustrate`: default

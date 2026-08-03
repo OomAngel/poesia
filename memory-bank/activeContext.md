@@ -81,6 +81,17 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
+## What We Just Did (2026-08-03 — publication prep: showcase + emails)
+
+1. **README showcase → "GalerIA in action"**: added the live Cloudflare example
+   — the real SDXL auca sheet downscaled to `docs/examples/auca_cloudflare_la_luna.png`
+   (4.2 MB → 572 KB, 900 px wide), with the honest "novel per request" note.
+2. **Email drafts filled** (`share/EMAIL_01_COVER.md`, `share/EMAIL_02_SETUP_TOUR.md`):
+   tarball name `poesia-share-20260804.tar.gz`, author "Angel", suite 477.
+   Only recipient `[name]` / `[contact's email]` remain.
+3. **SHARING_CHECKLIST.md** pre-send checks ticked; quick-start block updated.
+4. Docs-only changes; suite still 477; tarball + git bundle regenerated.
+
 ## What We Just Did (2026-08-03 — GalerIA `--panel-mode` whole-poem image)
 
 1. **`--panel-mode stanza|poem`** on `poesia galeria illustrate`: default
