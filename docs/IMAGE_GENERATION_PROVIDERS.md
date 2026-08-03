@@ -313,8 +313,8 @@ service is a moving target — pin nothing, degrade gracefully.
   `065c2ed7…`). Findings: REST endpoint returns **raw PNG bytes** (not the
   base64 JSON the binding schema implies) and **`seed` is ignored** by the
   served SDXL wrapper. Proper long-term setup: a dedicated Workers AI API token
-  (dashboard → Workers AI → "Use REST API" → create token), not the wrangler
-  OAuth session.
+  (dashboard → Workers AI → "Use REST API" → create token), then
+  `cp .env.example .env` — `poesia` loads it automatically.
 - **Pollinations model routing**: observed `sana` despite `model=flux`;
   contradicts vendor docs — re-check at adoption, keep the backend model-agnostic.
 - **OpenRouter image models**: docs URL 404'd; treated as "emerging, unverified".

@@ -204,8 +204,18 @@ poesia galeria illustrate soneto.txt --backend pollinations --output auca.png
 
 Prefer a commercial-SLA free tier? `--backend cloudflare` runs SDXL on
 [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/) (10,000
-neurons/day free; needs a free account — set `CLOUDFLARE_ACCOUNT_ID` and
-`CLOUDFLARE_API_TOKEN`).
+neurons/day free). One-line setup — `poesia` loads `.env` from the current
+directory automatically:
+
+```bash
+cp .env.example .env     # then add CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN
+poesia galeria illustrate soneto.txt --backend cloudflare --output auca.png
+```
+
+Get those two values from the dashboard: **Workers AI → Use REST API → Create a
+Workers AI API Token**. Note: Cloudflare output is *novel per request* (the
+served SDXL ignores the seed — live-verified) — use `procedural` or
+`pollinations` when bit-for-bit reproducibility matters.
 
 `--dry-run` prints the prompts without any rendering, so you can iterate on
 style before spending a single token:
