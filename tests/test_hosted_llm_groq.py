@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from poesia.exceptions import LLMProviderError
 from poesia.generation.llm_client import HostedLLMClient
 
 
@@ -148,5 +149,5 @@ class TestGroqHTTPShape:
             fp=MagicMock(read=MagicMock(return_value=b'{"error":"invalid key"}')),
         )
         with patch("urllib.request.urlopen", side_effect=err):
-            with pytest.raises(RuntimeError, match="Groq API HTTP Error 401"):
+            with pytest.raises(LLMProviderError, match="Groq API HTTP Error 401"):
                 client.generate("prompt")
