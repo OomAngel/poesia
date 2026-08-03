@@ -28,16 +28,20 @@
 
 ## DONE
 
-### 2026-08-03: Cloudflare Workers AI backend — ranked #2, implemented
+### 2026-08-03: Cloudflare Workers AI backend — implemented + live-tested (caveats found)
 - [x] **`CloudflareImageBackend`** (`--backend cloudflare`): SDXL on Workers AI
       free tier (10k neurons/day; Beta SDXL $0.00/step); stdlib urllib POST;
-      base64 `result.data` decoding (list or str); deterministic seed;
-      `auto` chain now: openai → replicate → cloudflare → procedural
-- [x] Doc updated: API reference confirms `seed` honoured → Cloudflare 3.60 → **3.70**
-      (sole #2); SDXL $0.00/step noted; live test deferred (needs credentials — gap)
-- [x] 12 new tests (incl. empty-data parsing bug caught + fixed)
-- [x] Suite 456 → **468 tests passing**; ruff + mypy clean
-- [ ] (next) Cloudflare live test once credentials exist; Gemini free tier (quality)
+      `auto` chain: openai → replicate → cloudflare → procedural
+- [x] **Reused existing Cloudflare setup**: sibling `hiops` repo deploys a
+      Worker + Pages with `CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_API_TOKEN`; cached
+      `wrangler login` (scopes incl. `ai:write`) enabled the live test
+- [x] **Live findings**: (1) REST returns raw PNG bytes (fixed backend);
+      (2) **`seed` ignored** by served SDXL — same seed → different images;
+      doc determinism corrected 4→2, Cloudflare 3.70 → **3.50** (now #4);
+      (3) native 1024×1024 PNG in ~10s
+- [x] 14 new tests; suite 456 → **470 passing**; ruff + mypy clean
+- [ ] (next) proper Workers AI API token for daily use (not wrangler OAuth);
+      Gemini free tier (quality); AI Horde (async polling)
 
 ### 2026-08-03: Free image-gen research + Pollinations backend (live-tested)
 - [x] **`docs/IMAGE_GENERATION_PROVIDERS.md`** — 8-criterion weighted ranking of
