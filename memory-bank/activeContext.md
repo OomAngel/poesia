@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-03 (Session: free image-gen research + Pollinations backend live-tested; suite 456 green)_
+_Last updated: 2026-08-03 (Session: Cloudflare Workers AI backend — ranked #2, implemented; suite 468 green)_
 
 ---
 
@@ -80,6 +80,30 @@ The training plan itself (when relaunched):
 6. Hand-written sonetos: "El peso del saber", "El umbral", 6 RadicleCrops versions (ES×4 + EN×1 + fresh ES×1)
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
+
+## What We Just Did (2026-08-03 — Cloudflare Workers AI backend)
+
+1. **Implemented `CloudflareImageBackend`** (`--backend cloudflare`,
+   `src/poesia/galeria/cloudflare.py`): SDXL (`@cf/stabilityai/
+   stable-diffusion-xl-base-1.0`) via Workers AI's free tier — 10k neurons/day,
+   Beta SDXL listed at **$0.00/step**. stdlib urllib POST to
+   `/accounts/{id}/ai/run/{model}`, bearer auth from `CLOUDFLARE_ACCOUNT_ID` /
+   `CLOUDFLARE_API_TOKEN`, base64 `result.data` decoding (list or bare string),
+   deterministic prompt-derived seed (schema honours `seed`).
+2. **Research refined the ranking**: the Cloudflare API reference confirms the
+   TextToImage schema has a `seed` input ("Random seed for reproducibility") —
+   determinism score raised 3 → 4, total 3.60 → **3.70**, now sole #2 behind
+   Pollinations (Gemini + AI Horde tie at 3.60). Also found SDXL Beta at
+   $0.00/step.
+3. **Tests caught a parsing bug**: empty `result.data: []` is falsy, so
+   `data or image` fell into the wrong branch; fixed with explicit `None`
+   checks. 12 new tests (request shape, headers, base64 list/string, creds,
+   errors, empty, registry, auto-chain).
+4. **`auto` chain extended**: openai → replicate → cloudflare → procedural.
+5. **Honest gap documented**: Cloudflare is mock-tested only — a live pass (the
+   same empirical treatment Pollinations got) needs real credentials; that's
+   the next step once the user creates a free account + token.
+6. **Housekeeping**: doc/README/CHANGELOG/memory-bank updated; suite 456 → 468.
 
 ## What We Just Did (2026-08-03 — free image-gen research + Pollinations backend)
 
