@@ -3,6 +3,16 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-03 — GalerIA `--panel-mode`: single whole-poem image option
+
+- **`--panel-mode stanza|poem`** on `poesia galeria illustrate`: default
+  `stanza` is the auca one-image-per-stanza sheet; `poem` builds **one longer,
+  holistic prompt from the entire poem** (theme + all extracted imagery +
+  style) → a single panel captioned with the full text (a "cover" illustration)
+- Pipeline validates the mode (`ValueError` on unknown); CLI help updated
+- 4 new tests (pipeline single-panel + validation + CLI) — suite **473 → 477**
+- README: `--panel-mode poem` walkthrough
+
 ## 2026-08-03 — Cloudflare dedicated token: live end-to-end verified
 
 - **Credentials configured**: `CLOUDFLARE_ACCOUNT_ID` + dedicated Workers AI
