@@ -28,6 +28,17 @@
 
 ## DONE
 
+### 2026-08-03: GalerIA wired end-to-end + pro-grade README
+- [x] `poesia galeria illustrate`: one image per stanza, `--backend auto|stub|openai|replicate`,
+      `--api-key`, `--language`, `--theme`, PNG sheet + WeasyPrint PDF export, `--dry-run`
+- [x] `poesia write --illustrate` — sheet saved to `galeria/` / library illustrations dir
+- [x] `pipeline.py` (stanza split, backend select, illustrate_poem); `export_pdf()` implemented
+- [x] Fixed CLI poem loading to preserve stanza blank lines
+- [x] README rewritten pro-grade (features, quickstart, GalerIA walkthrough, extras, license)
+- [x] Share tarball regenerated: `dist/poesia-share-20260803.tar.gz` (13M, secret-scan clean)
+- [x] Suite: 431 tests passing (commits 256c7b1, e52c297)
+- [ ] (next) persist `image:` in library frontmatter; real DALL·E/SDXL smoke test with key
+
 ### 2026-08-03: Unstick — lint pass committed, suite green
 - [x] Completed & committed the in-flight lint pass (37 files): ruff format on `src/ mlops/`,
       pyproject tooling config (E501/per-file ignores, bandit skips, mypy numpy override),
