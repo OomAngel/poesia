@@ -30,6 +30,9 @@ and git history (125+ commits, single author).
      `es_core_news_sm` for GalerIA imagery extraction
 - **README**: stale test count 447 → **477** (badge + 3 prose spots);
   Spanish phonology stack row updated (no rantanplan)
+- **✅ CI GREEN**: the final push's CI run passed all three jobs
+  (Lint & Type Check / Tests CPU-safe / Security Audit) — the repo now shows
+  a green checks badge on the private GitHub page
 - Suite: still **477 tests**; bandit 0 issues with the CI flags
 
 ## 2026-08-03 — Publication prep: Cloudflare showcase + send-ready emails
