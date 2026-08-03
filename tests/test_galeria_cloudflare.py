@@ -78,7 +78,10 @@ class TestCloudflareImageBackend:
         assert body["guidance"] == 7.5
         assert 0 < body["seed"] <= 2147483647
 
-    def test_seed_is_deterministic_and_signed_32bit(self) -> None:
+    def test_request_seed_is_stable_and_signed_32bit(self) -> None:
+        # The seed we *send* is stable per prompt; note the served SDXL ignores
+        # it in practice (live-verified 2026-08-03) — this test only pins the
+        # request shape.
         seeds: list[int] = []
 
         def _capture(req, timeout=None):
@@ -159,6 +162,40 @@ class TestCloudflareImageBackend:
             "urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)
         ):
             with pytest.raises(RuntimeError, match="no image data"):
+                self._client().generate_image("La luna")
+
+    def test_raw_png_bytes_response_returned_as_is(self) -> None:
+        # Live-verified 2026-08-03: the REST endpoint returns raw image bytes
+        # (PNG magic), not JSON — must pass through untouched.
+        fake_png = b"\x89PNG\r\n\x1a\n" + b"raw-png-body" + b"IEND"
+        captured: list = []
+
+        def _handler(req, timeout=None):
+            captured.append(req)
+            mock_response = MagicMock()
+            mock_response.read.return_value = fake_png
+            mock_response.__enter__ = MagicMock(return_value=mock_response)
+            mock_response.__exit__ = MagicMock(return_value=False)
+            return mock_response
+
+        with patch("urllib.request.urlopen", side_effect=_handler):
+            out = self._client().generate_image("La luna")
+
+        assert out == fake_png
+
+    def test_non_image_non_json_response_raises(self) -> None:
+        captured: list = []
+
+        def _handler(req, timeout=None):
+            captured.append(req)
+            mock_response = MagicMock()
+            mock_response.read.return_value = b"<html>some error page</html>"
+            mock_response.__enter__ = MagicMock(return_value=mock_response)
+            mock_response.__exit__ = MagicMock(return_value=False)
+            return mock_response
+
+        with patch("urllib.request.urlopen", side_effect=_handler):
+            with pytest.raises(RuntimeError, match="non-image, non-JSON"):
                 self._client().generate_image("La luna")
 
     def test_registered_in_pipeline_registry(self) -> None:
