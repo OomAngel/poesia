@@ -47,8 +47,9 @@ mlops/runs/
 data/raw/
 data/corpus/
 
-# MLflow (backend is PostgreSQL; local store is a build artifact)
+# Generated / derived output
 mlruns/
+galeria/
 
 # Docker runtime volumes
 docker/volumes/
