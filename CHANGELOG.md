@@ -3,6 +3,24 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-03 — Free image-gen provider research + Pollinations backend
+
+- **`docs/IMAGE_GENERATION_PROVIDERS.md`**: 8-criterion weighted ranking (cost,
+  friction, ergonomics, quality, determinism, reliability, rate, privacy) of 6
+  free/low-cost providers — verdict: **Pollinations #1 (4.15/5)**, Cloudflare
+  Workers AI, Gemini free tier and AI Horde tied #2 (3.60), credit platforms and
+  HF Inference trailing. Includes live probe log and honest gaps
+- **`PollinationsImageBackend`** (`--backend pollinations`): free, key-less,
+  single-GET online image generation; deterministic prompt-derived seed; stdlib
+  urllib; graceful RuntimeError → suggests `--backend procedural`
+- **Live-tested 2026-08-03** (this is why we test): Sana pipeline rejected our
+  seed (`Too big: expected number to be <=2147483647`) — a mocked test could
+  not have caught it. Fixed by masking `& 0x7FFFFFFF`. Verified end-to-end:
+  2-stanza auca sheet composed live (1.3 MB PNG), and same prompt+seed ⇒
+  **byte-identical images** (service-level determinism)
+- `--backend auto` stays offline-first (procedural); pollinations is explicit
+- Suite: 447 → **456 tests passing** (9 new pollinations tests)
+
 ## 2026-08-03 — mypy gate green (54 type errors fixed)
 
 - **Root cause**: numpy 2.5 ships PEP 695 stubs (Python 3.12 `type` syntax);

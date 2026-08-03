@@ -8,7 +8,7 @@
 [![Tests](https://img.shields.io/badge/tests-447%20passing-brightgreen)](#development)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](#status)
 [![LLM backends](https://img.shields.io/badge/LLM%20backends-8%2B-blueviolet)](#core-generation)
-[![Image backends](https://img.shields.io/badge/image%20backends-4-orange)](#galeria--illustration)
+[![Image backends](https://img.shields.io/badge/image%20backends-5-orange)](#galeria--illustration)
 [![Languages](https://img.shields.io/badge/languages-es%20%7C%20en%20%7C%20nl-green)](#language-support)
 [![Retrieval](https://img.shields.io/badge/retrieval-Graph%20RAG-purple)](#memoria)
 [![MLOps](https://img.shields.io/badge/MLOps-MLflow-important)](#tooling)
@@ -92,8 +92,9 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 ### GalerIA — illustration
 
 - One illustrated panel per stanza (the Spanish *auca* / *aleluya* tradition)
-- Pluggable image backends: `procedural` (offline generative art), `stub`, `openai` (DALL·E), `replicate` (SDXL)
+- Pluggable image backends: `procedural` (offline generative art), `pollinations` (free online, no key), `stub`, `openai` (DALL·E), `replicate` (SDXL)
 - `procedural` renders deterministic, poem-seeded art with zero API keys — reproducible by design
+- `pollinations` adds a free online path (community service, ≈1 image/15 s anonymous) with the same seed-driven reproducibility
 - Imagery extraction (nouns, phrases, sensory modalities) → image prompts
 - Style anchoring from literary influences and tone
 - PNG sheets and WeasyPrint PDF export
@@ -192,6 +193,14 @@ poesia galeria illustrate soneto.txt --backend replicate --output auca.pdf
 
 No API key? `--backend procedural` renders the same panels as deterministic
 offline art — the exact command from the [Showcase](#showcase--galeria-fully-offline).
+Want real AI images without paying or signing up? `--backend pollinations`
+calls the free, key-less [Pollinations](https://pollinations.ai) service
+(≈1 image/15 s anonymously; rate-limited, so 4 panels take about a minute):
+
+```bash
+poesia galeria illustrate soneto.txt --backend pollinations --output auca.png
+```
+
 `--dry-run` prints the prompts without any rendering, so you can iterate on
 style before spending a single token:
 
@@ -200,6 +209,9 @@ poesia galeria illustrate soneto.txt --backend procedural --dry-run
 # Panel 1 — 4 line(s)
 #   La luna sobre el agua fría. La noche callada. ...
 ```
+
+The free-provider landscape is evaluated and ranked in
+[`docs/IMAGE_GENERATION_PROVIDERS.md`](docs/IMAGE_GENERATION_PROVIDERS.md).
 
 Style anchoring ties the visuals to the poetry itself — literary movements and
 tones map to visual keywords (Modernismo → *art nouveau, jewel tones*;
