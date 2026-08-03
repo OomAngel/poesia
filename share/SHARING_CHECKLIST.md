@@ -31,23 +31,25 @@ WITH_BUNDLE=1 bash scripts/package_share.sh
 
 ## Step 3 — Pre-send checks
 
-- [ ] `git status` clean
-- [ ] No real `.env_mlflow` inside the bundle (script verifies; only
+- [x] `git status` clean
+- [x] No real `.env_mlflow` inside the bundle (script verifies; only
       `.env_mlflow.example` placeholders are tracked)
-- [ ] `mlruns/`, `models/`, `mlops/data/` excluded (already gitignored)
-- [ ] Fill in `[brackets]` in the email drafts: `share/EMAIL_01_COVER.md`,
-      `share/EMAIL_02_SETUP_TOUR.md`
+- [x] `mlruns/`, `models/`, `mlops/data/` excluded (already gitignored)
+- [x] Email drafts filled (`share/EMAIL_01_COVER.md`, `share/EMAIL_02_SETUP_TOUR.md`) —
+      only the recipient's `[name]` / `[contact's email]` remain
 - [ ] Choose English or Spanish body (both are provided)
-- [ ] LICENSE + NOTICE travel inside the tarball automatically — no extra step
+- [x] LICENSE + NOTICE travel inside the tarball automatically — no extra step
+- [x] README showcase includes a live Cloudflare example
+      (`docs/examples/auca_cloudflare_la_luna.png`, downscaled)
 
 ## Step 4 — Recipient quick start (paste into the email if useful)
 
 ```bash
-tar -xzf poesia-share-YYYYMMDD.tar.gz
+tar -xzf poesia-share-20260804.tar.gz
 cd poesia
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest                # optional sanity check (400+ tests)
+pytest                # optional sanity check (477 tests)
 poesia --help
 poesia write --theme "luna" --form soneto --language es   # offline, no keys
 ```

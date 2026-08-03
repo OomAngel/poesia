@@ -1,7 +1,7 @@
 # Email 1 — Cover / introduction
 
-> Copy into your mail client. Everything in `[brackets]` is for you to fill in.
-> An English body + a short Spanish variant at the end.
+> Copy into your mail client. Only the recipient's `[name]` / `[contact's
+> email]` remain to fill in — everything else is ready to send.
 
 **To:** [contact's email]
 **Subject:** PoesIA — the poetry engine I've been building (for your eyes only)
@@ -42,7 +42,7 @@ poems it writes and whether you think the whole "engine" idea holds up.
 The follow-up email in this thread is a 15-minute tour if you want to try it.
 
 Warmly,
-[your name]
+Angel
 
 ---
 
@@ -81,4 +81,4 @@ Me encantaría tu reacción, sobre todo a los poemas que escribe. El siguiente
 correo es un recorrido de 15 minutos si quieres probarlo.
 
 Un abrazo,
-[tu nombre]
+Angel
