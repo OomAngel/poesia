@@ -49,7 +49,7 @@ data/corpus/
 
 # Generated / derived output
 mlruns/
-galeria/
+/galeria/
 
 # Docker runtime volumes
 docker/volumes/
