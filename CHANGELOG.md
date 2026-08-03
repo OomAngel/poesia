@@ -3,6 +3,20 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-03 — Share-ready repo + GalerIA end-to-end
+
+- **GalerIA wired end-to-end**: `poesia galeria illustrate` generates one image
+  per stanza (auca sheets) with real backend selection (`auto | stub | openai |
+  replicate`), imagery extraction, style anchoring, PNG sheet + WeasyPrint PDF
+  export; `poesia write --illustrate` produces a sheet alongside the poem
+- **Pro-grade README** rewrite (features, quickstart, GalerIA walkthrough,
+  architecture, extras table, license)
+- Lint pass committed: ruff format on `src/ mlops/`, bandit/mypy tooling config,
+  CI gates (`ruff format --check`, bandit skip flags, `phonology-extra` extras)
+- Hosted-LLM tests aligned with the P5.3 structured-exception hierarchy
+  (`LLMProviderError`); Dutch phonology tests skip gracefully without pyphen
+- Suite: 431 tests passing
+
 ## 2026-08-01 — Corpus expansion + v2-fixed retraining
 
 - 19 new corpus files, 1,059 new poems (Project Gutenberg + Wikisource);
