@@ -21,9 +21,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Spanish phonology / scansion
+# Spanish phonology / scansion.
+# NOTE: rantanplan is intentionally NOT here — it pins spacy==2.2.4 (2019),
+# which has no Python 3.11 wheel and breaks CI installs. silabeador + fonemas
+# cover Spanish scansion; install rantanplan manually if you specifically want
+# it (needs a Python <3.11 environment).
 spanish = [
-    "rantanplan",
     "silabeador",
 ]
 
@@ -116,7 +119,9 @@ recitation = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
-    "ruff>=0.5",
+    # ruff pinned <0.17: 0.17+ changed formatter join behaviour (short calls
+    # collapsed to one line), which would churn the tree on every CI run.
+    "ruff>=0.5,<0.17",
     "mypy>=1.10",
     "bandit>=1.7",
     "safety>=3.0",
@@ -173,6 +178,7 @@ skips = [
     "B110",  # Intentional best-effort handlers (telemetry, optional backends)
     "B112",  # Skip malformed records when bulk-importing the library
     "B310",  # urlopen on validated HTTPS API endpoints only (network client modules)
+    "B311",  # deterministic art seeds (procedural.py) — reproducible, not crypto
     "B404",  # subprocess for trusted, internally-built command lists
     "B603",  # subprocess.run() with explicit arg lists — no shell, no user input
     "B615",  # HF from_pretrained() without revision pin — TODO: pin model revisions

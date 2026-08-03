@@ -170,9 +170,7 @@ def illustrate_poem(
     elif panel_mode == "stanza":
         stanzas = split_stanzas(lines, max_lines_per_stanza=max_lines_per_stanza)
     else:
-        raise ValueError(
-            f"Unknown panel_mode: {panel_mode!r}. Available: stanza, poem."
-        )
+        raise ValueError(f"Unknown panel_mode: {panel_mode!r}. Available: stanza, poem.")
 
     img_backend = get_image_backend(backend, api_key)
     final_style = derive_style(style, influences)
