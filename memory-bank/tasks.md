@@ -28,6 +28,22 @@
 
 ## DONE
 
+### 2026-08-03: GalerIA offline procedural backend + README showcase
+- [x] **ProceduralImageBackend** (`--backend procedural`): deterministic offline
+      generative art (Pillow, poem-seeded palette/composition), zero API keys,
+      reproducible bit-for-bit; `--backend auto` now falls back to it (was 1×1 stub)
+- [x] Fixed `Library.get()` TypeError (PoemRecord `content` mirror) — unblocked
+      `poesia galeria illustrate --from-library`
+- [x] `Library.attach_image()` persists `image:` in poem frontmatter after
+      `write --illustrate --save`
+- [x] `galeria illustrate` strips YAML frontmatter from `.md` poem files
+- [x] README: Showcase section with real generated auca sheet
+      (`docs/examples/auca_el_peso_del_saber.png`), 9 badges, feature headings
+      (valid anchors), procedural walkthrough; test count → 447
+- [x] Suite: **447 tests passing** (exit 0), ruff clean on src/ mlops/
+- [ ] (next) real DALL·E/SDXL smoke test with a key; wire retrieval into GalerIA
+      style anchoring (still in BACKLOG)
+
 ### 2026-08-03: GalerIA wired end-to-end + pro-grade README
 - [x] `poesia galeria illustrate`: one image per stanza, `--backend auto|stub|openai|replicate`,
       `--api-key`, `--language`, `--theme`, PNG sheet + WeasyPrint PDF export, `--dry-run`

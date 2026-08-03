@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-03 (Session: unstick — lint pass + LLMProviderError test fixes, suite green)_
+_Last updated: 2026-08-03 (Session: GalerIA offline procedural backend + README showcase, suite green 447)_
 
 ---
 
@@ -12,8 +12,9 @@ cd /home/angel/dev/poesia
 # Launch training (activates env + sources .env_mlflow automatically):
 bash scripts/launch_training.sh local mlops/configs/train_smoke.yaml --dry-run
 
-# Check v2-fixed retraining progress:
-tail -f /tmp/train_v2_fixed.log
+# Regenerate the README showcase example (deterministic, no key needed):
+poesia galeria illustrate seeds/library/20260731_030227_142539_el_peso_del_saber__ingenuidad.md \
+  --backend procedural --output docs/examples/auca_el_peso_del_saber.png
 
 # Quick MLflow sanity (PostgreSQL — NOT sqlite anymore):
 source scripts/poesia_env.sh --source 2>/dev/null
@@ -32,17 +33,22 @@ for e in c.search_experiments():
 
 ## Current focus
 
-**Working tree is GREEN (2026-08-03, 431 tests)** — lint pass + test fixes committed,
-then **GalerIA wired end-to-end** and a **pro-grade README** written. Repo is
-share-ready: `dist/poesia-share-20260803.tar.gz` regenerated.
+**Working tree GREEN (2026-08-03, 447 tests)** — GalerIA has a real offline
+backend and the README shows it off: a `procedural` auca sheet embedded in a
+new **Showcase** section (`docs/examples/auca_el_peso_del_saber.png`). Repo is
+share-ready: regenerate `dist/poesia-share-20260803.tar.gz` via
+`scripts/package_share.sh` (done this session).
 
 GalerIA status:
-- ✅ `poesia galeria illustrate` — one image per stanza, `--backend auto|stub|openai|replicate`,
-  `--api-key`, `--language`, `--theme`, PNG sheet + WeasyPrint PDF export, `--dry-run`
-- ✅ `poesia write --illustrate` — sheet saved to `galeria/` (or `~/.poesia/poems/illustrations/<id>.png` when saved)
-- ⏭️ Next: persist `image:` path in library frontmatter; Wire retrieval into GalerIA
-  (style anchoring from retrieval — partially done via influences); real DALL·E/SDXL
-  smoke test with a key
+- ✅ `--backend auto|stub|procedural|openai|replicate`; **procedural** = deterministic
+  offline generative art (Pillow, poem-seeded), `auto` falls back to it with no key
+- ✅ `poesia write --illustrate` — sheet saved to `galeria/` or
+  `~/.poesia/poems/illustrations/<id>.png`; **`image:` persisted in library frontmatter**
+  when `--save` is used
+- ✅ `Library.get()` fixed (was TypeError — broke `--from-library`); `galeria
+  illustrate` strips YAML frontmatter from `.md` poem files
+- ⏭️ Next: real DALL·E/SDXL smoke test with a key; **wire retrieval into GalerIA**
+  (style anchoring from retrieval — currently via influences only)
 
 ⚠️ **v2-fixed retraining INTERRUPTED** — PID 309663 no longer running, `/tmp/train_v2_fixed.log`
 gone (WSL reboot cleared `/tmp`). PostgreSQL/MLflow is DOWN (port 5432 refused; Docker not
@@ -65,6 +71,32 @@ The training plan itself (when relaunched):
 6. Hand-written sonetos: "El peso del saber", "El umbral", 6 RadicleCrops versions (ES×4 + EN×1 + fresh ES×1)
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
+
+## What We Just Did (2026-08-03 — GalerIA offline backend + README showcase)
+
+1. **Found `Library.get()` broken** (`TypeError: unexpected keyword 'content'`) — it
+   passed `content=` to `PoemRecord`, which had no such field, so
+   `poesia galeria illustrate --from-library` crashed. Added a `content` mirror
+   field + `__post_init__` sync (`lines` ⇄ `content`) and a round-trip test.
+2. **New `ProceduralImageBackend`** (`src/poesia/galeria/procedural.py`): seeded
+   (prompt+style hash) Pillow rendering — sky gradient, grain, celestial disc +
+   rays, layered hills, foreground stalks, stars, style-specific frames
+   (woodcut / watercolor / art nouveau) and Spanish+English keyword palettes
+   (night, water, ember, rose, forest, paper). Deterministic bit-for-bit,
+   ~0.07s per 640×640 panel.
+3. **`auto` fallback → procedural**: with no API key, `--backend auto` now
+   renders real art instead of the 1×1 stub pixel. `stub` remains for tests.
+   Updated the pipeline test + CLI help strings.
+4. **CLI**: `galeria illustrate` strips YAML frontmatter from `.md` poem files;
+   `write --illustrate --save` now persists `image: illustrations/<id>.png` in
+   the library frontmatter via new `Library.attach_image()`. MLflow best-effort
+   logging sets `MLFLOW_ALLOW_FILE_STORE=true` (kills the noisy banner).
+5. **README**: new **Showcase** section with a real generated sheet
+   (`docs/examples/auca_el_peso_del_saber.png`, soneto → 4 panels, procedural,
+   1450×1822), 9 badges, feature sub-headings (valid anchor links), procedural
+   walkthrough; test count 431 → **447**.
+6. **Verified**: full suite exit 0 (447 tests), ruff check/format clean on
+   `src/ mlops/`, share tarball regenerated.
 
 ## Verified State (cross-checked against filesystem + MLflow DB + GPU)
 
