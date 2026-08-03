@@ -83,7 +83,7 @@ class Library:
 
         if not self.is_memory:
             os.makedirs(self.storage_dir, exist_ok=True)
-            db_path = str(self.storage_dir / "library.db")
+            db_path = str(Path(self.storage_dir) / "library.db")
         else:
             db_path = ":memory:"
 
@@ -122,7 +122,7 @@ class Library:
         created_str = record.created_at.isoformat()
 
         if not self.is_memory:
-            filepath = self.storage_dir / filename
+            filepath = Path(self.storage_dir) / filename
 
             # Build frontmatter with optional provenance (P1 hardening)
             frontmatter_lines = [
@@ -206,7 +206,7 @@ class Library:
         """
         if self.is_memory:
             return
-        filepath = self.storage_dir / f"{poem_id}.md"
+        filepath = Path(self.storage_dir) / f"{poem_id}.md"
         if not filepath.exists():
             raise FileNotFoundError(f"Poem file not found: {filepath}")
 

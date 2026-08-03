@@ -14,7 +14,7 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 import mlflow
 
@@ -441,10 +441,13 @@ class HostedLLMClient:
                     provider=provider_label.lower(),
                 ) from e
 
-                raise LLMProviderError(
-                    f"{provider_label} API request failed: {e}",
-                    provider=provider_label.lower(),
-                ) from e
+        # Defensive: every attempt either returned or raised above (the final
+        # retry re-raises rather than looping), so this is unreachable in
+        # practice — but mypy needs an explicit exit for loop exhaustiveness.
+        raise LLMProviderError(
+            f"{provider_label} API request failed after 4 attempts",
+            provider=provider_label.lower(),
+        )
 
 
 class OllamaClient:
@@ -609,7 +612,7 @@ class OutlinesClient:
         self.provider = "outlines"
         self.model = base_model or self._DEFAULT_BASE
         self._model_wrapper = None
-        self._tokenizer = None
+        self._tokenizer: Any = None
         self._adapter_path = None
 
         if adapter_path is None:
@@ -789,8 +792,8 @@ class LoRAClient:
                         print(f"[LoRA] Auto-detected base model for adapter: {self.model}")
                         break
 
-        self._model = None
-        self._tokenizer = None
+        self._model: Any = None
+        self._tokenizer: Any = None
         self._adapter_path = adapter_path
 
     def _load(self) -> None:
@@ -907,7 +910,7 @@ class MLflowModelClient:
         self.usage = LLMUsage()
         self.provider = "mlflow"
         self.model = model_uri or os.environ.get("MLFLOW_MODEL_URI", "")
-        self._model = None
+        self._model: Any = None
 
     def _load(self) -> None:
         if self._model is not None:

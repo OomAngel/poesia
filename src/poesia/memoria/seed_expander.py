@@ -14,6 +14,7 @@ Sources:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from poesia.memoria.records import SeedExpansion
 
@@ -24,7 +25,7 @@ class SeedExpander:
 
     language: str = "es"
     _wn_loaded: bool = field(default=False, repr=False)
-    _nlp: object = field(default=None, repr=False)
+    _nlp: Any = field(default=None, repr=False)
 
     def __post_init__(self):
         """Lazy-load spaCy model when first needed."""
@@ -90,7 +91,12 @@ class SeedExpander:
         Tries ``wn`` (Open Multilingual Wordnet) first, falls back to
         NLTK WordNet (English only).
         """
-        result = {"synonyms": [], "antonyms": [], "hypernyms": [], "hyponyms": []}
+        result: dict[str, list[str]] = {
+            "synonyms": [],
+            "antonyms": [],
+            "hypernyms": [],
+            "hyponyms": [],
+        }
 
         # Try `wn` package (multilingual, offline after download)
         try:
@@ -107,28 +113,28 @@ class SeedExpander:
 
             wn_lang = "spa" if self.language == "es" else "eng"
             synsets = _wn.synsets(word, lang=wn_lang)
-            seen = {"syn": set(), "ant": set(), "hyper": set(), "hypo": set()}
+            seen: dict[str, set[str]] = {"syn": set(), "ant": set(), "hyper": set(), "hypo": set()}
 
             for synset in synsets[:3]:
                 for lemma in synset.lemmas():
-                    w = lemma.word().replace("_", " ")
+                    w = lemma.word().replace("_", " ")  # type: ignore[attr-defined]  # wn stubs say str; runtime Lemma.word()
                     if w.lower() != word.lower() and w.lower() not in seen["syn"]:
                         seen["syn"].add(w.lower())
                         result["synonyms"].append(w)
 
                 for sense in synset.senses():
                     for ant in sense.get_related("antonym"):
-                        w = ant.word().replace("_", " ")
+                        w = ant.word().replace("_", " ")  # type: ignore[attr-defined]  # wn stubs say Word; runtime exposes replace
                         if w.lower() not in seen["ant"]:
                             seen["ant"].add(w.lower())
                             result["antonyms"].append(w)
                     for hyp in sense.get_related("hypernym"):
-                        w = hyp.word().replace("_", " ")
+                        w = hyp.word().replace("_", " ")  # type: ignore[attr-defined]
                         if w.lower() not in seen["hyper"]:
                             seen["hyper"].add(w.lower())
                             result["hypernyms"].append(w)
                     for hyp in sense.get_related("hyponym"):
-                        w = hyp.word().replace("_", " ")
+                        w = hyp.word().replace("_", " ")  # type: ignore[attr-defined]
                         if w.lower() not in seen["hypo"]:
                             seen["hypo"].add(w.lower())
                             result["hyponyms"].append(w)
@@ -178,7 +184,7 @@ class SeedExpander:
 
     def _expand_rhymes_spanish(self, word: str) -> dict:
         """Spanish rhyme expansion using vowel patterns."""
-        result = {"consonant": {}, "assonant": {}}
+        result: dict[str, dict[str, list[str]]] = {"consonant": {}, "assonant": {}}
         vowels = "aeiouáéíóú"
         vowel_map = {"á": "a", "é": "e", "í": "i", "ó": "o", "ú": "u"}
         word_lower = word.lower()
@@ -213,7 +219,7 @@ class SeedExpander:
 
     def _expand_rhymes_english(self, word: str) -> dict:
         """English rhyme expansion using pronouncing library."""
-        result = {"consonant": {}, "assonant": {}}
+        result: dict[str, dict[str, list[str]]] = {"consonant": {}, "assonant": {}}
         try:
             import pronouncing
 

@@ -11,8 +11,13 @@ respective backend lands (see docs/ROADMAP.md).
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Literal, cast
+
 import typer
 from rich import print as rprint
+
+if TYPE_CHECKING:
+    from poesia.phonology.base import PhonologyBackend
 
 app = typer.Typer(help="PoesIA: a hybrid poetry-writing engine.")
 
@@ -177,7 +182,7 @@ def write(
             theme=theme,
             tone=tone_list,
             seeds=seeds_list,
-            level=brief_level,
+            level=cast(Literal["minimal", "standard", "maximal"], brief_level),
             language=language,
             movement=movement,
         )
@@ -552,7 +557,7 @@ def scan(
     from poesia.phonology.spanish import SpanishPhonology
 
     if language == "es":
-        phonology = SpanishPhonology()
+        phonology: PhonologyBackend = SpanishPhonology()
     elif language == "nl":
         from poesia.phonology.dutch import DutchPhonology
 
@@ -737,7 +742,11 @@ def galeria_illustrate(
             mlflow.log_param("language", language)
             mlflow.log_param("panels", len(panels))
             if panels:
-                mlflow.log_image(panels[0].image_bytes, "panel_1.png")
+                import io
+
+                from PIL import Image
+
+                mlflow.log_image(Image.open(io.BytesIO(panels[0].image_bytes)), "panel_1.png")
             rprint("[dim]Illustration logged to MLflow[/dim]")
     except Exception as e:
         rprint(f"[dim]MLflow logging skipped: {e}[/dim]")
