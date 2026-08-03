@@ -3,6 +3,25 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-03 — mypy gate green (54 type errors fixed)
+
+- **Root cause**: numpy 2.5 ships PEP 695 stubs (Python 3.12 `type` syntax);
+  mypy ran with `python_version = "3.11"` and hard-aborted on parse, **hiding
+  54 real type errors** across 12 files. Bumped mypy target to 3.12 (gates
+  only *allowed syntax*, runtime still supports 3.11) and fixed every error:
+  - `PhonologyBackend` Protocol added to `phonology/base.py` (was imported but
+    never defined); CLI + RhymeTracker type against it
+  - BriefBuilder `level` casts to `Literal["minimal","standard","maximal"]`
+  - `Library.storage_dir` normalised through `Path()` at file-write sites
+  - `Scorer`: `_prior_embeddings` widened; `composite_score(**breakdown)` typed
+  - seed_expander / llm_client / model_wrapper / poetry_trainer: lazy-import
+    attributes (`_model`, `_tokenizer`, `_nlp`) typed `Any`, `nn.Module.device`
+    and `batch_decode` targeted ignores, dead duplicated `raise` removed
+  - GalerIA: font union, float/int variable names, PIL conversion for
+    `mlflow.log_image`
+- **Verified**: `mypy src/` → Success (0 errors), ruff check/format clean,
+  full suite exit 0 (447 tests)
+
 ## 2026-08-03 — GalerIA offline backend + README showcase
 
 - **`ProceduralImageBackend`** (`--backend procedural`): deterministic offline

@@ -28,6 +28,17 @@
 
 ## DONE
 
+### 2026-08-03: mypy gate green — 54 type errors fixed
+- [x] Root cause: numpy 2.5 PEP 695 stubs vs `python_version="3.11"` hard-aborted
+      mypy, hiding 54 real type errors in 12 files
+- [x] `python_version="3.12"` (mypy target only — runtime still ≥3.11); fixed all
+      54 errors: `PhonologyBackend` Protocol (was imported but undefined),
+      BriefBuilder `level` Literal casts, `Library` Path normalisation, Scorer
+      typing, lazy-import attrs typed `Any` (llm_client/seed_expander/model_wrapper/
+      poetry_trainer), dead duplicated `raise` removed, GalerIA typing
+- [x] Verified: `mypy src/` Success, ruff check+format clean, full suite exit 0 (447)
+- [ ] (next) free image-gen provider research → implement a `pollinations` backend
+
 ### 2026-08-03: GalerIA offline procedural backend + README showcase
 - [x] **ProceduralImageBackend** (`--backend procedural`): deterministic offline
       generative art (Pillow, poem-seeded palette/composition), zero API keys,
