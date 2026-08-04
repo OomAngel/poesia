@@ -30,7 +30,8 @@ the reference's *Check* bullets. Total = P1–P14 (**/56**).
 *correct* — [P15](PRESENTATION_REFERENCE.md#p15-privateevidence-posture)
 purpose-fit is **4/4** and is what matters there. `P14` includes GitHub
 metadata: **no repo has topics**; `orchard_twins` and `research-tools` have no
-description.
+description. *(2026-08-04: the metadata pass fixed the latter two — see the
+[Audit changelog](#audit-changelog). P14 scores above are the pre-pass baseline.)*
 
 ---
 
@@ -143,15 +144,25 @@ make sure **no other repo links to it** as a reference.
 
 ## Cross-repo quick wins (do these everywhere)
 
-1. **Add 5–7 topics to all 9 repos** (zero topics today). Suggested: the repo's
-   domain + `python`, `research`, `tooling`, etc.
-2. **Set descriptions** on `orchard_twins` and `research-tools` (empty today).
-3. **Fix license metadata:** `microscopy-instrument-workbench` is
-   `NOASSERTION`; `luminose-ip-archive` intentionally has none.
-4. **Add a license badge** to every tooling repo that already has a `LICENSE`
-   file (hiops, pcb-tools, research-tools, optics, cielch, hidrive).
-5. **Add a dated Status section** (P13) to hiops, pcb-tools, research-tools,
-   cielch, optics, hidrive — one honest paragraph each.
+1. ✅ **Topics added to all 9 repos** (2026-08-04) — 5–6 each, domain-relevant
+   (see [Audit changelog](#audit-changelog)).
+2. ✅ **Descriptions set** on `orchard_twins` + `research-tools` (2026-08-04).
+3. ⚠️ **License "fix" retracted.** `microscopy-instrument-workbench`'s
+   `NOASSERTION` is **deliberate** — its `LICENSE` says "UNLICENSED — PRIVATE
+   PERSONAL REPOSITORY · All rights reserved" and explicitly defers any
+   open-source decision. Do **not** replace it; that would be a legal grant on a
+   private workbench. `luminose-ip-archive` intentionally has none. Both are
+   correct P15 posture.
+4. ⏳ **Add a license badge** to tooling repos that already have a `LICENSE`
+   (hiops, pcb-tools, research-tools, optics, cielch, hidrive) — README edits,
+   not applied in the metadata pass.
+5. ⏳ **Add a dated Status section** (P13) — not applied in the metadata pass.
+
+## Audit changelog
+
+| Date | Change |
+|---|---|
+| 2026-08-04 | **Metadata pass applied (Alternative A).** Descriptions set on `orchard_twins` + `research-tools`; 5–6 topics added to all 9 repos via `gh repo edit`. License step **dropped** after inspection: `microscopy`'s `NOASSERTION` is deliberate (UNLICENSED private-workbench text), not a defect. CI-badge and Status-section steps deferred. |
 
 ## Priority matrix (impact × effort)
 

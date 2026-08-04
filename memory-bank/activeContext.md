@@ -81,6 +81,22 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
+## What We Just Did (2026-08-04 — metadata quick wins on 9 repos)
+
+1. **Descriptions set** on `orchard_twins` + `research-tools` (the only empty
+   ones) via `gh repo edit --description`.
+2. **Topics added to all 9 repos** — 5–6 domain-relevant each (lidar/cuda for
+   orchard_twins, bom/hardware for hiops, pcb/kicad for pcb-tools, etc.).
+3. **License step dropped after inspection** — `microscopy`'s `NOASSERTION` is
+   *deliberate*: its LICENSE is "UNLICENSED — PRIVATE PERSONAL REPOSITORY · All
+   rights reserved" with an explicit deferral of any open-source decision.
+   Replacing it would be a legal grant — corrected in the audit doc (this
+   retracts the earlier audit flag).
+4. All 9 repos already cloned locally at `~/dev/<name>` (remote
+   `git@github-personal:OomAngel/<name>.git`), each with a real `LICENSE` + CI.
+   Deferred: CI badges + Status sections (README edits, not metadata).
+5. Audit doc updated: quick wins marked ✅/⚠️/⏳ + Audit changelog row.
+
 ## What We Just Did (2026-08-04 — presentation standard + 9-repo README audit)
 
 1. **`docs/PRESENTATION_REFERENCE.md`** — formalised the PoesIA presentation
