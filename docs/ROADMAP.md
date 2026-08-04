@@ -63,7 +63,7 @@
 - [x] CLI: `poesia write --theme X --tone Y --seeds "a,b" --brief-level standard --brief`
 - [x] CLI: `poesia memoria add-fragment|add-seed|add-influence|list-fragments|list-influences`
 - [x] Integration tests in `tests/test_integration_phase3e.py`
-- [ ] Wire retrieval into `GalerIA` for illustration style anchoring (deferred to future phase)
+- [x] Wire retrieval into `GalerIA` for illustration style anchoring — `--style-from-retrieval` (2026-08-04)
 
 ## Workflow Model
 
