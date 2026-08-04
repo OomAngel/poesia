@@ -850,24 +850,28 @@ class LoRAClient:
         self._load()
         self.usage = LLMUsage()
         t0 = time.time()
-        results = []
         # A single hendecasyllable is ~7-10 words ≈ 20-30 tokens. 50 gives room.
         max_new = 50 if "Write line" in prompt or "Output ONLY" in prompt else 100
-        for i in range(n):
-            if i > 0:
-                time.sleep(0.1)
-            inputs = self._tokenizer(prompt, return_tensors="pt").to("cuda")
-            with torch.no_grad():
-                out = self._model.generate(
-                    **inputs,
-                    max_new_tokens=max_new,
-                    temperature=temperature,
-                    do_sample=True,
-                    pad_token_id=self._tokenizer.pad_token_id,
-                )
-            text = self._tokenizer.decode(
-                out[0][inputs.input_ids.shape[1] :], skip_special_tokens=True
-            ).strip()
+
+        # Batching: every line candidate shares the exact same prompt, so the n
+        # samples are drawn in ONE forward pass via num_return_sequences=n instead
+        # of n sequential generate() calls. This is the dominant cost of the
+        # constrained loop on local GPUs (~10x wall-clock reduction for n=16).
+        inputs = self._tokenizer(prompt, return_tensors="pt").to("cuda")
+        with torch.no_grad():
+            out = self._model.generate(
+                **inputs,
+                max_new_tokens=max_new,
+                temperature=temperature,
+                do_sample=True,
+                num_return_sequences=n,
+                pad_token_id=self._tokenizer.pad_token_id,
+            )
+
+        prompt_len = inputs.input_ids.shape[1]
+        results = []
+        for seq in out:
+            text = self._tokenizer.decode(seq[prompt_len:], skip_special_tokens=True).strip()
             if text:
                 # Clean up: remove instruction-echo if the model parroted the prompt
                 lines = text.split("\n")
