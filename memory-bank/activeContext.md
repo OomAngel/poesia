@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-04 (Session: GitHub repo-page capture + presentation reference & 9-repo README audit)_
+_Last updated: 2026-08-04 (Session: GalerIA retrieval-style feature + research-tools xenon diagnosis; retraining parked)_
 
 ---
 
@@ -80,6 +80,28 @@ The training plan itself (when relaunched):
 6. Hand-written sonetos: "El peso del saber", "El umbral", 6 RadicleCrops versions (ES×4 + EN×1 + fresh ES×1)
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
+
+## What We Just Did (2026-08-04 — research-tools xenon gate: diagnosis; paused refactor)
+
+1. **"You pick" → researched the research-tools push blocker** (v2-fixed retraining
+   is infra-blocked: PG/MLflow still down, Docker Desktop WSL-integration
+   disabled — verified `docker` unusable, GPU free).
+2. **Full xenon diagnosis** (sci-pipeline env): 6 blocks over threshold
+   (`--max-absolute C`): `kg_enrich_all.py:773 enrich_all` (F, 234 lines),
+   `kg_enrich_all.py:207 _parse_biblio` (E), `kg_build.py:678 build_kg` (F, 177
+   lines), `kg_build.py:167 _parse_biblio_xml` (E), `reference_graph_enricher.py:645
+   enrich_reference_graph` (D, 128 lines), `graph_api/main.py:390 api_search` (D,
+   63 lines).
+3. **Situation changed mid-diagnosis**: user added 2 new commits
+   (`bc68bc6 docs(kg) upgrade truth baseline`, `ddc0cb7 feat(kg) governed contract
+   kernel spike`) + active WIP (`tools/kg/store.py`, `tests/tools/kg/test_store.py`)
+   — the KG pipeline is being actively restructured. → **paused the refactor**
+   (removed my scratch worktree/branch; repo left untouched).
+4. research-tools now `ahead 9` on main; my README commit (`9f45e89`) still
+   unpushed; push will keep failing until the 6 functions pass xenon.
+5. **Decision for user**: (a) I refactor the 6 functions (verified via xenon +
+   repo tests) so the push can go through, (b) fold it into their kg
+   restructuring, or (c) leave parked.
 
 ## What We Just Did (2026-08-04 — GalerIA style anchoring from retrieval)
 
