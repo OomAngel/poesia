@@ -40,6 +40,7 @@ class WriteConfig:
 
     # Brief / enrichment
     use_brief: bool = False
+    semantic: bool = False  # semantic theme/novelty scoring without context
     brief_level: Literal["minimal", "standard", "maximal"] = "standard"
     tone: list[str] | None = None
     seeds: list[str] | None = None

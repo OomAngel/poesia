@@ -56,6 +56,12 @@ def write(
     seeds: str = typer.Option(None, help="Comma-separated seed words."),
     brief_level: str = typer.Option("standard", help="Brief verbosity."),
     use_brief: bool = typer.Option(False, "--brief", help="Use BriefBuilder."),
+    semantic: bool = typer.Option(
+        False,
+        "--semantic",
+        help="Enable semantic theme/novelty scoring without personal context "
+        "(needs sentence-transformers).",
+    ),
     llm: str = typer.Option("stub", help="LLM backend."),
     save: bool = typer.Option(False, "--save", help="Save to library."),
     tags: str = typer.Option(None, help="Comma-separated tags."),
@@ -94,6 +100,7 @@ def write(
         seeds=seeds_list,
         brief_level=brief_level,
         use_brief=use_brief,
+        semantic=semantic,
         save=save,
         tags=[t.strip() for t in tags.split(",")] if tags else None,
         use_library=use_library,
@@ -193,6 +200,28 @@ def write(
             fragments=fragments,
             influences=influences,
         )
+
+    # --semantic: real theme/novelty scoring WITHOUT loading personal context
+    # (no angel_fragments, no influences) — the clean path for better ranking
+    # of candidates against the theme alone.
+    if semantic and embedding_client is None:
+        from poesia.memoria.embeddings import get_embedding_client
+
+        try:
+            embedding_client = get_embedding_client()
+            semantic_mode_active = True
+            rprint("[green]✓[/green] [dim]Semantic scoring enabled (sentence-transformers)[/dim]")
+        except Exception as e:
+            from poesia.memoria.embeddings import StubEmbeddingClient
+
+            embedding_client = StubEmbeddingClient()
+            rprint(
+                "[yellow]⚠[/yellow]  [bold]Degraded mode:[/bold] No sentence-transformers available"
+            )
+            rprint(
+                "[dim]   Theme and novelty scoring disabled. Install with: pip install -e '.[nlp]'[/dim]"
+            )
+            rprint(f"[dim]   Error: {e}[/dim]")
 
     # --show-retrieval: build a preview brief now just to show what was retrieved
     if show_retrieval and brief_builder is not None:
@@ -358,12 +387,14 @@ def write(
         rprint(f"[bold]Brief level:[/bold] {result.brief.level}")
 
     # Show scoring mode status
-    if not semantic_mode_active and not use_brief:
-        rprint("[dim]Scoring mode: metre only (no semantic scoring)[/dim]")
-    elif not semantic_mode_active and use_brief:
-        rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
-    else:
+    if semantic_mode_active:
         rprint("[dim]Scoring mode: metre + theme + novelty[/dim]")
+    elif semantic and not use_brief:
+        rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
+    elif not use_brief:
+        rprint("[dim]Scoring mode: metre only (no semantic scoring)[/dim]")
+    else:
+        rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
 
     rprint()
     for line in result.lines:
