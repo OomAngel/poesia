@@ -28,6 +28,15 @@
 
 ## DONE
 
+### 2026-08-04: Metadata quick wins (Alternative A) — 9 repos
+- [x] Descriptions set on `orchard_twins` + `research-tools` via `gh repo edit`
+- [x] Topics added to all 9 repos (5–6 each, domain-relevant); verified via API
+- [x] License step **dropped** (correct): `microscopy`'s NOASSERTION is a
+      deliberate UNLICENSED private-workbench license, not a defect
+- [x] Audit doc updated (quick wins ✅/⚠️/⏳ + changelog); CI badges + Status
+      sections deferred (README-level work)
+- [x] Discovered: all 9 repos already cloned at `~/dev/<name>`
+
 ### 2026-08-04: Presentation standard + 9-repo README audit
 - [x] `docs/PRESENTATION_REFERENCE.md` — enrichable standard: P1–P15 (four
       tiers) + rubric (/56) + template + enrichment protocol + changelog
