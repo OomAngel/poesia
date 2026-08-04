@@ -321,7 +321,9 @@ MLflow experiments, model registry and monitoring run against PostgreSQL
 `bash scripts/launch_training.sh local mlops/configs/train_<config>.yaml`.
 
 **Documentation**: `docs/` — architecture, package survey, roadmap, experiment
-plan, RAG/LLM hardening plan, corpus sources, MLOps diagnosis. Full CLI reference
+plan, RAG/LLM hardening plan, corpus sources, MLOps diagnosis,
+[presentation reference](docs/PRESENTATION_REFERENCE.md) + repo
+[README audit](docs/REPO_README_AUDIT.md). Full CLI reference
 in [`USAGE_GUIDE.md`](USAGE_GUIDE.md).
 
 ---
