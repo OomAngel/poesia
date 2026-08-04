@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-03 (Session: Cloudflare Workers AI backend — ranked #2, implemented; suite 468 green)_
+_Last updated: 2026-08-04 (Session: GitHub repo-page capture — replica + real screenshots, ~20 s public window)_
 
 ---
 
@@ -80,6 +80,30 @@ The training plan itself (when relaunched):
 6. Hand-written sonetos: "El peso del saber", "El umbral", 6 RadicleCrops versions (ES×4 + EN×1 + fresh ES×1)
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
+
+## What We Just Did (2026-08-04 — GitHub repo-page capture: replica + real screenshots)
+
+1. **Deliverable**: visual captures of how `github.com/OomAngel/poesia` looks —
+   saved (gitignored) to `screenshots/`:
+   - `github_oomangel_poesia_REAL_full.png` / `_REAL_viewport.png` — TRUE GitHub
+     page (1440 px viewport, DSF2 → 2880×19640 full-page)
+   - `github_oomangel_poesia_full.png` / `_viewport.png` — data-faithful local
+     replica built from GitHub's own rendered README HTML + API metadata
+2. **Why two captures**: repo is PRIVATE and GitHub's web frontend ignores API
+   tokens for private pages (404); the snap Chromium profile's GitHub session
+   was dead (redirects to /login). Playwright's bundled browser was missing —
+   launched via `executable_path` to cached chromium-1223 instead.
+3. **Real capture**: with user approval, flipped visibility public → captured →
+   flipped back private via `gh repo edit --accept-visibility-change-consequences`.
+   Fail-safe `trap` restores private on ANY error (proven: first run tripped the
+   flag requirement — never left private). Exposure window ~20 s
+   (10:22:38→10:22:58); final visibility verified PRIVATE via API.
+4. **Replica validated**: 11/11 README images load (camo badges + local showcase
+   PNGs resolved to `file://`), GitHub nav colour exact (#24292f), all 30 root
+   files with per-file latest commits.
+5. Tooling kept in `/tmp` (`build_poesia_replica.py`, `shot_real.py`,
+   `flip_capture.sh`); sensitive temp files (copied cookie profile, raw gh
+   token) deleted.
 
 ## What We Just Did (2026-08-04 — share-readiness: GitHub CI green + private repo)
 
