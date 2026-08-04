@@ -28,6 +28,17 @@
 
 ## DONE
 
+### 2026-08-04: README badge/status pass — local commits prepared (8 repos)
+- [x] CI + license badge rows added (cielch, hidrive, hiops, microscopy, optics,
+      pcb-tools, research-tools) — PoesIA badge grammar
+- [x] Dated Status sections added (cielch, hidrive, hiops, optics, pcb-tools,
+      research-tools); orchard_twins badge/hook/honesty fixes committed
+- [x] luminose-ip-archive untouched (P15 purpose-fit) — by design
+- [x] Push state mapped (hiops +13, research-tools +6, cielch +4, optics +1
+      unpushed; hiops may trigger Cloudflare workflows); **push awaiting user
+      decision**
+- [x] Cloned hidrive-image-index (was missing locally)
+
 ### 2026-08-04: Metadata quick wins (Alternative A) — 9 repos
 - [x] Descriptions set on `orchard_twins` + `research-tools` via `gh repo edit`
 - [x] Topics added to all 9 repos (5–6 each, domain-relevant); verified via API

@@ -81,6 +81,24 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
+## What We Just Did (2026-08-04 — README badge/status pass across 8 repos)
+
+1. **Prepared local README commits** (NOT pushed) in 8 repos:
+   - CI + license badge rows (PoesIA grammar): cielch, hidrive, hiops,
+     microscopy (badge only), optics, pcb-tools, research-tools.
+   - Dated Status sections (P13): cielch, hidrive, hiops, optics, pcb-tools,
+     research-tools.
+   - orchard_twins: badge normalization, name hook, replaced "8.3/10"
+     self-score with measured facts (182 tests · 47% cov · CI 1m45s), status →
+     Active (2026-08) · CUDA 12.9 rebuild.
+2. **luminose-ip-archive deliberately untouched** (P15 purpose-fit).
+3. **Push state discovered**: hidrive/pcb-tools/microscopy push clean; hiops
+   (+13), research-tools (+6), cielch (+4), optics (+1) carry unpushed local
+   commits — hiops push may trigger Cloudflare Pages/Worker workflows.
+   Awaiting user's push decision.
+4. Notes: hidrive-image-index was NOT cloned locally — cloned to
+   `~/dev/hidrive-image-index`. orchard_twins README is CRLF.
+
 ## What We Just Did (2026-08-04 — metadata quick wins on 9 repos)
 
 1. **Descriptions set** on `orchard_twins` + `research-tools` (the only empty

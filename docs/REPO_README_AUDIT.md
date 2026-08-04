@@ -153,16 +153,31 @@ make sure **no other repo links to it** as a reference.
    open-source decision. Do **not** replace it; that would be a legal grant on a
    private workbench. `luminose-ip-archive` intentionally has none. Both are
    correct P15 posture.
-4. ⏳ **Add a license badge** to tooling repos that already have a `LICENSE`
-   (hiops, pcb-tools, research-tools, optics, cielch, hidrive) — README edits,
-   not applied in the metadata pass.
-5. ⏳ **Add a dated Status section** (P13) — not applied in the metadata pass.
+4. ✅ **CI + license badges added** (2026-08-04, local commits) — cielch,
+   hidrive, hiops, microscopy, optics, pcb-tools, research-tools; badge rows use
+   the PoesIA grammar.
+5. ✅ **Dated Status sections (P13) added** (2026-08-04, local commits) — hiops,
+   pcb-tools, research-tools, cielch, optics, hidrive; orchard_twins status +
+   self-score refreshed to measured facts. *(Local only; push pending — see
+   [Audit changelog](#audit-changelog).)*
+
+4. ✅ **CI badges added** (2026-08-04) — cielch, hidrive, hiops, microscopy,
+   optics, pcb-tools, research-tools (quality/ci/tests workflow each, verified).
+   Badge rows use the PoesIA grammar (license `-yellow`, `-blue` facts).
+5. ✅ **Dated Status sections (P13) added** (2026-08-04) — hiops, pcb-tools,
+   research-tools, cielch, optics, hidrive; orchard_twins' status refreshed to
+   honest "Active (2026-08) · v0.5.0 · CUDA 12.9 rebuild" (was a stale 2025-01-20
+   "Production-Ready") and its subjective "Architecture Quality 8.3/10" replaced
+   with measured facts (182 tests · 47% coverage · CI 1m45s). All prepared as
+   local commits; **pushes pending user confirmation** (4 repos carry unpushed
+   local work: hiops +13, research-tools +6, cielch +4, optics +1).
 
 ## Audit changelog
 
 | Date | Change |
 |---|---|
 | 2026-08-04 | **Metadata pass applied (Alternative A).** Descriptions set on `orchard_twins` + `research-tools`; 5–6 topics added to all 9 repos via `gh repo edit`. License step **dropped** after inspection: `microscopy`'s `NOASSERTION` is deliberate (UNLICENSED private-workbench text), not a defect. CI-badge and Status-section steps deferred. |
+| 2026-08-04 | **README pass prepared (local commits, not pushed).** CI + license badges (7 repos), dated Status sections (6 repos), orchard_twins badge/hook/honesty fixes. `luminose-ip-archive` untouched (P15 purpose-fit). Push pending: hiops +13, research-tools +6, cielch +4, optics +1 unpushed local commits would ride along. |
 
 ## Priority matrix (impact × effort)
 
