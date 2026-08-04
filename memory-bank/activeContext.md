@@ -81,6 +81,23 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
+## What We Just Did (2026-08-04 — GalerIA style anchoring from retrieval)
+
+1. **Implemented `galeria illustrate --style-from-retrieval`** — the last open
+   Phase 3E item: embeds the poem/theme, retrieves semantically-similar library
+   poems, and maps their imagery + sensory texture to visual keywords
+   (`style_from_retrieval()` in `style_anchoring.py`; new `SENSORY_MODALITY_STYLES`
+   mapping). Merged with influence + base style in `derive_style()`; threaded
+   through `illustrate_poem(retrieval_style=...)`.
+2. **Graceful degradation** (`_retrieve_style_texts()` in cli.py): no
+   index / no `.[nlp]` extra → prints a note, still illustrates (never
+   hard-fails). Verified: unit tests + CLI no-index test + a **real end-to-end
+   smoke** (tmp library + e5-small index → retrieved texts → style string).
+3. Counts: **478 → 486** tests (8 new: 4 style_from_retrieval, 3 derive_style
+   merge, 1 CLI degradation). Full suite green 100%, ruff/mypy clean on changed
+   src. Architecture conformance guard still passes (galeria→memoria allowed).
+4. README walkthrough + ROADMAP item ticked + CHANGELOG + memory-bank.
+
 ## What We Just Did (2026-08-04 — PoesIA architecture conformance guard)
 
 1. **Audited the actual import graph** against `docs/ARCHITECTURE.md`:
