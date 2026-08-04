@@ -216,3 +216,79 @@ def test_attach_image_unknown_poem_raises(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         lib.attach_image("no_such_poem", "illustrations/x.png")
 
+
+def test_title_round_trips_markdown_and_sqlite(tmp_path: Path) -> None:
+    """A record's title is written to frontmatter and restored everywhere."""
+    lib = Library(storage_dir=tmp_path)
+    rec = _record("cosecha de esperanza", tags=["quinoa"])
+    rec.title = "A Harvest Hope"
+    lib.add(rec)
+
+    content = (tmp_path / f"{rec.id}.md").read_text(encoding="utf-8")
+    assert "title: A Harvest Hope" in content
+
+    # A fresh Library instance (re-sync from Markdown) must restore the title.
+    lib2 = Library(storage_dir=tmp_path)
+    fetched = lib2.get(rec.id)
+    assert fetched is not None
+    assert fetched.title == "A Harvest Hope"
+
+    # list_all and search carry the title too.
+    assert lib2.list_all()[0].title == "A Harvest Hope"
+    assert lib2.search("cosecha")[0].title == "A Harvest Hope"
+
+
+def test_title_omitted_from_frontmatter_when_empty(tmp_path: Path) -> None:
+    """Records without a title keep clean, backward-compatible frontmatter."""
+    lib = Library(storage_dir=tmp_path)
+    lib.add(_record("luna"))
+    rec = lib.list_all()[0]
+    assert rec.id is not None
+    content = (tmp_path / f"{rec.id}.md").read_text(encoding="utf-8")
+    assert "title:" not in content
+
+
+def test_existing_database_is_migrated_with_title_column(tmp_path: Path) -> None:
+    """Pre-existing library.db (old schema) is upgraded without data loss."""
+    import sqlite3
+
+    db_path = tmp_path / "library.db"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        CREATE TABLE poems (
+            id TEXT PRIMARY KEY,
+            filename TEXT NOT NULL,
+            language TEXT NOT NULL,
+            form TEXT NOT NULL,
+            theme TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            tags TEXT NOT NULL,
+            content TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO poems (id, filename, language, form, theme, created_at, tags, content)
+        VALUES ('old_1', 'old_1.md', 'es', 'soneto', 'luna antigua',
+                '2026-01-01T00:00:00', '', 'verso viejo')
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    lib = Library(storage_dir=tmp_path)
+    # Existing record survives; old rows default to an empty title.
+    old = lib.get("old_1")
+    assert old is not None
+    assert old.title == ""
+
+    # New records can store a title in the migrated database.
+    rec = _record("luna nueva")
+    rec.title = "Luna Nueva"
+    lib.add(rec)
+    assert rec.id is not None
+    assert lib.get(rec.id) is not None
+    assert lib.get(rec.id).title == "Luna Nueva"  # type: ignore[union-attr]
+
