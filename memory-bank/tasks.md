@@ -38,6 +38,29 @@
 
 ## DONE
 
+### 2026-08-04 (soneto session): generation + speed + relevant illustration
+- [x] Generated, curated and saved the soneto **"Canaria del viento"** (LoRA 3B
+      raw material + human curation; 14×11 syllables, ABBA ABBA CDC DCD, scan+
+      rhyme validated) — `seeds/library/20260804_203857_...md` + `~/.poesia/poems`
+- [x] **perf**: `LoRAClient.generate` batches all n candidates in one forward
+      pass (`num_return_sequences=n`) — **12.6× faster** on the real 3B 4-bit
+      model (16 candidates: 36.7s → 2.9s); unit test added
+- [x] **fix**: irrelevant auca root cause = `--backend procedural` (abstract by
+      design); regenerated with **Cloudflare SDXL** (`--backend auto`) → relevant
+      4-panel sheet, linked from the poem's `image:` frontmatter
+- [x] **fix**: `imagery.py` phrase cleanup (`_PHRASE_STOP`/`_is_junk_phrase`,
+      whitespace+punctuation normalization) so image prompts carry real content;
+      test added
+- [x] **fix**: `constrained_loop.py` candidate cleaning — strip prompt-echo
+      artifacts ("3. ", "AE ", "FLO ", "Line content:", all-caps echoes) and
+      reject exact repeats (vs prior lines + within batch), fail-open, BEFORE
+      scoring; 5 unit tests. Demonstrated on the degenerate raw run
+- [x] **tool**: `scripts/benchmark_generation.py` — poem + image speed checks
+      (batched vs `--sequential`, panels). Live: 24s load; 52.15s → 3.51s/line
+      (≈15×); SDXL 9.9s/panel → auca 4 paneles ≈ 40s
+- [x] Suite: targeted tests green; full suite 100% no failures (exit-time MLflow
+      trace flush hangs when PG is down — environmental)
+
 ### 2026-08-04: GalerIA style anchoring from retrieval
 - [x] `galeria illustrate --style-from-retrieval` — retrieval (e5) → imagery →
       visual keywords (`style_from_retrieval` + `SENSORY_MODALITY_STYLES`);

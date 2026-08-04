@@ -81,6 +81,48 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
+## What We Just Did (2026-08-04 — soneto session: generation + perf batching + relevant illustration)
+
+1. **Generated + curated + saved the soneto "Canaria del viento"** (seeds/library/
+   `20260804_203857_445712_un_hombre_mexicano_de_los_mang.md` + `~/.poesia/poems/`),
+   14×11-syllable, ABBA ABBA CDC DCD, validated with `SpanishPhonology.scan_line`
+   + `rhyme_key`. Raw `poesia write --llm lora` (Qwen2.5-3B + poetry-lora-qwen3b)
+   was degenerate (echo loops/artifacts) — expected 3B capability boundary;
+   final poem is LoRA raw material + human curation (the repo's "human for taste").
+2. **perf(generation): `LoRAClient.generate` now batches** — one forward pass with
+   `num_return_sequences=n` instead of n sequential calls. Benchmark on the real
+   3B 4-bit model: **12.6× faster** (16 candidates: 36.7s → 2.9s). Test added.
+3. **fix(galeria): irrelevant images root-caused** — `--backend procedural` is
+   abstract generative art BY DESIGN; real literal illustration needs a hosted
+   T2I (`--backend auto` already resolves to Cloudflare SDXL when the env has
+   CLOUDFLARE_ACCOUNT_ID/API_TOKEN — the earlier run used procedural explicitly).
+4. **fix(galeria): clean imagery phrase extraction** — spacy noun_chunks produced
+   junk phrases (leading commas, bare stopwords "te"/"que", embedded newlines).
+   Added `_PHRASE_STOP` + `_is_junk_phrase` + whitespace normalization in
+   `imagery.py`; prompts for the soneto now carry real content (cabellera,
+   manglares, vestido, baile, mole, mesa, hervor). Test added.
+5. **Regenerated the auca with Cloudflare SDXL** — relevant 4-panel sheet
+   (7.3 MB, 2218×2710) now at `~/.poesia/poems/illustrations/<id>.png` +
+   `galeria/soneto_canaria_del_viento_auca.png` (galeria/ is gitignored).
+6. **Suite**: targeted tests green (llm_client 5, galeria_pipeline 23,
+   architecture_layers 1). Full suite runs to 100% with no failures, but the
+   exit-time MLflow async trace flush **hangs when PostgreSQL is down**
+   (environmental; summary line never prints). Not caused by these changes.
+7. **fix(generation): candidate cleaning in `constrained_loop.py`** — local models
+   echo prompt fragments as line prefixes (numbering "3. ", rhyme letters
+   "AE "/"FLO ", "Line content: ") and loop on repeats. Added `_clean_candidate`
+   + `_clean_candidates` (strip artifacts, lowercase all-caps echo tokens,
+   reject exact repeats vs prior lines and within the batch, fail-open) applied
+   BEFORE scoring. Demonstrated on the degenerate raw run: "3. FLO a la
+   canción que te despierta el viento," → "a la canción que te despierta el
+   viento,", repeats rejected. Tests added (5).
+8. **tool(scripts): `benchmark_generation.py`** — reproducible speed checks:
+   poem path (batched LoRA, optional `--sequential` old-path comparison) and
+   image path (Cloudflare panels). Live numbers on this machine: **model load
+   24s; old 16×1 = 52.15s vs batched 3.51s/line (≈15×); Cloudflare SDXL
+   9.9s/panel (4-panel auca ≈ 40s)** → a full soneto ≈ 1.5-2 min now vs
+   ~12-15 min before.
+
 ## What We Just Did (2026-08-04 — research-tools xenon gate: diagnosis; paused refactor)
 
 1. **"You pick" → researched the research-tools push blocker** (v2-fixed retraining
