@@ -72,3 +72,7 @@ Thumbs.db
 cronologia/volumes/
 cronologia/.env
 cronologia/*.db
+
+# Local GitHub-page capture artifacts (replica screenshots)
+screenshots/
+
