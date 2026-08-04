@@ -28,6 +28,16 @@
 
 ## DONE
 
+### 2026-08-04: GalerIA style anchoring from retrieval
+- [x] `galeria illustrate --style-from-retrieval` — retrieval (e5) → imagery →
+      visual keywords (`style_from_retrieval` + `SENSORY_MODALITY_STYLES`);
+      merged in `derive_style`/`illustrate_poem`
+- [x] Graceful degradation (`_retrieve_style_texts`): no index/no nlp extra →
+      note + still illustrates
+- [x] Tests +8 (unit, CLI no-index, derive merge); real e2e smoke with e5-small
+      index; suite **478 → 486** green 100%; ruff/mypy clean
+- [x] README walkthrough + ROADMAP item ticked + CHANGELOG + memory-bank
+
 ### 2026-08-04: PoesIA architecture conformance guard
 - [x] Audited real import graph vs `docs/ARCHITECTURE.md`; doc reconciled to
       the real seams (evaluation→memoria, generation→memoria, galeria→memoria,
