@@ -81,6 +81,28 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
+## What We Just Did (2026-08-04 — PoesIA architecture conformance guard)
+
+1. **Audited the actual import graph** against `docs/ARCHITECTURE.md`:
+   layering holds (phonology pure → evaluation deterministic core + optional
+   embedding interface from memoria → generation the only LLM caller →
+   feature modules via Protocol seams), but the doc was stale (P0–P5 era).
+2. **Found + fixed the one real lazy-import violation**: `training/
+   poetry_trainer.py` had top-level `import torch`/`transformers` — now
+   try-guarded with an actionable `ImportError` (mlops env). Verified it still
+   imports (subclasses `Trainer`) in the poesia env.
+3. **Added `tests/test_architecture_layers.py`** — AST conformance guard:
+   per-package dependency matrix + lazy heavy-import rule (same AST-guardrail
+   pattern as pcb-tools). Sanity-probed with a temporary violating file (it
+   fails correctly); removed probe. 478 tests (477 → 478; badge + prose
+   updated in README + PRESENTATION_REFERENCE exemplar).
+4. **Reconciled `docs/ARCHITECTURE.md`** — documented the real seams
+   (evaluation→memoria embeddings, generation→memoria retrieval, galeria→
+   memoria influence records, training→phonology, config→forms) + conformance
+   note. CHANGELOG entry added.
+5. Gates green: ruff check/format on changed files, mypy on poetry_trainer,
+   full suite 100% no failures (poesia env).
+
 ## What We Just Did (2026-08-04 — pushes: 7/8 done; research-tools blocked & recovered)
 
 1. **Pushed 7/8 repos** (user-approved, as-is): cielch, hidrive, hiops,
