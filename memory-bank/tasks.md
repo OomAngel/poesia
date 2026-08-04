@@ -28,6 +28,17 @@
 
 ## DONE
 
+### 2026-08-04: PoesIA architecture conformance guard
+- [x] Audited real import graph vs `docs/ARCHITECTURE.md`; doc reconciled to
+      the real seams (evaluation→memoria, generation→memoria, galeria→memoria,
+      training→phonology, config→forms)
+- [x] Fixed the one lazy-import violation: `training/poetry_trainer.py`
+      top-level torch/transformers → try-guarded actionable ImportError
+- [x] Added `tests/test_architecture_layers.py` (AST guardrail: dependency
+      matrix + lazy heavy-import rule); verified it fails on a probe
+- [x] Suite 477 → **478** (badge + prose + PRESENTATION_REFERENCE exemplar
+      updated); CHANGELOG entry; gates green (ruff/mypy/full suite)
+
 ### 2026-08-04: Pushes — 7/8 done; research-tools blocked + WIP recovered
 - [x] Pushed README pass to 7 repos: cielch, hidrive, hiops, microscopy, optics,
       orchard_twins, pcb-tools (as-is, incl. their unpushed commits)
