@@ -122,6 +122,16 @@ The training plan itself (when relaunched):
    24s; old 16×1 = 52.15s vs batched 3.51s/line (≈15×); Cloudflare SDXL
    9.9s/panel (4-panel auca ≈ 40s)** → a full soneto ≈ 1.5-2 min now vs
    ~12-15 min before.
+9. **v2 soneto "El canto del manglar"** — after the pipeline fixes, a fresh
+   n=32 + `--semantic` run confirmed the raw 3B output is still unusable (the
+   model is the hard quality ceiling; even semantic ranking can't fix "robust",
+   "nonplussed", "depalma"...). The v2 was therefore **human-curated**: model
+   fragments ("en su canto suena el mole y el mar", "compañero entero") +
+   full writing/validation with the repo scanner. Result: 14×11 syllables,
+   ABBA ABBA CDC DCD consonant rhyme, saved as a NEW library entry
+   (`20260805_002420_...`, provenance n=32 + --semantic + curacion v2) with its
+   own SDXL auca. Lesson recorded: pipeline fixes = mechanical; quality needs
+   human curation or a bigger model.
 
 ## What We Just Did (2026-08-04 — research-tools xenon gate: diagnosis; paused refactor)
 

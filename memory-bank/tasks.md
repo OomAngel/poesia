@@ -58,6 +58,10 @@
 - [x] **tool**: `scripts/benchmark_generation.py` — poem + image speed checks
       (batched vs `--sequential`, panels). Live: 24s load; 52.15s → 3.51s/line
       (≈15×); SDXL 9.9s/panel → auca 4 paneles ≈ 40s
+- [x] **v2 curada**: "El canto del manglar" — fresh n=32 + `--semantic` run
+      proved the 3B raw is the ceiling (still degenerate); v2 = human curation
+      (fragments + full write) validated 14×11 ABBA ABBA CDC DCD; saved as new
+      library entry + SDXL auca
 - [x] Suite: targeted tests green; full suite 100% no failures (exit-time MLflow
       trace flush hangs when PG is down — environmental)
 
