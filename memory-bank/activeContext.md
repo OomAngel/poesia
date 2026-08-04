@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-04 (Session: GitHub repo-page capture — replica + real screenshots, ~20 s public window)_
+_Last updated: 2026-08-04 (Session: GitHub repo-page capture + presentation reference & 9-repo README audit)_
 
 ---
 
@@ -80,6 +80,24 @@ The training plan itself (when relaunched):
 6. Hand-written sonetos: "El peso del saber", "El umbral", 6 RadicleCrops versions (ES×4 + EN×1 + fresh ES×1)
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
+
+## What We Just Did (2026-08-04 — presentation standard + 9-repo README audit)
+
+1. **`docs/PRESENTATION_REFERENCE.md`** — formalised the PoesIA presentation
+   principles into an enrichable standard: P1–P15 in four tiers (first
+   impressions / proof of life / structure / trust), each with a real PoesIA
+   exemplar, checkable rules, anti-patterns; README anatomy, 0–4 scoring rubric
+   (/56), diagnosis workflow, starter template, enrichment protocol, changelog.
+2. **`docs/REPO_README_AUDIT.md`** — diagnosed the 9 other `OomAngel` repos
+   (all private): only `orchard_twins` (40/56, 71%) is near share-ready;
+   `hiops` 26, `pcb-tools`/`research-tools` 23, `microscopy` 22, `cielch` 19,
+   `optics` 18, `hidrive` 17, `luminose-ip-archive` 10 but **purpose-fit 4/4**
+   (evidence repo — leave as-is). Cross-repo facts: **zero topics on any repo**,
+   `orchard_twins` + `research-tools` have no description,
+   `microscopy` license is `NOASSERTION`.
+3. README docs index now links both files.
+4. Repo list (OomAngel): 10 total incl. poesia; Angel-InsectSense has no repos;
+   no orgs.
 
 ## What We Just Did (2026-08-04 — GitHub repo-page capture: replica + real screenshots)
 

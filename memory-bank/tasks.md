@@ -28,6 +28,16 @@
 
 ## DONE
 
+### 2026-08-04: Presentation standard + 9-repo README audit
+- [x] `docs/PRESENTATION_REFERENCE.md` — enrichable standard: P1–P15 (four
+      tiers) + rubric (/56) + template + enrichment protocol + changelog
+- [x] `docs/REPO_README_AUDIT.md` — scored all 9 other `OomAngel` repos;
+      `orchard_twins` 40/56 is the share-ready candidate; luminose = purpose-fit
+      4/4 (leave as-is)
+- [x] Cross-repo quick wins recorded (topics on all, descriptions for
+      orchard_twins/research-tools, license fixes, badges, status)
+- [x] README docs index links both files; memory-bank updated
+
 ### 2026-08-04: GitHub repo-page capture — replica + real screenshots
 - [x] `screenshots/` (gitignored): REAL full-page + viewport captures of
       `github.com/OomAngel/poesia` via Playwright (chromium-1223)
