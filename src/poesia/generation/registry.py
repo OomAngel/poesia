@@ -28,6 +28,7 @@ _DEFAULT_PARAMS: dict[str, dict[str, Any]] = {
     "lora": {},
     "outlines": {},
     "mlflow": {},
+    "cloudflare": {"model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast"},
 }
 
 
@@ -119,12 +120,23 @@ def _import_backend(name: str) -> None:
 def list_backends() -> list[str]:
     """List all registered backend names."""
     # Ensure all are imported
-    for module_name in ("stub", "groq", "gemini", "openai", "ollama", "lora", "outlines", "mlflow"):
+    for module_name in (
+        "stub",
+        "groq",
+        "gemini",
+        "openai",
+        "ollama",
+        "lora",
+        "outlines",
+        "mlflow",
+        "cloudflare",
+    ):
         _import_backend(module_name)
     return sorted(_llm_registry.keys())
 
 
 # ── Auto-register built-in backends ──────────────────────────────
+from poesia.generation.cloudflare import CloudflareLLMClient  # noqa: E402
 from poesia.generation.llm_client import (  # noqa: E402
     HostedLLMClient,
     LoRAClient,
@@ -144,6 +156,7 @@ _LLM_MAP = {
     "lora": LoRAClient,
     "outlines": OutlinesClient,
     "mlflow": MLflowModelClient,
+    "cloudflare": CloudflareLLMClient,
 }
 
 for name, cls in _LLM_MAP.items():
