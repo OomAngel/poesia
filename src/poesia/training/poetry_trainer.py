@@ -22,9 +22,17 @@ from __future__ import annotations
 import re
 from typing import Any
 
-import torch
-import torch.nn.functional as F
-from transformers import Trainer
+try:  # ML training stack — only importable in the mlops conda env
+    import torch
+    import torch.nn.functional as F
+    from transformers import Trainer
+except ImportError as _exc:  # pragma: no cover - depends on environment
+    raise ImportError(
+        "poesia.training.poetry_trainer requires the ML training stack "
+        "(torch + transformers), provided by the mlops/ environment (see "
+        "environment.yml). It is not importable in a bare `pip install -e .` "
+        "environment and is only used by scripts/train_poetry_lora.py."
+    ) from _exc
 
 
 class PoetryTrainer(Trainer):
