@@ -71,6 +71,92 @@ _SENSORY_MAP = {
 }
 
 
+# Spanish function words that make a noun chunk meaningless as an image prompt
+# (bare pronouns, prepositions, conjunctions, articles, auxiliaries...).
+_PHRASE_STOP: frozenset[str] = frozenset(
+    {
+        "a",
+        "al",
+        "ante",
+        "bajo",
+        "con",
+        "contra",
+        "de",
+        "del",
+        "desde",
+        "en",
+        "entre",
+        "hacia",
+        "hasta",
+        "la",
+        "las",
+        "le",
+        "les",
+        "lo",
+        "los",
+        "más",
+        "mas",
+        "me",
+        "mi",
+        "mis",
+        "ni",
+        "no",
+        "o",
+        "para",
+        "pero",
+        "por",
+        "que",
+        "se",
+        "si",
+        "sí",
+        "sin",
+        "so",
+        "su",
+        "sus",
+        "te",
+        "tu",
+        "tus",
+        "un",
+        "una",
+        "unas",
+        "unos",
+        "y",
+        "ya",
+        "él",
+        "ella",
+        "eso",
+        "esto",
+        "esa",
+        "ese",
+        "cada",
+        "como",
+        "porque",
+        "cuando",
+        "donde",
+        "muy",
+        "tan",
+        "tanto",
+        "todo",
+        "toda",
+        "algo",
+    }
+)
+
+
+def _is_junk_phrase(phrase: str) -> bool:
+    """True when a noun-chunk string is not usable as an image prompt.
+
+    Drops punctuation-only scraps (spacy noun_chunks inherit leading commas),
+    bare function words, and single-token stopwords like ``te`` or ``que``.
+    """
+    p = phrase.strip(" ,;:¡!¿?.()\"'-").lower()
+    ws = p.split()
+    if not ws or len(ws) > 4:
+        return True
+    content = [w for w in ws if w not in _PHRASE_STOP]
+    return not content
+
+
 def _get_spacy(language="es"):
     import spacy
 
@@ -95,9 +181,8 @@ def extract_imagery(lines, language="es"):
     adjectives = [t.text.lower() for t in doc if t.pos_ == "ADJ" and t.is_alpha]
     phrases = []
     for chunk in doc.noun_chunks:
-        p = chunk.text.strip().lower()
-        ws = p.split()
-        if len(ws) <= 4 and p not in phrases:
+        p = " ".join(chunk.text.split()).strip(" ,;:¡!¿?.()\"'-").lower()
+        if not _is_junk_phrase(p) and p not in phrases:
             phrases.append(p)
 
     words_lower = set(re.findall(r"[a-z" + chr(241) + "]+", text.lower()))
