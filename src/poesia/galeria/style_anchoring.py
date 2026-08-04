@@ -58,6 +58,15 @@ TONE_MOODS: dict[str, list[str]] = {
     "musical": ["flowing lines", "rhythm in composition", "harmony"],
 }
 
+# Sensory modality -> visual style keyword (used by style_from_retrieval)
+SENSORY_MODALITY_STYLES: dict[str, list[str]] = {
+    "visual": ["vivid color", "luminous composition"],
+    "auditory": ["musical rhythm", "echoing space"],
+    "tactile": ["textured surface", "tactile detail"],
+    "olfactory": ["atmospheric haze", "fragrant detail"],
+    "gustatory": ["rich palette", "sensuous color"],
+}
+
 
 def style_from_influences(
     influences: list[InfluenceRecord],
@@ -99,6 +108,63 @@ def style_from_influences(
                 break
 
     return ", ".join(unique_keywords) if unique_keywords else ""
+
+
+def style_from_retrieval(
+    retrieved_texts: list[str],
+    language: str = "es",
+    theme: str = "",
+    max_keywords: int = 8,
+) -> str:
+    """Derive visual-style keywords from retrieved library content.
+
+    For each retrieved fragment/poem, extract its concrete imagery and map the
+    dominant sensory modalities + nouns to visual-style keywords — anchoring the
+    illustration in the user's own corpus voice instead of only literary
+    movements (the ``--style-from-retrieval`` path).
+
+    Args:
+        retrieved_texts: Contents of the semantically-similar library poems.
+        language: Language code for imagery extraction ('es' or 'en').
+        theme: Optional thematic anchor prepended to the style string.
+        max_keywords: Maximum number of style keywords to include.
+
+    Returns:
+        Comma-separated visual style string ("" when nothing was derived).
+    """
+    if not retrieved_texts:
+        return ""
+
+    from poesia.galeria.imagery import extract_imagery
+
+    keywords: list[str] = []
+    seen: set[str] = set()
+
+    def _add(keyword: str) -> None:
+        if keyword and keyword not in seen:
+            seen.add(keyword)
+            keywords.append(keyword)
+
+    for text in retrieved_texts:
+        if not text or not text.strip():
+            continue
+        lines = [ln for ln in text.splitlines() if ln.strip()][:20]
+        if not lines:
+            continue
+        imagery = extract_imagery(lines, language=language)
+        for sense in imagery["sensory_modalities"]:
+            for kw in SENSORY_MODALITY_STYLES.get(sense, []):
+                _add(kw)
+        for noun in imagery["nouns"][:3]:
+            if len(noun) > 2:
+                _add(noun)
+        if len(keywords) >= max_keywords:
+            break
+
+    if theme and theme.strip():
+        _add(theme.strip().lower())
+
+    return ", ".join(keywords[:max_keywords])
 
 
 def illustrate_prompt(

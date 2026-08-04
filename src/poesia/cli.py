@@ -568,6 +568,68 @@ def _load_influences() -> list:
         return []
 
 
+def _retrieve_style_texts(
+    theme: str,
+    poem_text: str,
+    language: str,
+    k: int = 4,
+) -> list[str]:
+    """Retrieve library poems semantically similar to the current poem/theme.
+
+    Used by ``galeria illustrate --style-from-retrieval``. Returns the contents
+    of the top-``k`` library poems (YAML frontmatter stripped). Gracefully
+    returns ``[]`` — with a printed note — when embeddings, the retrieval
+    index, or matching library entries are unavailable, so the CLI never
+    hard-fails on a missing optional dependency.
+    """
+    from poesia.memoria.library import Library
+
+    try:
+        from poesia.memoria.embeddings import get_embedding_client
+        from poesia.memoria.graphrag import GraphRAGRetriever
+    except ImportError:
+        rprint(
+            "[dim]Style-from-retrieval skipped: embeddings unavailable "
+            "(pip install -e '.[nlp]').[/dim]"
+        )
+        return []
+
+    try:
+        retriever = GraphRAGRetriever()
+        if retriever.node_count() == 0:
+            rprint(
+                "[dim]Style-from-retrieval skipped: no retrieval index "
+                "(build one with `poesia memoria ingest`).[/dim]"
+            )
+            return []
+        client = get_embedding_client()
+        retriever.check_index_compatibility(client)
+        query = theme if theme.strip() else poem_text
+        query_embedding = client.embed_one(query, text_type="query")
+        hits = retriever.retrieve(query_embedding, k=k)
+    except Exception as exc:  # noqa: BLE001 - graceful optional-feature degradation
+        rprint(f"[dim]Style-from-retrieval skipped: {exc}[/dim]")
+        return []
+
+    library = Library()
+    texts: list[str] = []
+    for poem_id, _score in hits:
+        poem = library.get(poem_id)
+        if poem is None:
+            continue
+        content = poem.content
+        if content.lstrip().startswith("---"):
+            parts = content.split("---", 2)
+            if len(parts) >= 3:
+                content = parts[2]
+        content = content.strip()
+        if content:
+            texts.append(content)
+        if len(texts) >= k:
+            break
+    return texts
+
+
 @app.command()
 def scan(
     line: str = typer.Argument(..., help="A single line of verse to scan."),
@@ -638,6 +700,11 @@ def galeria_illustrate(
     output: str = typer.Option("auca.png", help="Output path (.png illustrated sheet, or .pdf)."),
     use_influences: bool = typer.Option(
         False, "--style-from-influences", help="Derive style from matched influences."
+    ),
+    use_retrieval: bool = typer.Option(
+        False,
+        "--style-from-retrieval",
+        help="Derive style from semantically-similar library poems (needs a retrieval index).",
     ),
     tone: str = typer.Option(None, help="Comma-separated tones for influence matching."),
     from_library: str = typer.Option(None, "--from-library", help="Load poem from library by ID."),
@@ -714,6 +781,25 @@ def galeria_illustrate(
         if influence_style:
             rprint(f"[dim]Style from influences: {influence_style}[/dim]")
 
+    # Style anchoring from retrieval: derive visual keywords from the
+    # semantically-similar poems already in the user's own library.
+    retrieval_style = ""
+    if use_retrieval:
+        from poesia.galeria.style_anchoring import style_from_retrieval
+
+        poem_text = "\n".join(lines)
+        retrieved_texts = _retrieve_style_texts(
+            theme=theme or "", poem_text=poem_text, language=language
+        )
+        if retrieved_texts:
+            retrieval_style = style_from_retrieval(
+                retrieved_texts, language=language, theme=theme or ""
+            )
+            if retrieval_style:
+                rprint(f"[dim]Style from retrieval: {retrieval_style}[/dim]")
+            else:
+                rprint("[dim]Style-from-retrieval: no style keywords derived.[/dim]")
+
     try:
         panels, prompts = illustrate_poem(
             lines,
@@ -723,6 +809,7 @@ def galeria_illustrate(
             backend=backend,
             api_key=api_key,
             influences=matched_influences,
+            retrieval_style=retrieval_style or None,
             panel_mode=cast(Literal["stanza", "poem"], panel_mode),
         )
     except (IllustrateError, ValueError) as e:

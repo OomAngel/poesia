@@ -113,16 +113,21 @@ def get_image_backend(
 def derive_style(
     style: str | None,
     influences: list[InfluenceRecord] | None = None,
+    retrieval_style: str | None = None,
 ) -> str | None:
-    """Merge influence-derived visual keywords with the base style tag."""
-    if not influences:
-        return style
-    from poesia.galeria.style_anchoring import style_from_influences
+    """Merge influence-derived and retrieval-derived style with the base tag."""
+    parts: list[str] = []
+    if influences:
+        from poesia.galeria.style_anchoring import style_from_influences
 
-    inf_style = style_from_influences(influences)
-    if inf_style and style:
-        return f"{inf_style}, {style}"
-    return inf_style or style
+        inf_style = style_from_influences(influences)
+        if inf_style:
+            parts.append(inf_style)
+    if retrieval_style:
+        parts.append(retrieval_style)
+    if style:
+        parts.append(style)
+    return ", ".join(parts) if parts else None
 
 
 def illustrate_poem(
@@ -134,6 +139,7 @@ def illustrate_poem(
     backend: str = "auto",
     api_key: str | None = None,
     influences: list[InfluenceRecord] | None = None,
+    retrieval_style: str | None = None,
     max_lines_per_stanza: int = 8,
     panel_mode: Literal["stanza", "poem"] = "stanza",
 ) -> tuple[list[AucaPanel], list[str]]:
@@ -154,6 +160,8 @@ def illustrate_poem(
             'openai', or 'replicate'.
         api_key: Optional API key override for hosted backends.
         influences: Optional influence records for style anchoring (Phase 4C).
+        retrieval_style: Optional comma-separated visual-style keywords derived
+            from retrieved library content (--style-from-retrieval).
         max_lines_per_stanza: Fallback chunk size for stanza-less poems
             (ignored in ``poem`` mode).
         panel_mode: 'stanza' or 'poem'.
@@ -173,7 +181,7 @@ def illustrate_poem(
         raise ValueError(f"Unknown panel_mode: {panel_mode!r}. Available: stanza, poem.")
 
     img_backend = get_image_backend(backend, api_key)
-    final_style = derive_style(style, influences)
+    final_style = derive_style(style, influences, retrieval_style)
 
     panels: list[AucaPanel] = []
     prompts: list[str] = []
