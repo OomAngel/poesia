@@ -14,27 +14,47 @@ It must never call an LLM — it is the deterministic "ground truth" layer.
 1. **`phonology/`** has zero dependency on any other `poesia` package. It
    scans raw text and returns `ScanResult` / `RhymeKey` / `Stress` — pure
    data, computed deterministically.
-2. **`evaluation/`** depends on `phonology/` only. It turns scan results into
-   scores (`metre_score`, `rhyme_score`, ...), combined via `composite_score`.
-3. **`generation/`** depends on `phonology/` and `evaluation/`. It is the
-   *only* package allowed to talk to an LLM, via the `LLMClient` Protocol —
-   no concrete SDK import leaks outside `generation/`.
+2. **`evaluation/`** depends on `phonology/` plus the *embedding interface*
+   from `memoria/` (`memoria.embedding_validation`, type-only
+   `EmbeddingClient`). The metre/rhyme core is deterministic; semantic
+   scoring (`theme_score`, `novelty_score`) is an **optional** enhancement
+   that only activates when an `EmbeddingClient` is provided — without one it
+   falls back to metre-only scoring (see `scorer.py`).
+3. **`generation/`** depends on `phonology/`, `evaluation/`, `forms/`, and
+   `memoria/` (retrieval: `brief_builder.py` pulls fragments, seeds,
+   influences and graph paths from `memoria`). It is the *only* package
+   allowed to talk to an LLM, via the `LLMClient` Protocol — no concrete SDK
+   import leaks outside `generation/`.
 4. **`forms/`** is pure data (`FormSpec` dataclasses) — no behavior, no
    dependencies on the above. Consumed by `generation/` and `evaluation/`.
 5. **`eufonia/`** depends on `phonology/` only (it re-analyzes scan results,
    never re-derives phonemes itself).
 6. **`galeria/`** depends on nothing from the phonology/generation spine
-   directly — it takes already-generated poem text as input. Its own
-   `ImageBackend` Protocol (in `galeria/backends.py`) mirrors the
+   directly — it takes already-generated poem text as input. It does read
+   `memoria.records` (`InfluenceRecord`) for influence-based style anchoring.
+   Its own `ImageBackend` Protocol (in `galeria/backends.py`) mirrors the
    `LLMClient` seam discipline: no `openai`/`replicate`/`diffusers` import
    outside `galeria/`.
 7. **`armonia/`** depends on `phonology/` (for `Stress`/stress patterns via
    `prosody_to_rhythm.py`). Its own backend Protocols (`ScoreBackend`,
    `AudioSynthBackend`, `RecitationBackend`) keep `music21`/`pyfluidsynth`/
    `audiocraft` imports contained to `armonia/backends.py`.
-8. **`memoria/`** depends on nothing else at Phase 0-1 (`library.py` is a
-   flat in-memory store). Phase 3's `graphrag.py` will additionally depend
-   on `sentence-transformers` embeddings, contained the same way.
+8. **`memoria/`** is self-contained: embeddings, GraphRAG and record types
+   live here and are imported by `evaluation/`, `generation/` and `galeria/`
+   through narrow, typed seams. `networkx` and `sentence-transformers` stay
+   lazy-imported inside `graphrag.py` / `embeddings.py`.
+9. **`training/`** is an ML-only module (not importable in a bare
+   `pip install -e .` environment by design — its torch/transformers imports
+   are try-guarded). It depends on `phonology/` for validating generated
+   lines during training. Only `scripts/train_poetry_lora.py` imports it, and
+   lazily.
+10. **`config/`** depends on `forms/` (validating `FormSpec` choices) and is
+    consumed by `cli.py`.
+
+**Conformance.** The layering above — the dependency matrix plus the lazy
+heavy-import rule — is enforced by `tests/test_architecture_layers.py` (an
+AST guardrail, the same pattern used in `pcb-tools`), so a PR that breaks the
+seams fails CI instead of drifting silently.
 
 ## The seam discipline (why every backend is a Protocol)
 

@@ -3,6 +3,22 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-04 — Architecture conformance guard
+
+- **`tests/test_architecture_layers.py`** — AST-based conformance guard that
+  enforces the documented layering (per-package dependency matrix) and the
+  lazy heavy-import rule (ML/audio/image SDKs never at module top-level
+  outside a try/function body). A change that breaks a seam now fails CI
+  instead of drifting silently — the same AST-guardrail pattern as `pcb-tools`.
+- **`fix(training)`** — `poetry_trainer.py`'s module-level `import torch` /
+  `transformers` (the one real lazy-import violation) is now try-guarded and
+  raises an actionable `ImportError` naming the mlops environment.
+- **`docs(ARCHITECTURE.md)`** — reconciled with the real, interface-based
+  seams: `evaluation`→`memoria` (optional embedding scoring), `generation`→
+  `memoria` (retrieval), `galeria`→`memoria` (influence records), `training`→
+  `phonology`, `config`→`forms`.
+- Suite **477 → 478** (badge + prose updated).
+
 ## 2026-08-04 — Share-readiness: GitHub CI green + private repo verified
 
 - **Private GitHub repo verified** (`OomAngel/poesia`, PRIVATE, MIT, topics set);
