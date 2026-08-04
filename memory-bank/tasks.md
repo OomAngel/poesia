@@ -62,6 +62,13 @@
       proved the 3B raw is the ceiling (still degenerate); v2 = human curation
       (fragments + full write) validated 14×11 ABBA ABBA CDC DCD; saved as new
       library entry + SDXL auca
+- [x] **feat(generation)**: `--llm cloudflare` — reuse the image account's
+      Workers AI for text (OpenAI-compatible chat, n in one request); default
+      llama-3.3-70b-fp8-fast; registry + 4 tests
+- [x] **v3 curada**: "Manglar caluroso" — first 70B run wrote a real coastal
+      sonnet; curation fixed ABBA ABBA CDC DCD (A=-oso B=-entos C=-ina D=-or),
+      restored the kitchen/mole tercets, validated 14×11; new library entry +
+      SDXL auca
 - [x] Suite: targeted tests green; full suite 100% no failures (exit-time MLflow
       trace flush hangs when PG is down — environmental)
 

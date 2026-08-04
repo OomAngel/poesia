@@ -132,6 +132,21 @@ The training plan itself (when relaunched):
    (`20260805_002420_...`, provenance n=32 + --semantic + curacion v2) with its
    own SDXL auca. Lesson recorded: pipeline fixes = mechanical; quality needs
    human curation or a bigger model.
+10. **feat(generation): `--llm cloudflare` backend** — the SAME free Workers AI
+    account/token used for image generation also serves text LLMs via the
+    OpenAI-compatible chat endpoint (`/ai/v1/chat/completions`), honouring `n`
+    in one request. New `poesia/generation/cloudflare.py` +
+    `CloudflareLLMClient` (default `@cf/meta/llama-3.3-70b-instruct-fp8-fast`,
+    ~0.5-1s per line batch). Registered in the registry; 4 unit tests. The
+    70B produces real, on-theme Spanish verse — a MASSIVE quality jump over
+    the local 3B.
+11. **v3 soneto "Manglar caluroso"** — first `--llm cloudflare` generation:
+    the 70B wrote a full coastal sonnet (manglares, olas, arena, luna) with a
+    valid narrative; human curation fixed the rhyme scheme to ABBA ABBA CDC
+    DCD (A=-oso B=-entos C=-ina D=-or), restored the kitchen/mole tercets the
+    70B skipped, and validated 14×11 syllables. Saved as a new library entry
+    (`20260805_010319_...`, provenance cloudflare 70B + curacion v3) + its
+    own SDXL auca.
 
 ## What We Just Did (2026-08-04 — research-tools xenon gate: diagnosis; paused refactor)
 
