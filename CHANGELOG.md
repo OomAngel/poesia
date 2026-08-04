@@ -3,6 +3,18 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-04 — GalerIA style anchoring from retrieval
+
+- **`galeria illustrate --style-from-retrieval`** — the last open Phase 3E item.
+  Embeds the current poem/theme, retrieves semantically-similar library poems,
+  and maps their imagery + sensory texture to visual-style keywords
+  (`style_from_retrieval()`), merged with influence style and the base tag in
+  `derive_style()`.
+- **Graceful degradation**: no index / no `.[nlp]` extra → prints a note and
+  still illustrates with the base style (never a hard failure).
+- Verified end-to-end with a real e5-small index + real library.
+- Suite **478 → 486** (badge + prose updated).
+
 ## 2026-08-04 — Architecture conformance guard
 
 - **`tests/test_architecture_layers.py`** — AST-based conformance guard that
