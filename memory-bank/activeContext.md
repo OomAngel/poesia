@@ -81,6 +81,23 @@ The training plan itself (when relaunched):
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
 
+## What We Just Did (2026-08-04 — pushes: 7/8 done; research-tools blocked & recovered)
+
+1. **Pushed 7/8 repos** (user-approved, as-is): cielch, hidrive, hiops,
+   microscopy, optics, orchard_twins, pcb-tools — all `main` updates landed
+   (incl. their unpushed work).
+2. **`research-tools` push BLOCKED by its own pre-push gate**: `xenon`
+   complexity check fails on the user's WIP knowledge-graph code (6 functions in
+   `kg_build.py`, `kg_enrich_all.py`, `reference_graph_enricher.py`,
+   `graph_api/main.py`). Not my README change.
+3. **Recovery**: the failed pre-push run had (a) reformatted 13 files and (b)
+   trapped the user's WIP (15 files) in a pre-commit stash patch
+   (`~/.cache/pre-commit/patch1785845800-534766`). Restored: `git restore .` +
+   `git apply <patch>` → user's WIP fully back (13 modified + 21 untracked);
+   hook formatting reverted. HEAD = `9f45e89` (my README commit), `main` ahead 7.
+4. research-tools CI badge/status commit is **prepared locally, unpushed** —
+   needs their kg code to pass xenon (or a decision).
+
 ## What We Just Did (2026-08-04 — README badge/status pass across 8 repos)
 
 1. **Prepared local README commits** (NOT pushed) in 8 repos:

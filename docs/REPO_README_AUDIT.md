@@ -156,10 +156,10 @@ make sure **no other repo links to it** as a reference.
 4. ✅ **CI + license badges added** (2026-08-04, local commits) — cielch,
    hidrive, hiops, microscopy, optics, pcb-tools, research-tools; badge rows use
    the PoesIA grammar.
-5. ✅ **Dated Status sections (P13) added** (2026-08-04, local commits) — hiops,
-   pcb-tools, research-tools, cielch, optics, hidrive; orchard_twins status +
-   self-score refreshed to measured facts. *(Local only; push pending — see
-   [Audit changelog](#audit-changelog).)*
+5. ✅ **Dated Status sections (P13) added** (2026-08-04) — hiops, pcb-tools,
+   research-tools, cielch, optics, hidrive; orchard_twins status + self-score
+   refreshed to measured facts. *(7/8 pushed; research-tools blocked by its own
+   xenon gate — see [Audit changelog](#audit-changelog).)*
 
 4. ✅ **CI badges added** (2026-08-04) — cielch, hidrive, hiops, microscopy,
    optics, pcb-tools, research-tools (quality/ci/tests workflow each, verified).
@@ -177,7 +177,8 @@ make sure **no other repo links to it** as a reference.
 | Date | Change |
 |---|---|
 | 2026-08-04 | **Metadata pass applied (Alternative A).** Descriptions set on `orchard_twins` + `research-tools`; 5–6 topics added to all 9 repos via `gh repo edit`. License step **dropped** after inspection: `microscopy`'s `NOASSERTION` is deliberate (UNLICENSED private-workbench text), not a defect. CI-badge and Status-section steps deferred. |
-| 2026-08-04 | **README pass prepared (local commits, not pushed).** CI + license badges (7 repos), dated Status sections (6 repos), orchard_twins badge/hook/honesty fixes. `luminose-ip-archive` untouched (P15 purpose-fit). Push pending: hiops +13, research-tools +6, cielch +4, optics +1 unpushed local commits would ride along. |
+| 2026-08-04 | **README pass prepared (local commits).** CI + license badges (7 repos), dated Status sections (6 repos), orchard_twins badge/hook/honesty fixes. `luminose-ip-archive` untouched (P15 purpose-fit). |
+| 2026-08-04 | **Pushed 7/8** (user-approved, as-is): cielch, hidrive, hiops, microscopy, optics, orchard_twins, pcb-tools. **`research-tools` NOT pushed** — its own pre-push quality gate (`xenon` complexity) fails on the user's WIP knowledge-graph code (6 functions in `kg_build.py`, `kg_enrich_all.py`, `reference_graph_enricher.py`, `graph_api/main.py`). The failed push's pre-commit run also reformatted 13 files and trapped the user's WIP in a stash patch; **WIP fully restored** (15 files, from `~/.cache/pre-commit/patch1785845800-534766`), hook formatting reverted. research-tools remains local: `main` ahead 7 (incl. my README commit `9f45e89`). |
 
 ## Priority matrix (impact × effort)
 

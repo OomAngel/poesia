@@ -28,6 +28,17 @@
 
 ## DONE
 
+### 2026-08-04: Pushes — 7/8 done; research-tools blocked + WIP recovered
+- [x] Pushed README pass to 7 repos: cielch, hidrive, hiops, microscopy, optics,
+      orchard_twins, pcb-tools (as-is, incl. their unpushed commits)
+- [x] research-tools push blocked by its own pre-push `xenon` complexity gate
+      (fails on user's WIP kg code — 6 functions); my README commit `9f45e89`
+      stays local (main ahead 7)
+- [x] **Recovered user WIP**: failed pre-push had reformatted 13 files + trapped
+      15 WIP files in `~/.cache/pre-commit/patch1785845800-534766`; restored via
+      `git restore .` + `git apply` (verified non-trivial diffs back)
+- [x] Audit doc + memory-bank record the outcome
+
 ### 2026-08-04: README badge/status pass — local commits prepared (8 repos)
 - [x] CI + license badge rows added (cielch, hidrive, hiops, microscopy, optics,
       pcb-tools, research-tools) — PoesIA badge grammar
