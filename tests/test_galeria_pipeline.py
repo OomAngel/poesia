@@ -28,6 +28,30 @@ SONETO_LINES = [
 ]
 
 
+class TestImageryCleanup:
+    """Phrase cleaning: no punctuation scraps, bare stopwords, or newlines."""
+
+    def test_phrases_are_clean_content_words(self) -> None:
+        from poesia.galeria.imagery import extract_imagery
+
+        lines = [
+            "Menuda, de cabellera de viento,",
+            "te bailo entre manglares junto al mar,",
+            "tu vestido de fiesta, un gran cantar,",
+            "",
+            "No busco roce, busco compañera,",
+        ]
+        img = extract_imagery(lines, language="es")
+        assert img["phrases"]
+        for p in img["phrases"]:
+            assert p == p.strip()  # no leading/trailing whitespace
+            assert "\n" not in p  # no embedded line breaks
+            assert not p.startswith((",", ";", ":", " ", "\t"))
+        joined = " ".join(img["phrases"])
+        assert "cabellera" in joined
+        assert "manglares" in joined
+
+
 class TestSplitStanzas:
     """Stanza splitting: one image per stanza."""
 
