@@ -28,6 +28,16 @@
 
 ## DONE
 
+### 2026-08-04: GitHub repo-page capture — replica + real screenshots
+- [x] `screenshots/` (gitignored): REAL full-page + viewport captures of
+      `github.com/OomAngel/poesia` via Playwright (chromium-1223)
+- [x] User-approved ~20 s public visibility flip (fail-safe trap; final state
+      verified private via API)
+- [x] Data-faithful local replica also saved (GitHub's own rendered README HTML
+      + API metadata; 11/11 images, all 30 root files with per-file commits)
+- [x] Playwright browser via explicit `executable_path` (bundled browser path
+      missing); builder/scripts kept in /tmp; sensitive temp files deleted
+
 ### 2026-08-04: Share-readiness — GitHub CI green + private repo verified
 - [x] Pushed 40 commits to private `OomAngel/poesia` (PRIVATE ✓, MIT, topics);
       rendered README inspected via API — badges/images OK
