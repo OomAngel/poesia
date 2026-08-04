@@ -20,7 +20,6 @@
 
 - [ ] **Evaluate v2-fixed adapter** — auto via post-training pipeline when done
 - [ ] **Test poem generation with v2-fixed** — write a soneto, verify no instruction-echo
-- [ ] **Test title generation** — prompt the model to title its own poem
 - [ ] **Compare adapters** — v2-fixed vs old qwen3b vs DPO (metre accuracy)
 - [ ] **Run experiment grid** — CE vs Composite vs DPO
 - [ ] **Docker compose end-to-end** — postgres + mlflow-ui stack is UP (test training service)
@@ -37,6 +36,17 @@
 - [ ] **Snapshot tests** — CLI + generation pipeline
 
 ## DONE
+
+### 2026-08-05 (auto-title feature)
+- [x] **feat(generation)**: LLM-backed title suggestion on `poesia write --save`
+      — `suggest_title()` in `poesia/generation/titles.py` (prompt, clean,
+      80-char cap, fail-open fallback); new `--no-title` opt-out
+- [x] **feat(memoria)**: `PoemRecord.title` persisted in YAML frontmatter +
+      SQLite (ALTER TABLE migration for existing DBs); titles shown in
+      `memoria list`/`search`
+- [x] **Test title generation** — replaced the backlog item: 12 new tests
+      (helper cleaning/fallbacks, library round-trip + old-DB migration, CLI
+      flag) → full suite 512 green, mypy/ruff clean
 
 ### 2026-08-04 (soneto session): generation + speed + relevant illustration
 - [x] Generated, curated and saved the soneto **"Canaria del viento"** (LoRA 3B

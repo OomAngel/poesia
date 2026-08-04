@@ -42,6 +42,11 @@ for e in c.search_experiments():
 
 ## Current focus
 
+**NEW (2026-08-05): auto title generation shipped** — `poesia write --save` now
+asks the LLM (non-stub backends) for a short title after validation; saved
+poems carry `title:` in frontmatter + SQLite, shown in `memoria list`/`search`
+(`--no-title` opts out). Full suite green: 512 tests.
+
 **Working tree GREEN (2026-08-03, 447 tests)** — GalerIA has a real offline
 backend and the README shows it off: a `procedural` auca sheet embedded in a
 new **Showcase** section (`docs/examples/auca_el_peso_del_saber.png`). Repo is
@@ -80,6 +85,24 @@ The training plan itself (when relaunched):
 6. Hand-written sonetos: "El peso del saber", "El umbral", 6 RadicleCrops versions (ES×4 + EN×1 + fresh ES×1)
 
 ### Library state: 13 poems (El peso del saber, El umbral, Radicle ×6, + 5 earlier)
+
+## What We Just Did (2026-08-05 — auto LLM title generation)
+
+1. **`feat(generation): suggest_title()`** (`poesia/generation/titles.py`) — once
+   a poem is validated, asks the same LLM backend for a short title: builds the
+   prompt (form/language/theme/poem), cleans the answer (quotes, "Title:"
+   prefixes, extra lines, trailing punctuation, 80-char cap), and fails open to
+   a theme/first-line fallback. Never raises.
+2. **`PoemRecord.title`** (`memoria/library.py`) — new `title: str = ""` field,
+   written to YAML frontmatter when set, persisted in SQLite (migration:
+   `ALTER TABLE poems ADD COLUMN title TEXT NOT NULL DEFAULT ''` for
+   pre-existing DBs), restored by `get`/`list_all`/`search`/`_sync_md_files`.
+3. **CLI**: `poesia write --save` auto-titles via the same backend (skipped for
+   `stub` and with the new `--no-title` flag); title printed as
+   "Suggested title:" and shown in `poesia memoria list`/`search` when present.
+   USAGE_GUIDE updated (flag + cloudflare backend row).
+4. **Tests**: 12 new (8 titles helper, 3 library round-trip + old-DB migration,
+   1 CLI flag). Full suite green: **512 tests** (500 + 12); mypy + ruff clean.
 
 ## What We Just Did (2026-08-04 — soneto session: generation + perf batching + relevant illustration)
 
