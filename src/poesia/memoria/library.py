@@ -49,6 +49,7 @@ class PoemRecord:
     language: str
     form: str
     theme: str
+    title: str = ""  # Short human-readable title (LLM-suggested or curated)
     created_at: datetime = field(default_factory=datetime.now)
     tags: list[str] = field(default_factory=list)
     id: str | None = None
@@ -101,6 +102,7 @@ class Library:
                     filename TEXT NOT NULL,
                     language TEXT NOT NULL,
                     form TEXT NOT NULL,
+                    title TEXT NOT NULL DEFAULT '',
                     theme TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     tags TEXT NOT NULL,
@@ -108,6 +110,12 @@ class Library:
                 )
                 """
             )
+        # Migration: pre-existing databases lack the ``title`` column.
+        try:
+            with self._conn:
+                self._conn.execute("ALTER TABLE poems ADD COLUMN title TEXT NOT NULL DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass  # Column already exists (fresh DB or already migrated)
 
     def add(self, record: PoemRecord) -> None:
         """Add a completed poem to the library, saving to disk and SQLite."""
@@ -130,10 +138,12 @@ class Library:
                 f"id: {record.id}",
                 f"language: {record.language}",
                 f"form: {record.form}",
-                f"theme: {record.theme}",
-                f"created_at: {created_str}",
-                f"tags: [{tags_str}]",
             ]
+            if record.title:
+                frontmatter_lines.append(f"title: {record.title}")
+            frontmatter_lines.append(f"theme: {record.theme}")
+            frontmatter_lines.append(f"created_at: {created_str}")
+            frontmatter_lines.append(f"tags: [{tags_str}]")
 
             if record.provenance:
                 prov = record.provenance
@@ -173,14 +183,15 @@ class Library:
         with self._conn:
             self._conn.execute(
                 """
-                INSERT OR REPLACE INTO poems (id, filename, language, form, theme, created_at, tags, content)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO poems (id, filename, language, form, title, theme, created_at, tags, content)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     record.id,
                     filename,
                     record.language,
                     record.form,
+                    record.title,
                     record.theme,
                     created_str,
                     tags_str,
@@ -230,11 +241,11 @@ class Library:
         """Return all saved poems, most recent first."""
         cursor = self._conn.cursor()
         cursor.execute(
-            "SELECT id, language, form, theme, created_at, tags, content FROM poems ORDER BY created_at DESC"
+            "SELECT id, language, form, title, theme, created_at, tags, content FROM poems ORDER BY created_at DESC"
         )
         records: list[PoemRecord] = []
         for row in cursor.fetchall():
-            pid, lang, form, theme, created_str, tags_str, content = row
+            pid, lang, form, title, theme, created_str, tags_str, content = row
             tags = [t.strip() for t in tags_str.split(",") if t.strip()]
             lines = content.split("\n")
             created_at = datetime.fromisoformat(created_str)
@@ -243,6 +254,7 @@ class Library:
                     lines=lines,
                     language=lang,
                     form=form,
+                    title=title,
                     theme=theme,
                     created_at=created_at,
                     tags=tags,
@@ -262,18 +274,19 @@ class Library:
         """
         cursor = self._conn.cursor()
         cursor.execute(
-            """SELECT id, language, form, theme, created_at, tags, content
+            """SELECT id, language, form, title, theme, created_at, tags, content
                FROM poems WHERE id = ?""",
             (poem_id,),
         )
         row = cursor.fetchone()
         if row is None:
             return None
-        pid, lang, form, theme, created_at, tags_str, content = row
+        pid, lang, form, title, theme, created_at, tags_str, content = row
         record = PoemRecord(
             id=pid,
             language=lang,
             form=form,
+            title=title,
             theme=theme,
             created_at=datetime.fromisoformat(created_at) if created_at else datetime.now(),
             tags=[t.strip() for t in tags_str.split(",") if t.strip()],
@@ -288,7 +301,7 @@ class Library:
         cursor = self._conn.cursor()
         cursor.execute(
             """
-            SELECT id, language, form, theme, created_at, tags, content
+            SELECT id, language, form, title, theme, created_at, tags, content
             FROM poems
             WHERE LOWER(theme) LIKE ? OR LOWER(tags) LIKE ? OR LOWER(content) LIKE ?
             ORDER BY created_at DESC
@@ -297,7 +310,7 @@ class Library:
         )
         records: list[PoemRecord] = []
         for row in cursor.fetchall():
-            pid, lang, form, theme, created_str, tags_str, content = row
+            pid, lang, form, title, theme, created_str, tags_str, content = row
             tags = [t.strip() for t in tags_str.split(",") if t.strip()]
             lines = content.split("\n")
             created_at = datetime.fromisoformat(created_str)
@@ -306,6 +319,7 @@ class Library:
                     lines=lines,
                     language=lang,
                     form=form,
+                    title=title,
                     theme=theme,
                     created_at=created_at,
                     tags=tags,
@@ -338,6 +352,7 @@ class Library:
                 pid = meta.get("id", filepath.stem)
                 lang = meta.get("language", "es")
                 form = meta.get("form", "unknown")
+                title = meta.get("title", "")
                 theme = meta.get("theme", "")
                 created_str = meta.get("created_at", datetime.now().isoformat())
 
@@ -348,14 +363,15 @@ class Library:
                 with self._conn:
                     self._conn.execute(
                         """
-                        INSERT OR IGNORE INTO poems (id, filename, language, form, theme, created_at, tags, content)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT OR IGNORE INTO poems (id, filename, language, form, title, theme, created_at, tags, content)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             pid,
                             filepath.name,
                             lang,
                             form,
+                            title,
                             theme,
                             created_str,
                             ", ".join(tags),

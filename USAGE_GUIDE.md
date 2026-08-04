@@ -81,13 +81,14 @@ poesia write --theme "<theme>" --form <form> [OPTIONS]
 | `--theme TEXT` | Thematic anchor (REQUIRED) | - |
 | `--form NAME` | Poetic form: haiku, soneto, romance, sonnet_shakespearean | `soneto` |
 | `--language CODE` | Language: es, en, nl | `es` |
-| `--llm BACKEND` | LLM backend: stub, groq, gemini, openai, ollama, outlines, lora, auto | `stub` |
+| `--llm BACKEND` | LLM backend: stub, groq, gemini, openai, ollama, outlines, lora, cloudflare, auto | `stub` |
 | `--brief` | Use BriefBuilder for rich context (fragments, seeds, influences) | off |
 | `--brief-level LEVEL` | Verbosity: minimal, standard, maximal | `standard` |
 | `--tone TONES` | Comma-separated tone descriptors (e.g., "melancholic,tender") | - |
 | `--seeds SEEDS` | Comma-separated seed words for expansion | - |
 | `--use-library` | Load library poems as context | off |
 | `--save` | Save to library with provenance | off |
+| `--no-title` | Disable automatic LLM title suggestion on save | off (auto-title on) |
 | `--show-alternatives N` | Show top-N candidates per line | `0` (off) |
 | `--show-retrieval` | Display retrieved fragments/scores/graph paths | off |
 | `--interactive` | Human line-by-line selection from scored candidates | off |
@@ -190,6 +191,7 @@ Retrieved 5 fragments for brief:
 | Outlines | `--llm outlines` | None | Qwen 1.5B + regex constraints, local |
 | LoRA | `--llm lora` | Trained adapter | Auto-detects best adapter + base model (1.5B or 3B) |
 | MLflow | `--llm mlflow` | `MLFLOW_MODEL_URI` env | Loads registered model via `PoetryModelWrapper.predict()` |
+| Cloudflare | `--llm cloudflare` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` | Workers AI llama-3.3-70b via the OpenAI-compatible endpoint |
 | Outlines | `--llm outlines` | None | Qwen + regex constraints, auto-detects adapter | 
 | Auto | `--llm auto` | Any available | Priority: Gemini → Groq → OpenAI |
 

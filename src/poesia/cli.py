@@ -64,6 +64,11 @@ def write(
     ),
     llm: str = typer.Option("stub", help="LLM backend."),
     save: bool = typer.Option(False, "--save", help="Save to library."),
+    no_title: bool = typer.Option(
+        False,
+        "--no-title",
+        help="Disable automatic LLM title suggestion for the saved poem.",
+    ),
     tags: str = typer.Option(None, help="Comma-separated tags."),
     use_library: bool = typer.Option(False, "--use-library"),
     show_alternatives: int = typer.Option(0, "--show-alternatives"),
@@ -455,6 +460,16 @@ def write(
     if save and result.lines:
         from poesia.memoria.library import Library, PoemProvenance, PoemRecord
 
+        # LLM-suggested title (fail-open; skipped for the deterministic stub
+        # backend and with an explicit --no-title).
+        title = ""
+        if not no_title and config.llm != "stub":
+            from poesia.generation.titles import suggest_title
+
+            title = suggest_title(result.lines, language, form, theme, llm_client)
+            if title:
+                rprint(f"\n[bold cyan]Suggested title:[/bold cyan] {title}")
+
         # Build provenance metadata
         provenance = PoemProvenance(
             model=getattr(llm_client, "model", None),
@@ -480,6 +495,7 @@ def write(
             lines=result.lines,
             language=language,
             form=form,
+            title=title,
             theme=theme,
             tags=tags_list,
             provenance=provenance,
@@ -487,7 +503,8 @@ def write(
 
         library = Library()
         library.add(record)
-        rprint(f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]")
+        saved_label = f" — [bold]{record.title}[/bold]" if record.title else ""
+        rprint(f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]{saved_label}")
 
     # GalerIA: generate an illustrated sheet that goes with the poem
     if illustrate and result.lines:
@@ -1015,9 +1032,8 @@ def memoria_list(
         date_str = poem.created_at.strftime("%Y-%m-%d %H:%M")
         tags_str = f"  [dim][{', '.join(poem.tags)}][/dim]" if poem.tags else ""
         rprint(f"  [cyan]{poem.id}[/cyan]")
-        rprint(
-            f"    [bold]{poem.theme}[/bold]  [{poem.form}, {poem.language}]  {date_str}{tags_str}"
-        )
+        heading = f"[bold]{poem.title}[/bold]" if poem.title else f"[bold]{poem.theme}[/bold]"
+        rprint(f"    {heading}  [{poem.form}, {poem.language}]  {date_str}{tags_str}")
         if poem.lines:
             preview = poem.lines[0][:70]
             rprint(f"    [dim]{preview}…[/dim]")
@@ -1042,7 +1058,9 @@ def memoria_search(
     for poem in poems:
         date_str = poem.created_at.strftime("%Y-%m-%d %H:%M")
         rprint(f"  [cyan]{poem.id}[/cyan]  [{poem.form}, {poem.language}]  {date_str}")
-        rprint(f"    [bold]{poem.theme}[/bold]")
+        if poem.title:
+            rprint(f"    [bold]«{poem.title}»[/bold]")
+        rprint(f"    [dim]{poem.theme}[/dim]")
         for line in poem.lines[:3]:
             rprint(f"    [dim]{line}[/dim]")
         if len(poem.lines) > 3:
