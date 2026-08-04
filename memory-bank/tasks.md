@@ -3,8 +3,18 @@
 ## IN PROGRESS
 
 - [ ] **v2-fixed retraining — INTERRUPTED, needs relaunch** (PID 309663 dead, `/tmp`
-  log gone after WSL reboot; PG/MLflow down, run e5129188 unverifiable).
+  log gone after WSL reboot; PG/MLflow down — Docker Desktop WSL-integration is
+  disabled, so the compose stack can't start; run e5129188 unverifiable).
   Relaunch once PG is up: `bash scripts/launch_training.sh local mlops/configs/train_v2_fixed.yaml`
+
+## BACKLOG (priority order)
+
+- [ ] **research-tools: xenon cleanup + push** — AFTER KG restructuring settles
+      (user's active rebuild: SQLite store, `tools/kg/`). Then: one
+      behavior-preserving pass over the 6 over-threshold functions
+      (`enrich_all`, `build_kg`, `_parse_biblio(_xml)`, `enrich_reference_graph`,
+      `api_search`), verify `xenon ≤ C` + repo tests, then push (carries README
+      commit `9f45e89`, main ahead 11). Trigger: user says "push research-tools".
 
 ## BACKLOG (priority order)
 

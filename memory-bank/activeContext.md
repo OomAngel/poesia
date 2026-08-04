@@ -99,9 +99,12 @@ The training plan itself (when relaunched):
    (removed my scratch worktree/branch; repo left untouched).
 4. research-tools now `ahead 9` on main; my README commit (`9f45e89`) still
    unpushed; push will keep failing until the 6 functions pass xenon.
-5. **Decision for user**: (a) I refactor the 6 functions (verified via xenon +
-   repo tests) so the push can go through, (b) fold it into their kg
-   restructuring, or (c) leave parked.
+5. **Decision (agreed with user): restructure first, then clean up.** The KG
+   layer is being actively rebuilt (SQLite store just landed, commits up to
+   `af685d4`, main ahead 11). Park the xenon refactor until the restructuring
+   settles; then do ONE behavior-preserving pass over the 6 functions (verify
+   `xenon ≤ C` + repo tests) and push. README commit `9f45e89` stays on main
+   until then. Stale pre-commit stash patches verified redundant + deleted.
 
 ## What We Just Did (2026-08-04 — GalerIA style anchoring from retrieval)
 
