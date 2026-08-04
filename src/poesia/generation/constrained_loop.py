@@ -19,6 +19,7 @@ Phase 3E: now supports BriefBuilder integration for rich pre-generation context.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, cast
@@ -147,6 +148,74 @@ def _phonology_for(language: str):
 
         return DutchPhonology()
     raise ValueError(f"No phonology backend registered for language '{language}'.")
+
+
+# ── Candidate cleaning ────────────────────────────────────────────────────
+# Local/fine-tuned models frequently echo prompt fragments back as line
+# prefixes: numbering ("3. "), rhyme-scheme letters ("AE ", "FLO ", "FI "),
+# or prompt boilerplate ("Line content: "). Cleaning BEFORE scoring both
+# rescues genuinely usable lines and stops the echo from inflating the
+# metre/rhyme scores of junk. Exact repeats of already-committed lines (and
+# of other candidates in the same batch) are rejected too, so a model's
+# degenerate loops cannot dominate a poem.
+
+_ECHO_PREFIXES = ("AE ", "FLO ", "FI ", "Line content: ", "Line ")
+
+
+def _clean_candidate(line: str) -> str:
+    """Strip prompt-echo artifacts from a single candidate line."""
+    text = line.strip()
+    while True:
+        stripped = re.sub(r"^\d+[.:]\s*", "", text)  # leading numbering "3. "/"5:"
+        for prefix in _ECHO_PREFIXES:
+            if stripped.lower().startswith(prefix.lower()):
+                stripped = stripped[len(prefix) :].lstrip()
+                break
+        if stripped == text:
+            break
+        text = stripped
+    # Rhyme-key echoes are often uppercased by the model ("MUEVE", "MOMENTO").
+    match = re.match(r"^([A-ZÁÉÍÓÚÑ]{2,})\s", text)
+    if match:
+        text = match.group(1).lower() + text[match.end(1) :]
+    return text.strip()
+
+
+def _clean_candidates(candidates: list[str], prior_lines: list[str]) -> list[str]:
+    """Clean artifacts and reject repeats, preserving order; fail-open.
+
+    If cleaning would empty the list, the original candidates are returned so
+    the loop never stalls on a pathological batch.
+    """
+    if not candidates:
+        return candidates
+    cleaned: list[str] = []
+    seen: set[str] = {p.strip().lower() for p in prior_lines}
+    for cand in candidates:
+        cc = _clean_candidate(cand)
+        key = cc.lower()
+        if not cc or key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(cc)
+    return cleaned or candidates
+
+
+def _repair_defect_description(
+    actual_syllables: int | None,
+    target_syllables: int,
+    target_rhyme_key: str | None,
+) -> str:
+    """Build a precise repair request so the LLM knows the exact defect.
+
+    The old generic message (\"metrical syllable count mismatch\") forced the
+    model to guess the target; giving it the actual vs target count and the
+    rhyme key it must hit makes repairs effective instead of destructive.
+    """
+    parts = [f"the line has {actual_syllables} syllables but must be exactly {target_syllables}"]
+    if target_rhyme_key:
+        parts.append(f"the line must end with rhyme key '{target_rhyme_key}'")
+    return "; ".join(parts)
 
 
 # Callable type: receives (line_index, scored_candidates) → returns chosen line text
@@ -308,6 +377,8 @@ class ConstrainedLoop:
                 example_rhyme_word=example_rhyme_word,
                 rhyme_candidates=rhyme_candidates,
             )
+            # Clean prompt-echo artifacts and reject exact repeats (accuracy)
+            candidates = _clean_candidates(candidates, result.lines)
             # Filter out candidates not in the target language
             candidates = _filter_by_language(candidates, self.language)
             if not candidates:
@@ -334,7 +405,12 @@ class ConstrainedLoop:
             attempts = 0
             while best is not None and not best.scan.is_valid and attempts < max_repair_attempts:
                 repaired_text = self._llm.repair(
-                    best.line, defect_description="metrical syllable count mismatch"
+                    best.line,
+                    defect_description=_repair_defect_description(
+                        actual_syllables=best.scan.metrical_syllable_count,
+                        target_syllables=target_syllables,
+                        target_rhyme_key=target_rhyme_key,
+                    ),
                 )
                 rescored = self._scorer.score_candidates([repaired_text], prior_lines=result.lines)
                 best = rescored[0]
