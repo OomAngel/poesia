@@ -36,8 +36,11 @@ for e in c.search_experiments():
     for r in runs: statuses[r.info.status] = statuses.get(r.info.status, 0) + 1
     print(f'{e.name:30s} {statuses}')" 2>/dev/null
 
-# MLflow UI (Docker): http://localhost:5000
+# MLflow UI (docker): http://localhost:5000
 # PostgreSQL: mlflow:mlflow@localhost:5432/mlflow
+# docker is UP (2026-08-06): WSL integration enabled, native `docker` on PATH
+# (~/.local/bin/docker). If the stack is down, bring it up with:
+#   docker compose -f docker/docker-compose.yml up -d postgres mlflow-ui
 ```
 
 ## Current focus
@@ -81,7 +84,7 @@ GalerIA status:
   (style anchoring from retrieval — currently via influences only)
 
 ⚠️ **v2-fixed retraining INTERRUPTED** — PID 309663 no longer running, `/tmp/train_v2_fixed.log`
-gone (WSL reboot cleared `/tmp`). PostgreSQL/MLflow is DOWN (port 5432 refused; Docker not
+gone (WSL reboot cleared `/tmp`). PostgreSQL/MLflow is DOWN (port 5432 refused; docker not
 available in this WSL distro), so run e5129188's final state is unverifiable.
 **Needs relaunch once PG is up**:
 `bash scripts/launch_training.sh local mlops/configs/train_v2_fixed.yaml`
@@ -190,7 +193,7 @@ The training plan itself (when relaunched):
 ## What We Just Did (2026-08-04 — research-tools xenon gate: diagnosis; paused refactor)
 
 1. **"You pick" → researched the research-tools push blocker** (v2-fixed retraining
-   is infra-blocked: PG/MLflow still down, Docker Desktop WSL-integration
+   is infra-blocked: PG/MLflow still down, docker WSL-integration
    disabled — verified `docker` unusable, GPU free).
 2. **Full xenon diagnosis** (sci-pipeline env): 6 blocks over threshold
    (`--max-absolute C`): `kg_enrich_all.py:773 enrich_all` (F, 234 lines),
