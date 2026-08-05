@@ -24,7 +24,9 @@ def test_semantic_enables_theme_novelty_scoring() -> None:
         "poesia.memoria.embeddings.get_embedding_client",
         return_value=FakeEmbeddingClient(),
     ):
-        result = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku", "--semantic"])
+        result = runner.invoke(
+            app, ["write", "--theme", "luna", "--form", "haiku", "--semantic", "--verbose"]
+        )
     assert result.exit_code == 0
     assert "metre + theme + novelty" in result.output
 
@@ -35,6 +37,9 @@ def test_semantic_degrades_gracefully_without_embeddings() -> None:
         "poesia.memoria.embeddings.get_embedding_client",
         side_effect=RuntimeError("sentence-transformers not installed"),
     ):
-        result = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku", "--semantic"])
+        result = runner.invoke(
+            app,
+            ["write", "--theme", "luna", "--form", "haiku", "--semantic", "--verbose"],
+        )
     assert result.exit_code == 0
     assert "metre only (semantic scoring unavailable)" in result.output
