@@ -24,7 +24,9 @@ def test_workshop_outlet_prompt_and_poem(tmp_path) -> None:  # noqa: ANN001
     assert result.exit_code == 0
     assert "Carrying:" in result.output
     assert "lo que no pude decir" in result.output
-    assert "The craft, explained" in result.output
+    assert "1 · Outlet" in result.output
+    assert "2 · Shaping" in result.output
+    assert "3 · Teaching" in result.output
     assert "Your poem, as shaped" in result.output
     # Every line should have been scanned against its haiku target (5-7-5).
     assert "Exact match" in result.output or "Short by" in result.output or "Over by" in result.output
@@ -64,7 +66,8 @@ def test_workshop_save_stores_poem_with_reflection(tmp_path) -> None:  # noqa: A
             input="\n\n\n",
         )
     assert result.exit_code == 0
-    assert "Saved to library" in result.output
+    assert "Kept in memoria" in result.output
+    assert "4 · Linking" in result.output
     assert captured
     assert captured[0].reflection == "miedo al lunes"
     assert captured[0].theme == "miedo al lunes"

@@ -19,12 +19,12 @@ def test_write_without_alternatives_shows_only_poem():
     assert result.exit_code == 0
     assert "luna" in result.output.lower()
     # Should NOT show alternatives section
-    assert "Alternative Candidates" not in result.output
+    assert "Other lines to consider" not in result.output
     assert "syllables=" not in result.output
 
 
 def test_write_with_alternatives_shows_candidates():
-    """With --show-alternatives, display candidates with scores."""
+    """With --show-alternatives, display candidates in plain language."""
     runner = CliRunner()
     result = runner.invoke(app, [
         "write",
@@ -36,19 +36,19 @@ def test_write_with_alternatives_shows_candidates():
     assert result.exit_code == 0
     
     # Should show alternatives section
-    assert "Alternative Candidates" in result.output
+    assert "Other lines to consider" in result.output
     
-    # Should show line numbers and targets
+    # Should show line numbers and targets in plain language
     assert "Line 1" in result.output
-    assert "target:" in result.output
     assert "syllables" in result.output
+    assert "on the nose" in result.output
     
-    # Should show scores
-    assert "metre=" in result.output
-    assert "theme=" in result.output
-    assert "novelty=" in result.output
+    # Should NOT show raw score internals
+    assert "metre=" not in result.output
+    assert "theme=" not in result.output
+    assert "novelty=" not in result.output
     
-    # Should show selected marker
+    # Should show kept marker
     assert "✓" in result.output
 
 
@@ -70,6 +70,31 @@ def test_alternatives_shows_correct_line_count():
     assert "Line 3" in result.output
     # Should not have Line 4
     assert "Line 4" not in result.output
+
+
+def test_verbose_flag_reveals_internal_details():
+    """Internal diagnostics (LLM backend, scoring mode) are hidden unless --verbose."""
+    runner = CliRunner()
+    default = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku"])
+    verbose = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku", "--verbose"])
+
+    assert default.exit_code == 0
+    assert "Using LLM:" not in default.output
+    assert "Scoring mode:" not in default.output
+    assert "Scaffolding" in default.output or "proposals" in default.output
+
+    assert verbose.exit_code == 0
+    assert "Using LLM:" in verbose.output
+    assert "Scoring mode:" in verbose.output
+
+
+def test_write_output_frames_draft_as_scaffolding():
+    """The draft is framed as proposals, never as the poem itself."""
+    runner = CliRunner()
+    result = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku"])
+    assert result.exit_code == 0
+    assert "proposals" in result.output.lower()
+    assert "scaffolding" in result.output.lower()
 
 
 def test_alternatives_respects_limit():

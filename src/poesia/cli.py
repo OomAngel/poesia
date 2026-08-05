@@ -44,25 +44,30 @@ def _make_interactive_selector(loop, language: str, form: str):
     The human keeps the editor's seat: pick a candidate (Enter = top, number
     = choice) or type your own line — which is scanned and *taught* against
     the line position's target before it is kept (POSITIONING §7.2–7.3).
+    Candidates are described in plain language, not as raw scores.
     """
 
+    def _metre_note(cand, target_syl: int) -> str:
+        """Plain-language description of how a line fits its target metre."""
+        actual = cand.scan.metrical_syllable_count
+        if actual == target_syl:
+            return "on the nose"
+        diff = actual - target_syl
+        if diff > 0:
+            return f"{diff} syllable{'s' if diff != 1 else ''} long"
+        return f"{-diff} syllable{'s' if diff != -1 else ''} short"
+
     def _interactive_selector(line_index: int, candidates: list) -> str:
-        rprint(f"\n[bold]── Line {line_index + 1} —— choose a candidate ──[/bold]")
+        target_syl = loop.form_spec.syllables_for_line(line_index)
+        rprint(
+            f"\n[bold]Line {line_index + 1}[/bold] — [dim]this one wants {target_syl} syllables[/dim]"
+        )
         for i, cand in enumerate(candidates[:8], 1):
-            score_color = (
-                "green" if cand.score >= 0.7 else ("yellow" if cand.score >= 0.4 else "red")
-            )
-            marker = " [bold green]★ top[/bold green]" if i == 1 else ""
-            rprint(
-                f"  [bold]{i}.[/bold] [{score_color}][{cand.score:.3f}][/{score_color}] {cand.line}{marker}"
-            )
-            rprint(
-                f"     [dim]syllables={cand.scan.metrical_syllable_count}, "
-                f"metre={cand.breakdown['metre']:.2f}, "
-                f"rhyme={cand.breakdown['rhyme']:.2f}[/dim]"
-            )
+            marker = "  [bold green]← feels right[/bold green]" if i == 1 else ""
+            rprint(f"  [bold]{i}.[/bold] {cand.line}{marker}")
+            rprint(f"     [dim]{_metre_note(cand, target_syl)}[/dim]")
         while True:
-            raw = input("  Pick (Enter = top, number = choice, t = type your own): ").strip()
+            raw = input("  Keep one (Enter = top, number = choice, t = write your own): ").strip()
             if raw == "":
                 return candidates[0].line
             if raw == "t":
@@ -73,7 +78,6 @@ def _make_interactive_selector(loop, language: str, form: str):
                 # against this line position's target before it is kept.
                 from poesia.teaching import teach_scan
 
-                target_syl = loop.form_spec.syllables_for_line(line_index)
                 own_scan = loop._phonology.scan_line(own)
                 lesson = teach_scan(
                     own_scan,
@@ -97,7 +101,10 @@ def _make_interactive_selector(loop, language: str, form: str):
 
 _load_dotenv()
 
-app = typer.Typer(help="PoesIA: a hybrid poetry-writing engine.")
+app = typer.Typer(
+    help="An instrument for letting things out — you bring what you carry, "
+    "it gives it the shape of poetry, and teaches you the craft as it goes."
+)
 
 
 # --- Core: poesia write / poesia scan ---------------------------------------
@@ -147,8 +154,13 @@ def write(
         "--image-backend",
         help="Image backend for --illustrate: auto, stub, procedural, pollinations, cloudflare, openai, replicate.",
     ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        help="Show internal details (LLM backend, scoring mode).",
+    ),
 ) -> None:
-    """Generate a poem using WriteConfig + Registry pattern."""
+    """Draft a poem — the machine's words are scaffolding, never the poem."""
     from poesia.config.types import WriteConfig
     from poesia.generation.registry import get_llm, list_backends
 
@@ -187,10 +199,11 @@ def write(
         rprint(f"[dim]Available backends: {', '.join(list_backends())}[/dim]")
         raise typer.Exit(1) from None
 
-    rprint(
-        f"[dim]Using LLM: {llm_client.provider + ' ' if hasattr(llm_client, 'provider') else ''}"
-        f"({llm_client.model if hasattr(llm_client, 'model') else config.llm})[/dim]"
-    )
+    if verbose:
+        rprint(
+            f"[dim]Using LLM: {llm_client.provider + ' ' if hasattr(llm_client, 'provider') else ''}"
+            f"({llm_client.model if hasattr(llm_client, 'model') else config.llm})[/dim]"
+        )
 
     # Build the loop with optional brief builder
     brief_builder = None
@@ -424,44 +437,43 @@ def write(
     if result.brief:
         rprint(f"[bold]Brief level:[/bold] {result.brief.level}")
 
-    # Show scoring mode status
-    if semantic_mode_active:
-        rprint("[dim]Scoring mode: metre + theme + novelty[/dim]")
-    elif semantic and not use_brief:
-        rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
-    elif not use_brief:
-        rprint("[dim]Scoring mode: metre only (no semantic scoring)[/dim]")
-    else:
-        rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
+    # Show scoring mode status (internal detail; only with --verbose)
+    if verbose:
+        if semantic_mode_active:
+            rprint("[dim]Scoring mode: metre + theme + novelty[/dim]")
+        elif semantic and not use_brief:
+            rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
+        elif not use_brief:
+            rprint("[dim]Scoring mode: metre only (no semantic scoring)[/dim]")
+        else:
+            rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
 
     rprint()
     for line in result.lines:
         rprint(line)
 
+    # Point 3 — frame the output as scaffolding, not the poem
+    rprint()
+    rprint("[dim]These are proposals — scaffolding, never the poem. Keep the words that[/dim]")
+    rprint("[dim]feel like yours, or write your own lines and I'll scan and teach them.[/dim]")
+
     # Show alternative candidates if requested
     if show_alternatives > 0 and result.scored_history:
         rprint()
-        rprint("[bold cyan]═══ Alternative Candidates ═══[/bold cyan]")
+        rprint("[bold cyan]═══ Other lines to consider ═══[/bold cyan]")
 
         for line_idx, scored_candidates in enumerate(result.scored_history):
             # Get target syllables for this line
             target_syllables = loop.form_spec.syllables_for_line(line_idx)
 
-            rprint(f"\n[bold]Line {line_idx + 1}[/bold] (target: {target_syllables} syllables):")
+            rprint(
+                f"\n[bold]Line {line_idx + 1}[/bold] — [dim]wants {target_syllables} syllables[/dim]"
+            )
 
             # Show top N alternatives
             selected_line = result.lines[line_idx] if line_idx < len(result.lines) else None
 
             for rank, candidate in enumerate(scored_candidates[:show_alternatives], start=1):
-                # Format score with color coding
-                score_color = (
-                    "green"
-                    if candidate.score >= 0.7
-                    else "yellow"
-                    if candidate.score >= 0.4
-                    else "red"
-                )
-
                 # Truncate long lines for display
                 display_line = (
                     candidate.line if len(candidate.line) <= 50 else candidate.line[:47] + "..."
@@ -469,26 +481,23 @@ def write(
 
                 # Mark selected candidate
                 selected_marker = (
-                    " [bold green]✓[/bold green]" if candidate.line == selected_line else ""
+                    " [bold green]✓ kept[/bold green]" if candidate.line == selected_line else ""
                 )
 
-                rprint(
-                    f"  {rank}. [{score_color}][{candidate.score:.3f}][/{score_color}] {display_line}{selected_marker}"
-                )
+                rprint(f"  {rank}. {display_line}{selected_marker}")
 
-                # Show score breakdown
-                rprint(
-                    f"      [dim]syllables={candidate.scan.metrical_syllable_count}, "
-                    f"metre={candidate.breakdown['metre']:.2f}, "
-                    f"theme={candidate.breakdown['theme']:.2f}, "
-                    f"novelty={candidate.breakdown['novelty']:.2f}[/dim]"
-                )
+                # Plain-language metre note instead of raw scores
+                actual = candidate.scan.metrical_syllable_count
+                if actual == target_syllables:
+                    metre_note = "on the nose"
+                elif actual > target_syllables:
+                    metre_note = f"{actual - target_syllables} syllable{'s' if actual - target_syllables != 1 else ''} long"
+                else:
+                    metre_note = f"{target_syllables - actual} syllable{'s' if target_syllables - actual != 1 else ''} short"
+                rprint(f"      [dim]{metre_note}[/dim]")
 
                 # Show teaching voice: why the line missed, and how to fix it
-                if not candidate.scan.is_valid and candidate.scan.violations:
-                    violations = ", ".join(candidate.scan.violations[:2])  # Show first 2
-                    rprint(f"      [red]⚠ {violations}[/red]")
-                elif not candidate.scan.is_valid:
+                if not candidate.scan.is_valid:
                     from poesia.teaching import teach_scan
 
                     lesson = teach_scan(
@@ -790,6 +799,12 @@ def scan(
     rprint(format_scan(result, target, language=language, form_name=form_name))
 
 
+def _workshop_banner(title: str, subtitle: str) -> None:
+    """Movement banner — a gentle signpost between the four movements."""
+    rprint(f"\n[bold cyan]── {title} ──[/bold cyan]")
+    rprint(f"[dim]{subtitle}[/dim]\n")
+
+
 @app.command()
 def workshop(
     outlet: str = typer.Option(
@@ -814,26 +829,24 @@ def workshop(
     You start from what you feel, not from a command. The workshop walks the
     human-first path (docs/POSITIONING.md): write what you carry (outlet),
     shape it line by line — pick or type each line, and every line you type
-    is scanned and taught (shaping + teaching) — then, if you choose to
-    save, the poem and your reflection are kept together in memoria
-    (linking). The machine never holds the pen; it holds the craft.
+    is scanned and taught (shaping + teaching) — then keep the poem, with
+    its reflection, in memoria (linking). The machine never holds the pen;
+    it holds the craft.
     """
     from poesia.generation.constrained_loop import ConstrainedLoop
     from poesia.generation.registry import get_llm
     from poesia.teaching import format_scan
 
     # 1. OUTLET — what are you carrying?
+    _workshop_banner("1 · Outlet", "drop it as it comes — nobody else will read this")
     reflection_text = (outlet or "").strip()
     if outlet is not None and not reflection_text:
         rprint("[yellow]⚠[/yellow] An empty outlet has nothing to shape.")
         raise typer.Exit(1)
     if not reflection_text:
         try:
-            rprint("\n[bold cyan]What are you carrying?[/bold cyan]")
-            rprint(
-                "[dim]A thought, a feeling, a grievance, a joy that never "
-                "became words. Write it as it comes; nobody else will read it.[/dim]"
-            )
+            rprint("[bold cyan]What are you carrying?[/bold cyan]")
+            rprint("[dim]A thought, a feeling, a grievance, a joy that never became words.[/dim]")
             reflection_text = input("  > ").strip()
         except (EOFError, KeyboardInterrupt):
             rprint("\n[dim]Nothing carried today — closing the workshop.[/dim]")
@@ -843,37 +856,40 @@ def workshop(
         raise typer.Exit(1)
 
     theme = reflection_text[:80]
-    rprint(f"\n[dim]Carrying:[/dim] [bold]“{theme}”[/bold]\n")
+    rprint(f"\n[dim]Carrying:[/dim] [bold]“{theme}”[/bold]")
 
-    # 2. SHAPING + 3. TEACHING — draft line by line, keeping the editor's seat.
+    # 2. SHAPING — draft line by line, keeping the editor's seat.
+    _workshop_banner("2 · Shaping", "raw feeling becomes a made thing — you keep the editor's seat")
     llm_client = get_llm(llm)
     loop = ConstrainedLoop(language=language, form=form, llm=llm_client)
     line_selector = _make_interactive_selector(loop, language, form)
     result = loop.run(theme=theme, n_candidates=n_candidates, line_selector=line_selector)
 
-    rprint("\n[bold cyan]═══ Your poem, as shaped ═══[/bold cyan]\n")
+    rprint(f"\n[bold]Your poem, as shaped[/bold] — [dim]a {form}[/dim]\n")
     for line in result.lines:
         rprint(line)
 
-    # Teaching recap: every line of the finished draft scanned and explained.
-    rprint("\n[bold cyan]═══ The craft, explained ═══[/bold cyan]")
+    # 3. TEACHING — the craft, explained on every line.
+    _workshop_banner("3 · Teaching", "why each line works — and how to fix the ones that don't")
     phonology = loop._phonology
     for i, line in enumerate(result.lines):
         target = loop.form_spec.syllables_for_line(i)
         scan = phonology.scan_line(line)
-        rprint(f"\n[bold]Line {i + 1}[/bold]")
+        rprint(f"[bold]Line {i + 1}[/bold]")
         rprint(format_scan(scan, target, language=language, form_name=form))
+        rprint()
 
-    # 4. LINKING — save the poem with its reflection, if the human decides to.
+    # 4. LINKING — keep the poem, with its reflection, in memoria.
     if save:
         from poesia.generation.titles import suggest_title
         from poesia.memoria.library import Library, PoemProvenance, PoemRecord
 
+        _workshop_banner("4 · Linking", "keep the poem — and what it meant to you — in memoria")
         title = ""
         if not no_title and llm != "stub":
             title = suggest_title(result.lines, language, form, theme, llm_client)
             if title:
-                rprint(f"\n[bold cyan]Suggested title:[/bold cyan] {title}")
+                rprint(f"[bold cyan]Suggested title:[/bold cyan] {title}")
 
         tags_list = [t.strip() for t in tags.split(",")] if tags else []
         record = PoemRecord(
@@ -895,8 +911,13 @@ def workshop(
         library.add(record)
         saved_label = f" — [bold]{record.title}[/bold]" if record.title else ""
         rprint(
-            f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]"
-            f"{saved_label} [dim](with reflection)[/dim]"
+            f"\n[green]✓[/green] Kept in memoria: [dim]{record.id}[/dim]"
+            f"{saved_label} [dim](with your reflection)[/dim]"
+        )
+    else:
+        rprint(
+            "[dim]Not kept — the draft was yours to shape and set down. "
+            "Run with [bold]--save[/bold] next time to keep it in memoria.[/dim]"
         )
 
 
