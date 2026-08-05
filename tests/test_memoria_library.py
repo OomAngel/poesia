@@ -292,3 +292,99 @@ def test_existing_database_is_migrated_with_title_column(tmp_path: Path) -> None
     assert lib.get(rec.id) is not None
     assert lib.get(rec.id).title == "Luna Nueva"  # type: ignore[union-attr]
 
+
+def test_reflection_round_trips_markdown_and_sqlite(tmp_path: Path) -> None:
+    """A record's reflection is written to frontmatter and restored everywhere."""
+    lib = Library(storage_dir=tmp_path)
+    rec = _record("cosecha de esperanza", tags=["quinoa"])
+    rec.reflection = "Escribí esto cuando la noche no me dejaba dormir."
+    lib.add(rec)
+
+    content = (tmp_path / f"{rec.id}.md").read_text(encoding="utf-8")
+    assert "reflection: Escribí esto cuando la noche no me dejaba dormir." in content
+
+    # A fresh Library instance (re-sync from Markdown) must restore the reflection.
+    lib2 = Library(storage_dir=tmp_path)
+    fetched = lib2.get(rec.id)
+    assert fetched is not None
+    assert fetched.reflection == "Escribí esto cuando la noche no me dejaba dormir."
+
+    # list_all and search carry the reflection too.
+    assert lib2.list_all()[0].reflection == "Escribí esto cuando la noche no me dejaba dormir."
+    assert lib2.search("cosecha")[0].reflection == "Escribí esto cuando la noche no me dejaba dormir."
+
+
+def test_reflection_multiline_block_round_trips(tmp_path: Path) -> None:
+    """Multi-line reflections are stored as a YAML literal block and restored."""
+    lib = Library(storage_dir=tmp_path)
+    rec = _record("río")
+    rec.reflection = "Primera línea de la reflexión\nSegunda línea, más profunda."
+    lib.add(rec)
+
+    content = (tmp_path / f"{rec.id}.md").read_text(encoding="utf-8")
+    assert "reflection: |" in content
+    assert "  Primera línea de la reflexión" in content
+    assert "  Segunda línea, más profunda." in content
+
+    # Re-sync from Markdown restores the full multi-line reflection.
+    lib2 = Library(storage_dir=tmp_path)
+    fetched = lib2.get(rec.id)
+    assert fetched is not None
+    assert fetched.reflection == "Primera línea de la reflexión\nSegunda línea, más profunda."
+
+
+def test_reflection_omitted_from_frontmatter_when_empty(tmp_path: Path) -> None:
+    """Records without a reflection keep clean, backward-compatible frontmatter."""
+    lib = Library(storage_dir=tmp_path)
+    lib.add(_record("luna"))
+    rec = lib.list_all()[0]
+    assert rec.id is not None
+    content = (tmp_path / f"{rec.id}.md").read_text(encoding="utf-8")
+    assert "reflection:" not in content
+
+
+def test_existing_database_is_migrated_with_reflection_column(tmp_path: Path) -> None:
+    """A DB created before reflection existed is upgraded without data loss."""
+    import sqlite3
+
+    db_path = tmp_path / "library.db"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        CREATE TABLE poems (
+            id TEXT PRIMARY KEY,
+            filename TEXT NOT NULL,
+            language TEXT NOT NULL,
+            form TEXT NOT NULL,
+            title TEXT NOT NULL DEFAULT '',
+            theme TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            tags TEXT NOT NULL,
+            content TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO poems (id, filename, language, form, title, theme, created_at, tags, content)
+        VALUES ('old_2', 'old_2.md', 'es', 'haiku', 'vieja', 'luna antigua',
+                '2026-01-01T00:00:00', '', 'verso viejo')
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    lib = Library(storage_dir=tmp_path)
+    # Existing record survives; old rows default to an empty reflection.
+    old = lib.get("old_2")
+    assert old is not None
+    assert old.reflection == ""
+
+    # New records can store a reflection in the migrated database.
+    rec = _record("luna nueva")
+    rec.reflection = "Lo escribí al amanecer."
+    lib.add(rec)
+    assert rec.id is not None
+    assert lib.get(rec.id) is not None
+    assert lib.get(rec.id).reflection == "Lo escribí al amanecer."  # type: ignore[union-attr]
+

@@ -50,6 +50,7 @@ class PoemRecord:
     form: str
     theme: str
     title: str = ""  # Short human-readable title (LLM-suggested or curated)
+    reflection: str = ""  # What the person meant/felt — stored beside the poem
     created_at: datetime = field(default_factory=datetime.now)
     tags: list[str] = field(default_factory=list)
     id: str | None = None
@@ -103,6 +104,7 @@ class Library:
                     language TEXT NOT NULL,
                     form TEXT NOT NULL,
                     title TEXT NOT NULL DEFAULT '',
+                    reflection TEXT NOT NULL DEFAULT '',
                     theme TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     tags TEXT NOT NULL,
@@ -110,10 +112,18 @@ class Library:
                 )
                 """
             )
-        # Migration: pre-existing databases lack the ``title`` column.
+        # Migration: pre-existing databases lack the ``title``/``reflection``
+        # columns.
         try:
             with self._conn:
                 self._conn.execute("ALTER TABLE poems ADD COLUMN title TEXT NOT NULL DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass  # Column already exists (fresh DB or already migrated)
+        try:
+            with self._conn:
+                self._conn.execute(
+                    "ALTER TABLE poems ADD COLUMN reflection TEXT NOT NULL DEFAULT ''"
+                )
         except sqlite3.OperationalError:
             pass  # Column already exists (fresh DB or already migrated)
 
@@ -141,6 +151,16 @@ class Library:
             ]
             if record.title:
                 frontmatter_lines.append(f"title: {record.title}")
+            if record.reflection:
+                # Multi-line reflections become a YAML literal block so the
+                # human-readable .md file keeps the full story.
+                if "\n" in record.reflection:
+                    frontmatter_lines.append("reflection: |")
+                    frontmatter_lines.extend(
+                        f"  {ln}" for ln in record.reflection.rstrip().split("\n")
+                    )
+                else:
+                    frontmatter_lines.append(f"reflection: {record.reflection}")
             frontmatter_lines.append(f"theme: {record.theme}")
             frontmatter_lines.append(f"created_at: {created_str}")
             frontmatter_lines.append(f"tags: [{tags_str}]")
@@ -183,8 +203,8 @@ class Library:
         with self._conn:
             self._conn.execute(
                 """
-                INSERT OR REPLACE INTO poems (id, filename, language, form, title, theme, created_at, tags, content)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO poems (id, filename, language, form, title, reflection, theme, created_at, tags, content)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     record.id,
@@ -192,6 +212,7 @@ class Library:
                     record.language,
                     record.form,
                     record.title,
+                    record.reflection,
                     record.theme,
                     created_str,
                     tags_str,
@@ -241,11 +262,11 @@ class Library:
         """Return all saved poems, most recent first."""
         cursor = self._conn.cursor()
         cursor.execute(
-            "SELECT id, language, form, title, theme, created_at, tags, content FROM poems ORDER BY created_at DESC"
+            "SELECT id, language, form, title, reflection, theme, created_at, tags, content FROM poems ORDER BY created_at DESC"
         )
         records: list[PoemRecord] = []
         for row in cursor.fetchall():
-            pid, lang, form, title, theme, created_str, tags_str, content = row
+            pid, lang, form, title, reflection, theme, created_str, tags_str, content = row
             tags = [t.strip() for t in tags_str.split(",") if t.strip()]
             lines = content.split("\n")
             created_at = datetime.fromisoformat(created_str)
@@ -255,6 +276,7 @@ class Library:
                     language=lang,
                     form=form,
                     title=title,
+                    reflection=reflection,
                     theme=theme,
                     created_at=created_at,
                     tags=tags,
@@ -274,19 +296,20 @@ class Library:
         """
         cursor = self._conn.cursor()
         cursor.execute(
-            """SELECT id, language, form, title, theme, created_at, tags, content
+            """SELECT id, language, form, title, reflection, theme, created_at, tags, content
                FROM poems WHERE id = ?""",
             (poem_id,),
         )
         row = cursor.fetchone()
         if row is None:
             return None
-        pid, lang, form, title, theme, created_at, tags_str, content = row
+        pid, lang, form, title, reflection, theme, created_at, tags_str, content = row
         record = PoemRecord(
             id=pid,
             language=lang,
             form=form,
             title=title,
+            reflection=reflection,
             theme=theme,
             created_at=datetime.fromisoformat(created_at) if created_at else datetime.now(),
             tags=[t.strip() for t in tags_str.split(",") if t.strip()],
@@ -301,7 +324,7 @@ class Library:
         cursor = self._conn.cursor()
         cursor.execute(
             """
-            SELECT id, language, form, title, theme, created_at, tags, content
+            SELECT id, language, form, title, reflection, theme, created_at, tags, content
             FROM poems
             WHERE LOWER(theme) LIKE ? OR LOWER(tags) LIKE ? OR LOWER(content) LIKE ?
             ORDER BY created_at DESC
@@ -310,7 +333,7 @@ class Library:
         )
         records: list[PoemRecord] = []
         for row in cursor.fetchall():
-            pid, lang, form, title, theme, created_str, tags_str, content = row
+            pid, lang, form, title, reflection, theme, created_str, tags_str, content = row
             tags = [t.strip() for t in tags_str.split(",") if t.strip()]
             lines = content.split("\n")
             created_at = datetime.fromisoformat(created_str)
@@ -320,6 +343,7 @@ class Library:
                     language=lang,
                     form=form,
                     title=title,
+                    reflection=reflection,
                     theme=theme,
                     created_at=created_at,
                     tags=tags,
@@ -344,15 +368,33 @@ class Library:
 
                 frontmatter_text, body = match.groups()
                 meta: dict[str, str] = {}
-                for line in frontmatter_text.split("\n"):
+                fm_lines = frontmatter_text.split("\n")
+                i = 0
+                while i < len(fm_lines):
+                    line = fm_lines[i]
                     if ":" in line:
                         k, v = line.split(":", 1)
-                        meta[k.strip()] = v.strip()
+                        key = k.strip()
+                        value = v.strip()
+                        # Multi-line literal block (e.g. ``reflection: |``):
+                        # consume the indented lines that follow it.
+                        if value == "|" and i + 1 < len(fm_lines):
+                            block: list[str] = []
+                            j = i + 1
+                            while j < len(fm_lines) and fm_lines[j].startswith("  "):
+                                block.append(fm_lines[j][2:])
+                                j += 1
+                            meta[key] = "\n".join(block)
+                            i = j
+                            continue
+                        meta[key] = value
+                    i += 1
 
                 pid = meta.get("id", filepath.stem)
                 lang = meta.get("language", "es")
                 form = meta.get("form", "unknown")
                 title = meta.get("title", "")
+                reflection = meta.get("reflection", "")
                 theme = meta.get("theme", "")
                 created_str = meta.get("created_at", datetime.now().isoformat())
 
@@ -363,8 +405,8 @@ class Library:
                 with self._conn:
                     self._conn.execute(
                         """
-                        INSERT OR IGNORE INTO poems (id, filename, language, form, title, theme, created_at, tags, content)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT OR IGNORE INTO poems (id, filename, language, form, title, reflection, theme, created_at, tags, content)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             pid,
@@ -372,6 +414,7 @@ class Library:
                             lang,
                             form,
                             title,
+                            reflection,
                             theme,
                             created_str,
                             ", ".join(tags),
