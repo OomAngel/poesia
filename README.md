@@ -13,20 +13,78 @@
 [![Retrieval](https://img.shields.io/badge/retrieval-Graph%20RAG-purple)](#memoria)
 [![MLOps](https://img.shields.io/badge/MLOps-MLflow-important)](#tooling)
 
-A **hybrid poetry-writing engine**: deterministic phonology and prosody validation
-anchored to LLM semantic generation — extended into sound analysis, illustration,
-a personal library, and music.
+An **instrument for letting things out** — not a poetry generator. You bring what
+you carry: a thought, a feeling, a grievance, a joy that never became words.
+PoesIA gives it the shape of poetry and, in the shaping, teaches you the craft —
+so that it needs you a little less each time.
 
-The thesis is simple and evidence-backed:
+The machine underneath exists to serve that purpose, and its thesis is simple and
+evidence-backed:
 
-> **LLM** for imagination — metaphor, ambiguity, emotional movement.
+> **You** for meaning — the feeling, the memory, the words only you have.
 > **Algorithms** for the craft — syllable count, stress, rhyme, measurable repetition.
-> **Human** for taste — whether the poem deserved to exist.
+> **The machine** for scaffolding — drafts and proposals that are *never* the
+> poem; the poem is whatever you decide to keep.
 
-Pure LLM generation produces formally valid poetry less than ~4% of the time.
-Wrapping the same generation in deterministic phonological verification raises
-validity to ~73%. The exact numbers differ per language; the architectural lesson
-does not: **never trust an LLM to count syllables**.
+Why the craft layer is the teacher: pure LLM generation produces formally valid
+poetry less than ~4% of the time. Wrapping the same generation in deterministic
+phonological verification raises validity to ~73%. The exact numbers differ per
+language; the architectural lesson does not: **never trust an LLM to count
+syllables** — which is exactly why the machine can teach them to you.
+
+> Why PoesIA exists, who it is for, and the landscape research showing this
+> position is unoccupied: [`docs/POSITIONING.md`](docs/POSITIONING.md).
+
+## Who this is for
+
+Everyone with something unexpressed — and **especially people in technical
+fields**, who live in a world where feelings rarely become words. PoesIA speaks
+your language: it is a *linter for poetry*. Write a line, run the check, read
+*why* it fell short, fix it, go green — the same loop as your linter, except the
+lint is syllables, stress and rhyme, and the feedback teaches you sinalefa and
+scansion. No prior poetry knowledge required.
+
+Four movements, in order:
+
+1. **Outlet** — you drop thoughts, feelings, emotions as they are. Private, no audience.
+2. **Shaping** — raw feeling becomes a *made thing*: form, sound, rhythm.
+3. **Teaching** — the checks explain *why* and *how to fix*, so every session leaves you more able.
+4. **Linking** — you connect to poetry itself, and to your own voice across time.
+
+## The poet's path
+
+Start from what you feel, not from a command.
+
+**1. You write, it teaches.** Drop the line that's stuck in you and get told
+*why* it works — or how to fix it:
+
+```bash
+poesia scan "la noche pesa como una losa de silencio" --language es
+```
+
+**2. You choose, it scaffolds.** Draft line by line; keep the words that feel
+like yours, or type your own and let them be scanned and scored:
+
+```bash
+poesia write --theme "lo que no pude decir" --form soneto \
+  --interactive --show-alternatives 5
+```
+
+**3. You finish, it keeps.** Save the poem *you* decided to keep — what the
+machine produced was scaffolding; this is yours:
+
+```bash
+poesia write --theme "lo que no pude decir" --form soneto --interactive --save
+```
+
+**4. You look back, it remembers.** Your voice, across time:
+
+```bash
+poesia memoria list
+poesia memoria search silencio
+```
+
+The rest of this README documents the machinery behind these four steps.
 
 ---
 
@@ -81,7 +139,7 @@ as **IA**.
 
 | Command | Word | Role |
 |---|---|---|
-| `poesia write` · `poesia scan` | *poesía* — poetry | Core generation + validation loop |
+| `poesia write` · `poesia scan` | *poesía* — poetry | Core generation + validation loop; `scan` is the **you-write, it-teaches** flow |
 | `poesia eufonia analyze` | *eufonía* — euphony | **Sound**: rhyme, assonance, consonance — how a poem *sounds* |
 | `poesia galeria illustrate` | *galería* — gallery | **Illustration**: auca-style image sheets, one image per stanza |
 | `poesia memoria` | *memoria* — memory | **Collections**: personal library, semantic retrieval, Graph RAG |
@@ -95,6 +153,9 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 
 ### Core generation
 
+- **Human-writes-first**: `scan` teaches each line's syllables, stress and
+  *why*; `--interactive` keeps you the editor (choose, or type your own and have
+  it scanned) — generation is *scaffolding*, never the finished poem
 - Constrained generation loop: candidate lines → validate → score → rank → LLM repair
 - 8+ LLM backends behind one `Protocol` — `stub`, `groq`, `gemini`, `openai`, `ollama`, `lora`, `outlines`, `mlflow`
 - Grammar-constrained decoding via Outlines; LoRA/QLoRA fine-tuning (Qwen2.5) with MLflow tracking
@@ -156,13 +217,23 @@ pip install -e ".[dev]"
 
 ## Quickstart
 
-**Scan a line** — syllables, stress, validity:
+The human-first flows from [The poet's path](#the-poets-path), condensed:
+
+**Write a line, get taught** — syllables, stress, and *why* (the teaching voice):
 
 ```bash
 poesia scan "En el umbral de la noche callada" --language es
 ```
 
-**Write a poem** — offline, no API key needed:
+**Draft with scaffolding, keep the editor's seat** — choose or type each line
+(`t` = type your own), the machine keeps the metre honest:
+
+```bash
+poesia write --theme "lluvia sobre piedra" --form soneto --language es --interactive
+```
+
+**Generate a draft** — offline, no API key needed. This is *scaffolding*, never
+the finished poem — the poem is what you keep:
 
 ```bash
 poesia write --theme "lluvia sobre piedra" --form soneto --language es
@@ -334,8 +405,9 @@ MLflow experiments, model registry and monitoring run against PostgreSQL
 (`docker compose -f docker/docker-compose.yml up`); training entry point:
 `bash scripts/launch_training.sh local mlops/configs/train_<config>.yaml`.
 
-**Documentation**: `docs/` — architecture, package survey, roadmap, experiment
-plan, RAG/LLM hardening plan, corpus sources, MLOps diagnosis,
+**Documentation**: `docs/` — the human position
+([`POSITIONING.md`](docs/POSITIONING.md)), architecture, package survey, roadmap,
+experiment plan, RAG/LLM hardening plan, corpus sources, MLOps diagnosis,
 [presentation reference](docs/PRESENTATION_REFERENCE.md) + repo
 [README audit](docs/REPO_README_AUDIT.md). Full CLI reference
 in [`USAGE_GUIDE.md`](USAGE_GUIDE.md).

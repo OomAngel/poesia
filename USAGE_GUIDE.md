@@ -1,6 +1,9 @@
 # PoesIA Usage Guide
 
-Complete guide to using PoesIA's poetry generation and analysis tools.
+PoesIA is an instrument for letting things out: you bring what you carry, it
+helps you give it the shape of poetry, and it teaches the craft as it goes.
+This guide walks through the whole instrument. (Why it exists, who it is for and
+the landscape research: `docs/POSITIONING.md`.)
 
 ---
 
@@ -21,9 +24,52 @@ pip install -e ".[all]"
 
 ---
 
-## Quick Start
+## The Poet's Path — start from what you feel
 
-### Generate a Simple Haiku
+Four steps, from raw feeling to a made thing that stays yours:
+
+### 1. You write, it teaches
+
+Drop a line that's stuck in you; PoesIA scans syllables, stress and validity,
+and tells you *why*:
+
+```bash
+poesia scan "la noche pesa como una losa de silencio" --language es
+```
+
+### 2. You choose, it scaffolds
+
+Draft line by line. Keep the words that feel like yours, or type your own (`t`)
+and have them scanned and scored:
+
+```bash
+poesia write --theme "lo que no pude decir" --form haiku --interactive --show-alternatives 5
+```
+
+### 3. You finish, it keeps
+
+Save the poem *you* decided to keep — the machine's output was scaffolding:
+
+```bash
+poesia write --theme "lo que no pude decir" --form haiku --interactive --save
+```
+
+### 4. You look back, it remembers
+
+```bash
+poesia memoria list
+poesia memoria search silencio
+```
+
+Everything below is the machinery for these steps.
+
+---
+
+## Quick Start (scaffolding mode)
+
+The machine's output is always a *draft* — the poem is what you decide to keep.
+
+### Generate a Draft Haiku
 ```bash
 poesia write --theme "luna brillante" --form haiku
 ```
@@ -33,17 +79,17 @@ poesia write --theme "luna brillante" --form haiku
 poesia write --theme "noche estrellada" --form haiku --show-alternatives 5
 ```
 
-### Save to Personal Library
+### Save a Kept Poem to Your Library
 ```bash
 poesia write --theme "soledad" --form haiku --save --tags "noche,introspección"
 ```
 
-### Generate Using Library as Context
+### Draft Using Your Library as Context
 ```bash
 poesia write --theme "cielo nocturno" --form haiku --use-library --brief --show-alternatives 3
 ```
 
-### Generate with a Real LLM Backend
+### Draft with a Real LLM Backend
 ```bash
 # Groq (requires GROQ_API_KEY)
 poesia write --theme "luna" --form soneto --llm groq --brief
@@ -58,16 +104,17 @@ poesia write --theme "luna" --form soneto --llm lora --brief
 poesia write --theme "luna" --form soneto --llm outlines
 ```
 
-### Interactive Generation
+### Interactive Drafting (the editor's seat)
 ```bash
 poesia write --theme "noche" --form haiku --interactive --show-alternatives 5
 ```
 
 ## Core Commands
 
-### `poesia write` - Generate Poetry
+### `poesia write` - Draft Poetry
 
-Generate a poem using the constrained generate/validate/repair loop.
+Draft a poem using the constrained generate/validate/repair loop. The output is
+*scaffolding* — the poem is what you decide to keep.
 
 **Basic syntax:**
 ```bash

@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-04 (Session: GalerIA retrieval-style feature + research-tools xenon diagnosis; retraining parked)_
+_Last updated: 2026-08-05 (Session: human-first positioning reframe — docs/POSITIONING.md + README/USAGE_GUIDE narrative re-sequence)_
 
 ---
 
@@ -41,6 +41,16 @@ for e in c.search_experiments():
 ```
 
 ## Current focus
+
+**NEW (2026-08-05): Human-first positioning reframe in progress** — responding
+to the critique that PoesIA reads as "a machine that writes poetry," which
+contradicts its purpose. Landscape research done and captured in
+`docs/POSITIONING.md` (position is unoccupied). Narrative layer shipped: README +
+USAGE_GUIDE re-sequenced so the human writes first (`poesia scan` teaches,
+`--interactive` keeps the editor's seat), generation reframed as scaffolding.
+**Next: behavioral layer** — teaching voice on validation failures (surface
+`ScanResult.violations` prettily, explain why/how), reflection prompts +
+`reflection:` field in memoria, workshop flow; then full docs consistency pass.
 
 **NEW (2026-08-05): auto title generation shipped** — `poesia write --save` now
 asks the LLM (non-stub backends) for a short title after validation; saved
@@ -666,6 +676,25 @@ development, status, license. Test-count badge updated.
 
 Commits: `256c7b1` feat(galeria) · `e52c297` docs(readme).
 
+## What We Just Did (2026-08-05: Human-first positioning + narrative reframe)
+
+Responding to the critique that the repo reads as "a machine that writes
+poetry" — which contradicts the project's actual purpose (an instrument for
+letting things out, especially for technical people):
+
+1. **Landscape research done** — verified the six existing tool families
+   (journaling, self-authoring, companions, writer tools, Verse by Verse,
+   PoemPortraits). Position is **unoccupied**: no tool satisfies all five
+   requirements (human-authored, makes a thing, teaches craft,
+   private/accumulative, speaks the technical language). Captured in
+   `docs/POSITIONING.md`.
+2. **Narrative layer implemented** — README + USAGE_GUIDE re-sequenced: thesis
+   inverted (You for meaning / Algorithms for craft / Machine for scaffolding),
+   new "Who this is for" (linter-for-poetry bridge) + "The poet's path"
+   (scan teaches, --interactive keeps the editor's seat, save keeps the poem,
+   memoria remembers), Quickstart now leads human-first.
+3. **Doc-only changes** — full suite still green.
+
 ## What We Just Did (2026-08-03: Unstick — lint pass + structured-exception tests)
 
 Resumed a session that had stalled with 41 uncommitted files and a red test suite:
@@ -734,3 +763,4 @@ Removed duplicate `git_hash` and `run_id` computation (was happening twice in th
 | CronologIA deployment | `cronologia/docker-compose.yml` + `.env.example` |
 | Retraining history | `docs/ROADMAP.md` (Retraining section) |
 | **MLOps diagnosis & implementation plan** | **`docs/MLOPS_DIAGNOSIS.md`** |
+| **Human position + landscape research** | **`docs/POSITIONING.md`** |

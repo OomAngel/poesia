@@ -2,6 +2,10 @@
 
 ## IN PROGRESS
 
+- [ ] **Human-first positioning reframe (2026-08-05)** — `docs/POSITIONING.md`
+      done (landscape research: position unoccupied). Narrative layer shipped
+      (README + USAGE_GUIDE). Next: behavioral layer (teaching voice on
+      validation failures, `reflection:` field in memoria, workshop flow).
 - [ ] **v2-fixed retraining — INTERRUPTED, needs relaunch** (PID 309663 dead, `/tmp`
   log gone after WSL reboot; PG/MLflow down — Docker Desktop WSL-integration is
   disabled, so the compose stack can't start; run e5129188 unverifiable).
