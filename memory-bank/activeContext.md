@@ -544,7 +544,7 @@ The training plan itself (when relaunched):
 | OutlinesClient 3B support | ✅ | Same tuple-based adapter registry |
 | MLflowModelClient | ✅ | New backend: `--llm mlflow` |
 | Adapter registry | ✅ | 5/5 entries with full mlflow_run_id |
-| Docker image | ✅ | `poesia-train:latest` (4.39GB) |
+| Docker image | ✅ | `poesia/training:latest` (4.39GB) |
 | DPO training | 🏃 | 2100/5625 steps, ~55min remaining |
 | CLI (stub + lora + 9 backends) | ✅ | 9 registered backends |
 | Tests | ✅ | 16/16 key tests pass |
@@ -559,7 +559,7 @@ The training plan itself (when relaunched):
 | Job | PID | Progress | Log |
 |-----|-----|----------|-----|
 | DPO training | 90646 | ~2100/5625 steps (~37%) | `tail -f /tmp/dpo_training.log` |
-| Docker image | — | ✅ Built: `poesia-train:latest` | — |
+| Docker image | — | ✅ Built: `poesia/training:latest` | — |
 
 ## Known Issues — Inference Quality
 

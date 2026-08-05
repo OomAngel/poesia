@@ -5,12 +5,18 @@
 # Serve model:        docker compose -f docker/docker-compose.yml up -d serving
 # View MLflow UI:     http://localhost:5000
 # ─────────────────────────────────────────────────────────────────────
+# Explicit project name: without this, compose derives the project name
+# from the folder ("docker/") and every image/network/volume ends up
+# prefixed "docker_*" — useless when you open the docker UI. With
+# `name: poesia` everything is poesia_* and self-explanatory.
+
+name: poesia
 
 services:
-  # ── PostgreSQL ─────────────────────────────────────────────────────
+  # ── PostgreSQL — experiment metadata storage ─────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: poesia-db
+    container_name: poesia-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-mlflow}
@@ -19,19 +25,20 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - poesia_pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mlflow} -d ${POSTGRES_DB:-mlflow}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # ── MLflow UI ──────────────────────────────────────────────────────
+  # ── MLflow UI — experiment dashboard ─────────────────────────────
   mlflow-ui:
     build:
       context: ..
       dockerfile: docker/mlflow.Dockerfile
-    container_name: poesia-mlflow
+    image: poesia/mlflow-ui
+    container_name: poesia-mlflow-ui
     restart: unless-stopped
     depends_on:
       postgres:
@@ -51,7 +58,8 @@ services:
     build:
       context: ..
       dockerfile: docker/training.Dockerfile
-    container_name: poesia-train
+    image: poesia/training
+    container_name: poesia-training
     profiles: ["manual"]
     depends_on:
       postgres:
@@ -76,7 +84,8 @@ services:
     build:
       context: ..
       dockerfile: docker/serving.Dockerfile
-    container_name: poesia-serve
+    image: poesia/serving
+    container_name: poesia-serving
     profiles: ["serving"]
     depends_on:
       - postgres
@@ -89,4 +98,5 @@ services:
       - ./volumes/artifacts:/workspace/volumes/artifacts
 
 volumes:
-  poesia_pgdata:
+  pgdata:
+

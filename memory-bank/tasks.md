@@ -6,7 +6,7 @@
   was started (WSL integration for Ubuntu-22.04 enabled in
   settings-store.json → `/var/run/docker.sock` live; native `docker` symlinked
   at `~/.local/bin/docker`). Postgres + MLflow compose stack is UP
-  (poesia-db healthy :5432, poesia-mlflow UI :5000 HTTP 200; verified via
+  (poesia-postgres healthy :5432, poesia-mlflow-ui :5000 HTTP 200; verified via
   memory-bank sanity check). Old run e5129188 was unverifiable. Relaunch:
   `bash scripts/launch_training.sh local mlops/configs/train_v2_fixed.yaml`
 

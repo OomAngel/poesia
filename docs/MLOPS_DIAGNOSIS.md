@@ -30,7 +30,7 @@
 | 8 | **No CI/CD pipeline** | No `.github/` directory. | ✅ **Phase 9**: 3 GitHub Actions workflows created (ci, train, deploy). Need GitHub repo + secrets to activate. |
 | 9 | **No HPO infrastructure** | `run_experiment_grid.py` only, no Optuna. | ✅ **Phase 7**: `scripts/hpo_search.py` with Optuna. |
 | 10 | **No serving standardization** | LoRA adapters loaded via hardcoded paths. | ✅ **Phase 6**: `PoetryModelWrapper` as `mlflow.pyfunc.PythonModel`. New `MLflowModelClient` CLI backend (`--llm mlflow`). |
-| 11 | **Not containerized** | No Dockerfile for training/serving. | ✅ **Phase 8**: `docker/training.Dockerfile`, `docker/serving.Dockerfile`, `docker/docker-compose.yml`. Image built: `poesia-train:latest` (4.39GB). |
+| 11 | **Not containerized** | No Dockerfile for training/serving. | ✅ **Phase 8**: `docker/training.Dockerfile`, `docker/serving.Dockerfile`, `docker/docker-compose.yml`. Image built: `poesia/training:latest` (4.39GB). |
 | 12 | **No environment locking** | `environment.yml` incomplete. `requirements-lock.txt` has host-specific paths. | ✅ Resolved: `environment.yml` is a full conda-lock style export (Python 3.13 + torch + mlflow + all pip deps). `requirements-lock.txt` removed (stale, host-specific). Dockerfile installs from pyproject.toml. |
 | 13 | **No monitoring/drift detection** | No quality degradation detection. | ✅ **Phase 10**: `scripts/monitor_health.py` with threshold breach + statistical drift. Schedule only activates on GitHub. |
 | 14 | **Generation traces not linked to models** | MLflow Traces disconnected from adapters. | 🟡 Unchanged. Traces logged but not linked to model registry. |
@@ -131,7 +131,7 @@ Ordered by impact/dependency — each phase unblocks the next.
 
 All MLOps phases have been coded and most have been validated:
 - **Phases 1-7, 11**: Code-complete AND validated (training runs executed, MLflow DB verified)
-- **Phase 8**: Docker image built (`poesia-train:latest`, 4.39GB)
+- **Phase 8**: Docker image built (`poesia/training:latest`, 4.39GB)
 - **Phase 9**: GitHub Actions workflows exist — need GitHub repo + secrets to activate
 - **Phase 10**: `monitor_health.py` exists — schedule only activates on GitHub
 
