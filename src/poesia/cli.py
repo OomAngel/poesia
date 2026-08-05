@@ -70,6 +70,11 @@ def write(
         help="Disable automatic LLM title suggestion for the saved poem.",
     ),
     tags: str = typer.Option(None, help="Comma-separated tags."),
+    reflection: str = typer.Option(
+        None,
+        "--reflection",
+        help="What you meant or felt, stored beside the poem in memoria.",
+    ),
     use_library: bool = typer.Option(False, "--use-library"),
     show_alternatives: int = typer.Option(0, "--show-alternatives"),
     show_retrieval: bool = typer.Option(False, "--show-retrieval"),
@@ -296,7 +301,23 @@ def write(
                     return candidates[0].line
                 if raw == "t":
                     own = input("  Your line: ").strip()
-                    return own if own else candidates[0].line
+                    if not own:
+                        return candidates[0].line
+                    # Teaching voice: your line is scanned and explained
+                    # against this line position's target before it is kept.
+                    from poesia.teaching import teach_scan
+
+                    target_syl = loop.form_spec.syllables_for_line(line_index)
+                    own_scan = loop._phonology.scan_line(own)
+                    lesson = teach_scan(
+                        own_scan,
+                        target_syl,
+                        language=language,
+                        form_name=form,
+                    )
+                    for msg in lesson.messages:
+                        rprint(f"  [cyan]•[/cyan] {msg}")
+                    return own
                 try:
                     idx = int(raw) - 1
                     if 0 <= idx < min(8, len(candidates)):
@@ -451,10 +472,21 @@ def write(
                     f"novelty={candidate.breakdown['novelty']:.2f}[/dim]"
                 )
 
-                # Show validation issues if any
+                # Show teaching voice: why the line missed, and how to fix it
                 if not candidate.scan.is_valid and candidate.scan.violations:
                     violations = ", ".join(candidate.scan.violations[:2])  # Show first 2
                     rprint(f"      [red]⚠ {violations}[/red]")
+                elif not candidate.scan.is_valid:
+                    from poesia.teaching import teach_scan
+
+                    lesson = teach_scan(
+                        candidate.scan,
+                        target_syllables,
+                        language=language,
+                        form_name=form,
+                    )
+                    for msg in lesson.messages[:2]:
+                        rprint(f"      [red]⚠ {msg}[/red]")
 
     # P1: Save to library with full provenance
     if save and result.lines:
@@ -491,11 +523,26 @@ def write(
         # Parse tags
         tags_list = [t.strip() for t in tags.split(",")] if tags else []
 
+        # Reflection: what the person meant or felt, stored beside the poem.
+        # From --reflection, or prompted after the draft is on screen
+        # (reflection is a first-class step — POSITIONING §7.4). Skipped when
+        # --yes, so the flow stays scriptable.
+        reflection_text = reflection or ""
+        if save and not reflection_text and not yes and not interactive:
+            try:
+                rprint()
+                rprint("[bold cyan]What were you carrying when you wrote this?[/bold cyan]")
+                rprint("[dim](optional — this stays private, beside your poem)[/dim]")
+                reflection_text = input("  Reflection: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                reflection_text = ""
+
         record = PoemRecord(
             lines=result.lines,
             language=language,
             form=form,
             title=title,
+            reflection=reflection_text,
             theme=theme,
             tags=tags_list,
             provenance=provenance,
@@ -504,7 +551,11 @@ def write(
         library = Library()
         library.add(record)
         saved_label = f" — [bold]{record.title}[/bold]" if record.title else ""
-        rprint(f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]{saved_label}")
+        reflected_label = " [dim](with reflection)[/dim]" if record.reflection else ""
+        rprint(
+            f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]"
+            f"{saved_label}{reflected_label}"
+        )
 
     # GalerIA: generate an illustrated sheet that goes with the poem
     if illustrate and result.lines:
@@ -682,10 +733,26 @@ def _retrieve_style_texts(
 def scan(
     line: str = typer.Argument(..., help="A single line of verse to scan."),
     language: str = typer.Option("es", help="Language code: 'es', 'en', or 'nl'."),
+    form: str = typer.Option(
+        None,
+        "--form",
+        help="Poetic form to teach against (e.g. 'soneto', 'haiku').",
+    ),
+    syllables: int = typer.Option(
+        None,
+        "--syllables",
+        help="Explicit target syllable count to teach against (overrides --form).",
+    ),
 ) -> None:
-    """Scan a single line for syllable count, stress and validity."""
+    """Scan a single line — and teach *why* it does or doesn't fit a target.
+
+    With ``--form`` or ``--syllables`` the scan becomes a lesson: it explains
+    the metrical count, points at any sinalefas or final-word stress effects,
+    and tells you exactly how to fix a line that is over or short.
+    """
     from poesia.phonology.english import EnglishPhonology
     from poesia.phonology.spanish import SpanishPhonology
+    from poesia.teaching import format_scan
 
     if language == "es":
         phonology: PhonologyBackend = SpanishPhonology()
@@ -696,7 +763,19 @@ def scan(
     else:
         phonology = EnglishPhonology()
     result = phonology.scan_line(line)
-    rprint(result)
+
+    form_name = None
+    target = syllables
+    if form and target is None:
+        from poesia.forms.definitions import get_form
+
+        spec = get_form(form)
+        form_name = spec.name
+        # For patterned forms (e.g. haiku 5-7-5), teach against the first
+        # line's target; the poem-level loop teaches each line position.
+        target = spec.syllables_for_line(0)
+
+    rprint(format_scan(result, target, language=language, form_name=form_name))
 
 
 # --- EufonIA: sound/euphony analysis ----------------------------------------
@@ -1037,6 +1116,9 @@ def memoria_list(
         if poem.lines:
             preview = poem.lines[0][:70]
             rprint(f"    [dim]{preview}…[/dim]")
+        if poem.reflection:
+            reflection_preview = poem.reflection.split("\n")[0][:80]
+            rprint(f"    [cyan]« {reflection_preview}»[/cyan]")
         rprint()
 
 
@@ -1061,6 +1143,9 @@ def memoria_search(
         if poem.title:
             rprint(f"    [bold]«{poem.title}»[/bold]")
         rprint(f"    [dim]{poem.theme}[/dim]")
+        if poem.reflection:
+            reflection_preview = poem.reflection.split("\n")[0][:80]
+            rprint(f"    [cyan]« {reflection_preview}»[/cyan]")
         for line in poem.lines[:3]:
             rprint(f"    [dim]{line}[/dim]")
         if len(poem.lines) > 3:
