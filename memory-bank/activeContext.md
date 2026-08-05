@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-05 (Session: human-first positioning reframe — docs/POSITIONING.md + README/USAGE_GUIDE narrative re-sequence)_
+_Last updated: 2026-08-06 (Session: behavioral layer — teaching voice, reflection field, workshop flow)_
 
 ---
 
@@ -42,15 +42,21 @@ for e in c.search_experiments():
 
 ## Current focus
 
-**NEW (2026-08-05): Human-first positioning reframe in progress** — responding
-to the critique that PoesIA reads as "a machine that writes poetry," which
-contradicts its purpose. Landscape research done and captured in
-`docs/POSITIONING.md` (position is unoccupied). Narrative layer shipped: README +
-USAGE_GUIDE re-sequenced so the human writes first (`poesia scan` teaches,
-`--interactive` keeps the editor's seat), generation reframed as scaffolding.
-**Next: behavioral layer** — teaching voice on validation failures (surface
-`ScanResult.violations` prettily, explain why/how), reflection prompts +
-`reflection:` field in memoria, workshop flow; then full docs consistency pass.
+**NEW (2026-08-06): Behavioral layer shipped** — the human-first positioning
+reframe (docs/POSITIONING.md) moved from docs into behavior:
+- **Teaching voice** (`src/poesia/teaching.py`): validation failures say *why*
+  and *how to fix* in human language; `poesia scan --form/--syllables` teaches
+  against a target; `write --show-alternatives` and the interactive typed-line
+  flow (`t`) teach too
+- **Reflection**: `PoemRecord.reflection` persisted (frontmatter + SQLite
+  migration) and shown in `memoria list/search`; `write --save` prompts for it
+  (or `--reflection`)
+- **`poesia workshop`**: the four movements guided — outlet → shaping →
+  teaching → linking; interactive selector extracted to
+  `_make_interactive_selector()` (shared with `write --interactive`)
+- Full suite green: **540 tests**. **Next: full docs consistency pass** —
+  README/USAGE_GUIDE/PRESENTATION_REFERENCE are updated; audit any remaining
+  machine-author framing in `docs/`, then mark the reframe DONE in tasks.md.
 
 **NEW (2026-08-05): auto title generation shipped** — `poesia write --save` now
 asks the LLM (non-stub backends) for a short title after validation; saved
@@ -694,6 +700,33 @@ letting things out, especially for technical people):
    (scan teaches, --interactive keeps the editor's seat, save keeps the poem,
    memoria remembers), Quickstart now leads human-first.
 3. **Doc-only changes** — full suite still green.
+
+## What We Just Did (2026-08-06: Behavioral layer — teaching voice, reflection, workshop)
+
+The human-first reframe moved from docs into behavior (POSITIONING §7.3–7.4):
+
+1. **Teaching voice** — new `src/poesia/teaching.py` (pure): `teach_scan()`
+   turns a `ScanResult` into human *why + how to fix* (metre delta, sinalefa
+   pairs, final-word stress note, per-language fix tips); `stress_marks()`
+   renders a scansion bar. Wired into `poesia scan` (new `--form`/`--syllables`
+   teach against a target), `write --show-alternatives`, and the
+   `--interactive` typed-line flow (`t` — your line is taught before kept).
+2. **Reflection** — `PoemRecord.reflection` persisted in YAML frontmatter
+   (multi-line as a literal block) + SQLite (ALTER TABLE migration, mirroring
+   the `title` precedent); restored through `get`/`list_all`/`search`/re-sync.
+   `write --save` prompts "What were you carrying?" (skipped with `--yes`, or
+   `--reflection`); `memoria list`/`search` show the reflection preview.
+3. **Workshop flow** — `poesia workshop`: outlet (write what you carry, or
+   `--outlet`) → shaping (interactive line-by-line) → teaching (every finished
+   line scanned and explained) → linking (`--save` keeps poem + reflection
+   together). The interactive selector was extracted to
+   `_make_interactive_selector()` so `write --interactive` and `workshop` share
+   one teaching-voice selector.
+4. **Docs consistency** — README (poet's path step 0 + features), USAGE_GUIDE
+   (workshop + scan-teaching sections, `--reflection` option), CHANGELOG.
+5. Suite **512 → 540**, green; mypy/ruff clean. Commits: `ca124d7` (workshop),
+   `f1a1638` (reflection), `154fbbf` (teaching) + `f2c7d43` (positioning docs,
+   committed at session start).
 
 ## What We Just Did (2026-08-03: Unstick — lint pass + structured-exception tests)
 

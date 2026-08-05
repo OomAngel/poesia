@@ -3,6 +3,29 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-06 — Behavioral layer: teaching voice, reflection, workshop
+
+The human-first positioning reframe (docs/POSITIONING.md) moves from the
+narrative layer (docs) into behavior.
+
+- **Teaching voice** (`poesia/teaching.py`) — validation failures now say *why*
+  and *how to fix* in human language: `teach_scan()` builds a lesson from a
+  `ScanResult` (metre delta, sinalefa pairs, final-word stress effects,
+  per-language fix tips). `poesia scan` renders it — new `--form`/`--syllables`
+  teach against a target. `write --show-alternatives` and the `--interactive`
+  typed-line flow (`t`) teach too.
+- **Reflection** (`PoemRecord.reflection`) — what you meant or felt is stored
+  beside the poem: YAML frontmatter (multi-line as a literal block) + SQLite
+  (ALTER TABLE migration for existing DBs), restored through
+  `get`/`list_all`/`search`/re-sync; `write --save` prompts for it (or
+  `--reflection`); shown in `memoria list`/`search`.
+- **`poesia workshop`** — the four movements guided: outlet (write what you
+  carry) → shaping (line by line, the editor's seat) → teaching (every line
+  explained) → linking (`--save` keeps poem + reflection together). The
+  interactive selector was extracted to `_make_interactive_selector()` so
+  `write --interactive` and `workshop` share one teaching-voice selector.
+- Suite **512 → 540** (badge + prose updated).
+
 ## 2026-08-05 — Auto LLM title generation
 
 - **`poesia write --save` now asks the LLM for a title** once the poem is

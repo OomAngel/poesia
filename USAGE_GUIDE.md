@@ -135,6 +135,7 @@ poesia write --theme "<theme>" --form <form> [OPTIONS]
 | `--seeds SEEDS` | Comma-separated seed words for expansion | - |
 | `--use-library` | Load library poems as context | off |
 | `--save` | Save to library with provenance | off |
+| `--reflection TEXT` | What you meant/felt — stored beside the poem in memoria | prompted on save (skipped with `--yes`) |
 | `--no-title` | Disable automatic LLM title suggestion on save | off (auto-title on) |
 | `--show-alternatives N` | Show top-N candidates per line | `0` (off) |
 | `--show-retrieval` | Display retrieved fragments/scores/graph paths | off |
@@ -209,7 +210,46 @@ Enter choice (Enter=top, #=number, t=type own):
 
 - **Enter**: Accept the top-scored candidate
 - **Number**: Pick a specific numbered candidate
-- **t**: Type your own line (will be scanned and scored)
+- **t**: Type your own line — it is scanned and *taught* against the line
+  position's target before it is kept (syllable count, sinalefas, why it's
+  over/short, and how to fix it)
+
+## The Workshop — the four movements, guided
+
+`poesia workshop` walks the whole poet's path in one sitting: you write what
+you carry (outlet), shape it line by line (the machine scaffolds, you keep the
+editor's seat), get the craft explained on every line (teaching), and — if you
+choose to save — the poem and your reflection are kept together in memoria
+(linking).
+
+```bash
+poesia workshop --form soneto --save
+poesia workshop --form haiku --outlet "lo que no pude decir"  # non-interactive outlet
+```
+
+After the draft, the workshop prints a teaching recap that scans every line of
+the finished poem against its target and explains each one.
+
+## Scan — the teaching voice
+
+`poesia scan` reads a line and teaches *why* it works or how to fix it. Give
+it a form (or an explicit target) and it teaches against that metre:
+
+```bash
+# Plain scan: syllables, stress, validity
+poesia scan "la noche pesa como una losa de silencio" --language es
+
+# Teaching against a form's target
+poesia scan "la noche pesa como una losa" --form soneto
+poesia scan "la aurora brilla" --form haiku
+
+# Or against an explicit target
+poesia scan "verso demasiado largo" --syllables 11
+```
+
+The lesson names the metre delta ("Short by 1: this line has 10 syllables; the
+target of a soneto is 11"), points at any sinalefas, notes final-word stress
+effects (aguda/esdrújula), and gives craft-specific fix tips.
 
 ## Retrieval Display
 

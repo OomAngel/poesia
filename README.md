@@ -5,7 +5,7 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-512%20passing-brightgreen)](#development)
+[![Tests](https://img.shields.io/badge/tests-540%20passing-brightgreen)](#development)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](#status)
 [![LLM backends](https://img.shields.io/badge/LLM%20backends-8%2B-blueviolet)](#core-generation)
 [![Image backends](https://img.shields.io/badge/image%20backends-6-orange)](#galeria--illustration)
@@ -55,11 +55,21 @@ Four movements, in order:
 
 Start from what you feel, not from a command.
 
+**0. The whole path, guided.** Outlet → shaping → teaching → linking, in one
+sitting. You write what you carry, then shape it line by line — the machine
+teaches each line you type and never holds the pen:
+
+```bash
+poesia workshop --form soneto --save
+```
+
 **1. You write, it teaches.** Drop the line that's stuck in you and get told
-*why* it works — or how to fix it:
+*why* it works — or how to fix it. Point it at a form and it teaches against
+that form's metre:
 
 ```bash
 poesia scan "la noche pesa como una losa de silencio" --language es
+poesia scan "la noche pesa como una losa" --form soneto   # why, + how to fix
 ```
 
 **2. You choose, it scaffolds.** Draft line by line; keep the words that feel
@@ -71,13 +81,15 @@ poesia write --theme "lo que no pude decir" --form soneto \
 ```
 
 **3. You finish, it keeps.** Save the poem *you* decided to keep — what the
-machine produced was scaffolding; this is yours:
+machine produced was scaffolding; this is yours. PoesIA asks what you were
+carrying and stores it beside the poem:
 
 ```bash
 poesia write --theme "lo que no pude decir" --form soneto --interactive --save
 ```
 
-**4. You look back, it remembers.** Your voice, across time:
+**4. You look back, it remembers.** Your voice, across time — the reflection
+kept beside each poem:
 
 ```bash
 poesia memoria list
@@ -154,8 +166,13 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 ### Core generation
 
 - **Human-writes-first**: `scan` teaches each line's syllables, stress and
-  *why*; `--interactive` keeps you the editor (choose, or type your own and have
-  it scanned) — generation is *scaffolding*, never the finished poem
+  *why* — and with `--form`/`--syllables` teaches the exact fix; `--interactive`
+  keeps you the editor (choose, or type your own and have it scanned and
+  taught) — generation is *scaffolding*, never the finished poem
+- **`workshop`**: the four movements guided — outlet → shaping → teaching →
+  linking; the poem and your reflection are kept together in memoria
+- **Reflection is first-class**: `--save` keeps what you meant or felt beside
+  the poem (prompted, or `--reflection`)
 - Constrained generation loop: candidate lines → validate → score → rank → LLM repair
 - 8+ LLM backends behind one `Protocol` — `stub`, `groq`, `gemini`, `openai`, `ollama`, `lora`, `outlines`, `mlflow`
 - Grammar-constrained decoding via Outlines; LoRA/QLoRA fine-tuning (Qwen2.5) with MLflow tracking

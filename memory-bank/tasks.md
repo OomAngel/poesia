@@ -2,10 +2,6 @@
 
 ## IN PROGRESS
 
-- [ ] **Human-first positioning reframe (2026-08-05)** — `docs/POSITIONING.md`
-      done (landscape research: position unoccupied). Narrative layer shipped
-      (README + USAGE_GUIDE). Next: behavioral layer (teaching voice on
-      validation failures, `reflection:` field in memoria, workshop flow).
 - [ ] **v2-fixed retraining — INTERRUPTED, needs relaunch** (PID 309663 dead, `/tmp`
   log gone after WSL reboot; PG/MLflow down — Docker Desktop WSL-integration is
   disabled, so the compose stack can't start; run e5129188 unverifiable).
@@ -40,6 +36,15 @@
 - [ ] **Snapshot tests** — CLI + generation pipeline
 
 ## DONE
+
+### 2026-08-06 (behavioral layer)
+- [x] **Human-first positioning reframe — behavioral layer shipped** — teaching
+      voice (`poesia/teaching.py`, `scan --form/--syllables`, teaching in
+      `write --show-alternatives` + interactive typed lines); `reflection:`
+      field in memoria (frontmatter + SQLite migration, `--reflection` +
+      post-save prompt, shown in `memoria list/search`); `poesia workshop`
+      (outlet → shaping → teaching → linking). Suite 512 → 540 green.
+      Docs consistency pass done (README, USAGE_GUIDE, CHANGELOG).
 
 ### 2026-08-05 (auto-title feature)
 - [x] **feat(generation)**: LLM-backed title suggestion on `poesia write --save`
