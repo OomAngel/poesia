@@ -3,6 +3,22 @@
 All notable changes to PoesIA. Milestones derived from `memory-bank/tasks.md`
 and git history (125+ commits, single author).
 
+## 2026-08-05 — Auto LLM title generation
+
+- **`poesia write --save` now asks the LLM for a title** once the poem is
+  generated and validated (`suggest_title()` in `poesia/generation/titles.py`):
+  prompt built from form/language/theme/poem, answer cleaned (quotes,
+  "Title:"-prefixes, extra lines, trailing punctuation, 80-char cap), and
+  **fail-open** — any error falls back to a theme/first-line title, never
+  blocking the save.
+- **`PoemRecord.title`** — new field persisted in YAML frontmatter + SQLite,
+  with an `ALTER TABLE` migration for pre-existing `library.db` files; restored
+  through `get`/`list_all`/`search`/markdown re-sync.
+- **CLI**: titles printed as "Suggested title:" on save and shown in
+  `poesia memoria list`/`search`; `--no-title` opts out (stub backend never
+  titles).
+- Suite **500 → 512** (badge + prose updated).
+
 ## 2026-08-04 — GalerIA style anchoring from retrieval
 
 - **`galeria illustrate --style-from-retrieval`** — the last open Phase 3E item.
