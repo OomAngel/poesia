@@ -38,6 +38,63 @@ def _load_dotenv(dotenv_path: str | None = None) -> None:
         pass
 
 
+def _make_interactive_selector(loop, language: str, form: str):
+    """Build the human-writes-first line selector used by write/workshop.
+
+    The human keeps the editor's seat: pick a candidate (Enter = top, number
+    = choice) or type your own line — which is scanned and *taught* against
+    the line position's target before it is kept (POSITIONING §7.2–7.3).
+    """
+
+    def _interactive_selector(line_index: int, candidates: list) -> str:
+        rprint(f"\n[bold]── Line {line_index + 1} —— choose a candidate ──[/bold]")
+        for i, cand in enumerate(candidates[:8], 1):
+            score_color = (
+                "green" if cand.score >= 0.7 else ("yellow" if cand.score >= 0.4 else "red")
+            )
+            marker = " [bold green]★ top[/bold green]" if i == 1 else ""
+            rprint(
+                f"  [bold]{i}.[/bold] [{score_color}][{cand.score:.3f}][/{score_color}] {cand.line}{marker}"
+            )
+            rprint(
+                f"     [dim]syllables={cand.scan.metrical_syllable_count}, "
+                f"metre={cand.breakdown['metre']:.2f}, "
+                f"rhyme={cand.breakdown['rhyme']:.2f}[/dim]"
+            )
+        while True:
+            raw = input("  Pick (Enter = top, number = choice, t = type your own): ").strip()
+            if raw == "":
+                return candidates[0].line
+            if raw == "t":
+                own = input("  Your line: ").strip()
+                if not own:
+                    return candidates[0].line
+                # Teaching voice: your line is scanned and explained
+                # against this line position's target before it is kept.
+                from poesia.teaching import teach_scan
+
+                target_syl = loop.form_spec.syllables_for_line(line_index)
+                own_scan = loop._phonology.scan_line(own)
+                lesson = teach_scan(
+                    own_scan,
+                    target_syl,
+                    language=language,
+                    form_name=form,
+                )
+                for msg in lesson.messages:
+                    rprint(f"  [cyan]•[/cyan] {msg}")
+                return own
+            try:
+                idx = int(raw) - 1
+                if 0 <= idx < min(8, len(candidates)):
+                    return candidates[idx].line
+                rprint(f"  [red]Enter 1–{min(8, len(candidates))}[/red]")
+            except ValueError:
+                rprint("  [red]Enter a number, or press Enter[/red]")
+
+    return _interactive_selector
+
+
 _load_dotenv()
 
 app = typer.Typer(help="PoesIA: a hybrid poetry-writing engine.")
@@ -276,58 +333,11 @@ def write(
                 rprint(f"  [cyan]{word}[/cyan] → synonyms: {syns}")
         rprint()
 
-    # --interactive: build a line_selector callback that pauses for human input
+    # --interactive: build a line_selector callback that pauses for human input.
+    # The loop must exist first (the selector scans typed lines through it), so
+    # it is created right after ConstrainedLoop below.
     line_selector = None
-    if interactive:
-
-        def _interactive_selector(line_index: int, candidates: list) -> str:
-            rprint(f"\n[bold]── Line {line_index + 1} —— choose a candidate ──[/bold]")
-            for i, cand in enumerate(candidates[:8], 1):
-                score_color = (
-                    "green" if cand.score >= 0.7 else ("yellow" if cand.score >= 0.4 else "red")
-                )
-                marker = " [bold green]★ top[/bold green]" if i == 1 else ""
-                rprint(
-                    f"  [bold]{i}.[/bold] [{score_color}][{cand.score:.3f}][/{score_color}] {cand.line}{marker}"
-                )
-                rprint(
-                    f"     [dim]syllables={cand.scan.metrical_syllable_count}, "
-                    f"metre={cand.breakdown['metre']:.2f}, "
-                    f"rhyme={cand.breakdown['rhyme']:.2f}[/dim]"
-                )
-            while True:
-                raw = input("  Pick (Enter = top, number = choice, t = type your own): ").strip()
-                if raw == "":
-                    return candidates[0].line
-                if raw == "t":
-                    own = input("  Your line: ").strip()
-                    if not own:
-                        return candidates[0].line
-                    # Teaching voice: your line is scanned and explained
-                    # against this line position's target before it is kept.
-                    from poesia.teaching import teach_scan
-
-                    target_syl = loop.form_spec.syllables_for_line(line_index)
-                    own_scan = loop._phonology.scan_line(own)
-                    lesson = teach_scan(
-                        own_scan,
-                        target_syl,
-                        language=language,
-                        form_name=form,
-                    )
-                    for msg in lesson.messages:
-                        rprint(f"  [cyan]•[/cyan] {msg}")
-                    return own
-                try:
-                    idx = int(raw) - 1
-                    if 0 <= idx < min(8, len(candidates)):
-                        return candidates[idx].line
-                    rprint(f"  [red]Enter 1–{min(8, len(candidates))}[/red]")
-                except ValueError:
-                    rprint("  [red]Enter a number, or press Enter[/red]")
-
-        line_selector = _interactive_selector
-    elif not yes and llm not in ("stub",):
+    if not yes and llm not in ("stub",):
         # Default when using a real LLM without --yes: quick 3-choice picker
         def _quick_selector(line_index: int, candidates: list) -> str:
             rprint(f"\n[bold]Line {line_index + 1}:[/bold] pick a candidate (Enter = best)")
@@ -386,6 +396,8 @@ def write(
         fragments=fragments,
         influences=influences,
     )
+    if interactive:
+        line_selector = _make_interactive_selector(loop, language, form)
     # P5: Time the generation for latency provenance
     import time as _time
 
@@ -776,6 +788,116 @@ def scan(
         target = spec.syllables_for_line(0)
 
     rprint(format_scan(result, target, language=language, form_name=form_name))
+
+
+@app.command()
+def workshop(
+    outlet: str = typer.Option(
+        None,
+        "--outlet",
+        help="What you are carrying, pre-written (skips the outlet prompt).",
+    ),
+    language: str = typer.Option("es", help="Language code: 'es', 'en', or 'nl'."),
+    form: str = typer.Option("soneto", help="Registered form name."),
+    llm: str = typer.Option("stub", help="LLM backend (drafts are scaffolding)."),
+    n_candidates: int = typer.Option(16, help="Candidate lines per position."),
+    save: bool = typer.Option(False, "--save", help="Save to library with the reflection."),
+    no_title: bool = typer.Option(
+        False,
+        "--no-title",
+        help="Disable automatic LLM title suggestion for the saved poem.",
+    ),
+    tags: str = typer.Option(None, help="Comma-separated tags."),
+) -> None:
+    """The four movements, guided: outlet → shaping → teaching → linking.
+
+    You start from what you feel, not from a command. The workshop walks the
+    human-first path (docs/POSITIONING.md): write what you carry (outlet),
+    shape it line by line — pick or type each line, and every line you type
+    is scanned and taught (shaping + teaching) — then, if you choose to
+    save, the poem and your reflection are kept together in memoria
+    (linking). The machine never holds the pen; it holds the craft.
+    """
+    from poesia.generation.constrained_loop import ConstrainedLoop
+    from poesia.generation.registry import get_llm
+    from poesia.teaching import format_scan
+
+    # 1. OUTLET — what are you carrying?
+    reflection_text = (outlet or "").strip()
+    if outlet is not None and not reflection_text:
+        rprint("[yellow]⚠[/yellow] An empty outlet has nothing to shape.")
+        raise typer.Exit(1)
+    if not reflection_text:
+        try:
+            rprint("\n[bold cyan]What are you carrying?[/bold cyan]")
+            rprint(
+                "[dim]A thought, a feeling, a grievance, a joy that never "
+                "became words. Write it as it comes; nobody else will read it.[/dim]"
+            )
+            reflection_text = input("  > ").strip()
+        except (EOFError, KeyboardInterrupt):
+            rprint("\n[dim]Nothing carried today — closing the workshop.[/dim]")
+            raise typer.Exit(0) from None
+    if not reflection_text:
+        rprint("[yellow]⚠[/yellow] An empty outlet has nothing to shape.")
+        raise typer.Exit(1)
+
+    theme = reflection_text[:80]
+    rprint(f"\n[dim]Carrying:[/dim] [bold]“{theme}”[/bold]\n")
+
+    # 2. SHAPING + 3. TEACHING — draft line by line, keeping the editor's seat.
+    llm_client = get_llm(llm)
+    loop = ConstrainedLoop(language=language, form=form, llm=llm_client)
+    line_selector = _make_interactive_selector(loop, language, form)
+    result = loop.run(theme=theme, n_candidates=n_candidates, line_selector=line_selector)
+
+    rprint("\n[bold cyan]═══ Your poem, as shaped ═══[/bold cyan]\n")
+    for line in result.lines:
+        rprint(line)
+
+    # Teaching recap: every line of the finished draft scanned and explained.
+    rprint("\n[bold cyan]═══ The craft, explained ═══[/bold cyan]")
+    phonology = loop._phonology
+    for i, line in enumerate(result.lines):
+        target = loop.form_spec.syllables_for_line(i)
+        scan = phonology.scan_line(line)
+        rprint(f"\n[bold]Line {i + 1}[/bold]")
+        rprint(format_scan(scan, target, language=language, form_name=form))
+
+    # 4. LINKING — save the poem with its reflection, if the human decides to.
+    if save:
+        from poesia.generation.titles import suggest_title
+        from poesia.memoria.library import Library, PoemProvenance, PoemRecord
+
+        title = ""
+        if not no_title and llm != "stub":
+            title = suggest_title(result.lines, language, form, theme, llm_client)
+            if title:
+                rprint(f"\n[bold cyan]Suggested title:[/bold cyan] {title}")
+
+        tags_list = [t.strip() for t in tags.split(",")] if tags else []
+        record = PoemRecord(
+            lines=result.lines,
+            language=language,
+            form=form,
+            title=title,
+            reflection=reflection_text,
+            theme=theme,
+            tags=tags_list,
+            provenance=PoemProvenance(
+                model=getattr(llm_client, "model", None),
+                provider=getattr(llm_client, "provider", None),
+                n_candidates=n_candidates,
+                temperature=getattr(llm_client, "temperature", None),
+            ),
+        )
+        library = Library()
+        library.add(record)
+        saved_label = f" — [bold]{record.title}[/bold]" if record.title else ""
+        rprint(
+            f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]"
+            f"{saved_label} [dim](with reflection)[/dim]"
+        )
 
 
 # --- EufonIA: sound/euphony analysis ----------------------------------------
