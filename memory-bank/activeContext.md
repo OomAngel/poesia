@@ -52,7 +52,7 @@ self-comparisons), consolidated the 5 phase-gate files that tested the same
 `GraphRAGRetriever` into one canonical `test_memoria_graphrag.py` (21
 focused tests), parametrized edge cases (embedding validation 19→6, form
 shapes, backend selection, rhyme suffix), and dropped cross-file dupes
-(influence parser, auto-embed, galeria backends). Suite **540 → 423**
+(influence parser, auto-embed, galeria backends). Suite **540 → 419**
 collected (-22%), still green; mypy/ruff clean. Test-count references
 updated across README/docs/memory-bank. Next candidates if further
 trimming is wanted: hosted-LLM provider HTTP contracts (legitimately
@@ -70,7 +70,7 @@ reframe (docs/POSITIONING.md) moved from docs into behavior:
 - **`poesia workshop`**: the four movements guided — outlet → shaping →
   teaching → linking; interactive selector extracted to
   `_make_interactive_selector()` (shared with `write --interactive`)
-- Full suite green: **423 tests**. **Next: full docs consistency pass** —
+- Full suite green: **419 tests**. **Next: full docs consistency pass** —
   README/USAGE_GUIDE/PRESENTATION_REFERENCE are updated; audit any remaining
   machine-author framing in `docs/`, then mark the reframe DONE in tasks.md.
 

@@ -45,7 +45,7 @@
       test behavior not implementation): retired tautologies, consolidated
       5 phase-gate files testing the same GraphRAGRetriever into one
       canonical file, parametrized edge cases, dropped cross-file dupes.
-      Suite 540 → 423 collected (-22%), green. Commits `af3e0f4`,
+      Suite 540 → 419 collected (-22%), green. Commits `af3e0f4`,
       `ac094ec`, `a4d6d4e`, `3d9dee9`.
 
 ### 2026-08-06 (behavioral layer)

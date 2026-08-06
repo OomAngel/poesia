@@ -32,7 +32,7 @@ Applying the test-pyramid principle (avoid test duplication): the suite
 exercised the same class in 5+ files and asserted implementation rather than
 behavior. Retired/parametrized/merged across the P0–P5 phase-gate files, the
 GraphRAG/embedding suites, records/influences/forms dataclasses, and CLI
-helpers. Suite **540 → 423** collected tests (-22%), still green with the
+helpers. Suite **540 → 419** collected tests (-22%), still green with the
 same behavioral coverage.
 
 ## 2026-08-05 — Auto LLM title generation
