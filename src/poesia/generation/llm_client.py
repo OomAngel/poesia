@@ -25,8 +25,12 @@ def _trace_decorator(span_type: str, name: str) -> Callable[[Any], Any]:
 
     mlflow is an optional, heavy dependency (AGENTS.md lazy-import rule) — the
     CLI must work without it. LoRALocalClient's ``generate`` tracing degrades
-    to an identity decorator when mlflow is absent.
+    to an identity decorator when mlflow is absent. Tracing is also skipped
+    when ``MLFLOW_TRACING_DISABLED`` is set (the official switch), so tests
+    and non-tracing deployments avoid span overhead and exporter noise.
     """
+    if os.environ.get("MLFLOW_TRACING_DISABLED", "").lower() in ("1", "true"):
+        return lambda fn: fn
     try:
         import mlflow
 
