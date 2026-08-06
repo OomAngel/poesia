@@ -40,6 +40,14 @@
 
 ## DONE
 
+### 2026-08-06 (test-suite thinning)
+- [x] **Test-suite thinning** — test-pyramid principle (avoid duplication,
+      test behavior not implementation): retired tautologies, consolidated
+      5 phase-gate files testing the same GraphRAGRetriever into one
+      canonical file, parametrized edge cases, dropped cross-file dupes.
+      Suite 540 → 423 collected (-22%), green. Commits `af3e0f4`,
+      `ac094ec`, `a4d6d4e`, `3d9dee9`.
+
 ### 2026-08-06 (behavioral layer)
 - [x] **Human-first positioning reframe — behavioral layer shipped** — teaching
       voice (`poesia/teaching.py`, `scan --form/--syllables`, teaching in

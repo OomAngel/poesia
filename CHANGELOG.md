@@ -26,6 +26,15 @@ narrative layer (docs) into behavior.
   `write --interactive` and `workshop` share one teaching-voice selector.
 - Suite **512 → 540** (badge + prose updated).
 
+## 2026-08-06 — Test-suite thinning
+
+Applying the test-pyramid principle (avoid test duplication): the suite
+exercised the same class in 5+ files and asserted implementation rather than
+behavior. Retired/parametrized/merged across the P0–P5 phase-gate files, the
+GraphRAG/embedding suites, records/influences/forms dataclasses, and CLI
+helpers. Suite **540 → 423** collected tests (-22%), still green with the
+same behavioral coverage.
+
 ## 2026-08-05 — Auto LLM title generation
 
 - **`poesia write --save` now asks the LLM for a title** once the poem is
