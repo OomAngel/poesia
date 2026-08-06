@@ -8,7 +8,7 @@ from poesia.memoria.embeddings import StubEmbeddingClient
 from poesia.memoria.records import FragmentRecord, InfluenceRecord
 
 
-def test_generation_brief_creation() -> None:
+def test_generation_brief_creation_and_prompt() -> None:
     brief = GenerationBrief(
         form_spec=SONETO_ES,
         theme="departure",
@@ -18,22 +18,11 @@ def test_generation_brief_creation() -> None:
     assert brief.theme == "departure"
     assert "melancholic" in brief.tone
 
-
-def test_generation_brief_to_prompt_contains_form() -> None:
-    brief = GenerationBrief(form_spec=SONETO_ES, theme="silence")
     prompt = brief.to_prompt()
-
     assert "soneto" in prompt.lower()
-    assert "FORM" in prompt
-    assert "11" in prompt  # syllables per line
+    assert "FORM" in prompt and "11" in prompt  # syllables per line
+    assert "departure" in prompt and "THEME" in prompt
 
-
-def test_generation_brief_to_prompt_contains_theme() -> None:
-    brief = GenerationBrief(form_spec=SONETO_ES, theme="departure")
-    prompt = brief.to_prompt()
-
-    assert "departure" in prompt
-    assert "THEME" in prompt
 
 
 def test_brief_builder_creation() -> None:

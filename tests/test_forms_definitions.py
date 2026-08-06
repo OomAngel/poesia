@@ -15,45 +15,36 @@ from poesia.forms.definitions import (
 )
 
 
-def test_soneto_es_shape() -> None:
+def test_defined_form_shapes() -> None:
+    """The four registered forms carry their structural constants."""
     assert SONETO_ES.language == "es"
     assert SONETO_ES.lines_per_stanza == [4, 4, 3, 3]
     assert SONETO_ES.total_lines == 14
     assert SONETO_ES.syllables_per_line == 11
     assert SONETO_ES.rhyme_scheme == "ABBAABBACDCDCD"
 
-
-def test_sonnet_shakespearean_en_shape() -> None:
     assert SONNET_SHAKESPEAREAN_EN.language == "en"
     assert SONNET_SHAKESPEAREAN_EN.total_lines == 14
     assert SONNET_SHAKESPEAREAN_EN.syllables_per_line == 10
     assert SONNET_SHAKESPEAREAN_EN.rhyme_scheme == "ABABCDCDEFEFGG"
 
-
-def test_haiku_en_shape() -> None:
     assert HAIKU_EN.total_lines == 3
     assert HAIKU_EN.lines_per_stanza == [1, 1, 1]
 
-
-def test_romance_es_variable_length() -> None:
     # Romance has no fixed stanza length -- lines_per_stanza is empty and
     # total_lines is therefore 0 (the form is variable-length by design).
     assert ROMANCE_ES.lines_per_stanza == []
     assert ROMANCE_ES.total_lines == 0
 
 
-def test_form_registry_contains_all_defined_forms() -> None:
-    assert FORM_REGISTRY["soneto"] is SONETO_ES
-    assert FORM_REGISTRY["romance"] is ROMANCE_ES
-    assert FORM_REGISTRY["sonnet_shakespearean"] is SONNET_SHAKESPEAREAN_EN
-    assert FORM_REGISTRY["haiku"] is HAIKU_EN
-
-
-def test_get_form_returns_registered_form() -> None:
+def test_form_registry_and_get_form() -> None:
+    assert FORM_REGISTRY == {
+        "soneto": SONETO_ES,
+        "romance": ROMANCE_ES,
+        "sonnet_shakespearean": SONNET_SHAKESPEAREAN_EN,
+        "haiku": HAIKU_EN,
+    }
     assert get_form("soneto") is SONETO_ES
-
-
-def test_get_form_raises_clear_error_for_unknown_form() -> None:
     with pytest.raises(ValueError, match="Unknown form 'villanelle'"):
         get_form("villanelle")
 

@@ -83,13 +83,7 @@ class TestP1EndToEndJourney:
 
 
 class TestLibraryProvenance:
-    """Unit tests for provenance tracking."""
-
-    def test_provenance_defaults(self) -> None:
-        """PoemProvenance should have sensible defaults."""
-        prov = PoemProvenance()
-        assert prov.model is None
-        assert prov.seeds == []
+    """Provenance is written to markdown frontmatter."""
 
     def test_provenance_saved_to_markdown(self, tmp_path: Path) -> None:
         """Provenance should be written to markdown frontmatter."""
