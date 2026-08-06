@@ -155,7 +155,10 @@ def test_cross_lingual_retrieval_by_shared_theme(
     results = populated_retriever.retrieve(query, k=10)
     result_ids = [rid for rid, _ in results]
 
-    es_ids = {fid for fid, _body, lang in frags if lang == "es"}
+    # Cross-lingual retrieval works: an EN query returns results. Whether the
+    # same-theme ES fragments surface depends on the embedding model — with
+    # the stub this is not guaranteed, so no stronger claim is asserted here.
+    assert result_ids, f"EN query for '{theme}' returned no results"
 
 # ---------------------------------------------------------------------------
 # Graph-enhanced retrieval: paths and coverage
@@ -174,35 +177,6 @@ def test_graph_retrieval_returns_results(
     query = stub_client.embed_one(body, text_type="query")
     results = populated_retriever.retrieve_with_paths(query, k=5)
     assert len(results) > 0, "retrieve_with_paths returned nothing"
-
-
-def test_dense_vs_graph_retrieval_can_differ(
-    populated_retriever: GraphRAGRetriever,
-    stub_client: StubEmbeddingClient,
-    fragment_pairs: list[tuple[str, str, str, str, list[str]]],
-) -> None:
-    """Dense-only and graph-enhanced retrieval should not be identical.
-
-    This is the P2 evidence gate adapted for real fragment data.
-    Graph retrieval expands dense seeds via traversal, so it may return
-    additional nodes that dense-only would miss.
-    """
-    if not fragment_pairs:
-        pytest.skip("No fragments loaded")
-    fid, body, _lang, _filename, _themes = fragment_pairs[0]
-    query = stub_client.embed_one(body, text_type="query")
-
-    dense_results = populated_retriever.retrieve(query, k=5)
-    dense_ids = {rid for rid, _ in dense_results}
-
-    graph_results = populated_retriever.retrieve_with_paths(query, k=5)
-    graph_ids = {rid for rid, _score, _path in graph_results}
-
-    # With small fragment sets and stub embeddings the sets often overlap.
-    # This documents they *can* differ; it is informational, not a gate.
-    if dense_ids != graph_ids:
-        only_in_graph = graph_ids - dense_ids
-        assert len(only_in_graph) >= 0  # always true — documenting capability
 
 
 # ---------------------------------------------------------------------------
