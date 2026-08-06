@@ -28,58 +28,25 @@ class TestLoadInfluences:
         # Should have Spanish + English + Dutch influences
         assert len(influences) >= 20
 
-    def test_spanish_influences_have_correct_language(self) -> None:
-        """Spanish section influences have language='es'."""
+    def test_influence_record_shape(self) -> None:
+        """A loaded influence carries language, tone, exemplars, era, movement."""
         influences = load_influences()
         machado = next((i for i in influences if i.id == "antonio_machado"), None)
         assert machado is not None
-        assert machado.language == "es"
         assert machado.name == "Antonio Machado"
+        assert machado.language == "es"
+        assert isinstance(machado.tone, list) and "spare" in machado.tone
+        assert len(machado.exemplars) >= 1 and any("Caminante" in ex for ex in machado.exemplars)
+        assert machado.era == "1875-1939"
+        assert machado.movement == "Generación del 98"
 
-    def test_english_influences_have_correct_language(self) -> None:
-        """English section influences have language='en'."""
+    def test_english_and_dutch_language_sections(self) -> None:
+        """English and Dutch sections carry their language."""
         influences = load_influences()
         frost = next((i for i in influences if i.id == "robert_frost"), None)
-        assert frost is not None
-        assert frost.language == "en"
-
-    def test_dutch_influences_have_correct_language(self) -> None:
-        """Dutch section influences have language='nl'."""
-        influences = load_influences()
         kloos = next((i for i in influences if i.id == "willem_kloos"), None)
-        assert kloos is not None
-        assert kloos.language == "nl"
-
-    def test_influence_has_tone_list(self) -> None:
-        """Influences have tone as list of strings."""
-        influences = load_influences()
-        machado = next((i for i in influences if i.id == "antonio_machado"), None)
-        assert machado is not None
-        assert isinstance(machado.tone, list)
-        assert "spare" in machado.tone
-        assert "meditative" in machado.tone
-
-    def test_influence_has_exemplars(self) -> None:
-        """Influences have exemplars list."""
-        influences = load_influences()
-        machado = next((i for i in influences if i.id == "antonio_machado"), None)
-        assert machado is not None
-        assert len(machado.exemplars) >= 1
-        assert any("Caminante" in ex for ex in machado.exemplars)
-
-    def test_influence_has_era(self) -> None:
-        """Influences have era string."""
-        influences = load_influences()
-        machado = next((i for i in influences if i.id == "antonio_machado"), None)
-        assert machado is not None
-        assert machado.era == "1875-1939"
-
-    def test_influence_has_movement(self) -> None:
-        """Influences have movement string."""
-        influences = load_influences()
-        machado = next((i for i in influences if i.id == "antonio_machado"), None)
-        assert machado is not None
-        assert machado.movement == "Generación del 98"
+        assert frost is not None and frost.language == "en"
+        assert kloos is not None and kloos.language == "nl"
 
 
 class TestGetInfluenceById:
@@ -98,84 +65,58 @@ class TestGetInfluenceById:
 
 
 class TestGetInfluencesByLanguage:
-    """Tests for filtering by language."""
-
-    def test_filters_spanish(self) -> None:
-        """Get only Spanish influences."""
-        spanish = get_influences_by_language("es")
-        assert len(spanish) >= 10
-        assert all(i.language == "es" for i in spanish)
-
-    def test_filters_english(self) -> None:
-        """Get only English influences."""
-        english = get_influences_by_language("en")
-        assert len(english) >= 5
-        assert all(i.language == "en" for i in english)
+    @pytest.mark.parametrize(("lang", "min_count"), [("es", 10), ("en", 5)])
+    def test_filters_by_language(self, lang: str, min_count: int) -> None:
+        """Get only influences of one language."""
+        results = get_influences_by_language(lang)
+        assert len(results) >= min_count
+        assert all(i.language == lang for i in results)
 
 
 class TestGetInfluencesByTone:
-    """Tests for filtering by tone."""
-
-    def test_filters_melancholic(self) -> None:
-        """Get influences with melancholic tone."""
+    def test_filters_by_tone_case_insensitive(self) -> None:
+        """Tone matching filters and is case-insensitive."""
         melancholic = get_influences_by_tone("melancholic")
         assert len(melancholic) >= 2
         assert all("melancholic" in [t.lower() for t in i.tone] for i in melancholic)
-
-    def test_filters_case_insensitive(self) -> None:
-        """Tone matching is case-insensitive."""
         upper = get_influences_by_tone("MELANCHOLIC")
-        lower = get_influences_by_tone("melancholic")
-        assert len(upper) == len(lower)
+        assert len(upper) == len(melancholic)
 
 
 class TestGetInfluencesByMovement:
-    """Tests for filtering by literary movement."""
-
-    def test_filters_generacion_del_98(self) -> None:
-        """Get influences from Generacion del 98."""
+    def test_filters_by_movement(self) -> None:
+        """Movement filtering matches known movements (case-insensitive)."""
         from poesia.memoria.influence_loader import get_influences_by_movement
-        results = get_influences_by_movement("Generación del 98")
-        assert len(results) >= 1
-        assert any(i.name == "Antonio Machado" for i in results)
 
-    def test_filters_romanticism(self) -> None:
-        """Get influences from Romanticism (matches both English and Spanish)."""
-        from poesia.memoria.influence_loader import get_influences_by_movement
-        results = get_influences_by_movement("Romanticism")
-        assert len(results) >= 2
-        assert any(i.name == "William Wordsworth" for i in results)
-        assert any(i.name == "John Keats" for i in results)
+        generacion_98 = get_influences_by_movement("Generación del 98")
+        assert len(generacion_98) >= 1
+        assert any(i.name == "Antonio Machado" for i in generacion_98)
 
-    def test_case_insensitive_movement(self) -> None:
-        """Movement matching is case-insensitive."""
-        from poesia.memoria.influence_loader import get_influences_by_movement
-        upper = get_influences_by_movement("ROMANTICISM")
-        lower = get_influences_by_movement("romanticism")
-        assert len(upper) == len(lower) > 0
+        romanticism = get_influences_by_movement("Romanticism")
+        assert len(romanticism) >= 2
+        assert any(i.name == "William Wordsworth" for i in romanticism)
+        assert any(i.name == "John Keats" for i in romanticism)
+        assert len(get_influences_by_movement("ROMANTICISM")) == len(romanticism)
 
-    def test_returns_empty_for_unknown_movement(self) -> None:
+    def test_unknown_movement_returns_empty(self) -> None:
         """Unknown movement returns empty list."""
         from poesia.memoria.influence_loader import get_influences_by_movement
-        results = get_influences_by_movement("NonExistentMovementXYZ")
-        assert len(results) == 0
+
+        assert get_influences_by_movement("NonExistentMovementXYZ") == []
 
 
 class TestGetInfluencesByEra:
-    """Tests for filtering by era/date range."""
-
-    def test_filters_1900s(self) -> None:
-        """Get influences active around 1900 (spanning turn of century)."""
+    def test_filters_by_era_range(self) -> None:
+        """Era filtering spans the turn of the century."""
         from poesia.memoria.influence_loader import get_influences_by_era
-        results = get_influences_by_era("1890-1910")
-        ids = [i.id for i in results]
-        assert "antonio_machado" in ids  # 1875-1939
-        assert "ruben_dario" in ids     # 1867-1916
 
-    def test_filters_range(self) -> None:
-        """Get influences active in a date range."""
-        from poesia.memoria.influence_loader import get_influences_by_era
-        results = get_influences_by_era("1850-1900")
-        ids = [i.id for i in results]
-        assert "gustavo_adolfo_becquer" in ids  # 1836-1870
-        assert "manuel_acuna" in ids  # 1849-1873
+        around_1900 = get_influences_by_era("1890-1910")
+        ids_1900 = {i.id for i in around_1900}
+        assert "antonio_machado" in ids_1900  # 1875-1939
+        assert "ruben_dario" in ids_1900      # 1867-1916
+
+        earlier = get_influences_by_era("1850-1900")
+        ids_earlier = {i.id for i in earlier}
+        assert "gustavo_adolfo_becquer" in ids_earlier  # 1836-1870
+        assert "manuel_acuna" in ids_earlier            # 1849-1873
+

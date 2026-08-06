@@ -12,7 +12,7 @@ from poesia.memoria.records import (
 )
 
 
-def test_fragment_record_creation() -> None:
+def test_fragment_record_creation_and_defaults() -> None:
     fragment = FragmentRecord(
         id="test-fragment",
         content="El que ve el sistema entero y el detalle que lo deshace.",
@@ -21,29 +21,18 @@ def test_fragment_record_creation() -> None:
         themes=["perception", "pattern"],
         tags=["self-knowledge"],
     )
-
     assert fragment.id == "test-fragment"
     assert fragment.language == "es"
     assert "watchful" in fragment.tone
     assert "perception" in fragment.themes
 
-
-def test_fragment_record_defaults() -> None:
-    fragment = FragmentRecord(
-        id="minimal",
-        content="Just content",
-        language="en",
-    )
-
-    assert fragment.tone == []
-    assert fragment.themes == []
-    assert fragment.tags == []
-    assert fragment.movement is None
-    assert fragment.poet_anchor is None
-    assert isinstance(fragment.created_at, datetime)
+    minimal = FragmentRecord(id="minimal", content="Just content", language="en")
+    assert minimal.tone == [] and minimal.themes == [] and minimal.tags == []
+    assert minimal.movement is None and minimal.poet_anchor is None
+    assert isinstance(minimal.created_at, datetime)
 
 
-def test_seed_expansion_creation() -> None:
+def test_seed_expansion_and_seed_record() -> None:
     expansion = SeedExpansion(
         synonyms=["callar", "mudez", "sigilo"],
         antonyms=["ruido", "estruendo"],
@@ -54,13 +43,10 @@ def test_seed_expansion_creation() -> None:
         etymology="Latin silentium",
         cross_language={"en": "silence", "nl": "stilte", "zh": "沉默"},
     )
-
     assert len(expansion.synonyms) == 3
     assert "ruido" in expansion.antonyms
     assert expansion.cross_language["zh"] == "沉默"
 
-
-def test_seed_record_creation() -> None:
     seed = SeedRecord(
         id="silencio-cluster",
         root_word="silencio",
@@ -71,25 +57,16 @@ def test_seed_record_creation() -> None:
             rhymes_assonant={"e-o": ["tiempo", "viento"]},
         ),
     )
-
     assert seed.root_word == "silencio"
     assert len(seed.expansion.synonyms) == 2
     assert "tiempo" in seed.expansion.rhymes_assonant["e-o"]
 
-
-def test_seed_record_defaults() -> None:
-    seed = SeedRecord(
-        id="minimal",
-        root_word="word",
-        language="en",
-    )
-
-    assert seed.tags == []
-    assert seed.notes is None
-    assert seed.expansion.synonyms == []
+    minimal_seed = SeedRecord(id="minimal", root_word="word", language="en")
+    assert minimal_seed.tags == [] and minimal_seed.notes is None
+    assert minimal_seed.expansion.synonyms == []
 
 
-def test_influence_record_creation() -> None:
+def test_influence_record_creation_and_defaults() -> None:
     influence = InfluenceRecord(
         id="machado",
         name="Antonio Machado",
@@ -103,22 +80,13 @@ def test_influence_record_creation() -> None:
             "Hoy es siempre todavía",
         ],
     )
-
     assert influence.name == "Antonio Machado"
     assert influence.movement == "Generación del 98"
     assert "meditative" in influence.tone
     assert len(influence.exemplars) == 2
 
+    minimal = InfluenceRecord(id="test", name="Test Poet", language="en")
+    assert minimal.movement is None
+    assert minimal.tone == [] and minimal.forms == []
+    assert minimal.exemplars == [] and minimal.anti_patterns == []
 
-def test_influence_record_defaults() -> None:
-    influence = InfluenceRecord(
-        id="test",
-        name="Test Poet",
-        language="en",
-    )
-
-    assert influence.movement is None
-    assert influence.tone == []
-    assert influence.forms == []
-    assert influence.exemplars == []
-    assert influence.anti_patterns == []

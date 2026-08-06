@@ -21,17 +21,13 @@ def _mock_response(content: str) -> MagicMock:
 
 
 class TestGroqConstruction:
-    def test_default_model(self) -> None:
-        c = HostedLLMClient(provider="groq", api_key="gsk_test")
-        assert c.model == "llama-3.3-70b-versatile"
-
-    def test_provider_stored(self) -> None:
+    def test_construction_defaults_and_overrides(self) -> None:
         c = HostedLLMClient(provider="groq", api_key="gsk_test")
         assert c.provider == "groq"
+        assert c.model == "llama-3.3-70b-versatile"
 
-    def test_custom_model(self) -> None:
-        c = HostedLLMClient(provider="groq", api_key="gsk_test", model="llama-3.1-8b-instant")
-        assert c.model == "llama-3.1-8b-instant"
+        custom = HostedLLMClient(provider="groq", api_key="gsk_test", model="llama-3.1-8b-instant")
+        assert custom.model == "llama-3.1-8b-instant"
 
 
 class TestGroqAutoDetection:
