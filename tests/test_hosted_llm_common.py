@@ -12,33 +12,39 @@ from poesia.generation.llm_client import HostedLLMClient
 class TestProviderAutoDetection:
     """Tests for automatic provider detection from environment."""
 
-    def test_auto_detects_gemini_from_env(self) -> None:
-        """Provider auto-detects gemini when GEMINI_API_KEY is set."""
-        with patch.dict("os.environ", {"GEMINI_API_KEY": "gemini-key"}, clear=True):
+    @pytest.mark.parametrize(
+        ("env", "expected_provider", "expected_model"),
+        [
+            ({"GEMINI_API_KEY": "gemini-key"}, "gemini", "gemini-2.5-flash"),
+            ({"OPENAI_API_KEY": "openai-key"}, "openai", "gpt-4o-mini"),
+            ({"GROQ_API_KEY": "gsk_test"}, "groq", "llama-3.3-70b-versatile"),
+        ],
+        ids=["gemini", "openai", "groq"],
+    )
+    def test_auto_detects_provider_from_env(
+        self, env: dict, expected_provider: str, expected_model: str
+    ) -> None:
+        """A provider is auto-detected when its key is the only one set."""
+        with patch.dict("os.environ", env, clear=True):
             client = HostedLLMClient(provider="auto")
+        assert client.provider == expected_provider
+        assert client.api_key == list(env.values())[0]
+        assert client.model == expected_model
 
-        assert client.provider == "gemini"
-        assert client.api_key == "gemini-key"
-        assert client.model == "gemini-2.5-flash"
-
-    def test_auto_detects_openai_from_env(self) -> None:
-        """Provider auto-detects openai when OPENAI_API_KEY is set."""
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "openai-key"}, clear=True):
+    @pytest.mark.parametrize(
+        ("env", "expected_provider"),
+        [
+            ({"GEMINI_API_KEY": "g", "GROQ_API_KEY": "gsk"}, "gemini"),
+            ({"GEMINI_API_KEY": "g", "OPENAI_API_KEY": "o"}, "gemini"),
+            ({"GROQ_API_KEY": "gsk", "OPENAI_API_KEY": "o"}, "groq"),
+        ],
+        ids=["gemini-over-groq", "gemini-over-openai", "groq-over-openai"],
+    )
+    def test_auto_detection_precedence(self, env: dict, expected_provider: str) -> None:
+        """Precedence: Gemini → Groq → OpenAI when multiple keys are present."""
+        with patch.dict("os.environ", env, clear=True):
             client = HostedLLMClient(provider="auto")
-
-        assert client.provider == "openai"
-        assert client.api_key == "openai-key"
-        assert client.model == "gpt-4o-mini"
-
-    def test_gemini_takes_precedence(self) -> None:
-        """When both keys present, Gemini takes precedence."""
-        with patch.dict("os.environ", {
-            "GEMINI_API_KEY": "gemini-key",
-            "OPENAI_API_KEY": "openai-key",
-        }, clear=True):
-            client = HostedLLMClient(provider="auto")
-
-        assert client.provider == "gemini"
+        assert client.provider == expected_provider
 
     def test_no_key_raises_on_generate(self) -> None:
         """Generate raises clear error when no API key available."""
