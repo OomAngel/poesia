@@ -43,13 +43,10 @@ class TestRhymeTrackerBasics:
         t = RhymeTracker("AB", _make_phonology({}))
         assert t.letter_for_line(99) is None
 
-    def test_is_new_rhyme_before_commit(self) -> None:
+    def test_is_new_rhyme_and_target_none_before_commit(self) -> None:
         t = RhymeTracker("ABBA", _make_phonology({}))
         assert t.is_new_rhyme(0) is True
         assert t.is_new_rhyme(1) is True
-
-    def test_target_key_none_before_commit(self) -> None:
-        t = RhymeTracker("ABBA", _make_phonology({}))
         assert t.target_key_for_line(0) is None
         assert t.example_word_for_line(0) is None
 

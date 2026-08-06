@@ -15,21 +15,18 @@ from poesia.generation.rhyme_fetcher import (
 
 
 class TestSpanishRhymeSuffix:
-    def test_plain_word(self) -> None:
-        assert _spanish_rhyme_suffix("oscura") == "ura"
-
-    def test_accented_word_stressed_vowel(self) -> None:
-        # "razón" — ó is stressed, suffix = on
-        assert _spanish_rhyme_suffix("razón") == "on"
-
-    def test_strips_punctuation(self) -> None:
-        assert _spanish_rhyme_suffix("oscura,") == "ura"
-
-    def test_empty_string(self) -> None:
-        assert _spanish_rhyme_suffix("") == ""
-
-    def test_no_vowels(self) -> None:
-        assert _spanish_rhyme_suffix("brr") == ""
+    @pytest.mark.parametrize(
+        ("word", "expected"),
+        [
+            ("oscura", "ura"),      # plain
+            ("razón", "on"),        # accented stressed vowel
+            ("oscura,", "ura"),     # punctuation stripped
+            ("", ""),               # empty
+            ("brr", ""),            # no vowels
+        ],
+    )
+    def test_spanish_rhyme_suffix(self, word: str, expected: str) -> None:
+        assert _spanish_rhyme_suffix(word) == expected
 
 
 class TestSuffixMatchEs:

@@ -78,27 +78,28 @@ class TestSplitStanzas:
 class TestGetImageBackend:
     """Backend selection mirrors the --llm registry pattern."""
 
-    def test_stub(self) -> None:
-        assert isinstance(get_image_backend("stub"), StubImageBackend)
+    @pytest.mark.parametrize(
+        ("backend", "expected"),
+        [
+            ("stub", StubImageBackend),
+            ("procedural", ProceduralImageBackend),
+            ("openai", HostedImageBackend),
+        ],
+    )
+    def test_backend_selection(self, backend: str, expected) -> None:  # noqa: ANN001
+        with patch.dict("os.environ", {}, clear=True):
+            assert isinstance(get_image_backend(backend), expected)
 
-    def test_procedural(self) -> None:
-        assert isinstance(get_image_backend("procedural"), ProceduralImageBackend)
-
-    def test_auto_without_key_falls_back_to_procedural(self) -> None:
+    def test_auto_fallback_and_hosted(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
             assert isinstance(get_image_backend("auto"), ProceduralImageBackend)
-
-    def test_auto_with_openai_key_uses_hosted(self) -> None:
         with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}, clear=True):
-            backend = get_image_backend("auto")
-        assert isinstance(backend, HostedImageBackend)
-
-    def test_openai_explicit(self) -> None:
-        assert isinstance(get_image_backend("openai"), HostedImageBackend)
+            assert isinstance(get_image_backend("auto"), HostedImageBackend)
 
     def test_unknown_backend_raises(self) -> None:
         with pytest.raises(ValueError, match="Unknown image backend"):
             get_image_backend("nope")
+
 
 
 class TestIllustratePoem:
