@@ -19,30 +19,17 @@ from poesia.generation.llm_client import OllamaClient
 # ---------------------------------------------------------------------------
 
 
-def test_ollama_client_default_model() -> None:
-    client = OllamaClient()
-    assert client.model == "gemma2:2b"
+def test_ollama_client_construction() -> None:
+    """Defaults and custom overrides for model/host."""
+    default_client = OllamaClient()
+    assert default_client.model == "gemma2:2b"
+    assert default_client.host == "http://localhost:11434"
+    assert default_client.provider == "ollama"
+    assert default_client.usage is not None
 
-
-def test_ollama_client_default_host() -> None:
-    client = OllamaClient()
-    assert client.host == "http://localhost:11434"
-
-
-def test_ollama_client_custom_model() -> None:
-    client = OllamaClient(model="llama3.2:3b")
-    assert client.model == "llama3.2:3b"
-
-
-def test_ollama_client_custom_host() -> None:
-    client = OllamaClient(host="http://192.168.1.100:11434")
-    assert client.host == "http://192.168.1.100:11434"
-
-
-def test_ollama_client_provider_attribute() -> None:
-    client = OllamaClient()
-    assert client.provider == "ollama"
-    assert client.usage is not None
+    custom = OllamaClient(model="llama3.2:3b", host="http://192.168.1.100:11434")
+    assert custom.model == "llama3.2:3b"
+    assert custom.host == "http://192.168.1.100:11434"
 
 
 # ---------------------------------------------------------------------------

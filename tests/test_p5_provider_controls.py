@@ -23,38 +23,19 @@ from poesia.memoria.library import PoemProvenance
 # ---------------------------------------------------------------------------
 
 
-def test_provenance_has_provider_field() -> None:
-    """PoemProvenance must have the P5 provider field."""
-    prov = PoemProvenance(provider="groq")
+def test_provenance_p5_fields_round_trip() -> None:
+    """P5 extended fields store values and default to None."""
+    prov = PoemProvenance(provider="groq", n_candidates=16, latency_ms=1234, temperature=0.8)
     assert prov.provider == "groq"
-
-
-def test_provenance_has_n_candidates_field() -> None:
-    """PoemProvenance must have the P5 n_candidates field."""
-    prov = PoemProvenance(n_candidates=16)
     assert prov.n_candidates == 16
-
-
-def test_provenance_has_latency_ms_field() -> None:
-    """PoemProvenance must have the P5 latency_ms field."""
-    prov = PoemProvenance(latency_ms=1234)
     assert prov.latency_ms == 1234
-
-
-def test_provenance_has_temperature_field() -> None:
-    """PoemProvenance must have the P5 temperature field."""
-    prov = PoemProvenance(temperature=0.8)
     assert prov.temperature == 0.8
 
-
-def test_provenance_defaults_to_none() -> None:
-    """P5 fields should default to None when not provided."""
-    prov = PoemProvenance()
-    assert prov.provider is None
-    assert prov.n_candidates is None
-
-    assert prov.latency_ms is None
-    assert prov.temperature is None
+    defaults = PoemProvenance()
+    assert defaults.provider is None
+    assert defaults.n_candidates is None
+    assert defaults.latency_ms is None
+    assert defaults.temperature is None
 # ---------------------------------------------------------------------------
 # Save with full provenance includes P5 fields
 # ---------------------------------------------------------------------------

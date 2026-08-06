@@ -134,19 +134,15 @@ def test_llm_client_raises_provider_error_without_key() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_llm_usage_defaults() -> None:
+def test_llm_usage_defaults_and_values() -> None:
     from poesia.generation.llm_client import LLMUsage
+
     u = LLMUsage()
     assert u.prompt_tokens is None
-    assert u.completion_tokens is None
-    assert u.total_tokens is None
     assert u.latency_ms is None
 
-
-def test_llm_usage_accepts_values() -> None:
-    from poesia.generation.llm_client import LLMUsage
-    u = LLMUsage(prompt_tokens=50, completion_tokens=100, total_tokens=150, latency_ms=1234.5)
-    assert u.prompt_tokens == 50
-    assert u.completion_tokens == 100
-    assert u.total_tokens == 150
-    assert u.latency_ms == 1234.5
+    filled = LLMUsage(prompt_tokens=50, completion_tokens=100, total_tokens=150, latency_ms=1234.5)
+    assert filled.prompt_tokens == 50
+    assert filled.completion_tokens == 100
+    assert filled.total_tokens == 150
+    assert filled.latency_ms == 1234.5
