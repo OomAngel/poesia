@@ -217,10 +217,14 @@ class HostedLLMClient:
         api_key: str | None = None,
         model: str | None = None,
         timeout: float = 30.0,
+        groq_pace_seconds: float = 2.1,
     ) -> None:
         self.provider = provider
         self.timeout = timeout
         self.usage: LLMUsage = LLMUsage()  # P5: populated after each generate()
+        # Rate-limit pacing between sequential Groq calls (30 RPM free tier).
+        # Configurable so callers/tests can disable the deliberate sleep.
+        self.groq_pace_seconds = groq_pace_seconds
 
         if api_key:
             self.api_key = api_key
@@ -385,8 +389,8 @@ class HostedLLMClient:
 
         results = []
         for i in range(n):
-            if i > 0:
-                time.sleep(2.1)  # 30 RPM = 1 req/2 s; 2.1 s adds margin
+            if i > 0 and self.groq_pace_seconds > 0:
+                time.sleep(self.groq_pace_seconds)  # 30 RPM = 1 req/2 s; 2.1 s adds margin
             batch = self._generate_openai_compat(
                 prompt, 1, temperature, base_url=self._GROQ_BASE_URL
             )

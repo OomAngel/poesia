@@ -41,8 +41,8 @@ def test_provenance_p5_fields_round_trip() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_save_includes_provider_in_provenance(tmp_path: Path) -> None:
-    """Saving with --save should include model/provider in saved frontmatter."""
+def test_save_includes_latency_in_provenance(tmp_path: Path) -> None:
+    """Saved files should contain latency_ms metadata."""
     import os
     old_home = os.environ.get("HOME")
     try:
@@ -55,30 +55,7 @@ def test_save_includes_provider_in_provenance(tmp_path: Path) -> None:
 
         poems_dir = tmp_path / ".poesia" / "poems"
         md_files = list(poems_dir.glob("*.md"))
-        assert md_files, "No .md files saved"
-
-        content = md_files[0].read_text(encoding="utf-8")
-        assert "latency_ms:" in content, f"No latency_ms in saved file:\n{content}"
-    finally:
-        os.environ["HOME"] = old_home
-
-
-def test_save_includes_latency_in_provenance(tmp_path: Path) -> None:
-    """Saved files should contain latency_ms metadata."""
-    import os
-    old_home = os.environ.get("HOME")
-    try:
-        os.environ["HOME"] = str(tmp_path)
-        runner = CliRunner()
-        result = runner.invoke(app, [
-            "write", "--theme", "sol", "--form", "haiku", "--save",
-        ])
-        assert result.exit_code == 0
-
-        poems_dir = tmp_path / ".poesia" / "poems"
-        md_files = list(poems_dir.glob("*.md"))
         assert md_files
-
 
         content = md_files[0].read_text(encoding="utf-8")
         assert "latency_ms:" in content, (
@@ -94,11 +71,19 @@ def test_save_includes_latency_in_provenance(tmp_path: Path) -> None:
 
 def test_privacy_prompt_appears_with_brief_and_hosted_llm() -> None:
     """When --brief + hosted LLM + fragments exist, a privacy notice should appear."""
+    from unittest.mock import patch
+
+    from poesia.memoria.embeddings import StubEmbeddingClient
+
     runner = CliRunner()
-    result = runner.invoke(app, [
-        "write", "--theme", "luna", "--form", "haiku",
-        "--brief", "--llm", "groq",
-    ], input="no\n")
+    with patch("urllib.request.urlopen"), patch(
+        "poesia.memoria.embeddings.get_embedding_client",
+        return_value=StubEmbeddingClient(),
+    ):
+        result = runner.invoke(app, [
+            "write", "--theme", "luna", "--form", "haiku",
+            "--brief", "--llm", "groq",
+        ], input="no\n")
     assert result.exit_code == 0
     assert "PRIVACY NOTICE" in result.stdout
     assert "cancelled" in result.stdout
@@ -106,11 +91,19 @@ def test_privacy_prompt_appears_with_brief_and_hosted_llm() -> None:
 
 def test_yes_flag_skips_privacy_prompt() -> None:
     """--yes should suppress the privacy confirmation."""
+    from unittest.mock import patch
+
+    from poesia.memoria.embeddings import StubEmbeddingClient
+
     runner = CliRunner()
-    result = runner.invoke(app, [
-        "write", "--theme", "luna", "--form", "haiku",
-        "--brief", "--llm", "groq", "--yes",
-    ])
+    with patch("urllib.request.urlopen"), patch(
+        "poesia.memoria.embeddings.get_embedding_client",
+        return_value=StubEmbeddingClient(),
+    ):
+        result = runner.invoke(app, [
+            "write", "--theme", "luna", "--form", "haiku",
+            "--brief", "--llm", "groq", "--yes",
+        ])
     assert "PRIVACY NOTICE" not in result.stdout, (
         "--yes should suppress the privacy notice"
     )
@@ -118,21 +111,32 @@ def test_yes_flag_skips_privacy_prompt() -> None:
 
 def test_no_privacy_prompt_without_brief() -> None:
     """Without --brief, no privacy notice should appear even with hosted LLM."""
+    from unittest.mock import patch
+
     runner = CliRunner()
-    result = runner.invoke(app, [
-        "write", "--theme", "luna", "--form", "haiku",
-        "--llm", "groq",
-    ])
+    with patch("urllib.request.urlopen"):
+        result = runner.invoke(app, [
+            "write", "--theme", "luna", "--form", "haiku",
+            "--llm", "groq",
+        ])
     assert "PRIVACY NOTICE" not in result.stdout
 
 
 def test_no_privacy_prompt_with_stub_llm() -> None:
     """With --brief but stub LLM, no privacy notice should appear."""
+    from unittest.mock import patch
+
+    from poesia.memoria.embeddings import StubEmbeddingClient
+
     runner = CliRunner()
-    result = runner.invoke(app, [
-        "write", "--theme", "luna", "--form", "haiku",
-        "--brief", "--llm", "stub",
-    ])
+    with patch(
+        "poesia.memoria.embeddings.get_embedding_client",
+        return_value=StubEmbeddingClient(),
+    ):
+        result = runner.invoke(app, [
+            "write", "--theme", "luna", "--form", "haiku",
+            "--brief", "--llm", "stub",
+        ])
     assert "PRIVACY NOTICE" not in result.stdout
 
 

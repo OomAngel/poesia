@@ -56,7 +56,16 @@ class TestGroqAutoDetection:
 class TestGroqHTTPShape:
     @pytest.fixture
     def client(self) -> HostedLLMClient:
-        return HostedLLMClient(provider="groq", api_key="gsk_test")
+        # Disable the deliberate 2.1s rate-limit pacing between sequential
+        # calls — the HTTP shape tests are about payload/headers, not pacing.
+        return HostedLLMClient(provider="groq", api_key="gsk_test", groq_pace_seconds=0)
+
+    def test_groq_pace_is_configurable(self) -> None:
+        """The 2.1s default pacing is a parameter, not a hardcoded sleep."""
+        default = HostedLLMClient(provider="groq", api_key="gsk_test")
+        assert default.groq_pace_seconds == 2.1
+        fast = HostedLLMClient(provider="groq", api_key="gsk_test", groq_pace_seconds=0)
+        assert fast.groq_pace_seconds == 0
 
     def test_hits_groq_base_url(self, client: HostedLLMClient) -> None:
         captured_url = None
