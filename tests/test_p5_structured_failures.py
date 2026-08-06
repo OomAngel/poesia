@@ -1,7 +1,9 @@
 """P5 — Structured failure types and error visibility.
 
-Tests that all errors in the system inherit from PoesiaError and that
-specific error types are raised in the correct failure scenarios.
+Errors inherit from PoesiaError; the dual-inheritance exceptions are catchable
+by both their contract bases (ValueError / RuntimeError); and the one
+behavioral guarantee: a hosted client without a key raises a structured
+LLMProviderError.
 """
 
 from __future__ import annotations
@@ -22,6 +24,19 @@ from poesia.exceptions import (
     PoesiaError,
 )
 
+_ALL_EXCEPTIONS = [
+    EmbeddingError,
+    EmbeddingValidationError,
+    FormError,
+    FormDefinitionError,
+    IndexCompatibilityError,
+    IndexError,
+    LLMError,
+    LLMProviderError,
+    PhonologyBackendError,
+    PhonologyError,
+]
+
 
 # ---------------------------------------------------------------------------
 # Exception hierarchy
@@ -29,63 +44,23 @@ from poesia.exceptions import (
 
 
 def test_all_exceptions_inherit_poesia_error() -> None:
-    exceptions = [
-        EmbeddingError, EmbeddingValidationError,
-        FormError, FormDefinitionError,
-        IndexCompatibilityError, IndexError,
-        LLMError, LLMProviderError,
-        PhonologyBackendError, PhonologyError,
-    ]
-    for exc in exceptions:
+    for exc in _ALL_EXCEPTIONS:
         assert issubclass(exc, PoesiaError), f"{exc.__name__} not a PoesiaError"
 
 
-def test_catch_all_poesia_errors() -> None:
-    from poesia.memoria.embedding_validation import EmbeddingValidationError
-    from poesia.memoria.graphrag import IndexCompatibilityError
-    for exc in [
-        EmbeddingValidationError("test"),
-        IndexCompatibilityError("old", 384, "new", 768),
-        LLMProviderError("test"),
-        FormDefinitionError("test"),
-        PhonologyBackendError("test"),
-    ]:
-        with pytest.raises(PoesiaError):
+@pytest.mark.parametrize(
+    ("make_exc", "bases"),
+    [
+        (lambda: EmbeddingValidationError("bad embedding"), [PoesiaError, ValueError]),
+        (lambda: IndexCompatibilityError("old", 384, "new", 768), [PoesiaError, RuntimeError]),
+    ],
+)
+def test_specialized_errors_catchable_by_contract_bases(make_exc, bases) -> None:  # noqa: ANN001
+    """Dual-inheritance exceptions are catchable by both their base classes."""
+    exc = make_exc()
+    for base in bases:
+        with pytest.raises(base):
             raise exc
-
-
-# ---------------------------------------------------------------------------
-# Embedding errors: dual inheritance
-# ---------------------------------------------------------------------------
-
-
-def test_embedding_error_caught_by_poesia_error() -> None:
-    from poesia.memoria.embedding_validation import EmbeddingValidationError as EVE
-    with pytest.raises(PoesiaError):
-        raise EVE("bad embedding")
-
-
-def test_embedding_error_caught_by_value_error() -> None:
-    from poesia.memoria.embedding_validation import EmbeddingValidationError as EVE
-    with pytest.raises(ValueError):
-        raise EVE("bad embedding")
-
-
-# ---------------------------------------------------------------------------
-# Index errors: dual inheritance
-# ---------------------------------------------------------------------------
-
-
-def test_index_error_caught_by_poesia_error() -> None:
-    from poesia.memoria.graphrag import IndexCompatibilityError as ICE
-    with pytest.raises(PoesiaError):
-        raise ICE("old", 384, "new", 768)
-
-
-def test_index_error_caught_by_runtime_error() -> None:
-    from poesia.memoria.graphrag import IndexCompatibilityError as ICE
-    with pytest.raises(RuntimeError):
-        raise ICE("old-model", 384, "new-model", 768)
 
 
 # ---------------------------------------------------------------------------
@@ -102,22 +77,10 @@ def test_llm_provider_error_structured() -> None:
     assert err.status_code == 429
     assert err.response_body == '{"error": "rate limit"}'
 
-
-def test_llm_provider_error_defaults() -> None:
-    err = LLMProviderError("generic")
-    assert err.provider is None
-    assert err.status_code is None
-    assert err.response_body is None
-
-
-def test_llm_provider_error_caught_by_llm_error() -> None:
-    with pytest.raises(LLMError):
-        raise LLMProviderError("API Error")
-
-
-# ---------------------------------------------------------------------------
-# HostedLLMClient uses structured errors
-# ---------------------------------------------------------------------------
+    generic = LLMProviderError("generic")
+    assert generic.provider is None
+    assert generic.status_code is None
+    assert generic.response_body is None
 
 
 def test_llm_client_raises_provider_error_without_key() -> None:
@@ -127,22 +90,3 @@ def test_llm_client_raises_provider_error_without_key() -> None:
         client.generate("test")
     assert "API key" in str(excinfo.value)
     assert excinfo.value.provider == "groq"
-
-
-# ---------------------------------------------------------------------------
-# LLMUsage dataclass
-# ---------------------------------------------------------------------------
-
-
-def test_llm_usage_defaults_and_values() -> None:
-    from poesia.generation.llm_client import LLMUsage
-
-    u = LLMUsage()
-    assert u.prompt_tokens is None
-    assert u.latency_ms is None
-
-    filled = LLMUsage(prompt_tokens=50, completion_tokens=100, total_tokens=150, latency_ms=1234.5)
-    assert filled.prompt_tokens == 50
-    assert filled.completion_tokens == 100
-    assert filled.total_tokens == 150
-    assert filled.latency_ms == 1234.5

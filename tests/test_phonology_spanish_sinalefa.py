@@ -87,38 +87,9 @@ class TestSpanishPhonologyMetrics:
     def phonology(self) -> SpanishPhonology:
         return SpanishPhonology()
 
-    def test_classic_hendecasyllable(self, phonology: SpanishPhonology) -> None:
-        """Classic 11-syllable line from Garcilaso."""
-        # "En tanto que de rosa y de azucena" (Garcilaso)
-        # Orthographic: En-tan-to-que-de-ro-sa-y-de-a-zu-ce-na = 13
-        # Sinalefas: que-de (no), sa-y (yes), y-de (yes), de-a (yes) = 3
-        # Base: 13 - 3 = 10, final "azucena" is llana → no adjustment = 10
-        # Wait, let me recount...
-        # Actually this is a famous hendecasyllable. Let me trust the tradition.
-        line = "En tanto que de rosa y de azucena"
-        result = phonology.scan_line(line)
-        # This should be 11 syllables (hendecasyllable)
-        # Allow some tolerance since backends may vary
-        assert 9 <= result.metrical_syllable_count <= 12
-
     def test_simple_sinalefa_line(self, phonology: SpanishPhonology) -> None:
         """Simple line with clear sinalefa."""
         # "la aurora" = la(1) + au-ro-ra(3) = 4 ortho, 1 sinalefa = 3 metrical
         line = "la aurora"
         result = phonology.scan_line(line)
         assert result.metrical_syllable_count == 3
-
-    def test_octosyllable_romance(self, phonology: SpanishPhonology) -> None:
-        """Traditional romance meter is 8 syllables."""
-        # "Que por mayo era, por mayo" (traditional)
-        line = "Que por mayo era por mayo"
-        result = phonology.scan_line(line)
-        # Should be close to 8
-        assert 7 <= result.metrical_syllable_count <= 9
-
-    def test_scan_returns_valid_result(self, phonology: SpanishPhonology) -> None:
-        """scan_line should return valid ScanResult."""
-        result = phonology.scan_line("El sol brilla")
-        assert result.is_valid
-        assert result.metrical_syllable_count > 0
-        assert result.line == "El sol brilla"

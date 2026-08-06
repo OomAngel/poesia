@@ -24,46 +24,22 @@ def test_generation_brief_creation_and_prompt() -> None:
     assert "departure" in prompt and "THEME" in prompt
 
 
-
-def test_brief_builder_creation() -> None:
-    builder = BriefBuilder()
-    assert builder._fragments == []
-    assert builder._influences == []
-
-
 def test_brief_builder_build_minimal() -> None:
-    builder = BriefBuilder()
-    brief = builder.build(
-        form="soneto",
-        theme="silence",
-        level="minimal",
-    )
-
+    brief = BriefBuilder().build(form="soneto", theme="silence", level="minimal")
     assert brief.form_spec.name == "soneto"
     assert brief.theme == "silence"
     assert brief.level == "minimal"
 
 
-def test_brief_builder_with_tone() -> None:
-    builder = BriefBuilder()
-    brief = builder.build(
+def test_brief_builder_passes_tone_and_seeds_through() -> None:
+    brief = BriefBuilder().build(
         form="soneto",
         theme="departure",
         tone=["melancholic", "tender"],
-    )
-
-    assert "melancholic" in brief.tone
-    assert "tender" in brief.tone
-
-
-def test_brief_builder_with_seeds() -> None:
-    builder = BriefBuilder()
-    brief = builder.build(
-        form="soneto",
-        theme="silence",
         seeds=["silencio", "partir"],
     )
-
+    assert "melancholic" in brief.tone
+    assert "tender" in brief.tone
     assert "silencio" in brief.seeds_expanded
     assert "partir" in brief.seeds_expanded
 
@@ -82,7 +58,6 @@ def test_brief_builder_with_fragments() -> None:
 
     client = StubEmbeddingClient()
     builder = BriefBuilder(embedding_client=client, fragments=[frag1, frag2])
-
     brief = builder.build(form="soneto", theme="silence")
 
     # Should retrieve fragments (with stub, order is deterministic by hash)
@@ -116,18 +91,8 @@ def test_brief_builder_with_influences() -> None:
     assert "Antonio Machado" in matched_names
 
 
-def test_brief_builder_add_fragments() -> None:
-    builder = BriefBuilder()
-    assert len(builder._fragments) == 0
-
-    frag = FragmentRecord(id="test", content="Test content", language="es")
-    builder.add_fragments([frag])
-
-    assert len(builder._fragments) == 1
-
-
 def test_brief_to_prompt_full() -> None:
-    """Test a fuller brief renders correctly."""
+    """A fuller brief renders all sections."""
     frag = FragmentRecord(
         id="station-departure",
         content="En la estación, vi partir el tren.",

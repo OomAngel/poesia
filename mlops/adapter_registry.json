@@ -72,6 +72,22 @@
       "adapter_path": "models/poetry-lora-qwen3b/final_adapter",
       "notes": "",
       "mlflow_model_version": 1
+    },
+    {
+      "id": "20260806_151949",
+      "mlflow_run_id": "005dad7e9c454a0aa9c55ecfd5ae2920",
+      "mlflow_model_name": "poesia-lora-soneto-v2-fixed",
+      "created": "2026-08-07T01:02:13.478455",
+      "config": "mlops/configs/train_v2_fixed.yaml",
+      "data_sha256": "b2b85e4b16616b630f1eed2905d270049b37be6f70dd6f06d33e83d77abfc348",
+      "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "lora_r": 16,
+      "train_loss": 0.380599250793457,
+      "adapter_path": "models/poetry-lora-v2-fixed/final_adapter",
+      "notes": "",
+      "mlflow_model_version": 1,
+      "eval_syllable_deviation": 11.67,
+      "eval_line_count_accuracy": 1.0
     }
   ],
   "description": "Registry of all trained LoRA adapters. Each entry records the adapter path, config used, data hash, and evaluation metrics. Updated manually or via training script.",

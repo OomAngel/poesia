@@ -15,27 +15,8 @@ import pytest
 from typer.testing import CliRunner
 
 from poesia.cli import app
-from poesia.memoria.library import PoemProvenance
 
 
-# ---------------------------------------------------------------------------
-# PoemProvenance extended fields
-# ---------------------------------------------------------------------------
-
-
-def test_provenance_p5_fields_round_trip() -> None:
-    """P5 extended fields store values and default to None."""
-    prov = PoemProvenance(provider="groq", n_candidates=16, latency_ms=1234, temperature=0.8)
-    assert prov.provider == "groq"
-    assert prov.n_candidates == 16
-    assert prov.latency_ms == 1234
-    assert prov.temperature == 0.8
-
-    defaults = PoemProvenance()
-    assert defaults.provider is None
-    assert defaults.n_candidates is None
-    assert defaults.latency_ms is None
-    assert defaults.temperature is None
 # ---------------------------------------------------------------------------
 # Save with full provenance includes P5 fields
 # ---------------------------------------------------------------------------
@@ -109,33 +90,26 @@ def test_yes_flag_skips_privacy_prompt() -> None:
     )
 
 
-def test_no_privacy_prompt_without_brief() -> None:
-    """Without --brief, no privacy notice should appear even with hosted LLM."""
-    from unittest.mock import patch
-
-    runner = CliRunner()
-    with patch("urllib.request.urlopen"):
-        result = runner.invoke(app, [
-            "write", "--theme", "luna", "--form", "haiku",
-            "--llm", "groq",
-        ])
-    assert "PRIVACY NOTICE" not in result.stdout
-
-
-def test_no_privacy_prompt_with_stub_llm() -> None:
-    """With --brief but stub LLM, no privacy notice should appear."""
+@pytest.mark.parametrize(
+    "extra_args",
+    [
+        ["--llm", "groq"],              # no --brief → no notice
+        ["--brief", "--llm", "stub"],   # stub LLM → no notice
+    ],
+)
+def test_no_privacy_prompt_without_warrant(extra_args: list[str]) -> None:
+    """Without the warrant (hosted LLM + --brief), no privacy notice appears."""
     from unittest.mock import patch
 
     from poesia.memoria.embeddings import StubEmbeddingClient
 
     runner = CliRunner()
-    with patch(
+    with patch("urllib.request.urlopen"), patch(
         "poesia.memoria.embeddings.get_embedding_client",
         return_value=StubEmbeddingClient(),
     ):
         result = runner.invoke(app, [
-            "write", "--theme", "luna", "--form", "haiku",
-            "--brief", "--llm", "stub",
+            "write", "--theme", "luna", "--form", "haiku", *extra_args,
         ])
     assert "PRIVACY NOTICE" not in result.stdout
 

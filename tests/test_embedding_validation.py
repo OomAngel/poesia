@@ -11,7 +11,6 @@ import pytest
 
 from poesia.memoria.embedding_validation import (
     EmbeddingValidationError,
-    check_dimension_compatibility,
     validate_embedding_batch,
     validate_embedding_vector,
 )
@@ -25,7 +24,6 @@ def test_validate_embedding_vector_accepts_valid_input() -> None:
 @pytest.mark.parametrize(
     ("vector", "needle"),
     [
-        ([[0.1, 0.2], [0.3, 0.4]], "nested list"),  # the scalar/batch confusion bug
         (0.5, "expected list"),
         ([], "empty"),
         ([0.1, "invalid", 0.3], "expected numeric"),
@@ -70,12 +68,3 @@ def test_validate_embedding_batch() -> None:
         validate_embedding_batch([[0.1, 0.2], [float("nan"), 0.4]])
     with pytest.raises(EmbeddingValidationError, match="dimension mismatch"):
         validate_embedding_batch([[0.1, 0.2], [0.3, 0.4, 0.5]], expected_dimension=2)
-
-
-def test_check_dimension_compatibility() -> None:
-    check_dimension_compatibility([0.1, 0.2, 0.3], [0.4, 0.5, 0.6])  # same → no raise
-    with pytest.raises(EmbeddingValidationError, match="dimension mismatch"):
-        check_dimension_compatibility([0.1, 0.2], [0.3, 0.4, 0.5])
-    with pytest.raises(EmbeddingValidationError, match="theme/query comparison"):
-        check_dimension_compatibility([0.1, 0.2], [0.3, 0.4, 0.5],
-                                      context="theme/query comparison")

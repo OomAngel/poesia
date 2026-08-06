@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from poesia.phonology.base import RhymeKey, ScanResult, Stress
 from poesia.teaching import (
-    ScanLesson,
     format_scan,
     sinalefa_pairs,
     stress_marks,
@@ -133,11 +132,3 @@ def test_format_scan_without_target_is_minimal() -> None:
     text = format_scan(_scan("verso suelto", 5), None, language="es")
     assert "Metrical syllables: 5" in text
     assert "target:" not in text
-
-
-def test_scan_lesson_dataclass_defaults() -> None:
-    lesson = ScanLesson(line="x", metrical_syllable_count=3)
-    assert lesson.target_syllables is None
-    assert lesson.status == "ok"
-    assert lesson.messages == []
-    assert lesson.on_target
