@@ -2,13 +2,17 @@
 
 ## IN PROGRESS
 
-- [ ] **v2-fixed retraining — INTERRUPTED, NOW UNBLOCKED (2026-08-06)** — docker
-  was started (WSL integration for Ubuntu-22.04 enabled in
-  settings-store.json → `/var/run/docker.sock` live; native `docker` symlinked
-  at `~/.local/bin/docker`). Postgres + MLflow compose stack is UP
-  (poesia-postgres-1 healthy :5432, poesia-mlflow-ui-1 :5000 HTTP 200; verified via
-  memory-bank sanity check). Old run e5129188 was unverifiable. Relaunch:
-  `bash scripts/launch_training.sh local mlops/configs/train_v2_fixed.yaml`
+- [x] **v2-fixed retraining — RELAUNCHED (2026-08-06)** — docker was started
+  (WSL integration enabled; native `docker` on PATH). Postgres + MLflow stack
+  UP (mlflow-ui :5000 HTTP 200; verified this session). Old run e5129188 was
+  unverifiable. Relaunched 2026-08-06 ~15:15 directly (bypassing the
+  launcher's interactive prompt): `conda run -n poesia python
+  scripts/train_poetry_lora.py mlops/configs/train_v2_fixed.yaml` —
+  log `/tmp/train_v2_fixed_relaunch.log`. Prereqs verified: model cached
+  (Qwen2.5-1.5B-Instruct 2.9G), data present (train_fixed.jsonl 191MB),
+  GPU free, tracking → postgres. Estimated ~2h (38K examples, 1 epoch,
+  ~4,750 steps). **Next: verify run registered in MLflow + eval via
+  post-training pipeline.**
 
 ## BACKLOG (priority order)
 
@@ -46,7 +50,9 @@
       5 phase-gate files testing the same GraphRAGRetriever into one
       canonical file, parametrized edge cases, dropped cross-file dupes.
       Suite 540 → 413 collected (-22%), green. Commits `af3e0f4`,
-      `ac094ec`, `a4d6d4e`, `3d9dee9`.
+      `ac094ec`, `a4d6d4e`, `3d9dee9`. Follow-up (commit `021d71a`):
+      hosted-LLM wire contract parametrized per provider family (OpenAI +
+      Groq share the protocol) — suite **413 → 410**, docs/badge updated.
 
 ### 2026-08-06 (behavioral layer)
 - [x] **Human-first positioning reframe — behavioral layer shipped** — teaching
@@ -55,7 +61,11 @@
       field in memoria (frontmatter + SQLite migration, `--reflection` +
       post-save prompt, shown in `memoria list/search`); `poesia workshop`
       (outlet → shaping → teaching → linking). Suite 512 → 540 green.
-      Docs consistency pass done (README, USAGE_GUIDE, CHANGELOG).
+      Docs consistency pass fully closed: README/USAGE_GUIDE/CHANGELOG
+      updated in-session; final audit swept `share/` clean of machine-author
+      framing ("the poems *they* write with PoesIA") and corrected every
+      stale test count to **410** (README, POSITIONING, PRESENTATION_REFERENCE,
+      RAG plan, share emails/checklist).
 
 ### 2026-08-05 (auto-title feature)
 - [x] **feat(generation)**: LLM-backed title suggestion on `poesia write --save`

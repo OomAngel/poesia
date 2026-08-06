@@ -49,7 +49,7 @@ tar -xzf poesia-share-20260804.tar.gz
 cd poesia
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest                # optional sanity check (477 tests)
+pytest                # optional sanity check (410 tests)
 poesia --help
 poesia write --theme "luna" --form soneto --language es   # offline, no keys
 ```
@@ -57,7 +57,7 @@ poesia write --theme "luna" --form soneto --language es   # offline, no keys
 ## Rules of the road
 
 - The repo must stay private — never publish it or push it to a public remote.
-- The contact may share the *poems PoesIA writes*, but the original fragments
+- The contact may share the *poems they write with PoesIA*, but the original fragments
   in `seeds/` remain © the author (see `NOTICE`) and are not to be copied or
   redistributed.
 - `share/` contains your private email drafts — they ship inside the tarball,

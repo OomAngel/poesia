@@ -33,7 +33,7 @@ has never written a line and has a poem inside them anyway.
 - **Not therapy**, and it makes no therapeutic claims. (The expressive-writing
   research in §5 is context for why the *outlet* matters — it is not a license
   to sell healing.)
-- **Not a technical trophy.** Its results (73% formal validity, 413 tests) exist
+- **Not a technical trophy.** Its results (73% formal validity, 410 tests) exist
   to serve the teaching role, not as the product.
 
 **The question every feature must answer: *who is the author?*** If the answer

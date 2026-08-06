@@ -52,11 +52,11 @@ self-comparisons), consolidated the 5 phase-gate files that tested the same
 `GraphRAGRetriever` into one canonical `test_memoria_graphrag.py` (21
 focused tests), parametrized edge cases (embedding validation 19→6, form
 shapes, backend selection, rhyme suffix), and dropped cross-file dupes
-(influence parser, auto-embed, galeria backends). Suite **540 → 413**
-collected (-22%), still green; mypy/ruff clean. Test-count references
-updated across README/docs/memory-bank. Next candidates if further
-trimming is wanted: hosted-LLM provider HTTP contracts (legitimately
-distinct per vendor, kept).
+(influence parser, auto-embed, galeria backends). Suite **540 → 410**
+collected (-24%), still green; mypy/ruff clean. Test-count references
+updated across README/docs/memory-bank. Follow-up: hosted-LLM wire
+contracts parametrized per provider family (OpenAI and Groq share the
+same protocol) — suite **413 → 410** (commit `021d71a`).
 
 **NEW (2026-08-06): Behavioral layer shipped** — the human-first positioning
 reframe (docs/POSITIONING.md) moved from docs into behavior:
@@ -70,9 +70,12 @@ reframe (docs/POSITIONING.md) moved from docs into behavior:
 - **`poesia workshop`**: the four movements guided — outlet → shaping →
   teaching → linking; interactive selector extracted to
   `_make_interactive_selector()` (shared with `write --interactive`)
-- Full suite green: **413 tests**. **Next: full docs consistency pass** —
-  README/USAGE_GUIDE/PRESENTATION_REFERENCE are updated; audit any remaining
-  machine-author framing in `docs/`, then mark the reframe DONE in tasks.md.
+- Full suite green: **410 tests**. **Docs consistency pass DONE** — the last
+  reframe item is closed: stale counts corrected to **410** everywhere
+  (README badge + prose, POSITIONING, PRESENTATION_REFERENCE exemplars,
+  RAG plan, share/ emails + checklist), and the last machine-author framing
+  in `share/` reframed to "the poems *they* write with PoesIA". Reframe
+  marked DONE in tasks.md.
 
 **NEW (2026-08-05): auto title generation shipped** — `poesia write --save` now
 asks the LLM (non-stub backends) for a short title after validation; saved
@@ -96,13 +99,18 @@ GalerIA status:
 - ⏭️ Next: real DALL·E/SDXL smoke test with a key; **wire retrieval into GalerIA**
   (style anchoring from retrieval — currently via influences only)
 
-⚠️ **v2-fixed retraining INTERRUPTED** — PID 309663 no longer running, `/tmp/train_v2_fixed.log`
-gone (WSL reboot cleared `/tmp`). PostgreSQL/MLflow is DOWN (port 5432 refused; docker not
-available in this WSL distro), so run e5129188's final state is unverifiable.
-**Needs relaunch once PG is up**:
-`bash scripts/launch_training.sh local mlops/configs/train_v2_fixed.yaml`
+✅ **v2-fixed retraining RELAUNCHED (2026-08-06 ~15:15)** — the interrupted
+run e5129188's final state was unverifiable, so it was relaunched directly
+(bypassing the launcher's interactive prompt, which can't run in a
+non-interactive shell):
+`conda run -n poesia python scripts/train_poetry_lora.py mlops/configs/train_v2_fixed.yaml`
+Log: `/tmp/train_v2_fixed_relaunch.log`. Prereqs verified this session:
+model cached (Qwen2.5-1.5B-Instruct, 2.9G), train_fixed.jsonl present
+(191MB), GPU free (713MiB), MLflow UI HTTP 200, tracking → postgres.
+MLflow run `005dad7e` "v2-fixed-format" **RUNNING** in experiment
+`soneto-v2-fixed`.
 
-The training plan itself (when relaunched):
+The training plan (as designed):
 - 38K line-by-line examples matching the inference prompt EXACTLY
 - 1 epoch ≈ 4,750 steps ≈ ~2h on RTX 2000 Ada
 - Adds title-generation examples (983 in full dataset)
@@ -792,6 +800,26 @@ Removed duplicate `git_hash` and `run_id` computation (was happening twice in th
 |---------|------|------|
 | `python scripts/train_poetry_lora.py mlops/configs/train_ruli.yaml` | Ruli-3B (Spanish-native) training | ~2h |
 | `python scripts/train_poetry_lora.py mlops/configs/train_composite.yaml` | Composite loss on 500 scored sonetos | ~2h |
+## What We Just Did (2026-08-06: Docs consistency pass — test counts + machine-author framing)
+
+Closed the last open item of the behavioral-layer reframe (POSITIONING §8 guardrail):
+
+1. **Test counts corrected to the real suite (413 → 410).** The post-thinning
+   parametrization of the hosted-LLM wire contract (commit `021d71a` — OpenAI
+   and Groq share the same protocol, asserted once per provider family) had
+   dropped the suite to **410** without updating the docs. Fixed everywhere:
+   README (badge, dev block, status), docs/POSITIONING.md,
+   docs/PRESENTATION_REFERENCE.md (P12/P13 exemplars), the RAG/LLM plan
+   ("400+" → 410), CHANGELOG (new thinning bullet), and the stale `share/`
+   emails + checklist (477 → 410).
+2. **Machine-author framing removed from `share/`.** "the poems PoesIA writes"
+   → "the poems *they* write with PoesIA" (SHARING_CHECKLIST) and "poems it
+   writes" → "poems it helps write" / "los poemas que ayuda a escribir"
+   (EMAIL_01_COVER, EN + ES). `docs/` and README/USAGE_GUIDE were already
+   clean — only `share/` carried it.
+3. **Reframe marked DONE in tasks.md.**
+
+## Document authority
 | `python scripts/train_poetry_dpo.py mlops/configs/dpo_v1.yaml` | DPO preference learning | ~1h |
 | `python scripts/run_experiment_grid.py --grid loss_compare` | Compare CE vs Composite vs DPO | ~5h |
 

@@ -15,7 +15,7 @@ evidence.
 
 ## Current state
 
-**P0–P5 are complete.** 400+ tests passing.
+**P0–P5 are complete.** 410 tests passing.
 
 ### What is implemented and verified
 
@@ -55,7 +55,7 @@ evidence.
 - Provider/run lineage in saved poem frontmatter (provider, n_candidates, temperature, latency_ms, total_tokens).
 - Structured exception hierarchy: ``PoesiaError`` base with 10 subtypes.
 - ``LLMUsage`` dataclass with token and latency tracking.
-- 400+ tests passing.
+- 410 tests passing.
 
 ### Honest positioning
 

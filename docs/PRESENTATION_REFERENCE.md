@@ -103,7 +103,7 @@ section.
 ```markdown
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-486%20passing-brightgreen)](#development)
+[![Tests](https://img.shields.io/badge/tests-410%20passing-brightgreen)](#development)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](#status)
 [![LLM backends](https://img.shields.io/badge/LLM%20backends-8%2B-blueviolet)](#core-generation)
 [![Image backends](https://img.shields.io/badge/image%20backends-6-orange)](#galeria--illustration)
@@ -268,12 +268,12 @@ them. Test counts are stated here, and they must match CI.
 **PoesIA exemplar:**
 ```bash
 pip install -e ".[dev]"
-pytest                       # 486 tests
+pytest                       # 410 tests
 ruff check src/ mlops/       # lint (CI-enforced)
 ruff format --check src/ mlops/
 mypy src/ --ignore-missing-imports
 ```
-> 486 passing tests; ruff, mypy, bandit, safety enforced in CI
+> 410 passing tests; ruff, mypy, bandit, safety enforced in CI
 
 **Check.** (a) Commands are runnable in the documented env. (b) The stated test
 count equals the CI badge on [P4](#p4-badge-stack). (c) CI status is either
@@ -287,7 +287,7 @@ shown or linked.
 failed. Future readers (and future-you) read this first.
 
 **PoesIA exemplar:**
-> Core engine complete; Phases 0–5 + P0–P5 hardening done, **486 tests passing**
+> Core engine complete; Phases 0–5 + P0–P5 hardening done, **410 tests passing**
 > (2026-08). Fine-tuning and DPO pipelines operational (MLflow-tracked); GalerIA
 > wired end-to-end …
 

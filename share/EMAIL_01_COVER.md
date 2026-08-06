@@ -38,7 +38,7 @@ You can unpack it and have it running locally in about five minutes
   full provenance documented in the repo.
 
 More than anything, I'd genuinely love your reaction — especially on the
-poems it writes and whether you think the whole "engine" idea holds up.
+poems it helps write and whether you think the whole "engine" idea holds up.
 The follow-up email in this thread is a 15-minute tour if you want to try it.
 
 Warmly,
@@ -77,7 +77,7 @@ originales* en `seeds/` son míos y siguen siendo míos (te los comparto para
 leerlos, no para ceder derechos); el *corpus* es de dominio público con
 procedencia documentada.
 
-Me encantaría tu reacción, sobre todo a los poemas que escribe. El siguiente
+Me encantaría tu reacción, sobre todo a los poemas que ayuda a escribir. El siguiente
 correo es un recorrido de 15 minutos si quieres probarlo.
 
 Un abrazo,

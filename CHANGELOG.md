@@ -34,6 +34,10 @@ behavior. Retired/parametrized/merged across the P0–P5 phase-gate files, the
 GraphRAG/embedding suites, records/influences/forms dataclasses, and CLI
 helpers. Suite **540 → 413** collected tests (-22%), still green with the
 same behavioral coverage.
+- Hosted-LLM HTTP contracts parametrized per provider family — OpenAI and
+  Groq expose the same OpenAI-compatible wire protocol, so the wire-shape
+  assertions are now asserted once per family instead of duplicated per
+  vendor. Suite **413 → 410** (badge + prose updated).
 
 ## 2026-08-05 — Auto LLM title generation
 

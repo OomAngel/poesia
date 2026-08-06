@@ -55,7 +55,7 @@ poesia write --theme "luna" --form soneto --llm groq --brief
 
 - Heavy features (illustration, music, embeddings, fine-tuning) install behind
   extras: `pip install -e ".[all]"`. The core works without them.
-- Sanity check: `pytest` runs the full suite (**477 tests**).
+- Sanity check: `pytest` runs the full suite (**410 tests**).
 - The training/MLOps side (LoRA adapters, MLflow) is real but resource-heavy —
   happy to walk you through it separately if you're curious.
 
