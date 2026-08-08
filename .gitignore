@@ -76,3 +76,13 @@ cronologia/*.db
 # Local GitHub-page capture artifacts (replica screenshots)
 screenshots/
 
+
+# SOPS/age encrypted secrets (committed) - plaintext secret files stay ignored
+secrets/*.yaml
+secrets/*.yml
+!secrets/*.sops.yaml
+!secrets/*.sops.yml
+!secrets/*.template.yaml
+!secrets/*.template.yml
+secrets/*.env
+!secrets/README.md

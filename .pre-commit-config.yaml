@@ -1,0 +1,18 @@
+# Minimal pre-commit config for poesia (credential guard hooks).
+# Install: pre-commit install
+# Run:     pre-commit run --all-files
+repos:
+  - repo: local
+    hooks:
+      - id: no-plaintext-secrets
+        name: block plaintext credentials
+        entry: bash tools/check_no_plaintext_secrets.sh
+        language: system
+        pass_filenames: true
+        stages: [pre-commit]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: detect-private-key
+        exclude: ^secrets/.*\.sops\.ya?ml$
