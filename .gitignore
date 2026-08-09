@@ -86,3 +86,6 @@ secrets/*.yml
 !secrets/*.template.yml
 secrets/*.env
 !secrets/README.md
+
+# Node (untracked deps)
+node_modules/

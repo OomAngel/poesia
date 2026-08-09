@@ -1,6 +1,5 @@
-# Minimal pre-commit config for poesia (credential guard hooks).
+# Pre-commit config for poesia — Tier 1 (see ~/dev/DEV_STANDARDS.md).
 # Install: pre-commit install
-# Run:     pre-commit run --all-files
 repos:
   - repo: local
     hooks:
@@ -11,8 +10,22 @@ repos:
         pass_filenames: true
         stages: [pre-commit]
 
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.25
+    hooks:
+      - id: validate-pyproject
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: check-case-conflict
       - id: detect-private-key
         exclude: ^secrets/.*\.sops\.ya?ml$
