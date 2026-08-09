@@ -250,6 +250,87 @@ class GraphRAGRetriever:
     # Public interface
     # ------------------------------------------------------------------
 
+    def _auto_embed_missing(
+        self,
+        records: list[PoemRecord],
+        embeddings: dict[str, list[float]],
+        embedding_client: Any,
+    ) -> None:
+        """Auto-embed records that have no vector yet (Phase 4D)."""
+        for rec in records:
+            if not rec.id or rec.id in embeddings:
+                continue
+            text_parts = [rec.theme or ""]
+            if hasattr(rec, "lines") and rec.lines:
+                text_parts.extend(rec.lines)
+            embeddable_text = " ".join(text_parts).strip()
+            if not embeddable_text:
+                continue
+            try:
+                raw_embedding = embedding_client.embed_one(embeddable_text, text_type="passage")
+                validated = validate_embedding_vector(
+                    raw_embedding,
+                    expected_dimension=embedding_client.dimension,
+                    context=f"auto-embed record {rec.id}",
+                )
+                embeddings[rec.id] = validated
+            except EmbeddingValidationError as e:
+                raise ValueError(f"Failed to auto-embed record {rec.id}: {e}") from e
+            except Exception as e:
+                raise RuntimeError(f"Embedding client failed for record {rec.id}: {e}") from e
+
+    def _store_poem_nodes(
+        self,
+        records: list[PoemRecord],
+        embeddings: dict[str, list[float]],
+        embedding_client: Any | None,
+    ) -> None:
+        """Validate embeddings and add poem nodes."""
+        for rec in records:
+            if not rec.id:
+                continue
+            embedding = embeddings.get(rec.id, [])
+            if embedding and embedding_client:
+                try:
+                    embedding = validate_embedding_vector(
+                        embedding,
+                        expected_dimension=embedding_client.dimension,
+                        context=f"record {rec.id} embedding",
+                    )
+                except EmbeddingValidationError as e:
+                    raise ValueError(f"Invalid embedding for record {rec.id}: {e}") from e
+            self._graph.add_node(
+                rec.id,
+                node_type=NodeType.poem.value,
+                theme=rec.theme,
+                form=rec.form,
+                language=rec.language,
+                tags=rec.tags,
+                embedding=embedding,
+            )
+
+    def _rebuild_semantic_edges(self) -> None:
+        """Rebuild bidirectional similarity edges from stored embeddings."""
+        node_ids = [n for n in self._graph.nodes if self._graph.nodes[n].get("embedding")]
+        for i, node_a in enumerate(node_ids):
+            emb_a = self._graph.nodes[node_a]["embedding"]
+            for node_b in node_ids[i + 1 :]:
+                emb_b = self._graph.nodes[node_b]["embedding"]
+                score = _cosine(emb_a, emb_b)
+                if score >= self.SIMILARITY_THRESHOLD:
+                    self._graph.add_edge(
+                        node_a,
+                        node_b,
+                        weight=round(score, 4),
+                        relation_type=RelationType.similar_to.value,
+                    )
+                    self._graph.add_edge(
+                        node_b,
+                        node_a,
+                        weight=round(score, 4),
+                        relation_type=RelationType.similar_to.value,
+                    )
+
     def ingest(
         self,
         records: list[PoemRecord],
@@ -277,85 +358,10 @@ class GraphRAGRetriever:
             # Record model identity for versioned persistence
             self._index_model_id = embedding_client.model_id
             self._index_embedding_dimension = embedding_client.dimension
-            expected_dim = embedding_client.dimension
-            for rec in records:
-                if rec.id and rec.id not in embeddings:
-                    # Build embeddable text from record
-                    text_parts = [rec.theme or ""]
-                    if hasattr(rec, "lines") and rec.lines:
-                        text_parts.extend(rec.lines)
-                    embeddable_text = " ".join(text_parts).strip()
-                    if embeddable_text:
-                        try:
-                            # Use embed_one() for scalar text, not embed() which expects list[str]
-                            # text_type="passage": stored documents use passage prefix in e5 models
-                            raw_embedding = embedding_client.embed_one(
-                                embeddable_text, text_type="passage"
-                            )
-                            # P0: validate embedding shape and values
-                            validated = validate_embedding_vector(
-                                raw_embedding,
-                                expected_dimension=expected_dim,
-                                context=f"auto-embed record {rec.id}",
-                            )
-                            embeddings[rec.id] = validated
-                        except EmbeddingValidationError as e:
-                            # P0: expose validation failures explicitly
-                            raise ValueError(f"Failed to auto-embed record {rec.id}: {e}") from e
-                        except Exception as e:
-                            # Other embedding failures (network, model load, etc.)
-                            raise RuntimeError(
-                                f"Embedding client failed for record {rec.id}: {e}"
-                            ) from e
+            self._auto_embed_missing(records, embeddings, embedding_client)
 
-        # P0: validate all embeddings before storing
-        for rec in records:
-            if not rec.id:
-                continue
-
-            embedding = embeddings.get(rec.id, [])
-            # Validate non-empty embeddings
-            if embedding and embedding_client:
-                try:
-                    embedding = validate_embedding_vector(
-                        embedding,
-                        expected_dimension=embedding_client.dimension,
-                        context=f"record {rec.id} embedding",
-                    )
-                except EmbeddingValidationError as e:
-                    raise ValueError(f"Invalid embedding for record {rec.id}: {e}") from e
-
-            # P2: store node_type on all poem nodes
-            self._graph.add_node(
-                rec.id,
-                node_type=NodeType.poem.value,
-                theme=rec.theme,
-                form=rec.form,
-                language=rec.language,
-                tags=rec.tags,
-                embedding=embedding,
-            )
-
-        # Rebuild semantic edges from embeddings — P2: tag with relation_type
-        node_ids = [n for n in self._graph.nodes if self._graph.nodes[n].get("embedding")]
-        for i, node_a in enumerate(node_ids):
-            emb_a = self._graph.nodes[node_a]["embedding"]
-            for node_b in node_ids[i + 1 :]:
-                emb_b = self._graph.nodes[node_b]["embedding"]
-                score = _cosine(emb_a, emb_b)
-                if score >= self.SIMILARITY_THRESHOLD:
-                    self._graph.add_edge(
-                        node_a,
-                        node_b,
-                        weight=round(score, 4),
-                        relation_type=RelationType.similar_to.value,
-                    )
-                    self._graph.add_edge(
-                        node_b,
-                        node_a,
-                        weight=round(score, 4),
-                        relation_type=RelationType.similar_to.value,
-                    )
+        self._store_poem_nodes(records, embeddings, embedding_client)
+        self._rebuild_semantic_edges()
 
         # P3: update content fingerprint after every ingest
         self._index_content_fingerprint = _compute_fingerprint(records)
@@ -640,6 +646,53 @@ class GraphRAGRetriever:
     # P2: Bounded typed traversal with explainable paths
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _allowed_set(values: list[RelationType] | list[NodeType] | None) -> set[str] | None:
+        """Build a whitelist set of value strings, or None when unrestricted."""
+        return {v.value for v in values} if values else None
+
+    @staticmethod
+    def _node_allowed(ep_type: str, allowed_node_types: set[str] | None) -> bool:
+        """True when the endpoint node type passes the whitelist (None = all)."""
+        return allowed_node_types is None or ep_type in allowed_node_types
+
+    @staticmethod
+    def _should_expand(
+        path: GraphPath,
+        max_hops: int,
+        path_count: int,
+        queue_len: int,
+        budget: int,
+    ) -> bool:
+        """True when traversal may still expand this path."""
+        return path.depth < max_hops and path_count + queue_len < budget
+
+    def _expand_neighbors(
+        self,
+        start: str,
+        visited: set[str],
+        allowed_relations: set[str] | None,
+        check_visited: bool,
+    ) -> list[tuple[str, NodeType, RelationType, float]]:
+        """Yield (neighbor, node_type, relation_type, weight) for allowed edges."""
+        hops: list[tuple[str, NodeType, RelationType, float]] = []
+        for nbr in self._graph.successors(start):
+            if check_visited and nbr in visited:
+                continue
+            edge_data = self._graph[start][nbr]
+            rel_val = edge_data.get("relation_type", RelationType.similar_to.value)
+            if allowed_relations and rel_val not in allowed_relations:
+                continue
+            nbr_type_val = self._graph.nodes[nbr].get("node_type", NodeType.poem.value)
+            try:
+                nbr_type = NodeType(nbr_type_val)
+                rel_type = RelationType(rel_val)
+            except ValueError:
+                nbr_type = NodeType.poem
+                rel_type = RelationType.similar_to
+            hops.append((nbr, nbr_type, rel_type, edge_data.get("weight", 1.0)))
+        return hops
+
     def traverse(
         self,
         start_id: str,
@@ -663,8 +716,8 @@ class GraphRAGRetriever:
         if start_id not in self._graph:
             return []
 
-        allowed_relations = {rt.value for rt in relation_types} if relation_types else None
-        allowed_node_types = {nt.value for nt in node_types} if node_types else None
+        allowed_relations = self._allowed_set(relation_types)
+        allowed_node_types = self._allowed_set(node_types)
 
         from collections import deque
 
@@ -672,55 +725,48 @@ class GraphRAGRetriever:
         visited: set[str] = {start_id}
         queue: deque[GraphPath] = deque()
 
-        for nbr in self._graph.successors(start_id):
-            edge_data = self._graph[start_id][nbr]
-            rel_val = edge_data.get("relation_type", RelationType.similar_to.value)
-            if allowed_relations and rel_val not in allowed_relations:
-                continue
-            nbr_type_val = self._graph.nodes[nbr].get("node_type", NodeType.poem.value)
-            try:
-                nbr_type = NodeType(nbr_type_val)
-                rel_type = RelationType(rel_val)
-            except ValueError:
-                nbr_type = NodeType.poem
-                rel_type = RelationType.similar_to
-            hop = GraphHop(
-                node_id=nbr,
-                node_type=nbr_type,
-                relation_type=rel_type,
-                weight=edge_data.get("weight", 1.0),
+        for nbr, nbr_type, rel_type, weight in self._expand_neighbors(
+            start_id, visited, allowed_relations, check_visited=False
+        ):
+            queue.append(
+                GraphPath(
+                    origin_id=start_id,
+                    hops=[
+                        GraphHop(
+                            node_id=nbr,
+                            node_type=nbr_type,
+                            relation_type=rel_type,
+                            weight=weight,
+                        )
+                    ],
+                )
             )
-            queue.append(GraphPath(origin_id=start_id, hops=[hop]))
             visited.add(nbr)
 
         while queue and len(paths) < budget:
             current_path = queue.popleft()
             endpoint = current_path.endpoint_id
             ep_type = self._graph.nodes[endpoint].get("node_type", NodeType.poem.value)
-            if allowed_node_types is None or ep_type in allowed_node_types:
+            if self._node_allowed(ep_type, allowed_node_types):
                 paths.append(current_path)
-            if current_path.depth < max_hops and len(paths) + len(queue) < budget:
-                for nbr in self._graph.successors(endpoint):
-                    if nbr in visited:
-                        continue
-                    edge_data = self._graph[endpoint][nbr]
-                    rel_val = edge_data.get("relation_type", RelationType.similar_to.value)
-                    if allowed_relations and rel_val not in allowed_relations:
-                        continue
-                    nbr_type_val = self._graph.nodes[nbr].get("node_type", NodeType.poem.value)
-                    try:
-                        nbr_type = NodeType(nbr_type_val)
-                        rel_type = RelationType(rel_val)
-                    except ValueError:
-                        nbr_type = NodeType.poem
-                        rel_type = RelationType.similar_to
-                    hop = GraphHop(
-                        node_id=nbr,
-                        node_type=nbr_type,
-                        relation_type=rel_type,
-                        weight=edge_data.get("weight", 1.0),
+            if self._should_expand(current_path, max_hops, len(paths), len(queue), budget):
+                for nbr, nbr_type, rel_type, weight in self._expand_neighbors(
+                    endpoint, visited, allowed_relations, check_visited=True
+                ):
+                    queue.append(
+                        GraphPath(
+                            origin_id=start_id,
+                            hops=current_path.hops
+                            + [
+                                GraphHop(
+                                    node_id=nbr,
+                                    node_type=nbr_type,
+                                    relation_type=rel_type,
+                                    weight=weight,
+                                )
+                            ],
+                        )
                     )
-                    queue.append(GraphPath(origin_id=start_id, hops=current_path.hops + [hop]))
                     visited.add(nbr)
         return paths
 

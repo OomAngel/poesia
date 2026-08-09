@@ -51,20 +51,15 @@ class GenerationBrief:
     level: str = "standard"
     created_at: datetime = field(default_factory=datetime.now)
 
-    def to_prompt(self) -> str:
-        """Render the brief as an LLM prompt string."""
-        lines = [f"# Generation Brief — {self.created_at.isoformat()}\n"]
-
-        # ── HARD LANGUAGE CONSTRAINT ────────────────────────────────
-        lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch"}.get(
+    def _lang_name(self) -> str:
+        """Human-readable language name for the hard constraint line."""
+        return {"es": "Spanish", "en": "English", "nl": "Dutch"}.get(
             self.form_spec.language, self.form_spec.language
         )
-        lines.append(
-            f"IMPORTANT: You MUST write in {lang_name}. Do NOT write in any other language.\n"
-        )
 
-        # Form
-        lines.append("## FORM")
+    def _form_section(self) -> list[str]:
+        """Form metadata block."""
+        lines = ["## FORM"]
         lines.append(f"- Name: {self.form_spec.name}")
         lines.append(f"- Language: {self.form_spec.language}")
         lines.append(f"- Lines: {self.form_spec.total_lines}")
@@ -72,111 +67,145 @@ class GenerationBrief:
             lines.append(f"- Syllables/line: {self.form_spec.syllables_per_line}")
         if self.form_spec.rhyme_scheme:
             lines.append(f"- Rhyme: {self.form_spec.rhyme_scheme}\n")
+        return lines
 
-        # Tone
-        if self.tone:
-            lines.append("## TONE")
-            lines.extend(f"- {t}" for t in self.tone)
-            lines.append("")
+    def _tone_section(self) -> list[str]:
+        """Tone block, when a tone list is set."""
+        if not self.tone:
+            return []
+        lines = ["## TONE"]
+        lines.extend(f"- {t}" for t in self.tone)
+        lines.append("")
+        return lines
 
-        # ── POETIC QUALITY DIRECTIVE ─────────────────────────────────
-        lines.append(
+    def _quality_section(self) -> list[str]:
+        """Static poetic-quality directive."""
+        return [
             "## QUALITY\n"
             "- Write with poetic imagery, metaphor, and musicality.\n"
             "- Prefer concrete images over abstract statements.\n"
             "- Each line should stand on its own as a beautiful phrase.\n"
             "- Avoid clichés, inverted word order for the sake of rhyme, "
             "and padding syllables with unnecessary words.\n"
-        )
+        ]
 
-        # Theme
-        lines.append(f"## THEME\n- {self.theme}\n")
+    def _theme_section(self) -> list[str]:
+        """Theme block."""
+        return [f"## THEME\n- {self.theme}\n"]
 
-        # Fragments
-        if self.fragments:
-            lines.append("## PERSONAL CONTEXT\n")
-            for frag, sim in self.fragments[:5]:
-                lines.append(f"### {frag.id} (sim: {sim:.2f})")
-                for ln in frag.content.strip().split("\n"):
-                    lines.append(f"> {ln}")
-                lines.append("")
-
-        # Seeds
-        if self.seeds_expanded:
-            lines.append("## SEEDS + EXPANSIONS\n")
-            for word, exp in self.seeds_expanded.items():
-                lines.append(f'### "{word}"')
-                if exp.synonyms:
-                    lines.append(f"- Syn: {', '.join(exp.synonyms[:6])}")
-                if exp.rhymes_consonant:
-                    for _end, rhy in list(exp.rhymes_consonant.items())[:1]:
-                        if rhy:
-                            lines.append(f"- Rhyme: {', '.join(rhy[:6])}")
-                if exp.semantic_neighbors:
-                    lines.append(f"- Related: {', '.join(exp.semantic_neighbors[:5])}")
-                lines.append("")
-
-        # Exemplars
-        if self.exemplar_lines and self.level != "minimal":
-            lines.append("## EXEMPLARS\n")
-            for ex in self.exemplar_lines[:4]:
-                lines.append(f'> "{ex}"')
+    def _fragments_section(self) -> list[str]:
+        """Personal-context fragment block, when fragments exist."""
+        if not self.fragments:
+            return []
+        lines = ["## PERSONAL CONTEXT\n"]
+        for frag, sim in self.fragments[:5]:
+            lines.append(f"### {frag.id} (sim: {sim:.2f})")
+            for ln in frag.content.strip().split("\n"):
+                lines.append(f"> {ln}")
             lines.append("")
+        return lines
 
-        # Influences — include at standard+ level (not just maximal)
-        if self.influences and self.level != "minimal":
-            lines.append("## INFLUENCES\n")
-            for inf in self.influences[:2]:
-                movement_tag = f" ({inf.movement})" if inf.movement else ""
-                lines.append(f"**{inf.name}**{movement_tag}: {', '.join(inf.tone[:3])}")
+    def _seeds_section(self) -> list[str]:
+        """Seed-word expansion block, when seeds were expanded."""
+        if not self.seeds_expanded:
+            return []
+        lines = ["## SEEDS + EXPANSIONS\n"]
+        for word, exp in self.seeds_expanded.items():
+            lines.append(f'### "{word}"')
+            if exp.synonyms:
+                lines.append(f"- Syn: {', '.join(exp.synonyms[:6])}")
+            if exp.rhymes_consonant:
+                for _end, rhy in list(exp.rhymes_consonant.items())[:1]:
+                    if rhy:
+                        lines.append(f"- Rhyme: {', '.join(rhy[:6])}")
+            if exp.semantic_neighbors:
+                lines.append(f"- Related: {', '.join(exp.semantic_neighbors[:5])}")
             lines.append("")
+        return lines
 
-        # ── FEW-SHOT EXAMPLES ────────────────────────────────────────────
-        # Show the model what a good poem in *this* form looks like
+    def _exemplars_section(self) -> list[str]:
+        """Exemplar block (hidden for the minimal level)."""
+        if not self.exemplar_lines or self.level == "minimal":
+            return []
+        lines = ["## EXEMPLARS\n"]
+        lines.extend(f'> "{ex}"' for ex in self.exemplar_lines[:4])
+        lines.append("")
+        return lines
+
+    def _influences_section(self) -> list[str]:
+        """Influence block (hidden for the minimal level)."""
+        if not self.influences or self.level == "minimal":
+            return []
+        lines = ["## INFLUENCES\n"]
+        for inf in self.influences[:2]:
+            movement_tag = f" ({inf.movement})" if inf.movement else ""
+            lines.append(f"**{inf.name}**{movement_tag}: {', '.join(inf.tone[:3])}")
+        lines.append("")
+        return lines
+
+    def _examples_section(self) -> list[str]:
+        """Few-shot example block for the current form/language."""
         form_name = self.form_spec.name.lower()
         lang = self.form_spec.language
-
         if form_name == "haiku" and lang == "es":
-            lines.append("## EXAMPLES (Spanish haiku)\n")
-            lines.append("Tarde me viste,")
-            lines.append("y al verte yo en el agua,")
-            lines.append("tarde, lloraste.\n")
-            lines.append("---\n")
-            lines.append("Lluvia en el campo:")
-            lines.append("sobre la tierra seca,")
-            lines.append("olor a vida.\n")
+            return [
+                "## EXAMPLES (Spanish haiku)\n",
+                "Tarde me viste,",
+                "y al verte yo en el agua,",
+                "tarde, lloraste.\n",
+                "---\n",
+                "Lluvia en el campo:",
+                "sobre la tierra seca,",
+                "olor a vida.\n",
+            ]
+        if form_name == "haiku" and lang == "en":
+            return [
+                "## EXAMPLES (English haiku)\n",
+                "An old silent pond",
+                "A frog jumps into the pond—",
+                "Splash! Silence again.\n",
+                "---\n",
+                "Light of the moon",
+                "Moves west, flowers' shadows",
+                "Creep eastward.\n",
+            ]
+        if form_name == "soneto" and lang == "es":
+            return [
+                "## EXAMPLE (Spanish soneto — 11 syllables, ABBA ABBA CDC DCD)\n",
+                "Un soneto me manda hacer Violante,",
+                "que en mi vida me he visto en tal aprieto;",
+                "catorce versos dicen que es soneto:",
+                "burla burlando, van los tres delante.\n",
+                "Yo pensé que no hallara consonante",
+                "y estoy a la mitad de otro cuarteto;",
+                "mas si me veo en el primer terceto,",
+                "no hay cosa en los cuartetos que me espante.\n",
+                "Por el primer terceto voy entrando,",
+                "y parece que entré con pie derecho,",
+                "pues fin con este verso le voy dando.\n",
+                "Ya estoy en el segundo, y aun sospecho",
+                "que voy los trece versos acabando:",
+                "contad si son catorce, y está hecho.\n",
+            ]
+        return []
 
-        elif form_name == "haiku" and lang == "en":
-            lines.append("## EXAMPLES (English haiku)\n")
-            lines.append("An old silent pond")
-            lines.append("A frog jumps into the pond—")
-            lines.append("Splash! Silence again.\n")
-            lines.append("---\n")
-            lines.append("Light of the moon")
-            lines.append("Moves west, flowers' shadows")
-            lines.append("Creep eastward.\n")
-
-        elif form_name == "soneto" and lang == "es":
-            lines.append("## EXAMPLE (Spanish soneto — 11 syllables, ABBA ABBA CDC DCD)\n")
-            lines.append("Un soneto me manda hacer Violante,")
-            lines.append("que en mi vida me he visto en tal aprieto;")
-            lines.append("catorce versos dicen que es soneto:")
-            lines.append("burla burlando, van los tres delante.\n")
-            lines.append("Yo pensé que no hallara consonante")
-            lines.append("y estoy a la mitad de otro cuarteto;")
-            lines.append("mas si me veo en el primer terceto,")
-            lines.append("no hay cosa en los cuartetos que me espante.\n")
-            lines.append("Por el primer terceto voy entrando,")
-            lines.append("y parece que entré con pie derecho,")
-            lines.append("pues fin con este verso le voy dando.\n")
-            lines.append("Ya estoy en el segundo, y aun sospecho")
-            lines.append("que voy los trece versos acabando:")
-            lines.append("contad si son catorce, y está hecho.\n")
-
-        # Instruction
+    def to_prompt(self) -> str:
+        """Render the brief as an LLM prompt string."""
+        lines = [f"# Generation Brief — {self.created_at.isoformat()}\n"]
+        lines.append(
+            f"IMPORTANT: You MUST write in {self._lang_name()}. Do NOT write in any other language.\n"
+        )
+        lines.extend(self._form_section())
+        lines.extend(self._tone_section())
+        lines.extend(self._quality_section())
+        lines.extend(self._theme_section())
+        lines.extend(self._fragments_section())
+        lines.extend(self._seeds_section())
+        lines.extend(self._exemplars_section())
+        lines.extend(self._influences_section())
+        lines.extend(self._examples_section())
         lines.append("---")
         lines.append(f"Generate a {self.form_spec.name} on '{self.theme}'.")
-
         return "\n".join(lines)
 
 

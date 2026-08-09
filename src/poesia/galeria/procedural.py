@@ -21,6 +21,7 @@ import io
 import math
 import random
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -146,6 +147,131 @@ def _style_mode(style: str | None) -> str:
     return "woodcut"
 
 
+def _draw_sky(draw: Any, size: int, pal: Any) -> None:
+    """Paint the vertical sky gradient."""
+    for y in range(size):
+        t = y / size
+        draw.line([(0, y), (size, y)], fill=_mix(pal.sky_top, pal.sky_bottom, t))
+
+
+def _draw_grain(draw: Any, size: int, pal: Any, rng: random.Random) -> None:
+    """Scatter paper-grain dots."""
+    for _ in range(int(size * size * 0.0025)):
+        x = rng.randrange(size)
+        y = rng.randrange(size)
+        c = pal.ink if rng.random() < 0.5 else pal.glow
+        draw.point((x, y), fill=(*c, rng.randint(6, 22)))
+
+
+def _draw_celestial(draw: Any, size: int, rng: random.Random, pal: Any, horizon: int) -> None:
+    """Draw the celestial disc, halo, and light rays."""
+    disc_r = rng.randint(int(size * 0.10), int(size * 0.16))
+    cx = rng.randint(int(size * 0.22), int(size * 0.78))
+    cy = rng.randint(int(size * 0.14), max(int(size * 0.14) + 1, int(horizon * 0.42)))
+    halo = disc_r * 2
+    draw.ellipse([cx - halo, cy - halo, cx + halo, cy + halo], fill=(*pal.glow, 26))
+    draw.ellipse(
+        [cx - disc_r, cy - disc_r, cx + disc_r, cy + disc_r],
+        fill=(*pal.glow, 255),
+    )
+    for _ in range(10):
+        a = rng.uniform(0, math.tau)
+        ln = rng.randint(int(size * 0.05), int(size * 0.11))
+        x1 = int(cx + math.cos(a) * (disc_r + 2))
+        y1 = int(cy + math.sin(a) * (disc_r + 2))
+        x2 = int(cx + math.cos(a) * (disc_r + ln))
+        y2 = int(cy + math.sin(a) * (disc_r + ln))
+        if y1 < horizon and y2 < horizon:
+            draw.line(
+                [(x1, y1), (x2, y2)],
+                fill=(*pal.glow, rng.randint(50, 110)),
+                width=rng.randint(1, 3),
+            )
+
+
+def _draw_hills(draw: Any, size: int, rng: random.Random, pal: Any, horizon: int) -> None:
+    """Paint the layered horizon hills."""
+    for layer in range(3):
+        base = horizon + layer * 20 + rng.randint(-6, 8)
+        pts: list[tuple[int, int]] = []
+        wave = rng.uniform(1.2, 3.4)
+        for x in range(-8, size + 16, 8):
+            y = (
+                base
+                - int((math.sin(x / (46 + layer * 34) * wave) + 1) * (8 + layer * 7))
+                + rng.randint(-3, 3)
+            )
+            pts.append((x, y))
+        pts.extend([(size + 16, size + 16), (-16, size + 16)])
+        draw.polygon(pts, fill=(*_mix(pal.land, pal.sky_bottom, layer / 4), 255))
+
+
+def _draw_stalks(draw: Any, size: int, rng: random.Random, pal: Any) -> None:
+    """Draw foreground grass stalks."""
+    for _ in range(rng.randint(10, 16)):
+        gx = rng.uniform(0, size)
+        h = rng.randint(int(size * 0.10), int(size * 0.30))
+        for step in range(h):
+            y0 = size - step
+            gx += rng.uniform(-1.4, 1.4)
+            draw.point((int(gx), y0), fill=(*pal.ink, rng.randint(150, 235)))
+
+
+def _draw_stars(
+    draw: Any,
+    size: int,
+    rng: random.Random,
+    pal: Any,
+    horizon: int,
+    mode: str,
+) -> None:
+    """Scatter stars above the horizon (skipped for watercolor)."""
+    if mode == "watercolor" or rng.random() >= 0.85:
+        return
+    for _ in range(rng.randint(24, 60)):
+        sx = rng.randrange(size)
+        sy = rng.randrange(0, horizon)
+        sr = rng.choice([1, 1, 2])
+        draw.ellipse(
+            [sx - sr, sy - sr, sx + sr, sy + sr],
+            fill=(*pal.glow, rng.randint(70, 190)),
+        )
+
+
+def _draw_frame(draw: Any, size: int, rng: random.Random, pal: Any, mode: str) -> None:
+    """Draw the style-specific border frame."""
+    m = rng.randint(14, 22)
+    if mode == "woodcut":
+        draw.rectangle([m, m, size - m, size - m], outline=(*pal.ink, 255), width=3)
+        draw.rectangle(
+            [m + 7, m + 7, size - m - 7, size - m - 7],
+            outline=(*pal.accent, 200),
+            width=1,
+        )
+        for y in range(size - m - 12, size - m, 5):
+            draw.line([(m + 12, y), (size - m - 12, y)], fill=(*pal.ink, 40), width=1)
+    elif mode == "nouveau":
+        draw.arc(
+            [m, m, size - m, size - m],
+            start=180,
+            end=360,
+            fill=(*pal.accent, 255),
+            width=4,
+        )
+        draw.line([(m, size - m), (size - m, size - m)], fill=(*pal.accent, 255), width=4)
+        for _ in range(5):
+            tx = rng.randint(m + 20, size - m - 20)
+            ty = rng.randint(m + 20, size - m - 60)
+            draw.ellipse([tx, ty, tx + 10, ty + 16], outline=(*pal.accent, 220), width=1)
+    else:  # watercolor: soft translucent washes instead of a hard frame
+        for _ in range(4):
+            r = rng.randint(int(size * 0.18), int(size * 0.38))
+            bx = rng.randint(0, size)
+            by = rng.randint(0, size)
+            c = pal.accent if rng.random() < 0.5 else pal.glow
+            draw.ellipse([bx - r, by - r, bx + r, by + r], fill=(*c, rng.randint(10, 22)))
+
+
 class ProceduralImageBackend:
     """Deterministic offline generative-art backend (no API key needed).
 
@@ -180,109 +306,13 @@ class ProceduralImageBackend:
         img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
 
-        # --- sky gradient --------------------------------------------------
-        for y in range(size):
-            t = y / size
-            draw.line([(0, y), (size, y)], fill=_mix(pal.sky_top, pal.sky_bottom, t))
-
-        # --- paper grain ---------------------------------------------------
-        for _ in range(int(size * size * 0.0025)):
-            x = rng.randrange(size)
-            y = rng.randrange(size)
-            c = pal.ink if rng.random() < 0.5 else pal.glow
-            draw.point((x, y), fill=(*c, rng.randint(6, 22)))
-
+        _draw_sky(draw, size, pal)
+        _draw_grain(draw, size, pal, rng)
         horizon = int(size * 0.60) + rng.randint(-24, 24)
-
-        # --- celestial disc + rays ----------------------------------------
-        disc_r = rng.randint(int(size * 0.10), int(size * 0.16))
-        cx = rng.randint(int(size * 0.22), int(size * 0.78))
-        cy = rng.randint(int(size * 0.14), max(int(size * 0.14) + 1, int(horizon * 0.42)))
-        halo = disc_r * 2
-        draw.ellipse([cx - halo, cy - halo, cx + halo, cy + halo], fill=(*pal.glow, 26))
-        draw.ellipse(
-            [cx - disc_r, cy - disc_r, cx + disc_r, cy + disc_r],
-            fill=(*pal.glow, 255),
-        )
-        for _ in range(10):
-            a = rng.uniform(0, math.tau)
-            ln = rng.randint(int(size * 0.05), int(size * 0.11))
-            x1 = int(cx + math.cos(a) * (disc_r + 2))
-            y1 = int(cy + math.sin(a) * (disc_r + 2))
-            x2 = int(cx + math.cos(a) * (disc_r + ln))
-            y2 = int(cy + math.sin(a) * (disc_r + ln))
-            if y1 < horizon and y2 < horizon:
-                draw.line(
-                    [(x1, y1), (x2, y2)],
-                    fill=(*pal.glow, rng.randint(50, 110)),
-                    width=rng.randint(1, 3),
-                )
-
-        # --- layered hills -------------------------------------------------
-        for layer in range(3):
-            base = horizon + layer * 20 + rng.randint(-6, 8)
-            pts: list[tuple[int, int]] = []
-            wave = rng.uniform(1.2, 3.4)
-            for x in range(-8, size + 16, 8):
-                y = (
-                    base
-                    - int((math.sin(x / (46 + layer * 34) * wave) + 1) * (8 + layer * 7))
-                    + rng.randint(-3, 3)
-                )
-                pts.append((x, y))
-            pts.extend([(size + 16, size + 16), (-16, size + 16)])
-            draw.polygon(pts, fill=(*_mix(pal.land, pal.sky_bottom, layer / 4), 255))
-
-        # --- foreground stalks / grass -------------------------------------
-        for _ in range(rng.randint(10, 16)):
-            gx = rng.uniform(0, size)
-            h = rng.randint(int(size * 0.10), int(size * 0.30))
-            for step in range(h):
-                y0 = size - step
-                gx += rng.uniform(-1.4, 1.4)
-                draw.point((int(gx), y0), fill=(*pal.ink, rng.randint(150, 235)))
-
-        # --- stars / sparks -------------------------------------------------
-        if mode != "watercolor" and rng.random() < 0.85:
-            for _ in range(rng.randint(24, 60)):
-                sx = rng.randrange(size)
-                sy = rng.randrange(0, horizon)
-                sr = rng.choice([1, 1, 2])
-                draw.ellipse(
-                    [sx - sr, sy - sr, sx + sr, sy + sr],
-                    fill=(*pal.glow, rng.randint(70, 190)),
-                )
-
-        # --- style-specific frame -------------------------------------------
-        m = rng.randint(14, 22)
-        if mode == "woodcut":
-            draw.rectangle([m, m, size - m, size - m], outline=(*pal.ink, 255), width=3)
-            draw.rectangle(
-                [m + 7, m + 7, size - m - 7, size - m - 7],
-                outline=(*pal.accent, 200),
-                width=1,
-            )
-            for y in range(size - m - 12, size - m, 5):
-                draw.line([(m + 12, y), (size - m - 12, y)], fill=(*pal.ink, 40), width=1)
-        elif mode == "nouveau":
-            draw.arc(
-                [m, m, size - m, size - m],
-                start=180,
-                end=360,
-                fill=(*pal.accent, 255),
-                width=4,
-            )
-            draw.line([(m, size - m), (size - m, size - m)], fill=(*pal.accent, 255), width=4)
-            for _ in range(5):
-                tx = rng.randint(m + 20, size - m - 20)
-                ty = rng.randint(m + 20, size - m - 60)
-                draw.ellipse([tx, ty, tx + 10, ty + 16], outline=(*pal.accent, 220), width=1)
-        else:  # watercolor: soft translucent washes instead of a hard frame
-            for _ in range(4):
-                r = rng.randint(int(size * 0.18), int(size * 0.38))
-                bx = rng.randint(0, size)
-                by = rng.randint(0, size)
-                c = pal.accent if rng.random() < 0.5 else pal.glow
-                draw.ellipse([bx - r, by - r, bx + r, by + r], fill=(*c, rng.randint(10, 22)))
+        _draw_celestial(draw, size, rng, pal, horizon)
+        _draw_hills(draw, size, rng, pal, horizon)
+        _draw_stalks(draw, size, rng, pal)
+        _draw_stars(draw, size, rng, pal, horizon, mode)
+        _draw_frame(draw, size, rng, pal, mode)
 
         return img.convert("RGB")

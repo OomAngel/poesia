@@ -275,6 +275,166 @@ class ConstrainedLoop:
         """Attach a hook to observe generation events."""
         self._hooks.add(hook)
 
+    def _build_brief(
+        self,
+        theme: str,
+        tone: list[str] | None,
+        seeds: list[str] | None,
+        brief_level: str,
+        movement: str | None,
+    ) -> GenerationBrief | None:
+        """Build the generation brief when a builder is configured."""
+        if self._brief_builder is None:
+            return None
+        brief = self._brief_builder.build(
+            form=self.form_spec,
+            theme=theme,
+            tone=tone,
+            seeds=seeds,
+            level=cast(Literal["minimal", "standard", "maximal"], brief_level),
+            language=self.language,
+            movement=movement,
+        )
+        return brief
+
+    def _repair_candidate(
+        self,
+        best: ScoredCandidate | None,
+        scored: list[ScoredCandidate],
+        target_syllables: int,
+        target_rhyme_key: str | None,
+        prior_lines: list[str],
+        max_repair_attempts: int,
+        line_index: int,
+    ) -> ScoredCandidate | None:
+        """Repair an invalid best candidate up to max_repair_attempts."""
+        attempts = 0
+        while best is not None and not best.scan.is_valid and attempts < max_repair_attempts:
+            repaired_text = self._llm.repair(
+                best.line,
+                defect_description=_repair_defect_description(
+                    actual_syllables=best.scan.metrical_syllable_count,
+                    target_syllables=target_syllables,
+                    target_rhyme_key=target_rhyme_key,
+                ),
+            )
+            rescored = self._scorer.score_candidates([repaired_text], prior_lines=prior_lines)
+            best = rescored[0]
+            attempts += 1
+            # Safety: if repair produced same text, it will never improve — move on
+            if attempts > 0 and best.line == scored[0].line:
+                break
+        if best is not None and not best.scan.is_valid and attempts >= max_repair_attempts:
+            # Fallback: accept best scored candidate even if invalid,
+            # otherwise the loop hangs forever with a bad LLM.
+            best = scored[0]
+            print(
+                f"  [WARN] Line {line_index + 1}: accepted best candidate despite invalid metre "
+                f"(syllables={scored[0].scan.metrical_syllable_count}, "
+                f"target={target_syllables})"
+            )
+        return best
+
+    def _select_best(
+        self,
+        line_index: int,
+        scored: list[ScoredCandidate],
+        line_selector: LineSelector,
+    ) -> ScoredCandidate | None:
+        """Apply the human line-selection callback, if provided."""
+        if line_selector is None or not scored:
+            return None
+        chosen_text = line_selector(line_index, scored)
+        # Find the ScoredCandidate for the chosen line.
+        # If the human typed their own line, wrap it in a ScoredCandidate.
+        match = next((c for c in scored if c.line == chosen_text), None)
+        if match is not None:
+            return match
+        custom_scan = self._phonology.scan_line(chosen_text)
+        return ScoredCandidate(
+            line=chosen_text,
+            scan=custom_scan,
+            score=1.0,
+            breakdown={
+                "metre": 1.0,
+                "rhyme": 0.0,
+                "theme": 0.0,
+                "novelty": 1.0,
+                "cliche": 0.0,
+            },
+        )
+
+    def _generate_line(
+        self,
+        line_index: int,
+        theme: str,
+        n_candidates: int,
+        brief: GenerationBrief | None,
+        target_syllables: int,
+        target_rhyme_key: str | None,
+        example_rhyme_word: str | None,
+        rhyme_candidates: list[str],
+        prior_lines: list[str],
+    ) -> list[ScoredCandidate]:
+        """Generate + score the candidates for one line position."""
+        # P4: extract fragment fidelity text from the brief (best fragment)
+        fidelity_text: str | None = None
+        if brief and brief.fragments:
+            fidelity_text = brief.fragments[0][0].content
+
+        # Observer: before generation
+        self._hooks.on_event(
+            HookEvent(
+                line_index=line_index,
+                phase="before_generate",
+                data={"target_syllables": target_syllables, "theme": theme},
+            )
+        )
+
+        self._scorer = LineScorer(
+            phonology_backend=self._phonology,
+            target_syllable_count=target_syllables,
+            embedding_client=self._embedding_client,
+            theme_text=theme,
+            target_rhyme_key=target_rhyme_key,
+            language=self.language,
+            fragment_fidelity_text=fidelity_text,
+        )
+        candidates = self._generator.generate_lines(
+            theme=theme,
+            language=self.language,
+            n_candidates=n_candidates,
+            prior_lines=prior_lines,
+            brief=brief,
+            target_syllables=target_syllables,
+            target_rhyme_key=target_rhyme_key,
+            example_rhyme_word=example_rhyme_word,
+            rhyme_candidates=rhyme_candidates,
+        )
+        # Clean prompt-echo artifacts and reject exact repeats (accuracy)
+        candidates = _clean_candidates(candidates, prior_lines)
+        # Filter out candidates not in the target language
+        candidates = _filter_by_language(candidates, self.language)
+        if not candidates:
+            # Should not happen (fail-open in _filter_by_language),
+            # but guard against empty list
+            return []
+        scored = self._scorer.score_candidates(candidates, prior_lines=prior_lines)
+
+        # Observer: after scoring
+        self._hooks.on_event(
+            HookEvent(
+                line_index=line_index,
+                phase="after_score",
+                data={
+                    "n_candidates": len(scored),
+                    "best_score": scored[0].score if scored else 0,
+                    "best_line": scored[0].line if scored else "",
+                },
+            )
+        )
+        return scored
+
     def run(
         self,
         theme: str,
@@ -310,17 +470,8 @@ class ConstrainedLoop:
         result = LoopResult()
 
         # Build brief if we have a builder (Phase 3E integration)
-        brief: GenerationBrief | None = None
-        if self._brief_builder is not None:
-            brief = self._brief_builder.build(
-                form=self.form_spec,
-                theme=theme,
-                tone=tone,
-                seeds=seeds,
-                level=cast(Literal["minimal", "standard", "maximal"], brief_level),
-                language=self.language,
-                movement=movement,
-            )
+        brief = self._build_brief(theme, tone, seeds, brief_level, movement)
+        if brief is not None:
             result.brief = brief
 
         # Rhyme tracker: maps rhyme-scheme letters to committed rhyme keys
@@ -343,117 +494,34 @@ class ConstrainedLoop:
             example_rhyme_word = rhyme_tracker.example_word_for_line(line_index)
             rhyme_candidates = rhyme_tracker.candidates_for_line(line_index)
 
-            # P4: extract fragment fidelity text from the brief (best fragment)
-            _fidelity_text: str | None = None
-            if brief and brief.fragments:
-                _fidelity_text = brief.fragments[0][0].content
-
-            # Observer: before generation
-            self._hooks.on_event(
-                HookEvent(
-                    line_index=line_index,
-                    phase="before_generate",
-                    data={"target_syllables": target_syllables, "theme": theme},
-                )
+            scored = self._generate_line(
+                line_index,
+                theme,
+                n_candidates,
+                brief,
+                target_syllables,
+                target_rhyme_key,
+                example_rhyme_word,
+                rhyme_candidates,
+                result.lines,
             )
-
-            self._scorer = LineScorer(
-                phonology_backend=self._phonology,
-                target_syllable_count=target_syllables,
-                embedding_client=self._embedding_client,
-                theme_text=theme,
-                target_rhyme_key=target_rhyme_key,
-                language=self.language,
-                fragment_fidelity_text=_fidelity_text,
-            )
-            candidates = self._generator.generate_lines(
-                theme=theme,
-                language=self.language,
-                n_candidates=n_candidates,
-                prior_lines=result.lines,
-                brief=brief,
-                target_syllables=target_syllables,
-                target_rhyme_key=target_rhyme_key,
-                example_rhyme_word=example_rhyme_word,
-                rhyme_candidates=rhyme_candidates,
-            )
-            # Clean prompt-echo artifacts and reject exact repeats (accuracy)
-            candidates = _clean_candidates(candidates, result.lines)
-            # Filter out candidates not in the target language
-            candidates = _filter_by_language(candidates, self.language)
-            if not candidates:
-                # Should not happen (fail-open in _filter_by_language),
-                # but guard against empty list
+            if not scored:
                 continue
-            scored = self._scorer.score_candidates(candidates, prior_lines=result.lines)
             result.scored_history.append(scored)
 
-            # Observer: after scoring
-            self._hooks.on_event(
-                HookEvent(
-                    line_index=line_index,
-                    phase="after_score",
-                    data={
-                        "n_candidates": len(scored),
-                        "best_score": scored[0].score if scored else 0,
-                        "best_line": scored[0].line if scored else "",
-                    },
-                )
+            best = self._repair_candidate(
+                scored[0] if scored else None,
+                scored,
+                target_syllables,
+                target_rhyme_key,
+                result.lines,
+                max_repair_attempts,
+                line_index,
             )
-
-            best = scored[0] if scored else None
-            attempts = 0
-            while best is not None and not best.scan.is_valid and attempts < max_repair_attempts:
-                repaired_text = self._llm.repair(
-                    best.line,
-                    defect_description=_repair_defect_description(
-                        actual_syllables=best.scan.metrical_syllable_count,
-                        target_syllables=target_syllables,
-                        target_rhyme_key=target_rhyme_key,
-                    ),
-                )
-                rescored = self._scorer.score_candidates([repaired_text], prior_lines=result.lines)
-                best = rescored[0]
-                attempts += 1
-                # Safety: if repair produced same text, it will never improve — move on
-                if attempts > 0 and best.line == scored[0].line:
-                    break
-
-            if best is not None and not best.scan.is_valid and attempts >= max_repair_attempts:
-                # Fallback: accept best scored candidate even if invalid,
-                # otherwise the loop hangs forever with a bad LLM.
-                best = scored[0]
-                print(
-                    f"  [WARN] Line {line_index + 1}: accepted best candidate despite invalid metre "
-                    f"(syllables={scored[0].scan.metrical_syllable_count}, "
-                    f"target={target_syllables})"
-                )
-
             if best is not None:
-                # Human selection callback: may override auto-selected best
-                if line_selector is not None and scored:
-                    chosen_text = line_selector(line_index, scored)
-                    # Find the ScoredCandidate for the chosen line.
-                    # If the human typed their own line, wrap it in a ScoredCandidate.
-                    match = next((c for c in scored if c.line == chosen_text), None)
-                    if match is not None:
-                        best = match
-                    else:
-                        # User typed a custom line — rescan it and use as best
-                        custom_scan = self._phonology.scan_line(chosen_text)
-                        best = ScoredCandidate(
-                            line=chosen_text,
-                            scan=custom_scan,
-                            score=1.0,
-                            breakdown={
-                                "metre": 1.0,
-                                "rhyme": 0.0,
-                                "theme": 0.0,
-                                "novelty": 1.0,
-                                "cliche": 0.0,
-                            },
-                        )
-
+                chosen = self._select_best(line_index, scored, line_selector)
+                if chosen is not None:
+                    best = chosen
                 result.lines.append(best.line)
                 rhyme_tracker.commit(line_index, best.line)
 
