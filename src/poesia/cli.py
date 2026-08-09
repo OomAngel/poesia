@@ -1458,24 +1458,23 @@ def galeria_illustrate(
     _log_illustration_mlflow(prompts, panels, from_library, path, backend, style, language)
 
 
+def _parse_frontmatter_tags(val: str, yaml_block: str) -> list[str]:
+    """Parse the tags frontmatter value (inline list or block list)."""
+    if val.startswith("[") or not val:
+        return _parse_yaml_list(yaml_block, "tags") or []
+    return [t.strip().strip('"').strip("'") for t in val.split(",")]
+
+
 def _apply_frontmatter_field(result: dict, key: str, val: str, yaml_block: str) -> None:
     """Apply one YAML frontmatter key to the fragment dict."""
     if key == "tags":
-        # Parse list: ["a", "b"] or - a\n- b
-        if val.startswith("[") or not val:
-            result["tags"] = _parse_yaml_list(yaml_block, key) or []
-        else:
-            result["tags"] = [t.strip().strip('"').strip("'") for t in val.split(",")]
+        result["tags"] = _parse_frontmatter_tags(val, yaml_block)
     elif key == "themes":
         result["themes"] = _parse_yaml_list(yaml_block, key) or []
     elif key == "tone":
         result["tone"] = _parse_yaml_list(yaml_block, key) or []
-    elif key == "language":
-        result["language"] = val.strip('"').strip("'")
-    elif key == "id":
-        result["id"] = val.strip('"').strip("'")
-    elif key == "type":
-        result["type"] = val.strip('"').strip("'")
+    elif key in ("language", "id", "type"):
+        result[key] = val.strip('"').strip("'")
 
 
 def _parse_fragment_frontmatter(content: str) -> dict:
