@@ -110,6 +110,64 @@ app = typer.Typer(
 # --- Core: poesia write / poesia scan ---------------------------------------
 
 
+def _suggest_write_title(result, no_title: bool, config, llm_client, language, form, theme) -> str:
+    """LLM-suggested title (fail-open; skipped for stub + --no-title)."""
+    if no_title or config.llm == "stub":
+        return ""
+    from poesia.generation.titles import suggest_title
+
+    title = suggest_title(result.lines, language, form, theme, llm_client)
+    if title:
+        rprint(f"\n[bold cyan]Suggested title:[/bold cyan] {title}")
+    return title
+
+
+def _prompt_reflection(reflection: str | None, yes: bool, interactive: bool) -> str:
+    """Reflection text: from --reflection, or prompted after the draft."""
+    reflection_text = reflection or ""
+    if reflection_text or yes or interactive:
+        return reflection_text
+    try:
+        rprint()
+        rprint("[bold cyan]What were you carrying when you wrote this?[/bold cyan]")
+        rprint("[dim](optional — this stays private, beside your poem)[/dim]")
+        reflection_text = input("  Reflection: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        reflection_text = ""
+    return reflection_text
+
+
+def _build_poem_provenance(
+    *,
+    llm_client,
+    embedding_client,
+    brief_level: str,
+    use_brief: bool,
+    seeds_list: list[str] | None,
+    tone_list: list[str] | None,
+    result,
+    n_candidates: int,
+    gen_latency_ms: int,
+):
+    """Build provenance metadata for a saved poem."""
+    from poesia.memoria.library import PoemProvenance
+
+    return PoemProvenance(
+        model=getattr(llm_client, "model", None),
+        provider=getattr(llm_client, "provider", None),
+        embedding_model=getattr(embedding_client, "model_id", None) if embedding_client else None,
+        brief_level=brief_level if use_brief else None,
+        seeds=seeds_list or [],
+        tone=tone_list or [],
+        fragments_used=[f.id for f, _ in result.brief.fragments] if result.brief else [],
+        influences_used=[i.id for i in result.brief.influences] if result.brief else [],
+        n_candidates=n_candidates,
+        temperature=getattr(llm_client, "temperature", None),
+        latency_ms=gen_latency_ms,
+        total_tokens=getattr(llm_client, "usage", None) and llm_client.usage.total_tokens,
+    )
+
+
 def _setup_embedding_client() -> tuple[object, bool]:
     """Instantiate the real embedding client (degraded stub on failure)."""
     from poesia.memoria.embeddings import get_embedding_client
@@ -146,6 +204,19 @@ def _library_poems_to_fragments(library_poems: list, fragments: list) -> list:
     return fragments
 
 
+def _print_retrieval_graph_paths(preview_brief) -> None:
+    """Print the graph-retrieval results section of a retrieval preview."""
+    if not preview_brief.graph_paths:
+        return
+    rprint(f"\n[bold]Graph retrieval[/bold] ({len(preview_brief.graph_paths)} results):")
+    for node_id, score, path in preview_brief.graph_paths:
+        if path is not None:
+            path_str = path.to_display_string()
+            rprint(f"  [cyan]{node_id}[/cyan]  score={score:.3f}  via: [dim]{path_str}[/dim]")
+        else:
+            rprint(f"  [cyan]{node_id}[/cyan]  score={score:.3f}  [dim](dense seed)[/dim]")
+
+
 def _show_write_retrieval(
     brief_builder,
     form: str,
@@ -177,14 +248,8 @@ def _show_write_retrieval(
             rprint(f"    [dim]{first_line}[/dim]")
     else:
         rprint("  [dim](no fragments retrieved — embeddings may be unavailable)[/dim]")
-    if preview_brief.graph_paths:
-        rprint(f"\n[bold]Graph retrieval[/bold] ({len(preview_brief.graph_paths)} results):")
-        for node_id, score, path in preview_brief.graph_paths:
-            if path is not None:
-                path_str = path.to_display_string()
-                rprint(f"  [cyan]{node_id}[/cyan]  score={score:.3f}  via: [dim]{path_str}[/dim]")
-            else:
-                rprint(f"  [cyan]{node_id}[/cyan]  score={score:.3f}  [dim](dense seed)[/dim]")
+    _print_retrieval_graph_paths(preview_brief)
+
     if preview_brief.influences:
         rprint(f"\n[bold]Influences[/bold] ({len(preview_brief.influences)} matched):")
         for inf in preview_brief.influences:
@@ -226,6 +291,58 @@ def _privacy_confirm(fragments: list, llm: str, llm_client, yes: bool) -> None:
     rprint()
 
 
+def _show_scoring_mode(
+    verbose: bool, semantic_mode_active: bool, semantic: bool, use_brief: bool
+) -> None:
+    """Print the scoring-mode status line (only with --verbose)."""
+    if not verbose:
+        return
+    if semantic_mode_active:
+        rprint("[dim]Scoring mode: metre + theme + novelty[/dim]")
+    elif semantic and not use_brief:
+        rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
+    elif not use_brief:
+        rprint("[dim]Scoring mode: metre only (no semantic scoring)[/dim]")
+    else:
+        rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
+
+
+def _print_alternative_candidate(
+    rank, candidate, selected_line, target_syllables, language, form
+) -> None:
+    """Print one alternative candidate with a plain-language metre note."""
+    display_line = candidate.line if len(candidate.line) <= 50 else candidate.line[:47] + "..."
+    selected_marker = " [bold green]✓ kept[/bold green]" if candidate.line == selected_line else ""
+    rprint(f"  {rank}. {display_line}{selected_marker}")
+
+    actual = candidate.scan.metrical_syllable_count
+    if actual == target_syllables:
+        metre_note = "on the nose"
+    elif actual > target_syllables:
+        metre_note = (
+            f"{actual - target_syllables} syllable"
+            f"{'s' if actual - target_syllables != 1 else ''} long"
+        )
+    else:
+        metre_note = (
+            f"{target_syllables - actual} syllable"
+            f"{'s' if target_syllables - actual != 1 else ''} short"
+        )
+    rprint(f"      [dim]{metre_note}[/dim]")
+
+    if not candidate.scan.is_valid:
+        from poesia.teaching import teach_scan
+
+        lesson = teach_scan(
+            candidate.scan,
+            target_syllables,
+            language=language,
+            form_name=form,
+        )
+        for msg in lesson.messages[:2]:
+            rprint(f"      [red]⚠ {msg}[/red]")
+
+
 def _display_write_result(
     result,
     loop,
@@ -251,16 +368,7 @@ def _display_write_result(
     if result.brief:
         rprint(f"[bold]Brief level:[/bold] {result.brief.level}")
 
-    # Show scoring mode status (internal detail; only with --verbose)
-    if verbose:
-        if semantic_mode_active:
-            rprint("[dim]Scoring mode: metre + theme + novelty[/dim]")
-        elif semantic and not use_brief:
-            rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
-        elif not use_brief:
-            rprint("[dim]Scoring mode: metre only (no semantic scoring)[/dim]")
-        else:
-            rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
+    _show_scoring_mode(verbose, semantic_mode_active, semantic, use_brief)
 
     rprint()
     for line in result.lines:
@@ -293,46 +401,9 @@ def _show_line_alternatives(result, loop, show_alternatives: int, language: str,
         selected_line = result.lines[line_idx] if line_idx < len(result.lines) else None
 
         for rank, candidate in enumerate(scored_candidates[:show_alternatives], start=1):
-            # Truncate long lines for display
-            display_line = (
-                candidate.line if len(candidate.line) <= 50 else candidate.line[:47] + "..."
+            _print_alternative_candidate(
+                rank, candidate, selected_line, target_syllables, language, form
             )
-
-            # Mark selected candidate
-            selected_marker = (
-                " [bold green]✓ kept[/bold green]" if candidate.line == selected_line else ""
-            )
-
-            rprint(f"  {rank}. {display_line}{selected_marker}")
-
-            # Plain-language metre note instead of raw scores
-            actual = candidate.scan.metrical_syllable_count
-            if actual == target_syllables:
-                metre_note = "on the nose"
-            elif actual > target_syllables:
-                metre_note = (
-                    f"{actual - target_syllables} syllable"
-                    f"{'s' if actual - target_syllables != 1 else ''} long"
-                )
-            else:
-                metre_note = (
-                    f"{target_syllables - actual} syllable"
-                    f"{'s' if target_syllables - actual != 1 else ''} short"
-                )
-            rprint(f"      [dim]{metre_note}[/dim]")
-
-            # Show teaching voice: why the line missed, and how to fix it
-            if not candidate.scan.is_valid:
-                from poesia.teaching import teach_scan
-
-                lesson = teach_scan(
-                    candidate.scan,
-                    target_syllables,
-                    language=language,
-                    form_name=form,
-                )
-                for msg in lesson.messages[:2]:
-                    rprint(f"      [red]⚠ {msg}[/red]")
 
 
 def _load_write_library() -> list:
@@ -379,30 +450,21 @@ def _save_poem_record(
     interactive: bool,
 ):
     """Persist the generated poem to the library with full provenance."""
-    from poesia.memoria.library import Library, PoemProvenance, PoemRecord
+    from poesia.memoria.library import Library, PoemRecord
 
-    title = ""
-    if not no_title and config.llm != "stub":
-        from poesia.generation.titles import suggest_title
-
-        title = suggest_title(result.lines, language, form, theme, llm_client)
-        if title:
-            rprint(f"\n[bold cyan]Suggested title:[/bold cyan] {title}")
+    title = _suggest_write_title(result, no_title, config, llm_client, language, form, theme)
 
     # Build provenance metadata
-    provenance = PoemProvenance(
-        model=getattr(llm_client, "model", None),
-        provider=getattr(llm_client, "provider", None),
-        embedding_model=getattr(embedding_client, "model_id", None) if embedding_client else None,
-        brief_level=brief_level if use_brief else None,
-        seeds=seeds_list or [],
-        tone=tone_list or [],
-        fragments_used=[f.id for f, _ in result.brief.fragments] if result.brief else [],
-        influences_used=[i.id for i in result.brief.influences] if result.brief else [],
+    provenance = _build_poem_provenance(
+        llm_client=llm_client,
+        embedding_client=embedding_client,
+        brief_level=brief_level,
+        use_brief=use_brief,
+        seeds_list=seeds_list,
+        tone_list=tone_list,
+        result=result,
         n_candidates=n_candidates,
-        temperature=getattr(llm_client, "temperature", None),
-        latency_ms=gen_latency_ms,
-        total_tokens=getattr(llm_client, "usage", None) and llm_client.usage.total_tokens,
+        gen_latency_ms=gen_latency_ms,
     )
 
     # Parse tags
@@ -412,15 +474,7 @@ def _save_poem_record(
     # From --reflection, or prompted after the draft is on screen
     # (reflection is a first-class step — POSITIONING §7.4). Skipped when
     # --yes, so the flow stays scriptable.
-    reflection_text = reflection or ""
-    if not reflection_text and not yes and not interactive:
-        try:
-            rprint()
-            rprint("[bold cyan]What were you carrying when you wrote this?[/bold cyan]")
-            rprint("[dim](optional — this stays private, beside your poem)[/dim]")
-            reflection_text = input("  Reflection: ").strip()
-        except (EOFError, KeyboardInterrupt):
-            reflection_text = ""
+    reflection_text = _prompt_reflection(reflection, yes, interactive)
 
     record = PoemRecord(
         lines=result.lines,
