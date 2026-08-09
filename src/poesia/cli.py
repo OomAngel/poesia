@@ -952,6 +952,129 @@ app.add_typer(eufonia_app, name="eufonia")
 galeria_app = typer.Typer(help="GalerIA: illustration for a poem (auca-style).")
 
 
+def _trim_blank_edges(lines: list[str], trim_spaces: bool = False) -> list[str]:
+    """Drop leading/trailing blank lines (optionally whitespace-only)."""
+    key = (lambda s: s.strip()) if trim_spaces else (lambda s: s)
+    start = 0
+    while start < len(lines) and not key(lines[start]):
+        start += 1
+    end = len(lines)
+    while end > start and not key(lines[end - 1]):
+        end -= 1
+    return lines[start:end]
+
+
+def _skip_yaml_frontmatter(lines: list[str]) -> list[str]:
+    """Return lines after the YAML frontmatter block, if present."""
+    if lines and lines[0].strip() == "---":
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                return lines[i + 1 :]
+    return lines
+
+
+def _load_poem_lines(from_library: str | None, path: str | None) -> list[str]:
+    """Load poem lines from the library or a file path (CLI error exits)."""
+    if from_library:
+        from poesia.memoria.library import Library
+
+        library = Library()
+        poem = library.get(from_library)
+        if poem is None:
+            rprint(f"[red]Poem '{from_library}' not found in library.[/red]")
+            raise typer.Exit(1)
+        lines = _trim_blank_edges([line.strip() for line in poem.content.split("\n")])
+        rprint(f"[dim]Loaded poem '{poem.id}' from library ({len(lines)} lines)[/dim]")
+        return lines
+    if path:
+        with open(path, encoding="utf-8") as f:
+            lines = [ln.rstrip("\r\n") for ln in f]
+        # Library poems are Markdown with YAML frontmatter; skip it so the
+        # stanzas (not the metadata) get illustrated.
+        lines = _skip_yaml_frontmatter(lines)
+        # Keep interior blank lines (stanza separators) but drop leading/trailing ones.
+        return _trim_blank_edges(lines, trim_spaces=True)
+    rprint("[red]Provide a poem file path or use --from-library <id>.[/red]")
+    raise typer.Exit(1)
+
+
+def _match_style_influences(tone: str | None) -> list | None:
+    """Derive + print a style string from matched influences (Phase 4C)."""
+    from poesia.galeria.style_anchoring import style_from_influences
+
+    influences = _load_influences()
+    if tone:
+        tone_list = [t.strip().lower() for t in tone.split(",")]
+        matched = [
+            inf
+            for inf in influences
+            if any(t in [it.lower() for it in inf.tone] for t in tone_list)
+        ]
+    else:
+        matched = influences[:5]
+    influence_style = style_from_influences(matched) if matched else ""
+    if influence_style:
+        rprint(f"[dim]Style from influences: {influence_style}[/dim]")
+    return matched or None
+
+
+def _style_from_retrieval_cmd(lines: list[str], theme: str | None, language: str) -> str:
+    """Derive visual style keywords from semantically-similar library poems."""
+    from poesia.galeria.style_anchoring import style_from_retrieval
+
+    poem_text = "\n".join(lines)
+    retrieved_texts = _retrieve_style_texts(
+        theme=theme or "", poem_text=poem_text, language=language
+    )
+    if not retrieved_texts:
+        return ""
+    retrieval_style = style_from_retrieval(retrieved_texts, language=language, theme=theme or "")
+    if retrieval_style:
+        rprint(f"[dim]Style from retrieval: {retrieval_style}[/dim]")
+    else:
+        rprint("[dim]Style-from-retrieval: no style keywords derived.[/dim]")
+    return retrieval_style
+
+
+def _log_illustration_mlflow(
+    prompts: list[str],
+    panels: list,
+    from_library: str | None,
+    path: str | None,
+    backend: str,
+    style: str,
+    language: str,
+) -> None:
+    """Best-effort MLflow logging of an illustration run."""
+    try:
+        import os
+
+        # Best-effort telemetry: allow the legacy local file store so the log
+        # works even before PostgreSQL/MLflow is provisioned, and keep the CLI
+        # output clean (no maintenance-mode banner).
+        os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
+        import mlflow
+
+        mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "file:./mlruns"))
+
+        with mlflow.start_run(run_name=f"galeria-{from_library or 'manual'}", nested=True):
+            mlflow.log_text("\n\n".join(prompts), "image_prompts.txt")
+            mlflow.log_param("from_library", from_library or path)
+            mlflow.log_param("backend", backend)
+            mlflow.log_param("style", style)
+            mlflow.log_param("language", language)
+            mlflow.log_param("panels", len(panels))
+            if panels:
+                import io
+
+                from PIL import Image
+
+                mlflow.log_image(Image.open(io.BytesIO(panels[0].image_bytes)), "panel_1.png")
+            rprint("[dim]Illustration logged to MLflow[/dim]")
+    except Exception:
+        pass
+
+
 @galeria_app.command("illustrate")
 def galeria_illustrate(
     path: str = typer.Argument(None, help="Path to a text file with the poem."),
@@ -996,79 +1119,18 @@ def galeria_illustrate(
     from poesia.galeria.auca import AucaComposer
     from poesia.galeria.pipeline import IllustrateError, illustrate_poem
 
-    lines: list[str] = []
-
-    if from_library:
-        from poesia.memoria.library import Library
-
-        library = Library()
-        poem = library.get(from_library)
-        if poem is None:
-            rprint(f"[red]Poem '{from_library}' not found in library.[/red]")
-            raise typer.Exit(1)
-        lines = [line.strip() for line in poem.content.split("\n")]
-        while lines and not lines[0]:
-            lines.pop(0)
-        while lines and not lines[-1]:
-            lines.pop()
-        rprint(f"[dim]Loaded poem '{poem.id}' from library ({len(lines)} lines)[/dim]")
-    elif path:
-        with open(path, encoding="utf-8") as f:
-            lines = [ln.rstrip("\r\n") for ln in f]
-        # Library poems are Markdown with YAML frontmatter; skip it so the
-        # stanzas (not the metadata) get illustrated.
-        if lines and lines[0].strip() == "---":
-            for i in range(1, len(lines)):
-                if lines[i].strip() == "---":
-                    lines = lines[i + 1 :]
-                    break
-        # Keep interior blank lines (stanza separators) but drop leading/trailing ones.
-        while lines and not lines[0].strip():
-            lines.pop(0)
-        while lines and not lines[-1].strip():
-            lines.pop()
-    else:
-        rprint("[red]Provide a poem file path or use --from-library <id>.[/red]")
-        raise typer.Exit(1)
+    lines = _load_poem_lines(from_library, path)
 
     # Phase 4C: Style anchoring from influences
     matched_influences = None
     if use_influences:
-        from poesia.galeria.style_anchoring import style_from_influences
-
-        influences = _load_influences()
-        if tone:
-            tone_list = [t.strip().lower() for t in tone.split(",")]
-            matched = [
-                inf
-                for inf in influences
-                if any(t in [it.lower() for it in inf.tone] for t in tone_list)
-            ]
-        else:
-            matched = influences[:5]
-        matched_influences = matched or None
-        influence_style = style_from_influences(matched) if matched else ""
-        if influence_style:
-            rprint(f"[dim]Style from influences: {influence_style}[/dim]")
+        matched_influences = _match_style_influences(tone)
 
     # Style anchoring from retrieval: derive visual keywords from the
     # semantically-similar poems already in the user's own library.
     retrieval_style = ""
     if use_retrieval:
-        from poesia.galeria.style_anchoring import style_from_retrieval
-
-        poem_text = "\n".join(lines)
-        retrieved_texts = _retrieve_style_texts(
-            theme=theme or "", poem_text=poem_text, language=language
-        )
-        if retrieved_texts:
-            retrieval_style = style_from_retrieval(
-                retrieved_texts, language=language, theme=theme or ""
-            )
-            if retrieval_style:
-                rprint(f"[dim]Style from retrieval: {retrieval_style}[/dim]")
-            else:
-                rprint("[dim]Style-from-retrieval: no style keywords derived.[/dim]")
+        retrieval_style = _style_from_retrieval_cmd(lines, theme, language)
 
     try:
         panels, prompts = illustrate_poem(
@@ -1108,39 +1170,7 @@ def galeria_illustrate(
         rprint(f"[green]✓[/green] Illustrated sheet saved: [bold]{output}[/bold]")
 
     # Log illustration to MLflow (best effort)
-    try:
-        import os
-
-        # Best-effort telemetry: allow the legacy local file store so the log
-        # works even before PostgreSQL/MLflow is provisioned, and keep the CLI
-        # output clean (no maintenance-mode banner).
-        os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
-        import mlflow
-
-        mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "file:./mlruns"))
-
-        with mlflow.start_run(run_name=f"galeria-{from_library or 'manual'}", nested=True):
-            mlflow.log_text("\n\n".join(prompts), "image_prompts.txt")
-            mlflow.log_param("from_library", from_library or path)
-            mlflow.log_param("backend", backend)
-            mlflow.log_param("style", style)
-            mlflow.log_param("language", language)
-            mlflow.log_param("panels", len(panels))
-            if panels:
-                import io
-
-                from PIL import Image
-
-                mlflow.log_image(Image.open(io.BytesIO(panels[0].image_bytes)), "panel_1.png")
-            rprint("[dim]Illustration logged to MLflow[/dim]")
-    except Exception as e:
-        rprint(f"[dim]MLflow logging skipped: {e}[/dim]")
-
-
-app.add_typer(galeria_app, name="galeria")
-
-
-# --- Helper functions for fragment frontmatter parsing -----------------------
+    _log_illustration_mlflow(prompts, panels, from_library, path, backend, style, language)
 
 
 def _parse_fragment_frontmatter(content: str) -> dict:
