@@ -63,7 +63,11 @@ repos:
         args: [cc, "src", -s, -a]
 
       - id: xenon
-        args: [--max-absolute, B, --max-modules, B, --max-average, B, "src"]
+        # CI-enforced complexity gate at C (was manual/advisory). The 2026-08-09
+        # refactor cleared all F/E/D blocks; C is the accepted baseline and the
+        # gate now blocks regressions to D+.
+        args: [--max-absolute, C, --max-modules, C, --max-average, C, "src"]
+        stages: [pre-commit]
 
   - repo: https://github.com/PyCQA/bandit
     rev: 1.8.3
