@@ -85,6 +85,98 @@ class SeedExpander:
 
         return expansion
 
+    def _collect_wn_synset_relations(
+        self, synset, result: dict[str, list[str]], seen: dict[str, set[str]]
+    ) -> None:
+        """Collect antonym/hypernym/hyponym lemmas for one ``wn`` synset."""
+        for sense in synset.senses():
+            for ant in sense.get_related("antonym"):
+                w = ant.word().replace("_", " ")  # type: ignore[attr-defined]  # wn stubs say Word; runtime exposes replace
+                if w.lower() not in seen["ant"]:
+                    seen["ant"].add(w.lower())
+                    result["antonyms"].append(w)
+            for hyp in sense.get_related("hypernym"):
+                w = hyp.word().replace("_", " ")  # type: ignore[attr-defined]
+                if w.lower() not in seen["hyper"]:
+                    seen["hyper"].add(w.lower())
+                    result["hypernyms"].append(w)
+            for hyp in sense.get_related("hyponym"):
+                w = hyp.word().replace("_", " ")  # type: ignore[attr-defined]
+                if w.lower() not in seen["hypo"]:
+                    seen["hypo"].add(w.lower())
+                    result["hyponyms"].append(w)
+
+    def _expand_wordnet_wn(self, word: str) -> dict:
+        """WordNet relations via the ``wn`` package (multilingual, offline)."""
+        result: dict[str, list[str]] = {
+            "synonyms": [],
+            "antonyms": [],
+            "hypernyms": [],
+            "hyponyms": [],
+        }
+        import wn as _wn
+
+        if not self._wn_loaded:
+            try:
+                _wn.download("ewn:2020")
+                if self.language == "es":
+                    _wn.download("omw-es:1.4")
+            except Exception:
+                pass
+            self._wn_loaded = True
+
+        wn_lang = "spa" if self.language == "es" else "eng"
+        synsets = _wn.synsets(word, lang=wn_lang)
+        seen: dict[str, set[str]] = {"syn": set(), "ant": set(), "hyper": set(), "hypo": set()}
+
+        for synset in synsets[:3]:
+            for lemma in synset.lemmas():
+                w = lemma.word().replace("_", " ")  # type: ignore[attr-defined]  # wn stubs say str; runtime Lemma.word()
+                if w.lower() != word.lower() and w.lower() not in seen["syn"]:
+                    seen["syn"].add(w.lower())
+                    result["synonyms"].append(w)
+            self._collect_wn_synset_relations(synset, result, seen)
+
+        for key in result:
+            result[key] = list(dict.fromkeys(result[key]))[:15]
+        return result
+
+    def _collect_nltk_lemma(self, lemma, word: str, result: dict[str, list[str]]) -> None:
+        """Collect one NLTK lemma + its first antonym into ``result``."""
+        w = lemma.name().replace("_", " ")
+        if w.lower() != word.lower() and w not in result["synonyms"]:
+            result["synonyms"].append(w)
+        if lemma.antonyms():
+            ant = lemma.antonyms()[0].name().replace("_", " ")
+            if ant not in result["antonyms"]:
+                result["antonyms"].append(ant)
+
+    def _collect_nltk_syn(self, syn, word: str, result: dict[str, list[str]]) -> None:
+        """Collect lemma/antonym/hypernym/hyponym names for one NLTK synset."""
+        for lemma in syn.lemmas():
+            self._collect_nltk_lemma(lemma, word, result)
+        for hyper in syn.hypernyms():
+            for h_lemma in hyper.lemmas():
+                w = h_lemma.name().replace("_", " ")
+                if w not in result["hypernyms"]:
+                    result["hypernyms"].append(w)
+        for hypo in syn.hyponyms():
+            for h_lemma in hypo.lemmas():
+                w = h_lemma.name().replace("_", " ")
+                if w not in result["hyponyms"]:
+                    result["hyponyms"].append(w)
+
+    def _expand_wordnet_nltk(self, word: str, result: dict[str, list[str]]) -> None:
+        """English-only WordNet fallback via NLTK (fills ``result`` in place)."""
+        from nltk.corpus import wordnet as nltk_wn
+
+        if self.language != "en":
+            return
+        for syn in nltk_wn.synsets(word):
+            self._collect_nltk_syn(syn, word, result)
+        for key in result:
+            result[key] = result[key][:15]
+
     def _expand_wordnet(self, word: str) -> dict:
         """Get synonyms, antonyms, hypernyms, hyponyms from WordNet.
 
@@ -98,77 +190,12 @@ class SeedExpander:
             "hyponyms": [],
         }
 
-        # Try `wn` package (multilingual, offline after download)
         try:
-            import wn as _wn
-
-            if not self._wn_loaded:
-                try:
-                    _wn.download("ewn:2020")
-                    if self.language == "es":
-                        _wn.download("omw-es:1.4")
-                except Exception:
-                    pass
-                self._wn_loaded = True
-
-            wn_lang = "spa" if self.language == "es" else "eng"
-            synsets = _wn.synsets(word, lang=wn_lang)
-            seen: dict[str, set[str]] = {"syn": set(), "ant": set(), "hyper": set(), "hypo": set()}
-
-            for synset in synsets[:3]:
-                for lemma in synset.lemmas():
-                    w = lemma.word().replace("_", " ")  # type: ignore[attr-defined]  # wn stubs say str; runtime Lemma.word()
-                    if w.lower() != word.lower() and w.lower() not in seen["syn"]:
-                        seen["syn"].add(w.lower())
-                        result["synonyms"].append(w)
-
-                for sense in synset.senses():
-                    for ant in sense.get_related("antonym"):
-                        w = ant.word().replace("_", " ")  # type: ignore[attr-defined]  # wn stubs say Word; runtime exposes replace
-                        if w.lower() not in seen["ant"]:
-                            seen["ant"].add(w.lower())
-                            result["antonyms"].append(w)
-                    for hyp in sense.get_related("hypernym"):
-                        w = hyp.word().replace("_", " ")  # type: ignore[attr-defined]
-                        if w.lower() not in seen["hyper"]:
-                            seen["hyper"].add(w.lower())
-                            result["hypernyms"].append(w)
-                    for hyp in sense.get_related("hyponym"):
-                        w = hyp.word().replace("_", " ")  # type: ignore[attr-defined]
-                        if w.lower() not in seen["hypo"]:
-                            seen["hypo"].add(w.lower())
-                            result["hyponyms"].append(w)
-
-            for key in result:
-                result[key] = list(dict.fromkeys(result[key]))[:15]
-
+            return self._expand_wordnet_wn(word)
         except Exception:
             # Fallback: NLTK WordNet (English only)
             try:
-                from nltk.corpus import wordnet as nltk_wn
-
-                if self.language == "en":
-                    for syn in nltk_wn.synsets(word):
-                        for lemma in syn.lemmas():
-                            w = lemma.name().replace("_", " ")
-                            if w.lower() != word.lower() and w not in result["synonyms"]:
-                                result["synonyms"].append(w)
-                            if lemma.antonyms():
-                                ant = lemma.antonyms()[0].name().replace("_", " ")
-                                if ant not in result["antonyms"]:
-                                    result["antonyms"].append(ant)
-                        for hyper in syn.hypernyms():
-                            for h_lemma in hyper.lemmas():
-                                w = h_lemma.name().replace("_", " ")
-                                if w not in result["hypernyms"]:
-                                    result["hypernyms"].append(w)
-                        for hypo in syn.hyponyms():
-                            for h_lemma in hypo.lemmas():
-                                w = h_lemma.name().replace("_", " ")
-                                if w not in result["hyponyms"]:
-                                    result["hyponyms"].append(w)
-                    for key in result:
-                        result[key] = result[key][:15]
+                self._expand_wordnet_nltk(word, result)
             except Exception:
                 pass
 
@@ -181,6 +208,19 @@ class SeedExpander:
         elif self.language == "en":
             return self._expand_rhymes_english(word)
         return {"consonant": {}, "assonant": {}}
+
+    @staticmethod
+    def _spanish_rhyme_endings(
+        word_lower: str, stressed_idx: int, vowels: str, vowel_map: dict[str, str]
+    ) -> tuple[str, str]:
+        """Consonant + assonant rhyme endings for a Spanish word."""
+        consonant_ending = word_lower[stressed_idx:]
+        for acc, norm in vowel_map.items():
+            consonant_ending = consonant_ending.replace(acc, norm)
+        assonant_ending = "".join(
+            vowel_map.get(c, c) for c in word_lower[stressed_idx:] if c in vowels
+        )
+        return consonant_ending, assonant_ending
 
     def _expand_rhymes_spanish(self, word: str) -> dict:
         """Spanish rhyme expansion using vowel patterns."""
@@ -200,14 +240,8 @@ class SeedExpander:
                 stressed_idx = idx
                 break
 
-        # Consonant rhyme: from stressed vowel to end
-        consonant_ending = word_lower[stressed_idx:]
-        for acc, norm in vowel_map.items():
-            consonant_ending = consonant_ending.replace(acc, norm)
-
-        # Assonant rhyme: just the vowels
-        assonant_ending = "".join(
-            vowel_map.get(c, c) for c in word_lower[stressed_idx:] if c in vowels
+        consonant_ending, assonant_ending = self._spanish_rhyme_endings(
+            word_lower, stressed_idx, vowels, vowel_map
         )
 
         if consonant_ending:
