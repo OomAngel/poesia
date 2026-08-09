@@ -33,7 +33,7 @@ repos:
 
 
   - repo: https://github.com/OomAngel/pre-commit-hooks
-    rev: v1.0.1
+    rev: v1.0.2
     hooks:
       - id: no-plaintext-secrets
         args: [--names, "CLOUDFLARE_API_TOKEN,DATABASE_URL,OPENAI_API_KEY,GROQ_API_KEY,GEMINI_API_KEY,REPLICATE_API_TOKEN,ANTHROPIC_API_KEY"]
@@ -46,7 +46,6 @@ repos:
         args: ["src", --min-confidence=80]
 
       - id: refurb
-        args: [--dont-fix]
 
       - id: pycycle
         args: [--here]
