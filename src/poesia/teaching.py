@@ -48,6 +48,20 @@ def stress_marks(pattern: Sequence[Stress]) -> str:
     return " ".join(marks.get(s, "?") for s in pattern) or "—"
 
 
+def _ends_with_vowel_sound(word: str) -> bool:
+    """True if the word ends in a vowel sound (vowel, or vowel + n/s)."""
+    return word[-1] in VOWELS or (len(word) >= 2 and word[-1] in "ns" and word[-2] in VOWELS)
+
+
+def _starts_with_vowel_sound(word: str) -> bool:
+    """True if the word starts with a vowel sound (vowel, h+vowel, or y)."""
+    return (
+        word[0] in VOWELS
+        or (word[0] == "h" and len(word) > 1 and word[1] in VOWELS)
+        or word[0] == "y"
+    )
+
+
 def sinalefa_pairs(line: str) -> list[tuple[str, str]]:
     """Return the adjacent word pairs joined by a sinalefa in a line.
 
@@ -62,13 +76,24 @@ def sinalefa_pairs(line: str) -> list[tuple[str, str]]:
         w2 = words[i + 1].lower().lstrip(".,;:!?\"'¡¿")
         if not w1 or not w2:
             continue
-        ends_vowel = w1[-1] in VOWELS or (len(w1) >= 2 and w1[-1] in "ns" and w1[-2] in VOWELS)
-        starts_vowel = (
-            w2[0] in VOWELS or (w2[0] == "h" and len(w2) > 1 and w2[1] in VOWELS) or w2[0] == "y"
-        )
-        if ends_vowel and starts_vowel:
+        if _ends_with_vowel_sound(w1) and _starts_with_vowel_sound(w2):
             pairs.append((words[i].strip(".,;:!?\"'"), words[i + 1].strip(".,;:!?\"'¡¿")))
     return pairs
+
+
+def _is_llana_end(word: str) -> bool:
+    """True for a word ending in a vowel (or -n/-s after a vowel): no adjustment."""
+    return word[-1] in "aeiou" or (len(word) >= 2 and word[-1] in "ns" and word[-2] in "aeiou")
+
+
+def _explicit_accent_class(last: str) -> str | None:
+    """Classify an explicit written accent: 'aguda', 'esdrújula', or None."""
+    for i, char in enumerate(last):
+        if char in "áéíóú":
+            if not any(c in VOWELS for c in last[i + 1 :]):
+                return "aguda"
+            return "esdrujula"
+    return None
 
 
 def _spanish_final_word_note(line: str) -> str | None:
@@ -80,19 +105,18 @@ def _spanish_final_word_note(line: str) -> str | None:
     if not last:
         return None
     # Aguda (explicit accent on the final vowel cluster) → +1 syllable.
-    for i, char in enumerate(last):
-        if char in "áéíóú":
-            remaining = last[i + 1 :]
-            if not any(c in VOWELS for c in remaining):
-                return (
-                    f"Final word '{words[-1]}' is *aguda* (stress on the last "
-                    "syllable): Spanish verse adds 1 metrical syllable."
-                )
-            return (
-                f"Final word '{words[-1]}' is *esdrújula* (stress before the "
-                "last syllable): Spanish verse subtracts 1 metrical syllable."
-            )
-    if last[-1] in "aeiou" or (len(last) >= 2 and last[-1] in "ns" and last[-2] in "aeiou"):
+    accent = _explicit_accent_class(last)
+    if accent == "aguda":
+        return (
+            f"Final word '{words[-1]}' is *aguda* (stress on the last "
+            "syllable): Spanish verse adds 1 metrical syllable."
+        )
+    if accent == "esdrujula":
+        return (
+            f"Final word '{words[-1]}' is *esdrújula* (stress before the "
+            "last syllable): Spanish verse subtracts 1 metrical syllable."
+        )
+    if _is_llana_end(last):
         return None  # Llana: no adjustment.
     return (
         f"Final word '{words[-1]}' ends in a consonant (not -n/-s): Spanish "
@@ -125,6 +149,45 @@ def _fix_tips(language: str, status: str) -> list[str]:
                 "To lose a syllable: use a contraction or elision, or a shorter synonym.",
             ]
     return []
+
+
+def _apply_target_check(
+    lesson: ScanLesson, actual: int, target: int | None, form_label: str
+) -> None:
+    """Record the target comparison (exact/short/over) when a target is set."""
+    if target is None:
+        return
+    if actual == target:
+        lesson.messages.append(f"Exact match: {actual} syllables — that's the target{form_label}.")
+    elif actual < target:
+        lesson.status = "short"
+        lesson.messages.append(
+            f"Short by {target - actual}: this line has {actual} "
+            f"syllables; the target{form_label} is {target}."
+        )
+    else:
+        lesson.status = "over"
+        lesson.messages.append(
+            f"Over by {actual - target}: this line has {actual} "
+            f"syllables; the target{form_label} is {target}."
+        )
+
+
+def _spanish_lesson(lesson: ScanLesson, line: str) -> None:
+    """Add sinalefa + final-word stress notes for Spanish lines."""
+    pairs = sinalefa_pairs(line)
+    lesson.sinalefas = len(pairs)
+    lesson.sinalefa_pairs = pairs
+    if pairs:
+        joined = ", ".join(f"'{a} {b}'" for a, b in pairs)
+        lesson.messages.append(
+            f"Sinalefa detected ({joined}): the two vowel sounds merge and "
+            "count as a single metrical syllable."
+        )
+    note = _spanish_final_word_note(line)
+    if note:
+        lesson.final_word_note = note
+        lesson.messages.append(note)
 
 
 def teach_scan(
@@ -162,37 +225,10 @@ def teach_scan(
 
     form_label = f" of a {form_name}" if form_name else ""
     if target_syllables is not None:
-        if actual == target_syllables:
-            lesson.messages.append(
-                f"Exact match: {actual} syllables — that's the target{form_label}."
-            )
-        elif actual < target_syllables:
-            lesson.status = "short"
-            lesson.messages.append(
-                f"Short by {target_syllables - actual}: this line has {actual} "
-                f"syllables; the target{form_label} is {target_syllables}."
-            )
-        else:
-            lesson.status = "over"
-            lesson.messages.append(
-                f"Over by {actual - target_syllables}: this line has {actual} "
-                f"syllables; the target{form_label} is {target_syllables}."
-            )
+        _apply_target_check(lesson, actual, target_syllables, form_label)
 
     if language == "es":
-        pairs = sinalefa_pairs(scan.line)
-        lesson.sinalefas = len(pairs)
-        lesson.sinalefa_pairs = pairs
-        if pairs:
-            joined = ", ".join(f"'{a} {b}'" for a, b in pairs)
-            lesson.messages.append(
-                f"Sinalefa detected ({joined}): the two vowel sounds merge and "
-                "count as a single metrical syllable."
-            )
-        note = _spanish_final_word_note(scan.line)
-        if note:
-            lesson.final_word_note = note
-            lesson.messages.append(note)
+        _spanish_lesson(lesson, scan.line)
 
     if lesson.status != "ok":
         lesson.messages.extend(_fix_tips(language, lesson.status))

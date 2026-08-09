@@ -43,7 +43,7 @@ repos:
       - id: gitleaks-history
 
       - id: vulture
-        args: ["src", --min-confidence=80]
+        args: ["src", "scripts/vulture_whitelist.py", --min-confidence=80]
 
       - id: refurb
 
