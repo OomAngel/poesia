@@ -20,8 +20,12 @@ class EmbeddingError(PoesiaError):
     """Base for embedding-related failures."""
 
 
-class EmbeddingValidationError(EmbeddingError):
-    """Raised when an embedding violates expected shape or value constraints."""
+class EmbeddingValidationError(EmbeddingError, ValueError):
+    """Raised when an embedding violates expected shape or value constraints.
+
+    Dual-inherits ValueError so legacy ``except ValueError`` call sites and
+    the P5 contract base keep catching it.
+    """
 
 
 class EmbeddingClientError(EmbeddingError):
@@ -35,8 +39,12 @@ class IndexError(PoesiaError):
     """Base for index/graph-related failures."""
 
 
-class IndexCompatibilityError(IndexError):
-    """Raised when an embedding client is incompatible with the loaded index."""
+class IndexCompatibilityError(IndexError, RuntimeError):
+    """Raised when an embedding client is incompatible with the loaded index.
+
+    Dual-inherits RuntimeError so legacy ``except RuntimeError`` call sites
+    and the P5 contract base keep catching it.
+    """
 
 
 class IndexStaleError(IndexError):
