@@ -110,6 +110,370 @@ app = typer.Typer(
 # --- Core: poesia write / poesia scan ---------------------------------------
 
 
+def _setup_embedding_client() -> tuple[object, bool]:
+    """Instantiate the real embedding client (degraded stub on failure)."""
+    from poesia.memoria.embeddings import get_embedding_client
+
+    try:
+        client = get_embedding_client()
+        rprint("[green]✓[/green] [dim]Semantic scoring enabled (sentence-transformers)[/dim]")
+        return client, True
+    except Exception as e:
+        from poesia.memoria.embeddings import StubEmbeddingClient
+
+        client = StubEmbeddingClient()
+        rprint("[yellow]⚠[/yellow]  [bold]Degraded mode:[/bold] No sentence-transformers available")
+        rprint(
+            "[dim]   Theme and novelty scoring disabled. Install with: pip install -e '.[nlp]'[/dim]"
+        )
+        rprint(f"[dim]   Error: {e}[/dim]")
+        return client, False
+
+
+def _library_poems_to_fragments(library_poems: list, fragments: list) -> list:
+    """Convert library poems into retrieval fragments."""
+    from poesia.memoria.records import FragmentRecord
+
+    for poem in library_poems:
+        frag = FragmentRecord(
+            id=f"library:{poem.id}",
+            content="\n".join(poem.lines),
+            language=poem.language,
+            tags=poem.tags,
+        )
+        fragments.append(frag)
+    rprint(f"[dim]Added {len(library_poems)} library poems as retrieval context[/dim]")
+    return fragments
+
+
+def _show_write_retrieval(
+    brief_builder,
+    form: str,
+    theme: str,
+    tone_list: list[str] | None,
+    seeds_list: list[str] | None,
+    brief_level: str,
+    language: str,
+    movement: str | None,
+) -> None:
+    """Print a preview of what retrieval would feed the brief."""
+    from poesia.forms.definitions import get_form
+
+    preview_brief = brief_builder.build(
+        form=get_form(form),
+        theme=theme,
+        tone=tone_list,
+        seeds=seeds_list,
+        level=cast(Literal["minimal", "standard", "maximal"], brief_level),
+        language=language,
+        movement=movement,
+    )
+    rprint("\n[bold]── Retrieved context ──[/bold]")
+    if preview_brief.fragments:
+        rprint(f"\n[bold]Fragments[/bold] ({len(preview_brief.fragments)} retrieved):")
+        for frag, sim in preview_brief.fragments:
+            rprint(f"  [cyan]{frag.id}[/cyan]  sim={sim:.3f}")
+            first_line = frag.content.strip().split("\n")[0][:80]
+            rprint(f"    [dim]{first_line}[/dim]")
+    else:
+        rprint("  [dim](no fragments retrieved — embeddings may be unavailable)[/dim]")
+    if preview_brief.graph_paths:
+        rprint(f"\n[bold]Graph retrieval[/bold] ({len(preview_brief.graph_paths)} results):")
+        for node_id, score, path in preview_brief.graph_paths:
+            if path is not None:
+                path_str = path.to_display_string()
+                rprint(f"  [cyan]{node_id}[/cyan]  score={score:.3f}  via: [dim]{path_str}[/dim]")
+            else:
+                rprint(f"  [cyan]{node_id}[/cyan]  score={score:.3f}  [dim](dense seed)[/dim]")
+    if preview_brief.influences:
+        rprint(f"\n[bold]Influences[/bold] ({len(preview_brief.influences)} matched):")
+        for inf in preview_brief.influences:
+            rprint(f"  [cyan]{inf.name}[/cyan]  tone: {', '.join(inf.tone[:3])}")
+    if preview_brief.seeds_expanded:
+        rprint("\n[bold]Seed expansions[/bold]:")
+        for word, exp in preview_brief.seeds_expanded.items():
+            syns = ", ".join(exp.synonyms[:4]) if exp.synonyms else "—"
+            rprint(f"  [cyan]{word}[/cyan] → synonyms: {syns}")
+    rprint()
+
+
+def _privacy_confirm(fragments: list, llm: str, llm_client, yes: bool) -> None:
+    """P5: warn + confirm before personal context reaches a hosted provider."""
+    _hosted_providers = {"groq", "gemini", "openai", "auto"}
+    if not (fragments and llm.lower() in _hosted_providers and not yes):
+        return
+    provider_name = llm_client.provider if hasattr(llm_client, "provider") else llm
+    rprint()
+    rprint("[bold yellow]⚠ PRIVACY NOTICE[/bold yellow]")
+    rprint(f"  [yellow]Personal fragments will be sent to [bold]{provider_name}[/bold].[/yellow]")
+    rprint(f"  [yellow]Fragments ({len(fragments)} loaded):[/yellow]")
+    for frag in fragments[:5]:
+        rprint(f"    [dim]- {frag.id}[/dim]")
+    if len(fragments) > 5:
+        rprint(f"    [dim]- ... and {len(fragments) - 5} more[/dim]")
+    rprint()
+    try:
+        confirm = (
+            input("  Type [bold]yes[/bold] to continue, or anything else to cancel: ")
+            .strip()
+            .lower()
+        )
+    except (EOFError, KeyboardInterrupt):
+        confirm = "no"
+    if confirm != "yes":
+        rprint("[red]✗[/red] Generation cancelled. Use [bold]--yes[/bold] to skip this prompt.")
+        raise typer.Exit(0)
+    rprint()
+
+
+def _display_write_result(
+    result,
+    loop,
+    tone_list: list[str] | None,
+    seeds_list: list[str] | None,
+    theme: str,
+    form: str,
+    language: str,
+    verbose: bool,
+    semantic_mode_active: bool,
+    semantic: bool,
+    use_brief: bool,
+    show_alternatives: int,
+) -> None:
+    """Print the generated poem, scoring-mode status, and alternatives."""
+    rprint(
+        f"[bold]Theme:[/bold] {theme}  [bold]Form:[/bold] {form}  [bold]Language:[/bold] {language}"
+    )
+    if tone_list:
+        rprint(f"[bold]Tone:[/bold] {', '.join(tone_list)}")
+    if seeds_list:
+        rprint(f"[bold]Seeds:[/bold] {', '.join(seeds_list)}")
+    if result.brief:
+        rprint(f"[bold]Brief level:[/bold] {result.brief.level}")
+
+    # Show scoring mode status (internal detail; only with --verbose)
+    if verbose:
+        if semantic_mode_active:
+            rprint("[dim]Scoring mode: metre + theme + novelty[/dim]")
+        elif semantic and not use_brief:
+            rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
+        elif not use_brief:
+            rprint("[dim]Scoring mode: metre only (no semantic scoring)[/dim]")
+        else:
+            rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
+
+    rprint()
+    for line in result.lines:
+        rprint(line)
+
+    # Point 3 — frame the output as scaffolding, not the poem
+    rprint()
+    rprint("[dim]These are proposals — scaffolding, never the poem. Keep the words that[/dim]")
+    rprint("[dim]feel like yours, or write your own lines and I'll scan and teach them.[/dim]")
+
+    # Show alternative candidates if requested
+    if show_alternatives > 0 and result.scored_history:
+        _show_line_alternatives(result, loop, show_alternatives, language, form)
+
+
+def _show_line_alternatives(result, loop, show_alternatives: int, language: str, form: str) -> None:
+    """Print the alternative-candidate picker for each line."""
+    rprint()
+    rprint("[bold cyan]═══ Other lines to consider ═══[/bold cyan]")
+
+    for line_idx, scored_candidates in enumerate(result.scored_history):
+        # Get target syllables for this line
+        target_syllables = loop.form_spec.syllables_for_line(line_idx)
+
+        rprint(
+            f"\n[bold]Line {line_idx + 1}[/bold] — [dim]wants {target_syllables} syllables[/dim]"
+        )
+
+        # Show top N alternatives
+        selected_line = result.lines[line_idx] if line_idx < len(result.lines) else None
+
+        for rank, candidate in enumerate(scored_candidates[:show_alternatives], start=1):
+            # Truncate long lines for display
+            display_line = (
+                candidate.line if len(candidate.line) <= 50 else candidate.line[:47] + "..."
+            )
+
+            # Mark selected candidate
+            selected_marker = (
+                " [bold green]✓ kept[/bold green]" if candidate.line == selected_line else ""
+            )
+
+            rprint(f"  {rank}. {display_line}{selected_marker}")
+
+            # Plain-language metre note instead of raw scores
+            actual = candidate.scan.metrical_syllable_count
+            if actual == target_syllables:
+                metre_note = "on the nose"
+            elif actual > target_syllables:
+                metre_note = (
+                    f"{actual - target_syllables} syllable"
+                    f"{'s' if actual - target_syllables != 1 else ''} long"
+                )
+            else:
+                metre_note = (
+                    f"{target_syllables - actual} syllable"
+                    f"{'s' if target_syllables - actual != 1 else ''} short"
+                )
+            rprint(f"      [dim]{metre_note}[/dim]")
+
+            # Show teaching voice: why the line missed, and how to fix it
+            if not candidate.scan.is_valid:
+                from poesia.teaching import teach_scan
+
+                lesson = teach_scan(
+                    candidate.scan,
+                    target_syllables,
+                    language=language,
+                    form_name=form,
+                )
+                for msg in lesson.messages[:2]:
+                    rprint(f"      [red]⚠ {msg}[/red]")
+
+
+def _load_write_library() -> list:
+    """Load library poems as retrieval context + warn on a stale graph index."""
+    from poesia.memoria.graphrag import GraphRAGRetriever
+    from poesia.memoria.library import Library
+
+    library = Library()
+    library_poems = library.list_all()
+    if library_poems:
+        rprint(f"[dim]Loaded {len(library_poems)} poems from library for context[/dim]")
+        # P3: warn when the persisted graph index may be stale relative to the
+        # current library — the user should run `poesia memoria rebuild` to
+        # re-index and restore accurate retrieval.
+        _retriever_check = GraphRAGRetriever()
+        if _retriever_check.is_stale(library_poems):
+            rprint(
+                "[yellow]⚠[/yellow]  [bold]Graph index may be stale.[/bold] "
+                "Library content has changed since the last index build. "
+                "Run [bold]poesia memoria rebuild[/bold] to re-index."
+            )
+    return library_poems
+
+
+def _handle_write_save_and_illustrate(
+    result,
+    *,
+    save: bool,
+    no_title: bool,
+    config,
+    llm_client,
+    embedding_client,
+    language: str,
+    form: str,
+    theme: str,
+    brief_level: str,
+    use_brief: bool,
+    seeds_list: list[str] | None,
+    tone_list: list[str] | None,
+    n_candidates: int,
+    gen_latency_ms: int,
+    tags: str | None,
+    reflection: str | None,
+    yes: bool,
+    interactive: bool,
+    illustrate: bool,
+    image_backend: str,
+) -> None:
+    """Save the poem to the library (with provenance) and optionally illustrate."""
+    from poesia.memoria.library import Library, PoemProvenance, PoemRecord
+
+    record = None
+    if save and result.lines:
+        # LLM-suggested title (fail-open; skipped for the deterministic stub
+        # backend and with an explicit --no-title).
+        title = ""
+        if not no_title and config.llm != "stub":
+            from poesia.generation.titles import suggest_title
+
+            title = suggest_title(result.lines, language, form, theme, llm_client)
+            if title:
+                rprint(f"\n[bold cyan]Suggested title:[/bold cyan] {title}")
+
+        # Build provenance metadata
+        provenance = PoemProvenance(
+            model=getattr(llm_client, "model", None),
+            provider=getattr(llm_client, "provider", None),
+            embedding_model=getattr(embedding_client, "model_id", None)
+            if embedding_client
+            else None,
+            brief_level=brief_level if use_brief else None,
+            seeds=seeds_list or [],
+            tone=tone_list or [],
+            fragments_used=[f.id for f, _ in result.brief.fragments] if result.brief else [],
+            influences_used=[i.id for i in result.brief.influences] if result.brief else [],
+            n_candidates=n_candidates,
+            temperature=getattr(llm_client, "temperature", None),
+            latency_ms=gen_latency_ms,
+            total_tokens=getattr(llm_client, "usage", None) and llm_client.usage.total_tokens,
+        )
+
+        # Parse tags
+        tags_list = [t.strip() for t in tags.split(",")] if tags else []
+
+        # Reflection: what the person meant or felt, stored beside the poem.
+        # From --reflection, or prompted after the draft is on screen
+        # (reflection is a first-class step — POSITIONING §7.4). Skipped when
+        # --yes, so the flow stays scriptable.
+        reflection_text = reflection or ""
+        if save and not reflection_text and not yes and not interactive:
+            try:
+                rprint()
+                rprint("[bold cyan]What were you carrying when you wrote this?[/bold cyan]")
+                rprint("[dim](optional — this stays private, beside your poem)[/dim]")
+                reflection_text = input("  Reflection: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                reflection_text = ""
+
+        record = PoemRecord(
+            lines=result.lines,
+            language=language,
+            form=form,
+            title=title,
+            reflection=reflection_text,
+            theme=theme,
+            tags=tags_list,
+            provenance=provenance,
+        )
+
+        library = Library()
+        library.add(record)
+        saved_label = f" — [bold]{record.title}[/bold]" if record.title else ""
+        reflected_label = " [dim](with reflection)[/dim]" if record.reflection else ""
+        rprint(
+            f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]"
+            f"{saved_label}{reflected_label}"
+        )
+
+    # GalerIA: generate an illustrated sheet that goes with the poem
+    if illustrate and result.lines:
+        rprint("\n[bold]── Illustration ──[/bold]")
+        saved_id = record.id if save and record else None
+        sheet_path = _illustrate_lines(
+            result.lines,
+            language=language,
+            theme=theme,
+            backend=image_backend,
+            influences=[i for i in result.brief.influences] if result.brief else None,
+            poem_id=saved_id,
+        )
+        if sheet_path:
+            rprint(f"[green]✓[/green] Illustrated sheet: [bold]{sheet_path}[/bold]")
+            # Persist the link in the library frontmatter so the poem knows its
+            # illustration (path relative to the poem's Markdown file).
+            if save and saved_id:
+                try:
+                    library.attach_image(saved_id, f"illustrations/{saved_id}.png")
+                except (FileNotFoundError, ValueError) as e:
+                    rprint(f"[yellow]⚠[/yellow] [bold]image: not recorded:[/bold] {e}")
+
+
 @app.command()
 def write(
     theme: str = typer.Option(..., help="Thematic anchor."),
@@ -214,30 +578,10 @@ def write(
     semantic_mode_active = False  # Track if we have semantic scoring
 
     # P1: Load library poems as additional context if requested
-    if use_library:
-        from poesia.memoria.graphrag import GraphRAGRetriever
-        from poesia.memoria.library import Library
-
-        library = Library()
-        library_poems = library.list_all()
-        if library_poems:
-            rprint(f"[dim]Loaded {len(library_poems)} poems from library for context[/dim]")
-
-        # P3: warn when the persisted graph index may be stale relative to the
-        # current library — the user should run `poesia memoria rebuild` to
-        # re-index and restore accurate retrieval.
-        if library_poems:
-            _retriever_check = GraphRAGRetriever()
-            if _retriever_check.is_stale(library_poems):
-                rprint(
-                    "[yellow]⚠[/yellow]  [bold]Graph index may be stale.[/bold] "
-                    "Library content has changed since the last index build. "
-                    "Run [bold]poesia memoria rebuild[/bold] to re-index."
-                )
+    library_poems = _load_write_library() if use_library else []
 
     if use_brief:
         from poesia.generation.brief_builder import BriefBuilder
-        from poesia.memoria.embeddings import get_embedding_client
 
         # Load personal context if available
         fragments = _load_fragments()
@@ -245,35 +589,10 @@ def write(
 
         # P1: Convert library poems to fragments for retrieval
         if library_poems:
-            from poesia.memoria.records import FragmentRecord
-
-            for poem in library_poems:
-                # Convert poem content to a fragment for semantic retrieval
-                frag = FragmentRecord(
-                    id=f"library:{poem.id}",
-                    content="\n".join(poem.lines),
-                    language=poem.language,
-                    tags=poem.tags,
-                )
-                fragments.append(frag)
-            rprint(f"[dim]Added {len(library_poems)} library poems as retrieval context[/dim]")
+            fragments = _library_poems_to_fragments(library_poems, fragments)
 
         # Use real embedding client for semantic retrieval
-        try:
-            embedding_client = get_embedding_client()
-            semantic_mode_active = True
-            rprint("[green]✓[/green] [dim]Semantic scoring enabled (sentence-transformers)[/dim]")
-        except Exception as e:
-            from poesia.memoria.embeddings import StubEmbeddingClient
-
-            embedding_client = StubEmbeddingClient()
-            rprint(
-                "[yellow]⚠[/yellow]  [bold]Degraded mode:[/bold] No sentence-transformers available"
-            )
-            rprint(
-                "[dim]   Theme and novelty scoring disabled. Install with: pip install -e '.[nlp]'[/dim]"
-            )
-            rprint(f"[dim]   Error: {e}[/dim]")
+        embedding_client, semantic_mode_active = _setup_embedding_client()
 
         brief_builder = BriefBuilder(
             embedding_client=embedding_client,
@@ -285,66 +604,13 @@ def write(
     # (no angel_fragments, no influences) — the clean path for better ranking
     # of candidates against the theme alone.
     if semantic and embedding_client is None:
-        from poesia.memoria.embeddings import get_embedding_client
-
-        try:
-            embedding_client = get_embedding_client()
-            semantic_mode_active = True
-            rprint("[green]✓[/green] [dim]Semantic scoring enabled (sentence-transformers)[/dim]")
-        except Exception as e:
-            from poesia.memoria.embeddings import StubEmbeddingClient
-
-            embedding_client = StubEmbeddingClient()
-            rprint(
-                "[yellow]⚠[/yellow]  [bold]Degraded mode:[/bold] No sentence-transformers available"
-            )
-            rprint(
-                "[dim]   Theme and novelty scoring disabled. Install with: pip install -e '.[nlp]'[/dim]"
-            )
-            rprint(f"[dim]   Error: {e}[/dim]")
+        embedding_client, semantic_mode_active = _setup_embedding_client()
 
     # --show-retrieval: build a preview brief now just to show what was retrieved
     if show_retrieval and brief_builder is not None:
-        from poesia.forms.definitions import get_form
-
-        preview_brief = brief_builder.build(
-            form=get_form(form),
-            theme=theme,
-            tone=tone_list,
-            seeds=seeds_list,
-            level=cast(Literal["minimal", "standard", "maximal"], brief_level),
-            language=language,
-            movement=movement,
+        _show_write_retrieval(
+            brief_builder, form, theme, tone_list, seeds_list, brief_level, language, movement
         )
-        rprint("\n[bold]── Retrieved context ──[/bold]")
-        if preview_brief.fragments:
-            rprint(f"\n[bold]Fragments[/bold] ({len(preview_brief.fragments)} retrieved):")
-            for frag, sim in preview_brief.fragments:
-                rprint(f"  [cyan]{frag.id}[/cyan]  sim={sim:.3f}")
-                first_line = frag.content.strip().split("\n")[0][:80]
-                rprint(f"    [dim]{first_line}[/dim]")
-        else:
-            rprint("  [dim](no fragments retrieved — embeddings may be unavailable)[/dim]")
-        if preview_brief.graph_paths:
-            rprint(f"\n[bold]Graph retrieval[/bold] ({len(preview_brief.graph_paths)} results):")
-            for node_id, score, path in preview_brief.graph_paths:
-                if path is not None:
-                    path_str = path.to_display_string()
-                    rprint(
-                        f"  [cyan]{node_id}[/cyan]  score={score:.3f}  via: [dim]{path_str}[/dim]"
-                    )
-                else:
-                    rprint(f"  [cyan]{node_id}[/cyan]  score={score:.3f}  [dim](dense seed)[/dim]")
-        if preview_brief.influences:
-            rprint(f"\n[bold]Influences[/bold] ({len(preview_brief.influences)} matched):")
-            for inf in preview_brief.influences:
-                rprint(f"  [cyan]{inf.name}[/cyan]  tone: {', '.join(inf.tone[:3])}")
-        if preview_brief.seeds_expanded:
-            rprint("\n[bold]Seed expansions[/bold]:")
-            for word, exp in preview_brief.seeds_expanded.items():
-                syns = ", ".join(exp.synonyms[:4]) if exp.synonyms else "—"
-                rprint(f"  [cyan]{word}[/cyan] → synonyms: {syns}")
-        rprint()
 
     # --interactive: build a line_selector callback that pauses for human input.
     # The loop must exist first (the selector scans typed lines through it), so
@@ -371,32 +637,7 @@ def write(
         line_selector = _quick_selector
 
     # P5: Privacy confirmation — warn before personal context reaches a hosted provider
-    _hosted_providers = {"groq", "gemini", "openai", "auto"}
-    if use_brief and fragments and llm.lower() in _hosted_providers and not yes:
-        provider_name = llm_client.provider if hasattr(llm_client, "provider") else llm
-        rprint()
-        rprint("[bold yellow]⚠ PRIVACY NOTICE[/bold yellow]")
-        rprint(
-            f"  [yellow]Personal fragments will be sent to [bold]{provider_name}[/bold].[/yellow]"
-        )
-        rprint(f"  [yellow]Fragments ({len(fragments)} loaded):[/yellow]")
-        for frag in fragments[:5]:
-            rprint(f"    [dim]- {frag.id}[/dim]")
-        if len(fragments) > 5:
-            rprint(f"    [dim]- ... and {len(fragments) - 5} more[/dim]")
-        rprint()
-        try:
-            confirm = (
-                input("  Type [bold]yes[/bold] to continue, or anything else to cancel: ")
-                .strip()
-                .lower()
-            )
-        except (EOFError, KeyboardInterrupt):
-            confirm = "no"
-        if confirm != "yes":
-            rprint("[red]✗[/red] Generation cancelled. Use [bold]--yes[/bold] to skip this prompt.")
-            raise typer.Exit(0)
-        rprint()
+    _privacy_confirm(fragments, llm, llm_client, yes)
 
     from poesia.generation.constrained_loop import ConstrainedLoop
 
@@ -427,178 +668,45 @@ def write(
     )
     _gen_latency_ms = int((_time.time() - _t0) * 1000)
 
-    rprint(
-        f"[bold]Theme:[/bold] {theme}  [bold]Form:[/bold] {form}  [bold]Language:[/bold] {language}"
+    _display_write_result(
+        result,
+        loop,
+        tone_list,
+        seeds_list,
+        theme,
+        form,
+        language,
+        verbose,
+        semantic_mode_active,
+        semantic,
+        use_brief,
+        show_alternatives,
     )
-    if tone_list:
-        rprint(f"[bold]Tone:[/bold] {', '.join(tone_list)}")
-    if seeds_list:
-        rprint(f"[bold]Seeds:[/bold] {', '.join(seeds_list)}")
-    if result.brief:
-        rprint(f"[bold]Brief level:[/bold] {result.brief.level}")
-
-    # Show scoring mode status (internal detail; only with --verbose)
-    if verbose:
-        if semantic_mode_active:
-            rprint("[dim]Scoring mode: metre + theme + novelty[/dim]")
-        elif semantic and not use_brief:
-            rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
-        elif not use_brief:
-            rprint("[dim]Scoring mode: metre only (no semantic scoring)[/dim]")
-        else:
-            rprint("[dim]Scoring mode: metre only (semantic scoring unavailable)[/dim]")
-
-    rprint()
-    for line in result.lines:
-        rprint(line)
-
-    # Point 3 — frame the output as scaffolding, not the poem
-    rprint()
-    rprint("[dim]These are proposals — scaffolding, never the poem. Keep the words that[/dim]")
-    rprint("[dim]feel like yours, or write your own lines and I'll scan and teach them.[/dim]")
-
-    # Show alternative candidates if requested
-    if show_alternatives > 0 and result.scored_history:
-        rprint()
-        rprint("[bold cyan]═══ Other lines to consider ═══[/bold cyan]")
-
-        for line_idx, scored_candidates in enumerate(result.scored_history):
-            # Get target syllables for this line
-            target_syllables = loop.form_spec.syllables_for_line(line_idx)
-
-            rprint(
-                f"\n[bold]Line {line_idx + 1}[/bold] — [dim]wants {target_syllables} syllables[/dim]"
-            )
-
-            # Show top N alternatives
-            selected_line = result.lines[line_idx] if line_idx < len(result.lines) else None
-
-            for rank, candidate in enumerate(scored_candidates[:show_alternatives], start=1):
-                # Truncate long lines for display
-                display_line = (
-                    candidate.line if len(candidate.line) <= 50 else candidate.line[:47] + "..."
-                )
-
-                # Mark selected candidate
-                selected_marker = (
-                    " [bold green]✓ kept[/bold green]" if candidate.line == selected_line else ""
-                )
-
-                rprint(f"  {rank}. {display_line}{selected_marker}")
-
-                # Plain-language metre note instead of raw scores
-                actual = candidate.scan.metrical_syllable_count
-                if actual == target_syllables:
-                    metre_note = "on the nose"
-                elif actual > target_syllables:
-                    metre_note = f"{actual - target_syllables} syllable{'s' if actual - target_syllables != 1 else ''} long"
-                else:
-                    metre_note = f"{target_syllables - actual} syllable{'s' if target_syllables - actual != 1 else ''} short"
-                rprint(f"      [dim]{metre_note}[/dim]")
-
-                # Show teaching voice: why the line missed, and how to fix it
-                if not candidate.scan.is_valid:
-                    from poesia.teaching import teach_scan
-
-                    lesson = teach_scan(
-                        candidate.scan,
-                        target_syllables,
-                        language=language,
-                        form_name=form,
-                    )
-                    for msg in lesson.messages[:2]:
-                        rprint(f"      [red]⚠ {msg}[/red]")
 
     # P1: Save to library with full provenance
-    if save and result.lines:
-        from poesia.memoria.library import Library, PoemProvenance, PoemRecord
-
-        # LLM-suggested title (fail-open; skipped for the deterministic stub
-        # backend and with an explicit --no-title).
-        title = ""
-        if not no_title and config.llm != "stub":
-            from poesia.generation.titles import suggest_title
-
-            title = suggest_title(result.lines, language, form, theme, llm_client)
-            if title:
-                rprint(f"\n[bold cyan]Suggested title:[/bold cyan] {title}")
-
-        # Build provenance metadata
-        provenance = PoemProvenance(
-            model=getattr(llm_client, "model", None),
-            provider=getattr(llm_client, "provider", None),
-            embedding_model=getattr(embedding_client, "model_id", None)
-            if embedding_client
-            else None,
-            brief_level=brief_level if use_brief else None,
-            seeds=seeds_list or [],
-            tone=tone_list or [],
-            fragments_used=[f.id for f, _ in result.brief.fragments] if result.brief else [],
-            influences_used=[i.id for i in result.brief.influences] if result.brief else [],
-            n_candidates=n_candidates,
-            temperature=getattr(llm_client, "temperature", None),
-            latency_ms=_gen_latency_ms,
-            total_tokens=getattr(llm_client, "usage", None) and llm_client.usage.total_tokens,
-        )
-
-        # Parse tags
-        tags_list = [t.strip() for t in tags.split(",")] if tags else []
-
-        # Reflection: what the person meant or felt, stored beside the poem.
-        # From --reflection, or prompted after the draft is on screen
-        # (reflection is a first-class step — POSITIONING §7.4). Skipped when
-        # --yes, so the flow stays scriptable.
-        reflection_text = reflection or ""
-        if save and not reflection_text and not yes and not interactive:
-            try:
-                rprint()
-                rprint("[bold cyan]What were you carrying when you wrote this?[/bold cyan]")
-                rprint("[dim](optional — this stays private, beside your poem)[/dim]")
-                reflection_text = input("  Reflection: ").strip()
-            except (EOFError, KeyboardInterrupt):
-                reflection_text = ""
-
-        record = PoemRecord(
-            lines=result.lines,
-            language=language,
-            form=form,
-            title=title,
-            reflection=reflection_text,
-            theme=theme,
-            tags=tags_list,
-            provenance=provenance,
-        )
-
-        library = Library()
-        library.add(record)
-        saved_label = f" — [bold]{record.title}[/bold]" if record.title else ""
-        reflected_label = " [dim](with reflection)[/dim]" if record.reflection else ""
-        rprint(
-            f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]"
-            f"{saved_label}{reflected_label}"
-        )
-
-    # GalerIA: generate an illustrated sheet that goes with the poem
-    if illustrate and result.lines:
-        rprint("\n[bold]── Illustration ──[/bold]")
-        saved_id = record.id if save else None
-        sheet_path = _illustrate_lines(
-            result.lines,
-            language=language,
-            theme=theme,
-            backend=image_backend,
-            influences=[i for i in result.brief.influences] if result.brief else None,
-            poem_id=saved_id,
-        )
-        if sheet_path:
-            rprint(f"[green]✓[/green] Illustrated sheet: [bold]{sheet_path}[/bold]")
-            # Persist the link in the library frontmatter so the poem knows its
-            # illustration (path relative to the poem's Markdown file).
-            if save and saved_id:
-                try:
-                    library.attach_image(saved_id, f"illustrations/{saved_id}.png")
-                except (FileNotFoundError, ValueError) as e:
-                    rprint(f"[yellow]⚠[/yellow] [bold]image: not recorded:[/bold] {e}")
+    _handle_write_save_and_illustrate(
+        result,
+        save=save,
+        no_title=no_title,
+        config=config,
+        llm_client=llm_client,
+        embedding_client=embedding_client,
+        language=language,
+        form=form,
+        theme=theme,
+        brief_level=brief_level,
+        use_brief=use_brief,
+        seeds_list=seeds_list,
+        tone_list=tone_list,
+        n_candidates=n_candidates,
+        gen_latency_ms=_gen_latency_ms,
+        tags=tags,
+        reflection=reflection,
+        yes=yes,
+        interactive=interactive,
+        illustrate=illustrate,
+        image_backend=image_backend,
+    )
 
 
 def _illustrate_lines(
