@@ -308,6 +308,7 @@ class ConstrainedLoop:
         line_index: int,
     ) -> ScoredCandidate | None:
         """Repair an invalid best candidate up to max_repair_attempts."""
+        assert self._scorer is not None  # set up in _generate before repair runs
         attempts = 0
         while best is not None and not best.scan.is_valid and attempts < max_repair_attempts:
             repaired_text = self._llm.repair(
@@ -339,7 +340,7 @@ class ConstrainedLoop:
         self,
         line_index: int,
         scored: list[ScoredCandidate],
-        line_selector: LineSelector,
+        line_selector: LineSelector | None,
     ) -> ScoredCandidate | None:
         """Apply the human line-selection callback, if provided."""
         if line_selector is None or not scored:
