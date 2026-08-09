@@ -198,5 +198,3 @@ pages no longer live or JS-rendered):
 
 Rule: if a future claim needs a verbatim quote from either, verify it before
 printing it.
-
-

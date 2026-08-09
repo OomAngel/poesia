@@ -31,11 +31,9 @@ class TestOpenAIBackend:
             nonlocal call_count
             call_count += 1
             mock_response = MagicMock()
-            mock_response.read.return_value = json.dumps({
-                "choices": [
-                    {"message": {"content": f"choice {i}"}} for i in range(3)
-                ]
-            }).encode("utf-8")
+            mock_response.read.return_value = json.dumps(
+                {"choices": [{"message": {"content": f"choice {i}"}} for i in range(3)]}
+            ).encode("utf-8")
             mock_response.__enter__ = MagicMock(return_value=mock_response)
             mock_response.__exit__ = MagicMock(return_value=False)
             return mock_response

@@ -10,6 +10,13 @@ repos:
         pass_filenames: true
         stages: [pre-commit]
 
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.25
     hooks:
@@ -29,3 +36,17 @@ repos:
       - id: check-case-conflict
       - id: detect-private-key
         exclude: ^secrets/.*\.sops\.ya?ml$
+
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks protect (staged secrets)
+        entry: gitleaks protect --staged
+        language: system
+        pass_filenames: false
+      - id: gitleaks-history
+        name: gitleaks detect (full history)
+        entry: gitleaks detect --verbose
+        language: system
+        pass_filenames: false
+        stages: [manual]

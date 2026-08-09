@@ -205,7 +205,7 @@ Line 1 (target: 5 syllables) — pick a candidate:
    1. [0.810] luna en la noche
    2. [0.600] luna sobre el mar
    3. [0.450] noche de luna llena
-Enter choice (Enter=top, #=number, t=type own): 
+Enter choice (Enter=top, #=number, t=type own):
 ```
 
 - **Enter**: Accept the top-scored candidate
@@ -279,7 +279,7 @@ Retrieved 5 fragments for brief:
 | LoRA | `--llm lora` | Trained adapter | Auto-detects best adapter + base model (1.5B or 3B) |
 | MLflow | `--llm mlflow` | `MLFLOW_MODEL_URI` env | Loads registered model via `PoetryModelWrapper.predict()` |
 | Cloudflare | `--llm cloudflare` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` | Workers AI llama-3.3-70b via the OpenAI-compatible endpoint |
-| Outlines | `--llm outlines` | None | Qwen + regex constraints, auto-detects adapter | 
+| Outlines | `--llm outlines` | None | Qwen + regex constraints, auto-detects adapter |
 | Auto | `--llm auto` | Any available | Priority: Gemini → Groq → OpenAI |
 
 ---

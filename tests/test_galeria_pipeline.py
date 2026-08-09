@@ -11,13 +11,13 @@ from typer.testing import CliRunner
 from poesia.cli import app
 from poesia.galeria.auca import AucaComposer, AucaPanel
 from poesia.galeria.backends import HostedImageBackend, StubImageBackend
-from poesia.galeria.procedural import ProceduralImageBackend
 from poesia.galeria.pipeline import (
     IllustrateError,
     get_image_backend,
     illustrate_poem,
     split_stanzas,
 )
+from poesia.galeria.procedural import ProceduralImageBackend
 
 SONETO_LINES = [
     "En el umbral de la noche callada,",
@@ -99,7 +99,6 @@ class TestGetImageBackend:
     def test_unknown_backend_raises(self) -> None:
         with pytest.raises(ValueError, match="Unknown image backend"):
             get_image_backend("nope")
-
 
 
 class TestIllustratePoem:

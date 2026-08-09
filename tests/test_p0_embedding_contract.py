@@ -37,17 +37,25 @@ def test_malformed_manual_embeddings_caught_at_ingest() -> None:
 
     malformed_nested = [[0.1] * 384, [0.2] * 384, [0.3] * 384]
     with pytest.raises(ValueError, match="nested list"):
-        retriever.ingest([_record("p1", "test theme")],
-                         embeddings={"p1": malformed_nested}, embedding_client=client)
+        retriever.ingest(
+            [_record("p1", "test theme")],
+            embeddings={"p1": malformed_nested},
+            embedding_client=client,
+        )
 
     with pytest.raises(ValueError, match="dimension mismatch"):
-        retriever.ingest([_record("p1", "test theme")],
-                         embeddings={"p1": [0.1, 0.2, 0.3]}, embedding_client=client)
+        retriever.ingest(
+            [_record("p1", "test theme")],
+            embeddings={"p1": [0.1, 0.2, 0.3]},
+            embedding_client=client,
+        )
 
     with pytest.raises(ValueError, match="non-finite"):
-        retriever.ingest([_record("p1", "test theme")],
-                         embeddings={"p1": [0.1] * 383 + [float("nan")]},
-                         embedding_client=client)
+        retriever.ingest(
+            [_record("p1", "test theme")],
+            embeddings={"p1": [0.1] * 383 + [float("nan")]},
+            embedding_client=client,
+        )
 
 
 def test_invalid_query_embedding_caught_at_retrieve() -> None:
@@ -82,8 +90,7 @@ def test_broken_embed_client_failures_are_exposed() -> None:
 
     retriever = GraphRAGRetriever(storage_path=":memory:")
     with pytest.raises(ValueError, match="(?i)failed to auto-embed record p1"):
-        retriever.ingest([_record("p1", "test theme")],
-                         embedding_client=BrokenEmbeddingClient())
+        retriever.ingest([_record("p1", "test theme")], embedding_client=BrokenEmbeddingClient())
 
 
 def test_scorer_validates_theme_embedding_at_construction() -> None:

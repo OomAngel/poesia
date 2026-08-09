@@ -16,7 +16,6 @@ from typer.testing import CliRunner
 
 from poesia.cli import app
 
-
 # ---------------------------------------------------------------------------
 # Save with full provenance includes P5 fields
 # ---------------------------------------------------------------------------
@@ -25,13 +24,22 @@ from poesia.cli import app
 def test_save_includes_latency_in_provenance(tmp_path: Path) -> None:
     """Saved files should contain latency_ms metadata."""
     import os
+
     old_home = os.environ.get("HOME")
     try:
         os.environ["HOME"] = str(tmp_path)
         runner = CliRunner()
-        result = runner.invoke(app, [
-            "write", "--theme", "luna", "--form", "haiku", "--save",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "write",
+                "--theme",
+                "luna",
+                "--form",
+                "haiku",
+                "--save",
+            ],
+        )
         assert result.exit_code == 0
 
         poems_dir = tmp_path / ".poesia" / "poems"
@@ -45,6 +53,7 @@ def test_save_includes_latency_in_provenance(tmp_path: Path) -> None:
     finally:
         os.environ["HOME"] = old_home
 
+
 # ---------------------------------------------------------------------------
 # Privacy confirmation (CLI integration)
 # ---------------------------------------------------------------------------
@@ -57,14 +66,27 @@ def test_privacy_prompt_appears_with_brief_and_hosted_llm() -> None:
     from poesia.memoria.embeddings import StubEmbeddingClient
 
     runner = CliRunner()
-    with patch("urllib.request.urlopen"), patch(
-        "poesia.memoria.embeddings.get_embedding_client",
-        return_value=StubEmbeddingClient(),
+    with (
+        patch("urllib.request.urlopen"),
+        patch(
+            "poesia.memoria.embeddings.get_embedding_client",
+            return_value=StubEmbeddingClient(),
+        ),
     ):
-        result = runner.invoke(app, [
-            "write", "--theme", "luna", "--form", "haiku",
-            "--brief", "--llm", "groq",
-        ], input="no\n")
+        result = runner.invoke(
+            app,
+            [
+                "write",
+                "--theme",
+                "luna",
+                "--form",
+                "haiku",
+                "--brief",
+                "--llm",
+                "groq",
+            ],
+            input="no\n",
+        )
     assert result.exit_code == 0
     assert "PRIVACY NOTICE" in result.stdout
     assert "cancelled" in result.stdout
@@ -77,24 +99,35 @@ def test_yes_flag_skips_privacy_prompt() -> None:
     from poesia.memoria.embeddings import StubEmbeddingClient
 
     runner = CliRunner()
-    with patch("urllib.request.urlopen"), patch(
-        "poesia.memoria.embeddings.get_embedding_client",
-        return_value=StubEmbeddingClient(),
+    with (
+        patch("urllib.request.urlopen"),
+        patch(
+            "poesia.memoria.embeddings.get_embedding_client",
+            return_value=StubEmbeddingClient(),
+        ),
     ):
-        result = runner.invoke(app, [
-            "write", "--theme", "luna", "--form", "haiku",
-            "--brief", "--llm", "groq", "--yes",
-        ])
-    assert "PRIVACY NOTICE" not in result.stdout, (
-        "--yes should suppress the privacy notice"
-    )
+        result = runner.invoke(
+            app,
+            [
+                "write",
+                "--theme",
+                "luna",
+                "--form",
+                "haiku",
+                "--brief",
+                "--llm",
+                "groq",
+                "--yes",
+            ],
+        )
+    assert "PRIVACY NOTICE" not in result.stdout, "--yes should suppress the privacy notice"
 
 
 @pytest.mark.parametrize(
     "extra_args",
     [
-        ["--llm", "groq"],              # no --brief → no notice
-        ["--brief", "--llm", "stub"],   # stub LLM → no notice
+        ["--llm", "groq"],  # no --brief → no notice
+        ["--brief", "--llm", "stub"],  # stub LLM → no notice
     ],
 )
 def test_no_privacy_prompt_without_warrant(extra_args: list[str]) -> None:
@@ -104,13 +137,22 @@ def test_no_privacy_prompt_without_warrant(extra_args: list[str]) -> None:
     from poesia.memoria.embeddings import StubEmbeddingClient
 
     runner = CliRunner()
-    with patch("urllib.request.urlopen"), patch(
-        "poesia.memoria.embeddings.get_embedding_client",
-        return_value=StubEmbeddingClient(),
+    with (
+        patch("urllib.request.urlopen"),
+        patch(
+            "poesia.memoria.embeddings.get_embedding_client",
+            return_value=StubEmbeddingClient(),
+        ),
     ):
-        result = runner.invoke(app, [
-            "write", "--theme", "luna", "--form", "haiku", *extra_args,
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "write",
+                "--theme",
+                "luna",
+                "--form",
+                "haiku",
+                *extra_args,
+            ],
+        )
     assert "PRIVACY NOTICE" not in result.stdout
-
-

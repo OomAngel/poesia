@@ -27,12 +27,10 @@ import subprocess
 import sys
 import tempfile
 import time
-from pathlib import Path
 
 import mlflow
 import optuna
 from optuna.integration import MLflowCallback
-
 
 SEARCH_SPACE = {
     "lora_r": {"type": "int", "low": 8, "high": 64, "step": 8},
@@ -57,14 +55,16 @@ def _suggest(trial, param, spec):
 
 def _build_config(base_config, trial):
     import yaml
+
     cfg = dict(base_config)
     for param, spec in SEARCH_SPACE.items():
         cfg[param] = _suggest(trial, param, spec)
     cfg["epochs"] = min(cfg.get("epochs", 10), 5)
     cfg["run_name"] = f"hpo-trial-{trial.number}"
     cfg["experiment"] = f"hpo-{cfg.get('experiment', 'search')}"
-    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml",
-                                      delete=False, prefix=f"hpo_{trial.number}_")
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False, prefix=f"hpo_{trial.number}_"
+    )
     yaml.dump(cfg, tmp)
     tmp_path = tmp.name
     tmp.close()
@@ -74,24 +74,29 @@ def _build_config(base_config, trial):
 def objective(trial, base_config_path):
     with open(base_config_path) as f:
         import yaml
+
         base_cfg = yaml.safe_load(f)
     config_path = _build_config(base_cfg, trial)
     start = time.time()
     try:
         result = subprocess.run(
             [sys.executable, "scripts/train_poetry_lora.py", config_path],
-            capture_output=True, text=True, timeout=7200,
+            capture_output=True,
+            text=True,
+            timeout=7200,
         )
         slur_dev = None
         for line in result.stdout.split("\n"):
             if "Avg syllable deviation" in line:
                 import re
+
                 match = re.search(r"(\d+\.?\d*)", line)
                 if match:
                     slur_dev = float(match.group(1))
                     break
         if slur_dev is None:
             import glob
+
             eval_files = glob.glob("models/poetry-lora-hpo*/eval_results.json")
             if eval_files:
                 with open(eval_files[0]) as f:
@@ -137,9 +142,7 @@ def main():
         storage=storage,
         direction="minimize",
         load_if_exists=args.resume,
-        pruner=optuna.pruners.MedianPruner(
-            n_startup_trials=5, n_warmup_steps=10, interval_steps=1
-        ),
+        pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10, interval_steps=1),
     )
 
     print(f"Starting HPO study: {args.study_name}")
@@ -168,7 +171,7 @@ def main():
         mlflow.log_param("study_name", args.study_name)
         mlflow.log_param("n_trials", args.n_trials)
 
-    print(f"\nView results:")
+    print("\nView results:")
     print(f"  MLflow: mlflow ui --backend-store-uri {tracking_uri}")
     print(f"  Optuna: optuna-dashboard {_OPTUNA_DB}")
 

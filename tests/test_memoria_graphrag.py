@@ -25,8 +25,13 @@ from poesia.memoria.library import PoemRecord
 from poesia.memoria.records import NodeType, RelationType
 
 
-def _record(poem_id: str, theme: str, form: str = "soneto", language: str = "es",
-            lines: list[str] | None = None) -> PoemRecord:
+def _record(
+    poem_id: str,
+    theme: str,
+    form: str = "soneto",
+    language: str = "es",
+    lines: list[str] | None = None,
+) -> PoemRecord:
     return PoemRecord(
         id=poem_id,
         lines=lines or ["test line one", "test line two"],
@@ -60,9 +65,7 @@ class NarrowStubEmbeddingClient(StubEmbeddingClient):
 def test_ingest_adds_nodes_and_typed_edges() -> None:
     retriever = GraphRAGRetriever(storage_path=":memory:")
     embeddings = {"p1": [1.0, 0.0, 0.0], "p2": [1.0, 0.0, 0.0], "p3": [0.0, 1.0, 0.0]}
-    retriever.ingest(
-        [_record(pid, f"tema {pid}") for pid in embeddings], embeddings=embeddings
-    )
+    retriever.ingest([_record(pid, f"tema {pid}") for pid in embeddings], embeddings=embeddings)
     assert retriever.node_count() == 3
     # identical p1↔p2 → cosine 1.0 (bidirectional edge); p3 orthogonal → isolated
     assert retriever.edge_count() == 2
@@ -81,7 +84,9 @@ def test_ingest_without_embeddings_creates_no_edges() -> None:
 
 def test_add_fragment_and_influence_nodes_typed() -> None:
     retriever = GraphRAGRetriever(storage_path=":memory:")
-    retriever.add_fragment_node("fragment:saudade", content="texto", language="es", tags=["soledad"])
+    retriever.add_fragment_node(
+        "fragment:saudade", content="texto", language="es", tags=["soledad"]
+    )
     retriever.add_influence_node(
         "influence:machado", name="Antonio Machado", language="es", tone=["spare"]
     )
@@ -138,8 +143,14 @@ def test_traverse_budget_cap_and_path_display() -> None:
     # Path objects render human-readable explanations.
     path = GraphPath(
         origin_id="p0",
-        hops=[GraphHop(node_id="p1", node_type=NodeType.poem,
-                       relation_type=RelationType.similar_to, weight=0.8)],
+        hops=[
+            GraphHop(
+                node_id="p1",
+                node_type=NodeType.poem,
+                relation_type=RelationType.similar_to,
+                weight=0.8,
+            )
+        ],
     )
     display = path.to_display_string()
     assert isinstance(display, str) and "p1" in display
@@ -169,8 +180,9 @@ def test_retrieve_returns_top_k_with_filter() -> None:
 def test_auto_embed_produces_flat_vectors_and_enables_retrieval() -> None:
     retriever = GraphRAGRetriever(storage_path=":memory:")
     client = StubEmbeddingClient()
-    retriever.ingest([_record("p1", "lluvia nocturna"), _record("p2", "amor eterno")],
-                     embedding_client=client)
+    retriever.ingest(
+        [_record("p1", "lluvia nocturna"), _record("p2", "amor eterno")], embedding_client=client
+    )
 
     for node_id in ["p1", "p2"]:
         emb = retriever._graph.nodes[node_id].get("embedding", [])
@@ -259,6 +271,7 @@ def test_retriever_staleness() -> None:
     assert r.is_stale(records + [_record("p3", "viento")]) is True
     # Order independence.
     assert r.is_stale([records[1], records[0]]) is False
+
 
 # ── Persistence ──────────────────────────────────────────────────────────
 

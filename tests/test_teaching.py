@@ -89,7 +89,9 @@ def test_teach_scan_over_line_gives_delta_and_fix() -> None:
 
 
 def test_teach_scan_english_tips() -> None:
-    lesson = teach_scan(_scan("line too long", 12), 10, language="en", form_name="sonnet_shakespearean")
+    lesson = teach_scan(
+        _scan("line too long", 12), 10, language="en", form_name="sonnet_shakespearean"
+    )
     assert lesson.status == "over"
     assert any("To lose a syllable" in m for m in lesson.messages)
 

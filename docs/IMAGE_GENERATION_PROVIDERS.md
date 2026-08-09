@@ -324,4 +324,3 @@ service is a moving target — pin nothing, degrade gracefully.
 (pricing, models), ai.google.dev (models, rate-limits), aihorde.net + Haidra-Org/AI-Horde
 (GitHub), huggingface.co inference-providers pricing. All free-tier specifics are
 subject to change; re-fetch before relying.*
-

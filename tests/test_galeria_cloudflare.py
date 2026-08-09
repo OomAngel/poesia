@@ -20,9 +20,7 @@ class TestCloudflareImageBackend:
     """Mocked HTTP tests for the Cloudflare Workers AI backend."""
 
     def _client(self, **kwargs) -> CloudflareImageBackend:
-        return CloudflareImageBackend(
-            account_id=ACCOUNT_ID, api_token=API_TOKEN, **kwargs
-        )
+        return CloudflareImageBackend(account_id=ACCOUNT_ID, api_token=API_TOKEN, **kwargs)
 
     def _mock_urlopen(self, captured, result_json: dict):
         def _handler(req, timeout=None):
@@ -38,9 +36,7 @@ class TestCloudflareImageBackend:
     def test_request_url_contains_account_and_model(self) -> None:
         captured: list = []
         result = {"result": {"data": [base64.b64encode(b"x").decode()]}, "success": True}
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)):
             self._client().generate_image("La luna")
 
         assert len(captured) == 1
@@ -53,9 +49,7 @@ class TestCloudflareImageBackend:
     def test_authorization_bearer_header(self) -> None:
         captured: list = []
         result = {"result": {"data": [base64.b64encode(b"x").decode()]}, "success": True}
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)):
             self._client().generate_image("La luna")
 
         headers = dict(captured[0].headers)
@@ -64,9 +58,7 @@ class TestCloudflareImageBackend:
     def test_request_body_parameters(self) -> None:
         captured: list = []
         result = {"result": {"data": [base64.b64encode(b"x").decode()]}, "success": True}
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)):
             self._client().generate_image("La luna sobre el mar", style="acuarela")
 
         body = json.loads(captured[0].data.decode("utf-8"))
@@ -108,9 +100,7 @@ class TestCloudflareImageBackend:
         fake_image = b"PNG_BYTES"
         result = {"result": {"data": [base64.b64encode(fake_image).decode()]}, "success": True}
         captured: list = []
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)):
             out = self._client().generate_image("La luna")
 
         assert out == fake_image
@@ -119,9 +109,7 @@ class TestCloudflareImageBackend:
         fake_image = b"JPEG_BYTES"
         result = {"result": {"data": base64.b64encode(fake_image).decode()}, "success": True}
         captured: list = []
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)):
             out = self._client().generate_image("La luna")
 
         assert out == fake_image
@@ -149,18 +137,14 @@ class TestCloudflareImageBackend:
     def test_api_success_false_raises(self) -> None:
         result = {"success": False, "errors": [{"message": "model unavailable"}]}
         captured: list = []
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)):
             with pytest.raises(RuntimeError, match="model unavailable"):
                 self._client().generate_image("La luna")
 
     def test_empty_data_raises(self) -> None:
         result = {"result": {"data": []}, "success": True}
         captured: list = []
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured, result)):
             with pytest.raises(RuntimeError, match="no image data"):
                 self._client().generate_image("La luna")
 

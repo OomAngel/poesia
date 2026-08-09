@@ -25,8 +25,12 @@ def stub_embedding_client() -> StubEmbeddingClient:
 @pytest.fixture
 def sample_fragments() -> list[FragmentRecord]:
     return [
-        FragmentRecord(id="frag_1", content="Rain on ancient stones", language="en", tags=["nature"]),
-        FragmentRecord(id="frag_2", content="Building from nothing", language="en", tags=["creation"]),
+        FragmentRecord(
+            id="frag_1", content="Rain on ancient stones", language="en", tags=["nature"]
+        ),
+        FragmentRecord(
+            id="frag_2", content="Building from nothing", language="en", tags=["creation"]
+        ),
     ]
 
 
@@ -54,13 +58,17 @@ class TestCandidateGeneratorWithBrief:
         """When a brief is provided, the generator should use its prompt."""
         generator = CandidateGenerator(stub_llm)
         brief = brief_builder.build(form="romance", theme="lluvia", tone=["intimate"])
-        candidates = generator.generate_lines(theme="lluvia", language="es", n_candidates=4, brief=brief)
+        candidates = generator.generate_lines(
+            theme="lluvia", language="es", n_candidates=4, brief=brief
+        )
         assert len(candidates) == 4
 
     def test_generate_without_brief(self, stub_llm) -> None:
         """Without a brief, falls back to legacy simple prompt."""
         generator = CandidateGenerator(stub_llm)
-        candidates = generator.generate_lines(theme="lluvia", language="es", n_candidates=4, brief=None)
+        candidates = generator.generate_lines(
+            theme="lluvia", language="es", n_candidates=4, brief=None
+        )
         assert len(candidates) == 4
 
 
@@ -69,8 +77,12 @@ class TestConstrainedLoopWithBrief:
 
     def test_loop_builds_brief_when_builder_provided(self, stub_llm, brief_builder) -> None:
         """Loop should build and use a brief when builder is provided."""
-        loop = ConstrainedLoop(language="es", form="romance", llm=stub_llm, brief_builder=brief_builder)
-        result = loop.run(theme="lluvia de otoño", tone=["intimate"], seeds=["lluvia"], brief_level="standard")
+        loop = ConstrainedLoop(
+            language="es", form="romance", llm=stub_llm, brief_builder=brief_builder
+        )
+        result = loop.run(
+            theme="lluvia de otoño", tone=["intimate"], seeds=["lluvia"], brief_level="standard"
+        )
         assert result.brief is not None
         assert result.brief.theme == "lluvia de otoño"
         assert result.brief.tone == ["intimate"]
@@ -86,7 +98,9 @@ class TestConstrainedLoopWithBrief:
 
     def test_loop_result_includes_brief(self, stub_llm, brief_builder) -> None:
         """LoopResult should include the brief for inspection."""
-        loop = ConstrainedLoop(language="es", form="romance", llm=stub_llm, brief_builder=brief_builder)
+        loop = ConstrainedLoop(
+            language="es", form="romance", llm=stub_llm, brief_builder=brief_builder
+        )
         result = loop.run(theme="lluvia", tone=["anguished"])
         assert result.brief is not None
         assert result.brief.form_spec.name == "romance"
@@ -97,7 +111,9 @@ class TestEndToEndBriefFlow:
 
     def test_brief_to_prompt_renders_all_sections(self, brief_builder) -> None:
         """Brief.to_prompt() should render all relevant sections."""
-        brief = brief_builder.build(form="soneto", theme="el tiempo", tone=["intimate"], level="maximal")
+        brief = brief_builder.build(
+            form="soneto", theme="el tiempo", tone=["intimate"], level="maximal"
+        )
         prompt = brief.to_prompt()
         assert "## FORM" in prompt
         assert "## THEME" in prompt
@@ -106,8 +122,12 @@ class TestEndToEndBriefFlow:
     def test_minimal_brief_is_shorter(self, brief_builder) -> None:
         """Minimal brief should produce a shorter prompt when influences exist."""
         # Build with tone to trigger influence matching (vallejo has "anguished" tone)
-        brief_min = brief_builder.build(form="soneto", theme="otoño", tone=["anguished"], level="minimal")
-        brief_max = brief_builder.build(form="soneto", theme="otoño", tone=["anguished"], level="maximal")
+        brief_min = brief_builder.build(
+            form="soneto", theme="otoño", tone=["anguished"], level="minimal"
+        )
+        brief_max = brief_builder.build(
+            form="soneto", theme="otoño", tone=["anguished"], level="maximal"
+        )
         # Maximal includes INFLUENCES section, minimal does not
         prompt_min = brief_min.to_prompt()
         prompt_max = brief_max.to_prompt()

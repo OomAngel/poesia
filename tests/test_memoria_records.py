@@ -89,4 +89,3 @@ def test_influence_record_creation_and_defaults() -> None:
     assert minimal.movement is None
     assert minimal.tone == [] and minimal.forms == []
     assert minimal.exemplars == [] and minimal.anti_patterns == []
-

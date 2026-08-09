@@ -13,7 +13,6 @@ import pytest
 
 from poesia.generation.llm_client import OllamaClient
 
-
 # ---------------------------------------------------------------------------
 # Construction and defaults
 # ---------------------------------------------------------------------------
@@ -40,10 +39,12 @@ def test_ollama_client_construction() -> None:
 @patch("urllib.request.urlopen")
 def test_check_available_raises_when_ollama_offline(mock_urlopen: MagicMock) -> None:
     from poesia.exceptions import LLMProviderError
+
     mock_urlopen.side_effect = ConnectionError("Connection refused")
     client = OllamaClient()
     with pytest.raises(LLMProviderError, match="Cannot connect to Ollama"):
         client._check_available()
+
 
 # ---------------------------------------------------------------------------
 # Generate
@@ -56,18 +57,16 @@ def _mock_ollama(tag_models: list[str], responses: list[str]):
     First call is the /api/tags check; subsequent calls are generate/chat.
     """
     tags_resp = MagicMock()
-    tags_resp.read.return_value = json.dumps({
-        "models": [{"name": m} for m in tag_models]
-    }).encode("utf-8")
+    tags_resp.read.return_value = json.dumps({"models": [{"name": m} for m in tag_models]}).encode(
+        "utf-8"
+    )
     tags_mock = MagicMock()
     tags_mock.__enter__.return_value = tags_resp
 
     effects = [tags_mock]
     for text in responses:
         resp = MagicMock()
-        resp.read.return_value = json.dumps({
-            "message": {"content": text}
-        }).encode("utf-8")
+        resp.read.return_value = json.dumps({"message": {"content": text}}).encode("utf-8")
         m = MagicMock()
         m.__enter__.return_value = resp
         effects.append(m)
@@ -76,9 +75,7 @@ def _mock_ollama(tag_models: list[str], responses: list[str]):
 
 @patch("urllib.request.urlopen")
 def test_generate_returns_lines(mock_urlopen: MagicMock) -> None:
-    mock_urlopen.side_effect = _mock_ollama(
-        ["gemma2:2b"], ["luna en la noche"]
-    )
+    mock_urlopen.side_effect = _mock_ollama(["gemma2:2b"], ["luna en la noche"])
     client = OllamaClient()
     results = client.generate("write a line about the moon", n=1)
     assert len(results) == 1
@@ -104,15 +101,16 @@ def test_generate_raises_provider_error_on_http_error(mock_urlopen: MagicMock) -
     from poesia.exceptions import LLMProviderError
 
     tags_resp = MagicMock()
-    tags_resp.read.return_value = json.dumps({
-        "models": [{"name": "gemma2:2b"}]
-    }).encode("utf-8")
+    tags_resp.read.return_value = json.dumps({"models": [{"name": "gemma2:2b"}]}).encode("utf-8")
     tags_mock = MagicMock()
     tags_mock.__enter__.return_value = tags_resp
 
     http_error = urllib.error.HTTPError(
-        "http://localhost:11434/api/chat", 404,
-        "Model not found", {}, None,
+        "http://localhost:11434/api/chat",
+        404,
+        "Model not found",
+        {},
+        None,
     )
     mock_urlopen.side_effect = [tags_mock, http_error]
 
@@ -130,9 +128,7 @@ def test_generate_raises_provider_error_on_http_error(mock_urlopen: MagicMock) -
 
 @patch("urllib.request.urlopen")
 def test_repair_returns_corrected_line(mock_urlopen: MagicMock) -> None:
-    mock_urlopen.side_effect = _mock_ollama(
-        ["gemma2:2b"], ["luna brillante en la noche"]
-    )
+    mock_urlopen.side_effect = _mock_ollama(["gemma2:2b"], ["luna brillante en la noche"])
     client = OllamaClient()
     result = client.repair("luna noche", "needs more syllables")
     assert "luna" in result
@@ -145,9 +141,7 @@ def test_repair_returns_corrected_line(mock_urlopen: MagicMock) -> None:
 
 @patch("urllib.request.urlopen")
 def test_usage_populated_after_generate(mock_urlopen: MagicMock) -> None:
-    mock_urlopen.side_effect = _mock_ollama(
-        ["gemma2:2b"], ["luna en la noche"]
-    )
+    mock_urlopen.side_effect = _mock_ollama(["gemma2:2b"], ["luna en la noche"])
     client = OllamaClient()
     client.generate("test", n=1)
     assert client.usage.latency_ms is not None
@@ -155,13 +149,10 @@ def test_usage_populated_after_generate(mock_urlopen: MagicMock) -> None:
     assert client.usage.completion_tokens is not None
 
 
-
 @patch("urllib.request.urlopen")
 def test_check_available_succeeds_when_ollama_online(mock_urlopen: MagicMock) -> None:
     mock_resp = MagicMock()
-    mock_resp.read.return_value = json.dumps({
-        "models": [{"name": "gemma2:2b"}]
-    }).encode("utf-8")
+    mock_resp.read.return_value = json.dumps({"models": [{"name": "gemma2:2b"}]}).encode("utf-8")
     mock_urlopen.return_value.__enter__.return_value = mock_resp
     client = OllamaClient()
     client._check_available()

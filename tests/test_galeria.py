@@ -13,7 +13,9 @@ from poesia.galeria.backends import StubImageBackend
 def test_auca_composer_compose_panel() -> None:
     stub = StubImageBackend()
     img_bytes = stub.generate_image("test prompt")
-    panel = AucaPanel(image_bytes=img_bytes, caption_lines=["Lluvia sobre la piedra", "en la noche oscura"])
+    panel = AucaPanel(
+        image_bytes=img_bytes, caption_lines=["Lluvia sobre la piedra", "en la noche oscura"]
+    )
 
     composer = AucaComposer()
     panel_png = composer.compose_panel(panel)
@@ -31,4 +33,3 @@ def test_auca_composer_compose_sheet() -> None:
     composer = AucaComposer()
     sheet_png = composer.compose_sheet(panels, title="Test Auca")
     assert sheet_png.startswith(b"\x89PNG")
-

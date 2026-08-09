@@ -145,9 +145,42 @@ target-version = "py311"
 select = ["E", "F", "I", "UP", "B", "S"]
 # E501 is enforced by `ruff format`; only long string literals (SQL, print
 # alignment, URLs) remain, which are intentional.
-ignore = ["E501"]
+ignore = [
+    "E501",
+    # --- By-design patterns (mirrors [tool.bandit] skips below) ---
+    "S101",  # assert — accepted by design (bandit B101 skip)
+    "S110",  # try-except-pass — intentional best-effort handlers (bandit B110)
+    "S112",  # try-except-continue — skip malformed records on bulk import (bandit B112)
+    "S310",  # urlopen on validated HTTPS endpoints only (bandit B310)
+    "S311",  # deterministic art seeds, reproducible not crypto (bandit B311)
+    "S603",  # subprocess with explicit arg lists (bandit B603)
+    "S607",  # start-process-with-partial-path — trusted internal commands
+    "E402",  # module-import-not-at-top — deferred/optional imports by design
+]
 
 [tool.ruff.lint.per-file-ignores]
+# --- Tests: relaxed rules (mirrors LumiNose "tests/**") ---
+"tests/**" = [
+  "E741",  # ambiguous loop variable names in tests
+  "F841",  # unused variables in test setups
+  "S105",  # hardcoded-password — test fixtures only
+  "S106",  # hardcoded-password-func-arg — test fixtures only
+  "S108",  # hardcoded-temp-file — /tmp in tests
+  "S324",  # insecure-hash — checksums in tests, not security
+  "B905",  # zip-without-strict — readability in test data
+  "B007",  # unused-loop-control-variable — test iterators
+]
+# --- CLI/analysis scripts: relaxed rules (mirrors LumiNose "tools/**") ---
+"scripts/**" = [
+  "E741",
+  "F841",
+  "S105",
+  "S106",
+  "S108",
+  "S324",
+  "B007",  # unused loop control variable — common in one-off analysis loops
+  "B905",  # zip without strict — scripts tolerate ragged lengths by design
+]
 # Network client modules: urlopen/Request only ever touch validated HTTPS
 # endpoints (OpenAI, Groq, Gemini, Ollama, Datamuse, Replicate). Intentional.
 "src/poesia/generation/llm_client.py" = ["S310"]

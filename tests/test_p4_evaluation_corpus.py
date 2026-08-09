@@ -41,9 +41,7 @@ def _load_all_fragments() -> list[dict]:
 def test_corpus_has_minimum_fragments() -> None:
     """The evaluation corpus must have at least 15 fragments total."""
     fragments = _load_all_fragments()
-    assert len(fragments) >= 15, (
-        f"Expected >= 15 fragments in corpus, got {len(fragments)}"
-    )
+    assert len(fragments) >= 15, f"Expected >= 15 fragments in corpus, got {len(fragments)}"
 
 
 @pytest.mark.parametrize(("lang", "min_count"), [("es", 10), ("en", 10)])
@@ -81,9 +79,7 @@ def test_all_fragments_are_well_formed() -> None:
 
         parts = content.strip().split("---", 2)
         body = parts[2].strip() if len(parts) >= 3 else content.strip()
-        assert len(body) > 20, (
-            f"{md_file.name}: body too short ({len(body)} chars)"
-        )
+        assert len(body) > 20, f"{md_file.name}: body too short ({len(body)} chars)"
 
 
 # ---------------------------------------------------------------------------

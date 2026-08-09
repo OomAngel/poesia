@@ -19,14 +19,13 @@ Usage:
 import argparse
 import json
 import re
-import sys
 
 
 def score_poem(completion, syll_target=11):
     """Score a poem 0-1 on ALL available quality metrics."""
-    from poesia.phonology.spanish import SpanishPhonology
-    from poesia.evaluation.emotion_lexicon import analyze_poem_emotions, emotion_diversity
+    from poesia.evaluation.emotion_lexicon import emotion_diversity
     from poesia.galeria.imagery import imagery_density_score
+    from poesia.phonology.spanish import SpanishPhonology
 
     lines = [l.strip() for l in completion.split("\n") if l.strip()]
     if not lines:
@@ -95,12 +94,43 @@ def score_poem(completion, syll_target=11):
 
     # 5. ABSTRACT NOUN RATIO: lower is better (more concrete)
     ABSTRACT_NOUNS = {
-        "amor", "vida", "muerte", "alma", "corazon", "pasión", "dolor",
-        "soledad", "tristeza", "esperanza", "miedo", "alegria", "pena",
-        "silencio", "recuerdo", "olvido", "memoria", "ilusion", "duda",
-        "fe", "paz", "guerra", "odio", "ternura", "ira", "calma",
-        "angustia", "ansiedad", "melancolia", "nostalgia", "dicha",
-        "suerte", "destino", "fortuna", "gloria", "infierno", "cielo",
+        "amor",
+        "vida",
+        "muerte",
+        "alma",
+        "corazon",
+        "pasión",
+        "dolor",
+        "soledad",
+        "tristeza",
+        "esperanza",
+        "miedo",
+        "alegria",
+        "pena",
+        "silencio",
+        "recuerdo",
+        "olvido",
+        "memoria",
+        "ilusion",
+        "duda",
+        "fe",
+        "paz",
+        "guerra",
+        "odio",
+        "ternura",
+        "ira",
+        "calma",
+        "angustia",
+        "ansiedad",
+        "melancolia",
+        "nostalgia",
+        "dicha",
+        "suerte",
+        "destino",
+        "fortuna",
+        "gloria",
+        "infierno",
+        "cielo",
     }
     abs_count = sum(1 for w in all_words if w in ABSTRACT_NOUNS)
     abs_ratio = abs_count / total if total else 1.0
@@ -128,6 +158,7 @@ def score_poem(completion, syll_target=11):
     # 8. READABILITY: Spanish textstat
     try:
         import textstat
+
         textstat.set_lang("es")
         full_text = " ".join(lines)
         readability = textstat.szigriszt_pazos(full_text)
@@ -157,16 +188,14 @@ def main():
                 continue
             record = json.loads(line)
             total += 1
-            quality, breakdown = score_poem(
-                record.get("completion", ""), args.target
-            )
+            quality, breakdown = score_poem(record.get("completion", ""), args.target)
             record["quality_score"] = quality
             record["quality_breakdown"] = breakdown
             fout.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     print(f"Scored {total} poems with full metric suite")
-    print(f"Metrics: syllable, rhyme, lexical diversity, abstract ratio,")
-    print(f"         emotion diversity, imagery density, readability")
+    print("Metrics: syllable, rhyme, lexical diversity, abstract ratio,")
+    print("         emotion diversity, imagery density, readability")
 
 
 if __name__ == "__main__":

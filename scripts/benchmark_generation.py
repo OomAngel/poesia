@@ -31,7 +31,7 @@ from poesia.generation.llm_client import LoRAClient
 _PROMPT = (
     "You are writing a Spanish poem on the theme: una canaria menuda baila en el\n"
     "manglar junto al mar. Write line 3. Exactly 11 syllables. End the line with a\n"
-    "word that rhymes with \"cantar\". Output ONLY the single bare poetry line."
+    'word that rhymes with "cantar". Output ONLY the single bare poetry line.'
 )
 
 _IMAGE_PROMPT = (
@@ -60,18 +60,23 @@ def bench_poem(sequential: bool, lines: int, n: int) -> None:
         got: list[str] = []
         for _ in range(n):
             got.extend(client.generate(_PROMPT, n=1, temperature=0.9))
-        print(f"· OLD sequential (n={n} separate calls): {time.time() - t0:.2f}s"
-              f"  → {len(got)} lines")
+        print(
+            f"· OLD sequential (n={n} separate calls): {time.time() - t0:.2f}s  → {len(got)} lines"
+        )
 
     t0 = time.time()
     for _ in range(lines):
         client.generate(_PROMPT, n=n, temperature=0.9)
     elapsed = time.time() - t0
-    print(f"· NEW batched ({lines} line-positions × n={n}): {elapsed:.2f}s"
-          f"  → {elapsed / lines:.2f}s per line")
+    print(
+        f"· NEW batched ({lines} line-positions × n={n}): {elapsed:.2f}s"
+        f"  → {elapsed / lines:.2f}s per line"
+    )
     if sequential:
-        print("  (sequential vs batched for one line-position: "
-              f"{time.time() - t0:.2f}s vs {elapsed / lines:.2f}s per line)")
+        print(
+            "  (sequential vs batched for one line-position: "
+            f"{time.time() - t0:.2f}s vs {elapsed / lines:.2f}s per line)"
+        )
     else:
         print("  hint: re-run with --sequential to compare against the old path.")
 

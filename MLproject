@@ -73,4 +73,3 @@ entry_points:
     command: |
       python scripts/distill_sonetos.py --count {distill_count} && \
       python scripts/train_poetry_lora.py {config}
-

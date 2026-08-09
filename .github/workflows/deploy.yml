@@ -60,7 +60,7 @@ jobs:
         run: |
           RUN_ID=$(python3 -c "import os,json; d=json.load(open('run_info.json')); print(d['run_id'])")
           MODEL_NAME=$(python3 -c "import os,json; d=json.load(open('run_info.json')); print(d['model_name'])")
-          
+
           # Transition to Staging
           mlflow set_tag --run-id $RUN_ID --key "mlflow.stage" --value "Staging"
 

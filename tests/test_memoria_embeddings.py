@@ -25,7 +25,7 @@ def test_stub_embedding_client_contract() -> None:
     assert len(emb) == 384
     assert all(isinstance(v, float) for v in emb)
     assert emb == client.embed_one("same text")  # deterministic
-    assert emb != client.embed_one("text two")   # distinct across texts
+    assert emb != client.embed_one("text two")  # distinct across texts
 
     batch = client.embed(["hello world", "goodbye moon", "test phrase"])
     assert len(batch) == 3
@@ -42,6 +42,7 @@ def test_get_embedding_client_with_stub() -> None:
 def _has_sentence_transformers() -> bool:
     try:
         import sentence_transformers  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -59,4 +60,3 @@ def test_sentence_transformer_client_real_integration() -> None:
     emb = client.embed_one("test sentence")
     assert len(emb) == 384
     assert all(isinstance(v, float) for v in emb)
-

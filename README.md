@@ -454,4 +454,3 @@ Contribution standards: [`CONTRIBUTING.md`](CONTRIBUTING.md) ·
 Security: [`SECURITY.md`](SECURITY.md) · History: [`CHANGELOG.md`](CHANGELOG.md)
 
 **Author:** Angel — shared by invitation; contact details are provided personally.
-

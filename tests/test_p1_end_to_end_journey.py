@@ -37,16 +37,12 @@ class TestP1EndToEndJourney:
         assert result.exit_code == 0
         assert "Theme: luna" in result.output
 
-    def test_write_with_save_creates_file(
-        self, runner: CliRunner, temp_home: Path
-    ) -> None:
+    def test_write_with_save_creates_file(self, runner: CliRunner, temp_home: Path) -> None:
         """Write with --save should persist poem to library."""
         old_home = os.environ.get("HOME")
         try:
             os.environ["HOME"] = str(temp_home)
-            result = runner.invoke(app, [
-                "write", "--theme", "luna", "--form", "haiku", "--save"
-            ])
+            result = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku", "--save"])
             assert result.exit_code == 0
             assert "Saved to library" in result.output
 
@@ -56,9 +52,7 @@ class TestP1EndToEndJourney:
             if old_home:
                 os.environ["HOME"] = old_home
 
-    def test_write_with_use_library_loads_poems(
-        self, runner: CliRunner, temp_home: Path
-    ) -> None:
+    def test_write_with_use_library_loads_poems(self, runner: CliRunner, temp_home: Path) -> None:
         """--use-library should load existing poems for context."""
         old_home = os.environ.get("HOME")
         try:
@@ -66,15 +60,14 @@ class TestP1EndToEndJourney:
 
             # Pre-populate library
             library = Library()
-            library.add(PoemRecord(
-                lines=["Luna de plata"], language="es", form="haiku", theme="luna"
-            ))
+            library.add(
+                PoemRecord(lines=["Luna de plata"], language="es", form="haiku", theme="luna")
+            )
 
             # Test without --brief to avoid slow embedding load
-            result = runner.invoke(app, [
-                "write", "--theme", "noche", "--form", "haiku",
-                "--use-library"
-            ])
+            result = runner.invoke(
+                app, ["write", "--theme", "noche", "--form", "haiku", "--use-library"]
+            )
             assert result.exit_code == 0
             assert "Loaded 1 poems from library" in result.output
         finally:
@@ -89,8 +82,11 @@ class TestLibraryProvenance:
         """Provenance should be written to markdown frontmatter."""
         library = Library(storage_dir=tmp_path)
         record = PoemRecord(
-            lines=["test"], language="es", form="haiku", theme="test",
-            provenance=PoemProvenance(model="gemini", seeds=["luna"])
+            lines=["test"],
+            language="es",
+            form="haiku",
+            theme="test",
+            provenance=PoemProvenance(model="gemini", seeds=["luna"]),
         )
         library.add(record)
 

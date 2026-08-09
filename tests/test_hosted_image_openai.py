@@ -26,9 +26,9 @@ class TestOpenAIImageBackend:
             nonlocal captured_request
             captured_request = req
             mock_response = MagicMock()
-            mock_response.read.return_value = json.dumps({
-                "data": [{"b64_json": base64.b64encode(fake_image).decode()}]
-            }).encode("utf-8")
+            mock_response.read.return_value = json.dumps(
+                {"data": [{"b64_json": base64.b64encode(fake_image).decode()}]}
+            ).encode("utf-8")
             mock_response.__enter__ = MagicMock(return_value=mock_response)
             mock_response.__exit__ = MagicMock(return_value=False)
             return mock_response
@@ -54,9 +54,9 @@ class TestOpenAIImageBackend:
             nonlocal captured_headers
             captured_headers = dict(req.headers)
             mock_response = MagicMock()
-            mock_response.read.return_value = json.dumps({
-                "data": [{"b64_json": base64.b64encode(fake_image).decode()}]
-            }).encode("utf-8")
+            mock_response.read.return_value = json.dumps(
+                {"data": [{"b64_json": base64.b64encode(fake_image).decode()}]}
+            ).encode("utf-8")
             mock_response.__enter__ = MagicMock(return_value=mock_response)
             mock_response.__exit__ = MagicMock(return_value=False)
             return mock_response
@@ -75,9 +75,9 @@ class TestOpenAIImageBackend:
             nonlocal captured_payload
             captured_payload = json.loads(req.data.decode("utf-8"))
             mock_response = MagicMock()
-            mock_response.read.return_value = json.dumps({
-                "data": [{"b64_json": base64.b64encode(fake_image).decode()}]
-            }).encode("utf-8")
+            mock_response.read.return_value = json.dumps(
+                {"data": [{"b64_json": base64.b64encode(fake_image).decode()}]}
+            ).encode("utf-8")
             mock_response.__enter__ = MagicMock(return_value=mock_response)
             mock_response.__exit__ = MagicMock(return_value=False)
             return mock_response
@@ -92,9 +92,9 @@ class TestOpenAIImageBackend:
         """Verify base64 response is decoded to raw bytes."""
         fake_image = b"PNG_IMAGE_BYTES_HERE"
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "data": [{"b64_json": base64.b64encode(fake_image).decode()}]
-        }).encode("utf-8")
+        mock_response.read.return_value = json.dumps(
+            {"data": [{"b64_json": base64.b64encode(fake_image).decode()}]}
+        ).encode("utf-8")
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
 

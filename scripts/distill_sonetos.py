@@ -13,22 +13,24 @@ import argparse
 import json
 import os
 
+
 # JSON encoder that handles numpy types
 class _PoetryEncoder(json.JSONEncoder):
     def default(self, o):
-        import math
         if hasattr(o, "item"):
             return o.item()  # numpy types
         return super().default(o)
+
+
 import re
 import sys
 import time
 import urllib.error
 import urllib.request
-from collections import Counter
 from functools import lru_cache
+
 from poesia.evaluation.emotion_lexicon import analyze_poem_emotions, emotion_diversity
-from poesia.galeria.imagery import imagery_density_score, extract_imagery
+from poesia.galeria.imagery import imagery_density_score
 
 GROQ_API_KEY_ENV = "GROQ_API_KEY"
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
@@ -37,27 +39,76 @@ SONETO_RHYME = "ABBAABBACDCDCD"
 SYLL_TARGET = 11
 
 DEFAULT_THEMES = [
-    "la luna", "el mar", "la noche", "el amor", "la muerte",
-    "la soledad", "el tiempo", "la primavera", "el silencio", "el fuego",
-    "la lluvia", "el viento", "las estrellas", "el camino", "la memoria",
-    "el sueno", "la luz", "la sombra", "el rio", "la montana",
+    "la luna",
+    "el mar",
+    "la noche",
+    "el amor",
+    "la muerte",
+    "la soledad",
+    "el tiempo",
+    "la primavera",
+    "el silencio",
+    "el fuego",
+    "la lluvia",
+    "el viento",
+    "las estrellas",
+    "el camino",
+    "la memoria",
+    "el sueno",
+    "la luz",
+    "la sombra",
+    "el rio",
+    "la montana",
 ]
 
 ABSTRACT_NOUNS = {
-    "amor", "vida", "muerte", "alma", "corazon", "pasión", "dolor",
-    "soledad", "tristeza", "esperanza", "miedo", "alegria", "pena",
-    "silencio", "recuerdo", "olvido", "memoria", "ilusion", "duda",
-    "fe", "paz", "guerra", "odio", "ternura", "ira", "calma",
-    "angustia", "ansiedad", "melancolia", "nostalgia", "dicha",
-    "suerte", "destino", "fortuna", "gloria", "infierno", "cielo",
+    "amor",
+    "vida",
+    "muerte",
+    "alma",
+    "corazon",
+    "pasión",
+    "dolor",
+    "soledad",
+    "tristeza",
+    "esperanza",
+    "miedo",
+    "alegria",
+    "pena",
+    "silencio",
+    "recuerdo",
+    "olvido",
+    "memoria",
+    "ilusion",
+    "duda",
+    "fe",
+    "paz",
+    "guerra",
+    "odio",
+    "ternura",
+    "ira",
+    "calma",
+    "angustia",
+    "ansiedad",
+    "melancolia",
+    "nostalgia",
+    "dicha",
+    "suerte",
+    "destino",
+    "fortuna",
+    "gloria",
+    "infierno",
+    "cielo",
 }
 
 
 # ── Emotion Analysis (via pysentimiento) ─────────────────────────
 
+
 @lru_cache(maxsize=2)
 def _get_emotion_analyzer(language):
     from pysentimiento import create_analyzer
+
     return create_analyzer(task="emotion", lang=language)
 
 
@@ -68,8 +119,13 @@ def analyze_emotional_arc(lines, language="es"):
     try:
         analyzer = _get_emotion_analyzer(language)
     except Exception:
-        return {"emotions": [], "arc_variance": 0.0,
-                "dominant_emotions": set(), "num_emotions": 0, "available": False}
+        return {
+            "emotions": [],
+            "arc_variance": 0.0,
+            "dominant_emotions": set(),
+            "num_emotions": 0,
+            "available": False,
+        }
     emotions = []
     for l in lines:
         try:
@@ -78,7 +134,7 @@ def analyze_emotional_arc(lines, language="es"):
         except Exception:
             emotions.append(("others", 0.0))
     unique_emos = set(e for e, _ in emotions)
-    transitions = sum(1 for i in range(1, len(emotions)) if emotions[i][0] != emotions[i-1][0])
+    transitions = sum(1 for i in range(1, len(emotions)) if emotions[i][0] != emotions[i - 1][0])
     max_t = len(emotions) - 1
     arc_var = transitions / max_t if max_t > 0 else 0.0
     return {
@@ -91,6 +147,7 @@ def analyze_emotional_arc(lines, language="es"):
 
 
 # ── Prompt ────────────────────────────────────────────────────────
+
 
 def build_prompt(theme):
     return (
@@ -109,6 +166,7 @@ def build_prompt(theme):
 
 # ── Groq API ──────────────────────────────────────────────────────
 
+
 def generate_soneto(api_key, theme, temperature=0.85):
     payload = {
         "model": GROQ_MODEL,
@@ -118,7 +176,8 @@ def generate_soneto(api_key, theme, temperature=0.85):
     }
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
-        f"{GROQ_BASE_URL}/chat/completions", data=data,
+        f"{GROQ_BASE_URL}/chat/completions",
+        data=data,
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
@@ -143,13 +202,14 @@ def generate_soneto(api_key, theme, temperature=0.85):
 
 # ── Validation ────────────────────────────────────────────────────
 
+
 def validate_soneto(text, theme, language="es"):
     from poesia.phonology.spanish import SpanishPhonology
+
     phonology = SpanishPhonology()
     lines = [l.strip() for l in text.split("\n") if l.strip()]
     lines = [l for l in lines if not l.startswith('"') and not l.startswith("--")]
-    result = {"ok": False, "score": 0.0, "metrics": {}, "reasons": [],
-              "lines": lines, "counts": []}
+    result = {"ok": False, "score": 0.0, "metrics": {}, "reasons": [], "lines": lines, "counts": []}
 
     if len(lines) != 14:
         result["reasons"].append(f"{len(lines)} lines")
@@ -199,8 +259,21 @@ def validate_soneto(text, theme, language="es"):
         result["reasons"].append(f"no rhyme ({detected_str})")
 
     # Language
-    en_inds = {"the", "and", "that", "with", "from", "your", "our",
-               "their", "this", "have", "will", "would", "could"}
+    en_inds = {
+        "the",
+        "and",
+        "that",
+        "with",
+        "from",
+        "your",
+        "our",
+        "their",
+        "this",
+        "have",
+        "will",
+        "would",
+        "could",
+    }
     en_c = sum(1 for l in lines for w in re.findall(r"[a-z]+", l.lower()) if w in en_inds)
     lang_ok = en_c < 8
     if not lang_ok:
@@ -235,8 +308,10 @@ def validate_soneto(text, theme, language="es"):
     theme_s = 0.5
     nov_s = 0.5
     try:
-        from sentence_transformers import SentenceTransformer
         import math
+
+        from sentence_transformers import SentenceTransformer
+
         model = SentenceTransformer("intfloat/multilingual-e5-small")
         te = model.encode("query: " + theme)
         les = model.encode(["passage: " + l for l in lines])
@@ -267,22 +342,23 @@ def validate_soneto(text, theme, language="es"):
     result["emotion"] = emo
     result["metrics"]["emotion_arc"] = emo.get("arc_variance", 0.0)
     result["metrics"]["num_emotions"] = emo.get("num_emotions", 0)
-    
+
     # Word-level emotion diversity via Spanish Emotion Lexicon
     word_emos = analyze_poem_emotions(lines)
     result["metrics"]["word_emotion_diversity"] = emotion_diversity(lines)
     dominant = max(word_emos.items(), key=lambda x: x[1])
     result["metrics"]["dominant_emotion"] = dominant[0]
-    
+
     # Readability via textstat (Spanish)
     try:
         import textstat
-        textstat.set_lang('es')
+
+        textstat.set_lang("es")
         full_text = " ".join(lines)
         result["metrics"]["readability_es"] = round(textstat.szigriszt_pazos(full_text), 1)
     except Exception:
         result["metrics"]["readability_es"] = 0.0
-    
+
     # Imagery density via spaCy noun extraction
     try:
         img_score = imagery_density_score(lines, language)
@@ -299,13 +375,16 @@ def validate_soneto(text, theme, language="es"):
         s += emo.get("arc_variance", 0.0) * 0.1
         # New: imagery density (up to 0.05), word emotion diversity (up to 0.05)
         s += result["metrics"].get("imagery_density", 0.0) * 0.05
-        s += result["metrics"].get("word_emotion_diversity", 0.0) * 0.01  # cap at ~8 emotions * 0.01 = 0.08
+        s += (
+            result["metrics"].get("word_emotion_diversity", 0.0) * 0.01
+        )  # cap at ~8 emotions * 0.01 = 0.08
         result["score"] = round(min(s, 1.0), 3)
 
     return result
 
 
 # ── Main ───────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -331,7 +410,11 @@ def main():
         theme = themes[theme_idx % len(themes)]
         theme_idx += 1
         attempts += 1
-        print(f"  [{len(generated)+1}/{args.count}] {theme:20s} (att {attempts:3d})...", end=" ", flush=True)
+        print(
+            f"  [{len(generated) + 1}/{args.count}] {theme:20s} (att {attempts:3d})...",
+            end=" ",
+            flush=True,
+        )
 
         text = generate_soneto(api_key, theme)
         if not text:
@@ -346,17 +429,22 @@ def main():
             ex = {
                 "prompt": f"Write a soneto in Spanish.\\nSyllables: {avg_s}.\\nRhyme: ABBA ABBA CDC DCD.\\nTheme: {theme}.\\n\\n",
                 "completion": "\\n".join(va["lines"]),
-                "author": "groq-llama-3.3-70b", "source": "distilled-v3",
-                "avg_syllables": avg_s, "form": "soneto", "language": "es",
+                "author": "groq-llama-3.3-70b",
+                "source": "distilled-v3",
+                "avg_syllables": avg_s,
+                "form": "soneto",
+                "language": "es",
                 "quality_score": va["score"],
                 "metrics": va["metrics"],
             }
             generated.append(ex)
             m = va["metrics"]
             emo = va.get("emotion", {})
-            print(f"OK q={va['score']:.2f}  rhyme={m.get('rhyme',0):.0%}  div={m.get('lexical_diversity',0):.2f}  "
-                  f"abs={m.get('abstract_ratio',0):.0%}  emo_arc={emo.get('arc_variance',0):.0%}  "
-                  f"n_emo={emo.get('num_emotions',0)}")
+            print(
+                f"OK q={va['score']:.2f}  rhyme={m.get('rhyme', 0):.0%}  div={m.get('lexical_diversity', 0):.2f}  "
+                f"abs={m.get('abstract_ratio', 0):.0%}  emo_arc={emo.get('arc_variance', 0):.0%}  "
+                f"n_emo={emo.get('num_emotions', 0)}"
+            )
             if len(generated) % 5 == 0:
                 p = os.path.join(args.output, "sonetos.jsonl")
                 with open(p, "w") as f:
@@ -374,7 +462,7 @@ def main():
             f.write(json.dumps(e, ensure_ascii=False, cls=_PoetryEncoder) + "\n")
     avg_q = sum(e["quality_score"] for e in generated) / len(generated) if generated else 0
     print(f"\\nDone! {len(generated)} sonetos to {p}")
-    print(f"Attempts: {attempts}, success: {len(generated)/attempts*100:.0f}%")
+    print(f"Attempts: {attempts}, success: {len(generated) / attempts * 100:.0f}%")
     print(f"Avg quality: {avg_q:.2f}")
 
 

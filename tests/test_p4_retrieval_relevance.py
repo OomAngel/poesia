@@ -61,8 +61,11 @@ def populated_retriever(stub_client: StubEmbeddingClient) -> GraphRAGRetriever:
     pairs = _load_fragment_pairs()
     for frag_id, body, lang, _filename, themes in pairs:
         retriever.add_fragment_node(
-            frag_id, body, language=lang,
-            tags=themes, embedding_client=stub_client,
+            frag_id,
+            body,
+            language=lang,
+            tags=themes,
+            embedding_client=stub_client,
         )
     return retriever
 
@@ -70,6 +73,7 @@ def populated_retriever(stub_client: StubEmbeddingClient) -> GraphRAGRetriever:
 @pytest.fixture
 def fragment_pairs() -> list[tuple[str, str, str, str, list[str]]]:
     return _load_fragment_pairs()
+
 
 # ---------------------------------------------------------------------------
 # Self-retrieval: each fragment should retrieve itself as top result
@@ -87,8 +91,7 @@ def test_each_fragment_retrieves_itself(
         results = populated_retriever.retrieve(query, k=5)
         result_ids = [rid for rid, _ in results]
         assert frag_id in result_ids, (
-            f"Fragment '{frag_id}' did not retrieve itself in top-5. "
-            f"Got: {result_ids}"
+            f"Fragment '{frag_id}' did not retrieve itself in top-5. Got: {result_ids}"
         )
 
 
@@ -138,8 +141,7 @@ def test_cross_lingual_retrieval_by_shared_theme(
     """
     theme_map = _theme_to_fragments(fragment_pairs)
     cross_lingual_themes = [
-        t for t, frags in theme_map.items()
-        if len({lang for _fid, _body, lang in frags}) >= 2
+        t for t, frags in theme_map.items() if len({lang for _fid, _body, lang in frags}) >= 2
     ]
     if not cross_lingual_themes:
         pytest.skip("No cross-lingual themes found in corpus")
@@ -159,6 +161,7 @@ def test_cross_lingual_retrieval_by_shared_theme(
     # same-theme ES fragments surface depends on the embedding model — with
     # the stub this is not guaranteed, so no stronger claim is asserted here.
     assert result_ids, f"EN query for '{theme}' returned no results"
+
 
 # ---------------------------------------------------------------------------
 # Graph-enhanced retrieval: paths and coverage
@@ -203,4 +206,3 @@ def test_retrieve_with_language_filter(
         assert node.get("language") == "en", (
             f"Result '{rid}' has language '{node.get('language')}', expected 'en'"
         )
-

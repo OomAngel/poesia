@@ -39,4 +39,3 @@ def test_metre_score_nonzero_for_valid_targets() -> None:
     scan = SpanishPhonology().scan_line("luna")
     for target in [5, 7, 11]:
         assert metre_score(scan, target_syllable_count=target) >= 0.0
-

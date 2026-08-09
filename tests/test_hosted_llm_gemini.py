@@ -29,9 +29,9 @@ class TestGeminiBackend:
             nonlocal captured_request
             captured_request = req
             mock_response = MagicMock()
-            mock_response.read.return_value = json.dumps({
-                "candidates": [{"content": {"parts": [{"text": "test output"}]}}]
-            }).encode("utf-8")
+            mock_response.read.return_value = json.dumps(
+                {"candidates": [{"content": {"parts": [{"text": "test output"}]}}]}
+            ).encode("utf-8")
             mock_response.__enter__ = MagicMock(return_value=mock_response)
             mock_response.__exit__ = MagicMock(return_value=False)
             return mock_response
@@ -58,9 +58,9 @@ class TestGeminiBackend:
             nonlocal captured_url
             captured_url = req.full_url
             mock_response = MagicMock()
-            mock_response.read.return_value = json.dumps({
-                "candidates": [{"content": {"parts": [{"text": "output"}]}}]
-            }).encode("utf-8")
+            mock_response.read.return_value = json.dumps(
+                {"candidates": [{"content": {"parts": [{"text": "output"}]}}]}
+            ).encode("utf-8")
             mock_response.__enter__ = MagicMock(return_value=mock_response)
             mock_response.__exit__ = MagicMock(return_value=False)
             return mock_response
@@ -75,11 +75,9 @@ class TestGeminiBackend:
     def test_gemini_response_parsing(self, client: HostedLLMClient) -> None:
         """Verify correct parsing of Gemini response format."""
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "candidates": [
-                {"content": {"parts": [{"text": "  La luna brilla  "}]}}
-            ]
-        }).encode("utf-8")
+        mock_response.read.return_value = json.dumps(
+            {"candidates": [{"content": {"parts": [{"text": "  La luna brilla  "}]}}]}
+        ).encode("utf-8")
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
 
@@ -99,13 +97,15 @@ class TestGeminiBackend:
             captured_payload = json.loads(req.data.decode("utf-8"))
             mock_response = MagicMock()
             # Return 3 candidates in one response
-            mock_response.read.return_value = json.dumps({
-                "candidates": [
-                    {"content": {"parts": [{"text": "output 1"}]}},
-                    {"content": {"parts": [{"text": "output 2"}]}},
-                    {"content": {"parts": [{"text": "output 3"}]}},
-                ]
-            }).encode("utf-8")
+            mock_response.read.return_value = json.dumps(
+                {
+                    "candidates": [
+                        {"content": {"parts": [{"text": "output 1"}]}},
+                        {"content": {"parts": [{"text": "output 2"}]}},
+                        {"content": {"parts": [{"text": "output 3"}]}},
+                    ]
+                }
+            ).encode("utf-8")
             mock_response.__enter__ = MagicMock(return_value=mock_response)
             mock_response.__exit__ = MagicMock(return_value=False)
             return mock_response
@@ -133,12 +133,14 @@ class TestGeminiBackend:
 
             mock_response = MagicMock()
             # Return requested number of candidates
-            mock_response.read.return_value = json.dumps({
-                "candidates": [
-                    {"content": {"parts": [{"text": f"output {i}"}]}}
-                    for i in range(n_requested)
-                ]
-            }).encode("utf-8")
+            mock_response.read.return_value = json.dumps(
+                {
+                    "candidates": [
+                        {"content": {"parts": [{"text": f"output {i}"}]}}
+                        for i in range(n_requested)
+                    ]
+                }
+            ).encode("utf-8")
             mock_response.__enter__ = MagicMock(return_value=mock_response)
             mock_response.__exit__ = MagicMock(return_value=False)
             return mock_response
@@ -154,9 +156,11 @@ class TestGeminiBackend:
     def test_gemini_empty_response_handling(self, client: HostedLLMClient) -> None:
         """Handle malformed/empty Gemini response gracefully."""
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "candidates": []  # Empty candidates
-        }).encode("utf-8")
+        mock_response.read.return_value = json.dumps(
+            {
+                "candidates": []  # Empty candidates
+            }
+        ).encode("utf-8")
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
 

@@ -10,28 +10,25 @@ Usage:
 Requires: pip install transformers datasets peft bitsandbytes accelerate
 """
 
+import datetime
 import json
 import os
+import subprocess
 import sys
 import time
-import yaml
-import torch
-import hashlib
-import datetime
-import subprocess
+
 import mlflow
-from pathlib import Path
+import torch
+import yaml
 from datasets import Dataset
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     BitsAndBytesConfig,
-    TrainingArguments,
-    Trainer,
     DataCollatorForLanguageModeling,
+    TrainingArguments,
 )
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # Phase 1 — MLflow-only tracking
@@ -48,23 +45,24 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
 def search_best_adapter(metric="eval_loss", goal="minimize", experiment=None):
     """Search all MLflow runs for the best adapter by a given metric.
-    
+
     Args:
         metric: Metric to compare
         goal: 'minimize' or 'maximize'
         experiment: Experiment name filter (None = all)
-    
+
     Returns:
         (run_id, adapter_path, metric_value) or None
     """
     mlflow.set_tracking_uri(_resolve_tracking_uri())
     from mlflow.tracking import MlflowClient
+
     client = MlflowClient()
-    
+
     exp_filter = experiment or ""
     best_value = float("inf") if goal == "minimize" else float("-inf")
     best_run = None
-    
+
     experiments = client.search_experiments()
     for exp in experiments:
         if exp_filter and exp_filter not in exp.name:
@@ -87,7 +85,7 @@ def search_best_adapter(metric="eval_loss", goal="minimize", experiment=None):
                 elif goal == "maximize" and val > best_value:
                     best_value = val
                     best_run = (run_id, adapter, val)
-    
+
     return best_run
 
 
@@ -105,7 +103,8 @@ def _capture_git_commit() -> str:
     try:
         return subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         ).stdout.strip()[:12]
     except Exception:
         return "unknown"
@@ -126,8 +125,11 @@ def main():
     # Compute data manifest (SHA256, record count, sources)
     sys.path.insert(0, "mlops")
     from data_manifest import compute_manifest
+
     data_manifest = compute_manifest(train_path)
-    print(f"Data: {data_manifest['record_count']} records, SHA256: {data_manifest['sha256'][:16]}...")
+    print(
+        f"Data: {data_manifest['record_count']} records, SHA256: {data_manifest['sha256'][:16]}..."
+    )
 
     git_commit = _capture_git_commit()
 
@@ -157,8 +159,8 @@ def main():
     # no-op (only disables sub-model logging). The real training metrics
     # come from HF Trainer's report_to='mlflow' in TrainingArguments below.
     mlflow.pytorch.autolog(
-        log_models=False,       # We handle model saving manually
-        log_datasets=False,     # We use data_manifest.py for dataset tracking
+        log_models=False,  # We handle model saving manually
+        log_datasets=False,  # We use data_manifest.py for dataset tracking
         disable=False,
         silent=True,
     )
@@ -191,10 +193,12 @@ def main():
         mlflow.log_param("lora_r", cfg.get("lora_r", 16))
         mlflow.log_param("lora_alpha", cfg.get("lora_alpha", 32))
         mlflow.log_param("lora_dropout", cfg.get("lora_dropout", 0.05))
-        mlflow.log_param("lora_target_modules",
-                         ",".join(cfg.get("lora_target_modules", ["q_proj", "v_proj"])))
-        mlflow.log_param("effective_batch",
-                         cfg.get("batch_size", 8) * cfg.get("gradient_accumulation", 1))
+        mlflow.log_param(
+            "lora_target_modules", ",".join(cfg.get("lora_target_modules", ["q_proj", "v_proj"]))
+        )
+        mlflow.log_param(
+            "effective_batch", cfg.get("batch_size", 8) * cfg.get("gradient_accumulation", 1)
+        )
         mlflow.log_param("max_length", cfg.get("max_length", 300))
         mlflow.log_param("quantization", cfg.get("quantization", "4bit"))
         mlflow.log_param("data_records", data_manifest["record_count"])
@@ -216,7 +220,7 @@ def main():
         mlflow.log_artifact(config_path)
 
         # ── 4-bit quantisation ───────────────────────────────────────
-        print(f"Free VRAM: {torch.cuda.mem_get_info()[0]/1e9:.1f}GB")
+        print(f"Free VRAM: {torch.cuda.mem_get_info()[0] / 1e9:.1f}GB")
         print(f"Loading {model_name} in 4-bit...")
 
         bnb = BitsAndBytesConfig(
@@ -234,15 +238,14 @@ def main():
             torch_dtype=torch.bfloat16,
         )
         model = prepare_model_for_kbit_training(model)
-        print(f"Model loaded. {model.num_parameters()/1e9:.1f}B params")
-        print(f"VRAM after load: {torch.cuda.mem_get_info()[0]/1e9:.1f}GB free")
+        print(f"Model loaded. {model.num_parameters() / 1e9:.1f}B params")
+        print(f"VRAM after load: {torch.cuda.mem_get_info()[0] / 1e9:.1f}GB free")
 
         # ── LoRA config ──────────────────────────────────────────────
         lora = LoraConfig(
             r=cfg.get("lora_r", 16),
             lora_alpha=cfg.get("lora_alpha", 32),
-            target_modules=cfg.get("lora_target_modules",
-                                    ["q_proj", "k_proj", "v_proj", "o_proj"]),
+            target_modules=cfg.get("lora_target_modules", ["q_proj", "k_proj", "v_proj", "o_proj"]),
             lora_dropout=cfg.get("lora_dropout", 0.05),
             bias="none",
             task_type="CAUSAL_LM",
@@ -266,17 +269,14 @@ def main():
         print(f"Train: {len(train_ds)}, Eval: {len(eval_ds)}")
 
         def tokenize(ex):
-            tokens = tokenizer(ex["text"], truncation=True,
-                               max_length=cfg.get("max_length", 300))
+            tokens = tokenizer(ex["text"], truncation=True, max_length=cfg.get("max_length", 300))
             tokens["quality_weight"] = ex["quality_weight"]
             return tokens
 
         train_ds = train_ds.map(tokenize, remove_columns=["text"])
         eval_ds = eval_ds.map(tokenize, remove_columns=["text"])
 
-        collator = DataCollatorForLanguageModeling(
-            tokenizer=tokenizer, mlm=False
-        )
+        collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
         # ── Train ────────────────────────────────────────────────────
         args = TrainingArguments(
@@ -287,11 +287,11 @@ def main():
             num_train_epochs=cfg.get("epochs", 10),
             learning_rate=cfg.get("learning_rate", 2e-4),
             fp16=True,
-            logging_steps=cfg.get('logging_steps', 10),
+            logging_steps=cfg.get("logging_steps", 10),
             eval_strategy="steps",
-            eval_steps=cfg.get('eval_steps', 50),
+            eval_steps=cfg.get("eval_steps", 50),
             save_strategy="steps",
-            save_steps=cfg.get('save_steps', 100),
+            save_steps=cfg.get("save_steps", 100),
             save_total_limit=1,
             report_to="mlflow",
             remove_unused_columns=False,
@@ -301,12 +301,16 @@ def main():
         loss_fn = cfg.get("loss_fn", "ce")
         if loss_fn == "composite":
             from poesia.training.poetry_trainer import PoetryTrainer
+
             trainer = PoetryTrainer(
-                model=model, args=args,
-                train_dataset=train_ds, eval_dataset=eval_ds,
+                model=model,
+                args=args,
+                train_dataset=train_ds,
+                eval_dataset=eval_ds,
                 data_collator=collator,
                 scorer_weight=cfg.get("scorer_weight", 0.15),
-                syll_target=11, language=cfg.get("language", "es"),
+                syll_target=11,
+                language=cfg.get("language", "es"),
             )
             print(f"PoetryTrainer composite loss (weight={cfg.get('scorer_weight', 0.15)})")
         elif loss_fn == "dpo":
@@ -314,9 +318,12 @@ def main():
             sys.exit(1)
         else:
             from transformers import Trainer
+
             trainer = Trainer(
-                model=model, args=args,
-                train_dataset=train_ds, eval_dataset=eval_ds,
+                model=model,
+                args=args,
+                train_dataset=train_ds,
+                eval_dataset=eval_ds,
                 data_collator=collator,
             )
             print("Standard Trainer with cross-entropy loss")
@@ -338,8 +345,7 @@ def main():
             if "loss" in entry and "step" in entry:
                 mlflow.log_metric("loss", entry["loss"], step=entry["step"])
             if "eval_loss" in entry:
-                mlflow.log_metric("eval_loss", entry["eval_loss"],
-                                  step=entry.get("step", 0))
+                mlflow.log_metric("eval_loss", entry["eval_loss"], step=entry.get("step", 0))
 
         _train_elapsed = time.time() - _train_start
         mlflow.log_metric("train_duration_seconds", round(_train_elapsed, 2))
@@ -357,6 +363,7 @@ def main():
         # Phase 5: Data versioning — log dataset provenance to MLflow
         try:
             from mlflow.data import from_json
+
             dataset = from_json(train_path, name="training_data")
             mlflow.log_input(dataset, context="training")
             if eval_path != train_path:
@@ -401,8 +408,12 @@ def main():
         }
         try:
             from mlflow.tracking import MlflowClient
-            registry_entry["mlflow_model_version"] = MlflowClient(_resolve_tracking_uri()).\
-                get_latest_versions(model_registry_name)[0].version
+
+            registry_entry["mlflow_model_version"] = (
+                MlflowClient(_resolve_tracking_uri())
+                .get_latest_versions(model_registry_name)[0]
+                .version
+            )
         except Exception:
             pass
         registry["adapters"].append(registry_entry)
@@ -415,6 +426,7 @@ def main():
         try:
             sys.path.insert(0, "mlops")
             from evaluate_adapter import evaluate as eval_adapter
+
             eval_results = eval_adapter(adapter_path)
             summary = eval_results["summary"]
 
@@ -467,7 +479,7 @@ def main():
     # ── mlflow.start_run() context ends here ─────────────────────────
     print(f"\n✅ Training complete. MLflow run: {mlflow_run_id}")
     print(f"   Adapter: {adapter_path}")
-    print(f"   View: mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db")
+    print("   View: mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db")
 
 
 if __name__ == "__main__":

@@ -72,9 +72,9 @@ class TestRepairMethod:
             nonlocal captured_payload
             captured_payload = json.loads(req.data.decode("utf-8"))
             mock_response = MagicMock()
-            mock_response.read.return_value = json.dumps({
-                "candidates": [{"content": {"parts": [{"text": "fixed line"}]}}]
-            }).encode("utf-8")
+            mock_response.read.return_value = json.dumps(
+                {"candidates": [{"content": {"parts": [{"text": "fixed line"}]}}]}
+            ).encode("utf-8")
             mock_response.__enter__ = MagicMock(return_value=mock_response)
             mock_response.__exit__ = MagicMock(return_value=False)
             return mock_response
@@ -89,9 +89,9 @@ class TestRepairMethod:
     def test_repair_strips_quotes(self, client: HostedLLMClient) -> None:
         """Verify repair strips surrounding quotes from response."""
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "candidates": [{"content": {"parts": [{"text": '"La luna brilla"'}]}}]
-        }).encode("utf-8")
+        mock_response.read.return_value = json.dumps(
+            {"candidates": [{"content": {"parts": [{"text": '"La luna brilla"'}]}}]}
+        ).encode("utf-8")
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
 

@@ -18,19 +18,17 @@ Usage:
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
-
 # Line count -> poetic form mapping for Spanish
 FORM_BY_LINE_COUNT = {
-    14: "soneto",      # 4+4+3+3
-    4: "cuarteto",     # 4 lines
-    5: "quintilla",    # 5 lines (or quinteto)
-    8: "romance",      # 8+ syllable 8-line stanzas
-    10: "decima",      # 10 lines
-    3: "haiku",        # 3 lines (Japanese form, also used in Spanish)
+    14: "soneto",  # 4+4+3+3
+    4: "cuarteto",  # 4 lines
+    5: "quintilla",  # 5 lines (or quinteto)
+    8: "romance",  # 8+ syllable 8-line stanzas
+    10: "decima",  # 10 lines
+    3: "haiku",  # 3 lines (Japanese form, also used in Spanish)
 }
 
 # Rhyme scheme by form
@@ -60,10 +58,40 @@ def extract_theme(text: str) -> str:
         return "poesia"
     first_line = lines[0].lower().strip("¿¡«»\"'.,;:!?—")
     # Take 2-3 significant words from the first line
-    stopwords = {"el", "la", "los", "las", "un", "una", "en", "de", "del", "por",
-                 "con", "sin", "para", "que", "y", "e", "o", "a", "al", "su",
-                 "tu", "mi", "se", "no", "es", "como", "más", "tan", "cuando",
-                 "entre", "todo", "tras"}
+    stopwords = {
+        "el",
+        "la",
+        "los",
+        "las",
+        "un",
+        "una",
+        "en",
+        "de",
+        "del",
+        "por",
+        "con",
+        "sin",
+        "para",
+        "que",
+        "y",
+        "e",
+        "o",
+        "a",
+        "al",
+        "su",
+        "tu",
+        "mi",
+        "se",
+        "no",
+        "es",
+        "como",
+        "más",
+        "tan",
+        "cuando",
+        "entre",
+        "todo",
+        "tras",
+    }
     words = [w for w in first_line.split() if w not in stopwords][:3]
     if words:
         return " ".join(words)
@@ -98,22 +126,11 @@ def convert_raw_poem(record: dict, source: str, force_form: str | None = None) -
     # Build structured prompt
     rhyme = RHYME_SCHEMES.get(form, "")
     if form == "soneto":
-        prompt = (
-            f"Write a soneto in Spanish.\n"
-            f"Rhyme scheme: {rhyme}.\n"
-            f"Theme: {theme}.\n\n"
-        )
+        prompt = f"Write a soneto in Spanish.\nRhyme scheme: {rhyme}.\nTheme: {theme}.\n\n"
     elif form == "haiku":
-        prompt = (
-            f"Write a haiku in Spanish.\n"
-            f"Syllable pattern: {rhyme}.\n"
-            f"Theme: {theme}.\n\n"
-        )
+        prompt = f"Write a haiku in Spanish.\nSyllable pattern: {rhyme}.\nTheme: {theme}.\n\n"
     else:
-        prompt = (
-            f"Write a {form} in Spanish.\n"
-            f"Theme: {theme}.\n\n"
-        )
+        prompt = f"Write a {form} in Spanish.\nTheme: {theme}.\n\n"
 
     return {
         "prompt": prompt,
@@ -165,10 +182,12 @@ def main():
 
     print(f"✅ Converted {converted} poems to {args.output}")
     print(f"   Skipped: {skipped} (unknown forms or parse errors)")
-    print(f"   Forms: run this to check:")
-    print(f"     python3 -c \"import json,collections; "
-          f"c=collections.Counter(json.loads(l)['form'] for l in open('{args.output}')); "
-          f"print(dict(c))\"")
+    print("   Forms: run this to check:")
+    print(
+        f'     python3 -c "import json,collections; '
+        f"c=collections.Counter(json.loads(l)['form'] for l in open('{args.output}')); "
+        f'print(dict(c))"'
+    )
 
 
 if __name__ == "__main__":

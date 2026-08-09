@@ -29,7 +29,9 @@ def test_workshop_outlet_prompt_and_poem(tmp_path) -> None:  # noqa: ANN001
     assert "3 · Teaching" in result.output
     assert "Your poem, as shaped" in result.output
     # Every line should have been scanned against its haiku target (5-7-5).
-    assert "Exact match" in result.output or "Short by" in result.output or "Over by" in result.output
+    assert (
+        "Exact match" in result.output or "Short by" in result.output or "Over by" in result.output
+    )
 
 
 def test_workshop_empty_outlet_exits_cleanly() -> None:

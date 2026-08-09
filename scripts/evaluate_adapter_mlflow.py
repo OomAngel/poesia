@@ -14,6 +14,7 @@ Usage:
 
 import argparse
 import os
+
 import mlflow
 
 # MLflow setup
@@ -23,9 +24,9 @@ try:
 except Exception:
     pass
 
+from poesia.generation.constrained_loop import ConstrainedLoop
 from poesia.generation.llm_client import LoRAClient
 from poesia.phonology.spanish import SpanishPhonology
-from poesia.generation.constrained_loop import ConstrainedLoop
 
 
 def evaluate(adapter_path, themes, form, language="es", parent_run_id=None):
@@ -66,12 +67,14 @@ def evaluate(adapter_path, themes, form, language="es", parent_run_id=None):
             avg_syll = sum(syll_counts) / len(syll_counts) if syll_counts else 0
             line_ok = 1.0 if line_count == 14 else 0.0
 
-            results.append({
-                "theme": theme,
-                "line_count": line_count,
-                "avg_syllables": avg_syll,
-                "line_accuracy": line_ok,
-            })
+            results.append(
+                {
+                    "theme": theme,
+                    "line_count": line_count,
+                    "avg_syllables": avg_syll,
+                    "line_accuracy": line_ok,
+                }
+            )
 
             mlflow.log_metric(f"{theme}_line_accuracy", line_ok)
             mlflow.log_metric(f"{theme}_syllable_dev", avg_syll - 11)
@@ -95,8 +98,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--adapter", required=True)
     parser.add_argument("--form", default="soneto")
-    parser.add_argument("--themes", nargs="+", default=["luna", "mar", "noche", "soledad", "tiempo"])
-    parser.add_argument("--parent-run-id", default=None,
-                        help="MLflow run ID to nest under (for provenance)")
+    parser.add_argument(
+        "--themes", nargs="+", default=["luna", "mar", "noche", "soledad", "tiempo"]
+    )
+    parser.add_argument(
+        "--parent-run-id", default=None, help="MLflow run ID to nest under (for provenance)"
+    )
     args = parser.parse_args()
     evaluate(args.adapter, args.themes, args.form, parent_run_id=args.parent_run_id)

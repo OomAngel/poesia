@@ -23,9 +23,9 @@ from poesia.generation.llm_client import HostedLLMClient
 def _mock_openai_compat_response(content: str) -> MagicMock:
     """Build a mock urllib response returning an OpenAI-format choice."""
     mock = MagicMock()
-    mock.read.return_value = json.dumps(
-        {"choices": [{"message": {"content": content}}]}
-    ).encode("utf-8")
+    mock.read.return_value = json.dumps({"choices": [{"message": {"content": content}}]}).encode(
+        "utf-8"
+    )
     mock.__enter__ = MagicMock(return_value=mock)
     mock.__exit__ = MagicMock(return_value=False)
     return mock

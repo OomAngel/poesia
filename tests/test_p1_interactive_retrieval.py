@@ -1,10 +1,10 @@
 """P1 tests: interactive line selection, memoria list/search."""
+
 from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from typer.testing import CliRunner
 
 from poesia.cli import app
@@ -29,7 +29,6 @@ def _make_scan(syllables: int = 5) -> ScanResult:
 
 
 class TestLineSelector:
-
     def test_selector_overrides_top_candidate(self) -> None:
         """Selector returning candidate[1] causes that line to be committed."""
         from poesia.generation.llm_client import StubLLMClient
@@ -62,7 +61,7 @@ class TestLineSelector:
         loop = ConstrainedLoop(language="es", form="haiku", llm=StubLLMClient())
         loop.run(theme="luna", n_candidates=4, line_selector=selector)
 
-        assert len(call_counts) == 3       # haiku = 3 lines
+        assert len(call_counts) == 3  # haiku = 3 lines
         assert all(c > 0 for c in call_counts)
 
     def test_selector_can_return_own_typed_line(self) -> None:
@@ -83,9 +82,9 @@ class TestLineSelector:
 
 
 class TestMemoriaList:
-
     def test_shows_saved_poems(self, tmp_path: Path) -> None:
         from poesia.memoria.library import Library, PoemRecord
+
         lib = Library(tmp_path)
         lib.add(PoemRecord(lines=["la luna brilla"], language="es", form="haiku", theme="luna"))
         lib.add(PoemRecord(lines=["the moon shines"], language="en", form="haiku", theme="moon"))
@@ -99,6 +98,7 @@ class TestMemoriaList:
 
     def test_filters_by_form(self, tmp_path: Path) -> None:
         from poesia.memoria.library import Library, PoemRecord
+
         lib = Library(tmp_path)
         lib.add(PoemRecord(lines=["v"] * 14, language="es", form="soneto", theme="vida"))
         lib.add(PoemRecord(lines=["h"], language="es", form="haiku", theme="luna"))
@@ -124,11 +124,13 @@ class TestMemoriaList:
 
 
 class TestMemoriaSearch:
-
     def test_finds_matching_poem(self, tmp_path: Path) -> None:
         from poesia.memoria.library import Library, PoemRecord
+
         lib = Library(tmp_path)
-        lib.add(PoemRecord(lines=["la luna brilla"], language="es", form="haiku", theme="luna nocturna"))
+        lib.add(
+            PoemRecord(lines=["la luna brilla"], language="es", form="haiku", theme="luna nocturna")
+        )
         lib.add(PoemRecord(lines=["el sol calienta"], language="es", form="haiku", theme="verano"))
 
         with patch("poesia.memoria.library.Library", return_value=lib):
@@ -140,6 +142,7 @@ class TestMemoriaSearch:
 
     def test_no_results_message(self, tmp_path: Path) -> None:
         from poesia.memoria.library import Library, PoemRecord
+
         lib = Library(tmp_path)
         lib.add(PoemRecord(lines=["verso"], language="es", form="haiku", theme="tema"))
 

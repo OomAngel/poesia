@@ -29,9 +29,7 @@ class TestPollinationsImageBackend:
     def test_request_url_has_expected_params(self) -> None:
         captured: list = []
 
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured)):
             PollinationsImageBackend().generate_image("La luna sobre el mar")
 
         assert len(captured) == 1
@@ -50,9 +48,7 @@ class TestPollinationsImageBackend:
 
     def test_style_appended_to_prompt(self) -> None:
         captured: list = []
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured)):
             PollinationsImageBackend().generate_image("La luna", style="acuarela")
 
         decoded = urllib.parse.unquote(urllib.parse.urlsplit(captured[0].full_url).path)
@@ -61,9 +57,7 @@ class TestPollinationsImageBackend:
 
     def test_default_style_used_when_none(self) -> None:
         captured: list = []
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured)):
             PollinationsImageBackend().generate_image("La luna")
 
         decoded = urllib.parse.unquote(urllib.parse.urlsplit(captured[0].full_url).path)
@@ -94,22 +88,16 @@ class TestPollinationsImageBackend:
 
     def test_model_param_forwarded_when_given(self) -> None:
         captured: list = []
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured)):
             PollinationsImageBackend(model="turbo").generate_image("La luna")
 
-        query = urllib.parse.parse_qs(
-            urllib.parse.urlsplit(captured[0].full_url).query
-        )
+        query = urllib.parse.parse_qs(urllib.parse.urlsplit(captured[0].full_url).query)
         assert query["model"] == ["turbo"]
 
     def test_returns_image_bytes_as_is(self) -> None:
         fake_image = b"\xff\xd8\xff\xe0JPEG_BYTES"
         captured: list = []
-        with patch(
-            "urllib.request.urlopen", side_effect=self._mock_urlopen(captured, fake_image)
-        ):
+        with patch("urllib.request.urlopen", side_effect=self._mock_urlopen(captured, fake_image)):
             result = PollinationsImageBackend().generate_image("La luna")
 
         assert result == fake_image

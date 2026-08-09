@@ -508,7 +508,3 @@ This document is meant to grow. Rules for extending it:
 | Date | Change |
 |---|---|
 | 2026-08-04 | Initial standard: P1–P15 in four tiers; rubric; template; enrichment protocol. |
-
-
-
-

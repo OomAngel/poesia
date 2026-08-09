@@ -9,7 +9,7 @@ FILES=("$@")
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 # Patterns that match assignment of a secret-looking variable name
-SECRET_NAME_PAT='(CLOUDFLARE_API_TOKEN|DATABASE_URL|MLFLOW_TRACKING_URI|OPENAI_API_KEY|GROQ_API_KEY|GEMINI_API_KEY|REPLICATE_API_TOKEN|ANTHROPIC_API_KEY|API[_-]?KEY|ACCESS[_-]?TOKEN|CLIENT[_-]?SECRET|PRIVATE_KEY|PASSWORD)'
+SECRET_NAME_PAT='(CLOUDFLARE_API_TOKEN|DATABASE_URL|OPENAI_API_KEY|GROQ_API_KEY|GEMINI_API_KEY|REPLICATE_API_TOKEN|ANTHROPIC_API_KEY|API[_-]?KEY|ACCESS[_-]?TOKEN|CLIENT[_-]?SECRET|PRIVATE_KEY|PASSWORD)'
 ASSIGN_PAT="^[[:space:]]*(export[[:space:]]+)?${SECRET_NAME_PAT}[[:space:]]*[:=][[:space:]]*(.+)[[:space:]]*$"
 
 # Values that are explicitly allowed (placeholders / empty). The leading pipe
@@ -63,6 +63,8 @@ for raw in "${FILES[@]}"; do
             # Skip angle-bracket placeholders (e.g. <Cloudflare secret>)
             echo "$value" | grep -qE '^<[^<>]*>$' && continue
             # Skip shell/env variable references
+            echo "$value" | grep -qE '^\$\{\{[[:space:]]*secrets\.[A-Za-z0-9_]+[[:space:]]*\}\}$' && continue  # GitHub Actions ${{ secrets.X }}
+            echo "$value" | grep -qE '\$\{[A-Za-z0-9_]+(:|-)' && continue  # shell default ${VAR:-default} template
             echo "$value" | grep -qE '^\$\{?[A-Z0-9_]+}?$' && continue
             echo "$value" | grep -qE '^(os\.getenv|getenv)\(' && continue
             echo "$value" | grep -qE '^[a-zA-Z_][a-zA-Z0-9_.]*\(os\.getenv\(' && continue

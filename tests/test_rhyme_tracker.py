@@ -1,12 +1,11 @@
 """Unit tests for RhymeTracker."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from poesia.generation.rhyme_tracker import RhymeTracker
-from poesia.phonology.base import RhymeKey, ScanResult
+from poesia.phonology.base import RhymeKey
 
 
 def _make_phonology(rhyme_map: dict[str, str]) -> MagicMock:
@@ -125,7 +124,7 @@ class TestRhymeTrackerSoneto:
             "franqueza que corta sin temor": "or",
             "lo que queda dentro es la hechura": "ura",
             "voy ancho en un collage fecundo": "undo",  # C
-            "hacia algo que sostenga y vital": "al",   # D
+            "hacia algo que sostenga y vital": "al",  # D
             "aunque el poder ignore lo profundo": "undo",
             "quiero ideas fuertes eternal": "al",
             "en la amplitud lo más segundo": "undo",
@@ -167,7 +166,7 @@ class TestRhymeTrackerSoneto:
 
     def test_target_key_returned_for_repeat_letters(self) -> None:
         t = self._make_tracker()
-        t.commit(0, "ver el sistema entero y oscura")   # A=ura
+        t.commit(0, "ver el sistema entero y oscura")  # A=ura
         t.commit(1, "buscar el patrón en la interior")  # B=or
         # line 2 is B, should get target=or
         assert t.target_key_for_line(2) == "or"

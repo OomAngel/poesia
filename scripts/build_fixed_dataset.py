@@ -14,6 +14,7 @@ Usage:
     python scripts/build_fixed_dataset.py --output mlops/data/train_fixed.jsonl
     python scripts/build_fixed_dataset.py --dry-run
 """
+
 from __future__ import annotations
 
 import argparse
@@ -49,20 +50,23 @@ def syllable_target(lines: list[str], line_idx: int, form: str) -> int | None:
     return None
 
 
-def build_line_prompt(theme, language, form, prior_lines, line_idx,
-                      target_syllables, rhyme_word) -> str:
+def build_line_prompt(
+    theme, language, form, prior_lines, line_idx, target_syllables, rhyme_word
+) -> str:
     """Build a prompt EXACTLY matching candidate_generator.py's inference prompt."""
     lang_name = LANG_NAMES.get(language, language)
     prior_block = ""
     if prior_lines:
-        numbered = "\n".join(f"{i+1}. {ln}" for i, ln in enumerate(prior_lines))
+        numbered = "\n".join(f"{i + 1}. {ln}" for i, ln in enumerate(prior_lines))
         prior_block = f"Poem so far:\n{numbered}\n\n"
 
     constraints = []
     if target_syllables:
         constraints.append(f"Exactly {target_syllables} syllables.")
     if rhyme_word:
-        constraints.append(f'End the line with a word that rhymes with "{rhyme_word}" (use a DIFFERENT word).')
+        constraints.append(
+            f'End the line with a word that rhymes with "{rhyme_word}" (use a DIFFERENT word).'
+        )
     constraints.append("Do NOT begin the line with the same word as any prior line.")
     constraints_str = " ".join(constraints)
 
@@ -76,7 +80,7 @@ def build_line_prompt(theme, language, form, prior_lines, line_idx,
 
 def build_title_prompt(theme, language, form, poem_lines) -> str:
     lang_name = LANG_NAMES.get(language, language)
-    numbered = "\n".join(f"{i+1}. {ln}" for i, ln in enumerate(poem_lines))
+    numbered = "\n".join(f"{i + 1}. {ln}" for i, ln in enumerate(poem_lines))
     return (
         f"You are writing a {lang_name} {form} on the theme: {theme}.\n"
         f"Poem:\n{numbered}\n\n"
@@ -112,33 +116,36 @@ def poem_to_examples(record: dict, poem_id: str) -> list[dict]:
                         if words:
                             rhyme_word = words[-1].strip(".,;:¡!¿?")
                         break
-        prompt = build_line_prompt(theme, language, form, lines[:idx], idx,
-                                   target_syll, rhyme_word)
-        examples.append({
-            "prompt": prompt,
-            "completion": line,
-            "poem_id": poem_id,
-            "title": record.get("title", ""),
-            "author": record.get("author", ""),
-            "source": record.get("source", ""),
-            "form": form,
-            "language": language,
-        })
+        prompt = build_line_prompt(theme, language, form, lines[:idx], idx, target_syll, rhyme_word)
+        examples.append(
+            {
+                "prompt": prompt,
+                "completion": line,
+                "poem_id": poem_id,
+                "title": record.get("title", ""),
+                "author": record.get("author", ""),
+                "source": record.get("source", ""),
+                "form": form,
+                "language": language,
+            }
+        )
 
     title = record.get("title", "").strip()
     if title and len(title) > 2:
         title_prompt = build_title_prompt(theme, language, form, lines)
-        examples.append({
-            "prompt": title_prompt,
-            "completion": title,
-            "poem_id": poem_id,
-            "title": title,
-            "author": record.get("author", ""),
-            "source": record.get("source", ""),
-            "form": form,
-            "language": language,
-            "is_title": True,
-        })
+        examples.append(
+            {
+                "prompt": title_prompt,
+                "completion": title,
+                "poem_id": poem_id,
+                "title": title,
+                "author": record.get("author", ""),
+                "source": record.get("source", ""),
+                "form": form,
+                "language": language,
+                "is_title": True,
+            }
+        )
 
     return examples
 
@@ -148,8 +155,12 @@ def load_all_poems() -> list[dict]:
     seen = set()
     poems = []
     files = sorted(glob.glob(os.path.join(STRUCTURED_DIR, "*.jsonl")))
-    skip_prefixes = ("master_train_filtered", "sonetos_filtered_t2_scored",
-                     "sonetos_scored", "eval_expanded")
+    skip_prefixes = (
+        "master_train_filtered",
+        "sonetos_filtered_t2_scored",
+        "sonetos_scored",
+        "eval_expanded",
+    )
     for path in files:
         base = os.path.basename(path)
         if any(base.startswith(p) for p in skip_prefixes):
@@ -174,7 +185,9 @@ def load_all_poems() -> list[dict]:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", default=os.path.join(POESIA_ROOT, "mlops", "data", "train_fixed.jsonl"))
+    parser.add_argument(
+        "--output", default=os.path.join(POESIA_ROOT, "mlops", "data", "train_fixed.jsonl")
+    )
     parser.add_argument("--max-poems", type=int, default=0, help="0 = use all")
     parser.add_argument("--max-examples", type=int, default=0, help="0 = no limit")
     parser.add_argument("--seed", type=int, default=42)

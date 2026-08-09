@@ -57,6 +57,7 @@ def _load_fragment_records() -> list[FragmentRecord]:
 def stub_llm_client():
     """Return a stub LLM client that returns fixed candidate lines."""
     from poesia.generation.llm_client import StubLLMClient
+
     return StubLLMClient()
 
 
@@ -69,6 +70,7 @@ def phonology():
 def stub_client():
     """Return a stub embedding client for deterministic scoring."""
     from poesia.memoria.embeddings import StubEmbeddingClient
+
     return StubEmbeddingClient()
 
 
@@ -103,8 +105,11 @@ def test_brief_includes_graph_paths_when_retriever_wired(
     retriever = GraphRAGRetriever(storage_path=":memory:")
     for frag in fragment_records:
         retriever.add_fragment_node(
-            frag.id, frag.content, language=frag.language,
-            tags=frag.tags, embedding_client=stub_client,
+            frag.id,
+            frag.content,
+            language=frag.language,
+            tags=frag.tags,
+            embedding_client=stub_client,
         )
 
     builder = BriefBuilder(
@@ -157,9 +162,7 @@ def test_generation_scoring_penalizes_syllable_mismatch(
         for cand in candidates:
             scan = phonology.scan_line(cand.line)
             target = loop.form_spec.syllables_for_line(line_idx)
-            assert "metre" in cand.breakdown, (
-                f"Line {line_idx}: missing 'metre' in breakdown"
-            )
+            assert "metre" in cand.breakdown, f"Line {line_idx}: missing 'metre' in breakdown"
             # If syllable count is exact, metre score should be >= 0.5
             if scan.metrical_syllable_count == target:
                 assert cand.breakdown["metre"] >= 0.5, (
@@ -173,12 +176,15 @@ def test_generation_scoring_penalizes_syllable_mismatch(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("theme", [
-    "el mar y la noche",
-    "primavera que vuelve",
-    "trabajo sin recompensa",
-    "verdad oculta",
-])
+@pytest.mark.parametrize(
+    "theme",
+    [
+        "el mar y la noche",
+        "primavera que vuelve",
+        "trabajo sin recompensa",
+        "verdad oculta",
+    ],
+)
 def test_generation_with_various_themes(
     stub_llm_client,
     phonology: SpanishPhonology,
@@ -198,9 +204,7 @@ def test_generation_with_various_themes(
     assert result.lines, f"No output for theme '{theme}'"
     for i, line in enumerate(result.lines):
         scan = phonology.scan_line(line)
-        assert scan.is_valid, (
-            f"Line {i} for theme '{theme}' failed: '{line}'"
-        )
+        assert scan.is_valid, f"Line {i} for theme '{theme}' failed: '{line}'"
 
 
 # ---------------------------------------------------------------------------
@@ -230,12 +234,10 @@ def test_scoring_includes_fragment_fidelity(
     for line_idx, candidates in enumerate(result.scored_history):
         for cand in candidates:
             assert "fragment_fidelity" in cand.breakdown, (
-                f"Line {line_idx}: missing fragment_fidelity. "
-                f"Keys: {list(cand.breakdown.keys())}"
+                f"Line {line_idx}: missing fragment_fidelity. Keys: {list(cand.breakdown.keys())}"
             )
             assert "end_word" in cand.breakdown, (
-                f"Line {line_idx}: missing end_word. "
-                f"Keys: {list(cand.breakdown.keys())}"
+                f"Line {line_idx}: missing end_word. Keys: {list(cand.breakdown.keys())}"
             )
 
 

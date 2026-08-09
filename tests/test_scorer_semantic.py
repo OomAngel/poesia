@@ -6,7 +6,7 @@ wired into the scorer when an embedding client is provided.
 
 import pytest
 
-from poesia.evaluation.scorer import LineScorer, SPANISH_CLICHES, ENGLISH_CLICHES
+from poesia.evaluation.scorer import ENGLISH_CLICHES, SPANISH_CLICHES, LineScorer
 from poesia.memoria.embeddings import StubEmbeddingClient
 from poesia.phonology.spanish import SpanishPhonology
 
@@ -40,9 +40,7 @@ class TestScorerWithEmbeddings:
         # Theme score should be computed (non-zero)
         assert scored[0].breakdown["theme"] >= 0.0
 
-    def test_embedding_shape_is_flat_vector(
-        self, embedding_client: StubEmbeddingClient
-    ) -> None:
+    def test_embedding_shape_is_flat_vector(self, embedding_client: StubEmbeddingClient) -> None:
         """Embedding must be flat list[float], not nested (P0 contract test).
 
         This guards against the scalar/batch confusion bug where passing
@@ -107,9 +105,7 @@ class TestScorerWithEmbeddings:
         # Clean line should have no penalty
         assert clean_scored[0].breakdown["cliche"] == 0.0
 
-    def test_scorer_without_embeddings_falls_back(
-        self, phonology: SpanishPhonology
-    ) -> None:
+    def test_scorer_without_embeddings_falls_back(self, phonology: SpanishPhonology) -> None:
         """Scorer without embedding client should still work (metre only)."""
         scorer = LineScorer(
             phonology_backend=phonology,

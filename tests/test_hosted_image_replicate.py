@@ -17,14 +17,13 @@ def make_replicate_mock(fake_image: bytes = b"fake_png"):
         mock_response = MagicMock()
 
         if call_count[0] == 1:  # Initial POST
-            mock_response.read.return_value = json.dumps({
-                "urls": {"get": "https://api.replicate.com/v1/predictions/123"}
-            }).encode("utf-8")
+            mock_response.read.return_value = json.dumps(
+                {"urls": {"get": "https://api.replicate.com/v1/predictions/123"}}
+            ).encode("utf-8")
         elif call_count[0] == 2:  # Poll - succeeded
-            mock_response.read.return_value = json.dumps({
-                "status": "succeeded",
-                "output": ["https://example.com/image.png"]
-            }).encode("utf-8")
+            mock_response.read.return_value = json.dumps(
+                {"status": "succeeded", "output": ["https://example.com/image.png"]}
+            ).encode("utf-8")
         else:  # Image download
             mock_response.read.return_value = fake_image
 
@@ -78,17 +77,17 @@ class TestReplicateImageBackend:
 
     def test_replicate_failed_prediction_raises(self, client: HostedImageBackend) -> None:
         """Verify failed prediction raises RuntimeError."""
+
         def handle_failure(req, timeout=None):
             mock_response = MagicMock()
             if req.data:
-                mock_response.read.return_value = json.dumps({
-                    "urls": {"get": "https://api.replicate.com/v1/predictions/123"}
-                }).encode("utf-8")
+                mock_response.read.return_value = json.dumps(
+                    {"urls": {"get": "https://api.replicate.com/v1/predictions/123"}}
+                ).encode("utf-8")
             else:
-                mock_response.read.return_value = json.dumps({
-                    "status": "failed",
-                    "error": "NSFW content detected"
-                }).encode("utf-8")
+                mock_response.read.return_value = json.dumps(
+                    {"status": "failed", "error": "NSFW content detected"}
+                ).encode("utf-8")
             mock_response.__enter__ = MagicMock(return_value=mock_response)
             mock_response.__exit__ = MagicMock(return_value=False)
             return mock_response

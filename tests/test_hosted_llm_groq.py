@@ -12,9 +12,9 @@ from poesia.generation.llm_client import HostedLLMClient
 def _mock_response(content: str) -> MagicMock:
     """Build a mock urllib response returning a single OpenAI-format choice."""
     mock = MagicMock()
-    mock.read.return_value = json.dumps({
-        "choices": [{"message": {"content": content}}]
-    }).encode("utf-8")
+    mock.read.return_value = json.dumps({"choices": [{"message": {"content": content}}]}).encode(
+        "utf-8"
+    )
     mock.__enter__ = MagicMock(return_value=mock)
     mock.__exit__ = MagicMock(return_value=False)
     return mock
@@ -95,6 +95,7 @@ class TestGroqHTTPShape:
 
     def test_http_error_labels_groq(self, client: HostedLLMClient) -> None:
         import urllib.error
+
         err = urllib.error.HTTPError(
             url="https://api.groq.com/openai/v1/chat/completions",
             code=401,

@@ -13,8 +13,8 @@ import pytest
 from poesia.exceptions import (
     EmbeddingError,
     EmbeddingValidationError,
-    FormError,
     FormDefinitionError,
+    FormError,
     IndexCompatibilityError,
     IndexError,
     LLMError,
@@ -70,7 +70,9 @@ def test_specialized_errors_catchable_by_contract_bases(make_exc, bases) -> None
 
 def test_llm_provider_error_structured() -> None:
     err = LLMProviderError(
-        "rate limited", provider="groq", status_code=429,
+        "rate limited",
+        provider="groq",
+        status_code=429,
         response_body='{"error": "rate limit"}',
     )
     assert err.provider == "groq"
@@ -85,6 +87,7 @@ def test_llm_provider_error_structured() -> None:
 
 def test_llm_client_raises_provider_error_without_key() -> None:
     from poesia.generation.llm_client import HostedLLMClient
+
     client = HostedLLMClient(provider="groq", api_key="")
     with pytest.raises(LLMProviderError) as excinfo:
         client.generate("test")

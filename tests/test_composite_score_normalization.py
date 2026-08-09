@@ -48,7 +48,7 @@ def test_normalization_with_all_signals_active():
         cliche=0.1,
         normalize_weights=True,
     )
-    
+
     score_absolute = composite_score(
         metre=0.8,
         rhyme=0.6,
@@ -57,7 +57,7 @@ def test_normalization_with_all_signals_active():
         cliche=0.1,
         normalize_weights=False,
     )
-    
+
     # With all signals active, weights sum to 0.92 (excluding fragment_fidelity=0)
     # Normalization redistributes based on active signals
     # Absolute: 0.25*0.8 + 0.15*0.6 + 0.20*0.7 + 0.10*0.5 + 0.07*1.0 - 0.08*0.1
@@ -70,32 +70,28 @@ def test_normalization_with_all_signals_active():
 def test_normalization_improves_score_spread():
     """Normalization should create better differentiation between candidates."""
     # Two candidates with different metre in degraded mode
-    
+
     candidate_a_norm = composite_score(
-        metre=0.9, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.0,
-        normalize_weights=True
+        metre=0.9, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.0, normalize_weights=True
     )
-    
+
     candidate_b_norm = composite_score(
-        metre=0.3, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.0,
-        normalize_weights=True
+        metre=0.3, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.0, normalize_weights=True
     )
-    
+
     candidate_a_abs = composite_score(
-        metre=0.9, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.0,
-        normalize_weights=False
+        metre=0.9, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.0, normalize_weights=False
     )
-    
+
     candidate_b_abs = composite_score(
-        metre=0.3, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.0,
-        normalize_weights=False
+        metre=0.3, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.0, normalize_weights=False
     )
-    
+
     # Spread with normalization
     spread_norm = candidate_a_norm - candidate_b_norm
-    # Spread without normalization  
+    # Spread without normalization
     spread_abs = candidate_a_abs - candidate_b_abs
-    
+
     # Normalized spread should be larger (better differentiation)
     assert spread_norm > spread_abs
     assert spread_norm > 0.3  # Significant difference
@@ -112,7 +108,7 @@ def test_metre_always_considered_active():
         cliche=0.0,
         normalize_weights=True,
     )
-    
+
     # Should still normalize based on metre + novelty + end_word
     # Active: metre (0.25) + novelty (0.10) + end_word (0.07) = 0.42
     # Normalized novelty: 0.10 / 0.42 = 0.238
@@ -124,15 +120,13 @@ def test_metre_always_considered_active():
 def test_cliche_penalty_not_affected_by_normalization():
     """Cliché penalty should subtract normally, not get normalized."""
     score_no_cliche = composite_score(
-        metre=0.5, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.0,
-        normalize_weights=True
+        metre=0.5, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.0, normalize_weights=True
     )
-    
+
     score_with_cliche = composite_score(
-        metre=0.5, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.5,
-        normalize_weights=True
+        metre=0.5, rhyme=0.0, theme=0.0, novelty=1.0, cliche=0.5, normalize_weights=True
     )
-    
+
     # Cliché should reduce score
     assert score_with_cliche < score_no_cliche
     # The reduction should be proportional to original cliche weight

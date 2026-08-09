@@ -113,10 +113,9 @@ class TestGetInfluencesByEra:
         around_1900 = get_influences_by_era("1890-1910")
         ids_1900 = {i.id for i in around_1900}
         assert "antonio_machado" in ids_1900  # 1875-1939
-        assert "ruben_dario" in ids_1900      # 1867-1916
+        assert "ruben_dario" in ids_1900  # 1867-1916
 
         earlier = get_influences_by_era("1850-1900")
         ids_earlier = {i.id for i in earlier}
         assert "gustavo_adolfo_becquer" in ids_earlier  # 1836-1870
-        assert "manuel_acuna" in ids_earlier            # 1849-1873
-
+        assert "manuel_acuna" in ids_earlier  # 1849-1873

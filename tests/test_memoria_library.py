@@ -10,7 +10,9 @@ import pytest
 from poesia.memoria.library import Library, PoemProvenance, PoemRecord
 
 
-def _record(theme: str, tags: list[str] | None = None, created_at: datetime | None = None) -> PoemRecord:
+def _record(
+    theme: str, tags: list[str] | None = None, created_at: datetime | None = None
+) -> PoemRecord:
     return PoemRecord(
         lines=["line one", "line two"],
         language="es",
@@ -311,7 +313,9 @@ def test_reflection_round_trips_markdown_and_sqlite(tmp_path: Path) -> None:
 
     # list_all and search carry the reflection too.
     assert lib2.list_all()[0].reflection == "Escribí esto cuando la noche no me dejaba dormir."
-    assert lib2.search("cosecha")[0].reflection == "Escribí esto cuando la noche no me dejaba dormir."
+    assert (
+        lib2.search("cosecha")[0].reflection == "Escribí esto cuando la noche no me dejaba dormir."
+    )
 
 
 def test_reflection_multiline_block_round_trips(tmp_path: Path) -> None:
@@ -387,4 +391,3 @@ def test_existing_database_is_migrated_with_reflection_column(tmp_path: Path) ->
     assert rec.id is not None
     assert lib.get(rec.id) is not None
     assert lib.get(rec.id).reflection == "Lo escribí al amanecer."  # type: ignore[union-attr]
-

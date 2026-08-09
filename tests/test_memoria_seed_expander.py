@@ -64,4 +64,3 @@ def test_expand_english_no_pronouncing() -> None:
     # Should return empty dict if pronouncing not installed
     assert "consonant" in result
     assert "assonant" in result
-

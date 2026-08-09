@@ -17,7 +17,7 @@ for i, poem in enumerate(poems, 1):
     print(f"Form: {poem.form}")
     print(f"Tags: {', '.join(poem.tags)}")
     if poem.provenance:
-        print(f"Provenance:")
+        print("Provenance:")
         if poem.provenance.model:
             print(f"  Model: {poem.provenance.model}")
         if poem.provenance.embedding_model:
@@ -25,7 +25,9 @@ for i, poem in enumerate(poems, 1):
         if poem.provenance.brief_level:
             print(f"  Brief level: {poem.provenance.brief_level}")
         if poem.provenance.fragments_used:
-            print(f"  Fragments used ({len(poem.provenance.fragments_used)}): {poem.provenance.fragments_used[:3]}...")
+            print(
+                f"  Fragments used ({len(poem.provenance.fragments_used)}): {poem.provenance.fragments_used[:3]}..."
+            )
     print("Lines:")
     for line in poem.lines:
         print(f"  {line}")

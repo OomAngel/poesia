@@ -14,13 +14,14 @@ import mlflow
 from mlflow.genai import scorer
 from mlflow.genai.scorers import Fluency
 
-
 # ── Custom scorers using our PoesIA evaluation tools ──────────────
+
 
 @scorer(name="syllable_accuracy", aggregations=["mean"])
 def syllable_accuracy(outputs) -> float:
     """Score 0-1: how many lines have correct syllable count (11)."""
     from poesia.phonology.spanish import SpanishPhonology
+
     phonology = SpanishPhonology()
     lines = [l.strip() for l in outputs.split("\n") if l.strip() and len(l.strip()) > 3]
     if not lines:
@@ -47,10 +48,41 @@ def line_count(outputs) -> float:
 def spanish_detected(outputs) -> float:
     """Score 0-1: ratio of Spanish vs English words."""
     import re
-    en_indicators = {"the", "and", "that", "with", "from", "your", "our",
-                     "their", "this", "have", "will", "would", "could"}
-    es_indicators = {"el", "la", "los", "las", "y", "que", "en", "de", "por",
-                     "con", "un", "una", "su", "del", "no", "se", "le"}
+
+    en_indicators = {
+        "the",
+        "and",
+        "that",
+        "with",
+        "from",
+        "your",
+        "our",
+        "their",
+        "this",
+        "have",
+        "will",
+        "would",
+        "could",
+    }
+    es_indicators = {
+        "el",
+        "la",
+        "los",
+        "las",
+        "y",
+        "que",
+        "en",
+        "de",
+        "por",
+        "con",
+        "un",
+        "una",
+        "su",
+        "del",
+        "no",
+        "se",
+        "le",
+    }
     words = re.findall(r"[a-záéíóúüñ]+", outputs.lower())
     if not words:
         return 0.0
@@ -66,9 +98,27 @@ def spanish_detected(outputs) -> float:
 def imagery_present(outputs) -> int:
     """Count concrete nouns present (higher = more imagery)."""
     import re
-    concrete = {"luna", "sol", "mar", "rio", "montaña", "piedra", "flor",
-               "arbol", "nube", "lluvia", "viento", "fuego", "luz",
-               "sombra", "estrella", "cielo", "agua", "tierra", "viento"}
+
+    concrete = {
+        "luna",
+        "sol",
+        "mar",
+        "rio",
+        "montaña",
+        "piedra",
+        "flor",
+        "arbol",
+        "nube",
+        "lluvia",
+        "viento",
+        "fuego",
+        "luz",
+        "sombra",
+        "estrella",
+        "cielo",
+        "agua",
+        "tierra",
+    }
     words = set(re.findall(r"[a-záéíóúüñ]+", outputs.lower()))
     # Normalize: 0-5 concrete nouns = 0, 6+ = 1
     found = len(words & concrete)
@@ -77,10 +127,11 @@ def imagery_present(outputs) -> int:
 
 # ── Prediction function ─────────────────────────────────────────
 
+
 def build_predict_fn(adapter_path: str):
     """Build a prediction function that uses the given LoRA adapter."""
-    from poesia.generation.llm_client import LoRAClient
     from poesia.generation.constrained_loop import ConstrainedLoop
+    from poesia.generation.llm_client import LoRAClient
 
     client = LoRAClient(adapter_path=adapter_path)
 
@@ -99,10 +150,13 @@ def build_predict_fn(adapter_path: str):
 
 # ── Main ────────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--adapter", required=True, help="Path to LoRA adapter")
-    parser.add_argument("--themes", nargs="+", default=["luna", "mar", "noche", "soledad", "tiempo"])
+    parser.add_argument(
+        "--themes", nargs="+", default=["luna", "mar", "noche", "soledad", "tiempo"]
+    )
     args = parser.parse_args()
 
     # Set up MLflow

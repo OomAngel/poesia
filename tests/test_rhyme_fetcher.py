@@ -1,4 +1,5 @@
 """Tests for RhymeFetcher — offline paths only (no real network calls)."""
+
 from __future__ import annotations
 
 import json
@@ -18,11 +19,11 @@ class TestSpanishRhymeSuffix:
     @pytest.mark.parametrize(
         ("word", "expected"),
         [
-            ("oscura", "ura"),      # plain
-            ("razón", "on"),        # accented stressed vowel
-            ("oscura,", "ura"),     # punctuation stripped
-            ("", ""),               # empty
-            ("brr", ""),            # no vowels
+            ("oscura", "ura"),  # plain
+            ("razón", "on"),  # accented stressed vowel
+            ("oscura,", "ura"),  # punctuation stripped
+            ("", ""),  # empty
+            ("brr", ""),  # no vowels
         ],
     )
     def test_spanish_rhyme_suffix(self, word: str, expected: str) -> None:
@@ -53,10 +54,12 @@ class TestSuffixMatchEs:
 class TestFetchDatamuse:
     def test_parses_response(self) -> None:
         mock = MagicMock()
-        mock.read.return_value = json.dumps([
-            {"word": "moon", "score": 100},
-            {"word": "tune", "score": 90},
-        ]).encode("utf-8")
+        mock.read.return_value = json.dumps(
+            [
+                {"word": "moon", "score": 100},
+                {"word": "tune", "score": 90},
+            ]
+        ).encode("utf-8")
         mock.__enter__ = MagicMock(return_value=mock)
         mock.__exit__ = MagicMock(return_value=False)
 
@@ -84,15 +87,15 @@ class TestFetchDatamuse:
 class TestFetchRhymeWords:
     def _mock_datamuse(self, words: list[str]) -> MagicMock:
         mock = MagicMock()
-        mock.read.return_value = json.dumps(
-            [{"word": w} for w in words]
-        ).encode("utf-8")
+        mock.read.return_value = json.dumps([{"word": w} for w in words]).encode("utf-8")
         mock.__enter__ = MagicMock(return_value=mock)
         mock.__exit__ = MagicMock(return_value=False)
         return mock
 
     def test_deduplicates_results(self) -> None:
-        with patch("urllib.request.urlopen", return_value=self._mock_datamuse(["amor", "amor", "calor"])):
+        with patch(
+            "urllib.request.urlopen", return_value=self._mock_datamuse(["amor", "amor", "calor"])
+        ):
             result = fetch_rhyme_words("fervor", language="es")
         assert result.count("amor") == 1
 
