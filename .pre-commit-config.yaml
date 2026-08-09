@@ -1,15 +1,6 @@
 # Pre-commit config for poesia — Tier 1 (see ~/dev/DEV_STANDARDS.md).
 # Install: pre-commit install
 repos:
-  - repo: local
-    hooks:
-      - id: no-plaintext-secrets
-        name: block plaintext credentials
-        entry: bash tools/check_no_plaintext_secrets.sh
-        language: system
-        pass_filenames: true
-        stages: [pre-commit]
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.0
     hooks:
@@ -37,62 +28,31 @@ repos:
       - id: detect-private-key
         exclude: ^secrets/.*\.sops\.ya?ml$
 
-  - repo: local
-    hooks:
-      - id: gitleaks
-        name: gitleaks protect (staged secrets)
-        entry: gitleaks protect --staged
-        language: system
-        pass_filenames: false
-      - id: gitleaks-history
-        name: gitleaks detect (full history)
-        entry: gitleaks detect --verbose
-        language: system
-        pass_filenames: false
-        stages: [manual]
 
-  - repo: local
+
+
+
+  - repo: /home/angel/dev/pre-commit-hooks
+    rev: v1.0.1
     hooks:
+      - id: no-plaintext-secrets
+        args: [--names, "CLOUDFLARE_API_TOKEN,DATABASE_URL,OPENAI_API_KEY,GROQ_API_KEY,GEMINI_API_KEY,REPLICATE_API_TOKEN,ANTHROPIC_API_KEY"]
+
+      - id: gitleaks-protect
+
+      - id: gitleaks-history
+
       - id: vulture
-        name: vulture (dead-code candidates)
-        entry: vulture
-        language: python
-        additional_dependencies: [vulture==2.11]
-        pass_filenames: false
         args: ["src", --min-confidence=80]
-        stages: [manual]
 
       - id: refurb
-        name: refurb (modernisation suggestions)
-        entry: refurb
-        language: python
-        additional_dependencies: [refurb==2.0.0]
         args: [--dont-fix]
-        stages: [manual]
 
       - id: pycycle
-        name: pycycle (circular imports)
-        entry: pycycle
-        language: python
-        additional_dependencies: [pycycle==1.0.2]
-        pass_filenames: false
         args: [--here]
-        stages: [manual]
 
       - id: radon-cc
-        name: radon (complexity report)
-        entry: radon
-        language: python
-        additional_dependencies: [radon==6.0.1]
-        pass_filenames: false
         args: [cc, "src", -s, -a]
-        stages: [manual]
 
       - id: xenon
-        name: xenon (complexity thresholds, B gate)
-        entry: xenon
-        language: python
-        additional_dependencies: [xenon==0.9.1]
-        pass_filenames: false
         args: [--max-absolute, B, --max-modules, B, --max-average, B, "src"]
-        stages: [manual]
