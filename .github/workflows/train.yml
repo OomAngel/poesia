@@ -37,7 +37,7 @@ jobs:
     timeout-minutes: 360  # 6 hour max
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           lfs: true
 
@@ -102,7 +102,7 @@ jobs:
 
       - name: Upload adapter artifact
         if: steps.check.outputs.promote == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: trained-adapter
           path: models/poetry-lora-*/

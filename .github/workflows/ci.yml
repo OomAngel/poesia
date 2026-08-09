@@ -18,8 +18,8 @@ jobs:
     name: "Lint & Type Check"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: pip install -e ".[dev]"
       - run: ruff check src/ mlops/
@@ -30,8 +30,8 @@ jobs:
     name: "Tests (CPU-safe)"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: |
           pip install -e ".[spanish,english,phonology-extra,nlp,dev]"
@@ -55,8 +55,8 @@ jobs:
     name: "Security Audit"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: pip install bandit safety
       - run: bandit -r src/ -x tests,models,seeds,.git,mlruns --skip B101,B110,B112,B310,B311,B404,B603,B615
@@ -67,8 +67,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: |
           pip install mlflow pandas
