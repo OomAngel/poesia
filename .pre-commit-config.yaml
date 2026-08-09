@@ -32,7 +32,7 @@ repos:
 
 
 
-  - repo: /home/angel/dev/pre-commit-hooks
+  - repo: https://github.com/OomAngel/pre-commit-hooks
     rev: v1.0.1
     hooks:
       - id: no-plaintext-secrets
