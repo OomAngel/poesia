@@ -56,3 +56,11 @@ repos:
 
       - id: xenon
         args: [--max-absolute, B, --max-modules, B, --max-average, B, "src"]
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.3
+    hooks:
+      - id: bandit
+        args: [-r, src, -c, pyproject.toml]
+        pass_filenames: false
+        stages: [pre-push]
