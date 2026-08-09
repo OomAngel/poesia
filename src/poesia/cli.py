@@ -357,6 +357,119 @@ def _load_write_library() -> list:
     return library_poems
 
 
+def _save_poem_record(
+    result,
+    *,
+    no_title: bool,
+    config,
+    llm_client,
+    embedding_client,
+    language: str,
+    form: str,
+    theme: str,
+    brief_level: str,
+    use_brief: bool,
+    seeds_list: list[str] | None,
+    tone_list: list[str] | None,
+    n_candidates: int,
+    gen_latency_ms: int,
+    tags: str | None,
+    reflection: str | None,
+    yes: bool,
+    interactive: bool,
+):
+    """Persist the generated poem to the library with full provenance."""
+    from poesia.memoria.library import Library, PoemProvenance, PoemRecord
+
+    title = ""
+    if not no_title and config.llm != "stub":
+        from poesia.generation.titles import suggest_title
+
+        title = suggest_title(result.lines, language, form, theme, llm_client)
+        if title:
+            rprint(f"\n[bold cyan]Suggested title:[/bold cyan] {title}")
+
+    # Build provenance metadata
+    provenance = PoemProvenance(
+        model=getattr(llm_client, "model", None),
+        provider=getattr(llm_client, "provider", None),
+        embedding_model=getattr(embedding_client, "model_id", None) if embedding_client else None,
+        brief_level=brief_level if use_brief else None,
+        seeds=seeds_list or [],
+        tone=tone_list or [],
+        fragments_used=[f.id for f, _ in result.brief.fragments] if result.brief else [],
+        influences_used=[i.id for i in result.brief.influences] if result.brief else [],
+        n_candidates=n_candidates,
+        temperature=getattr(llm_client, "temperature", None),
+        latency_ms=gen_latency_ms,
+        total_tokens=getattr(llm_client, "usage", None) and llm_client.usage.total_tokens,
+    )
+
+    # Parse tags
+    tags_list = [t.strip() for t in tags.split(",")] if tags else []
+
+    # Reflection: what the person meant or felt, stored beside the poem.
+    # From --reflection, or prompted after the draft is on screen
+    # (reflection is a first-class step — POSITIONING §7.4). Skipped when
+    # --yes, so the flow stays scriptable.
+    reflection_text = reflection or ""
+    if not reflection_text and not yes and not interactive:
+        try:
+            rprint()
+            rprint("[bold cyan]What were you carrying when you wrote this?[/bold cyan]")
+            rprint("[dim](optional — this stays private, beside your poem)[/dim]")
+            reflection_text = input("  Reflection: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            reflection_text = ""
+
+    record = PoemRecord(
+        lines=result.lines,
+        language=language,
+        form=form,
+        title=title,
+        reflection=reflection_text,
+        theme=theme,
+        tags=tags_list,
+        provenance=provenance,
+    )
+
+    library = Library()
+    library.add(record)
+    saved_label = f" — [bold]{record.title}[/bold]" if record.title else ""
+    reflected_label = " [dim](with reflection)[/dim]" if record.reflection else ""
+    rprint(
+        f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]{saved_label}{reflected_label}"
+    )
+    return record, library
+
+
+def _illustrate_poem_result(
+    result, *, language, theme, image_backend, record, library, save: bool
+) -> None:
+    """Generate the illustrated auca sheet that goes with the poem."""
+    if not result.lines:
+        return
+    rprint("\n[bold]── Illustration ──[/bold]")
+    saved_id = record.id if save and record else None
+    sheet_path = _illustrate_lines(
+        result.lines,
+        language=language,
+        theme=theme,
+        backend=image_backend,
+        influences=[i for i in result.brief.influences] if result.brief else None,
+        poem_id=saved_id,
+    )
+    if sheet_path:
+        rprint(f"[green]✓[/green] Illustrated sheet: [bold]{sheet_path}[/bold]")
+        # Persist the link in the library frontmatter so the poem knows its
+        # illustration (path relative to the poem's Markdown file).
+        if save and saved_id:
+            try:
+                library.attach_image(saved_id, f"illustrations/{saved_id}.png")
+            except (FileNotFoundError, ValueError) as e:
+                rprint(f"[yellow]⚠[/yellow] [bold]image: not recorded:[/bold] {e}")
+
+
 def _handle_write_save_and_illustrate(
     result,
     *,
@@ -382,96 +495,39 @@ def _handle_write_save_and_illustrate(
     image_backend: str,
 ) -> None:
     """Save the poem to the library (with provenance) and optionally illustrate."""
-    from poesia.memoria.library import Library, PoemProvenance, PoemRecord
-
     record = None
+    library = None
     if save and result.lines:
-        # LLM-suggested title (fail-open; skipped for the deterministic stub
-        # backend and with an explicit --no-title).
-        title = ""
-        if not no_title and config.llm != "stub":
-            from poesia.generation.titles import suggest_title
-
-            title = suggest_title(result.lines, language, form, theme, llm_client)
-            if title:
-                rprint(f"\n[bold cyan]Suggested title:[/bold cyan] {title}")
-
-        # Build provenance metadata
-        provenance = PoemProvenance(
-            model=getattr(llm_client, "model", None),
-            provider=getattr(llm_client, "provider", None),
-            embedding_model=getattr(embedding_client, "model_id", None)
-            if embedding_client
-            else None,
-            brief_level=brief_level if use_brief else None,
-            seeds=seeds_list or [],
-            tone=tone_list or [],
-            fragments_used=[f.id for f, _ in result.brief.fragments] if result.brief else [],
-            influences_used=[i.id for i in result.brief.influences] if result.brief else [],
-            n_candidates=n_candidates,
-            temperature=getattr(llm_client, "temperature", None),
-            latency_ms=gen_latency_ms,
-            total_tokens=getattr(llm_client, "usage", None) and llm_client.usage.total_tokens,
-        )
-
-        # Parse tags
-        tags_list = [t.strip() for t in tags.split(",")] if tags else []
-
-        # Reflection: what the person meant or felt, stored beside the poem.
-        # From --reflection, or prompted after the draft is on screen
-        # (reflection is a first-class step — POSITIONING §7.4). Skipped when
-        # --yes, so the flow stays scriptable.
-        reflection_text = reflection or ""
-        if save and not reflection_text and not yes and not interactive:
-            try:
-                rprint()
-                rprint("[bold cyan]What were you carrying when you wrote this?[/bold cyan]")
-                rprint("[dim](optional — this stays private, beside your poem)[/dim]")
-                reflection_text = input("  Reflection: ").strip()
-            except (EOFError, KeyboardInterrupt):
-                reflection_text = ""
-
-        record = PoemRecord(
-            lines=result.lines,
+        record, library = _save_poem_record(
+            result,
+            no_title=no_title,
+            config=config,
+            llm_client=llm_client,
+            embedding_client=embedding_client,
             language=language,
             form=form,
-            title=title,
-            reflection=reflection_text,
             theme=theme,
-            tags=tags_list,
-            provenance=provenance,
+            brief_level=brief_level,
+            use_brief=use_brief,
+            seeds_list=seeds_list,
+            tone_list=tone_list,
+            n_candidates=n_candidates,
+            gen_latency_ms=gen_latency_ms,
+            tags=tags,
+            reflection=reflection,
+            yes=yes,
+            interactive=interactive,
         )
-
-        library = Library()
-        library.add(record)
-        saved_label = f" — [bold]{record.title}[/bold]" if record.title else ""
-        reflected_label = " [dim](with reflection)[/dim]" if record.reflection else ""
-        rprint(
-            f"\n[green]✓[/green] Saved to library: [dim]{record.id}[/dim]"
-            f"{saved_label}{reflected_label}"
-        )
-
-    # GalerIA: generate an illustrated sheet that goes with the poem
-    if illustrate and result.lines:
-        rprint("\n[bold]── Illustration ──[/bold]")
-        saved_id = record.id if save and record else None
-        sheet_path = _illustrate_lines(
-            result.lines,
+    if illustrate:
+        _illustrate_poem_result(
+            result,
             language=language,
             theme=theme,
-            backend=image_backend,
-            influences=[i for i in result.brief.influences] if result.brief else None,
-            poem_id=saved_id,
+            image_backend=image_backend,
+            record=record,
+            library=library,
+            save=save,
         )
-        if sheet_path:
-            rprint(f"[green]✓[/green] Illustrated sheet: [bold]{sheet_path}[/bold]")
-            # Persist the link in the library frontmatter so the poem knows its
-            # illustration (path relative to the poem's Markdown file).
-            if save and saved_id:
-                try:
-                    library.attach_image(saved_id, f"illustrations/{saved_id}.png")
-                except (FileNotFoundError, ValueError) as e:
-                    rprint(f"[yellow]⚠[/yellow] [bold]image: not recorded:[/bold] {e}")
 
 
 def _build_write_config(
