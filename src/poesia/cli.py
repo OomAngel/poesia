@@ -1458,6 +1458,26 @@ def galeria_illustrate(
     _log_illustration_mlflow(prompts, panels, from_library, path, backend, style, language)
 
 
+def _apply_frontmatter_field(result: dict, key: str, val: str, yaml_block: str) -> None:
+    """Apply one YAML frontmatter key to the fragment dict."""
+    if key == "tags":
+        # Parse list: ["a", "b"] or - a\n- b
+        if val.startswith("[") or not val:
+            result["tags"] = _parse_yaml_list(yaml_block, key) or []
+        else:
+            result["tags"] = [t.strip().strip('"').strip("'") for t in val.split(",")]
+    elif key == "themes":
+        result["themes"] = _parse_yaml_list(yaml_block, key) or []
+    elif key == "tone":
+        result["tone"] = _parse_yaml_list(yaml_block, key) or []
+    elif key == "language":
+        result["language"] = val.strip('"').strip("'")
+    elif key == "id":
+        result["id"] = val.strip('"').strip("'")
+    elif key == "type":
+        result["type"] = val.strip('"').strip("'")
+
+
 def _parse_fragment_frontmatter(content: str) -> dict:
     """Minimal YAML frontmatter parser for markdown fragment files.
 
@@ -1485,22 +1505,7 @@ def _parse_fragment_frontmatter(content: str) -> dict:
             key, _, val = line.partition(":")
             key = key.strip()
             val = val.strip()
-            if key == "tags":
-                # Parse list: ["a", "b"] or - a\n- b
-                if val.startswith("[") or not val:
-                    result["tags"] = _parse_yaml_list(yaml_block, key) or []
-                else:
-                    result["tags"] = [t.strip().strip('"').strip("'") for t in val.split(",")]
-            elif key == "themes":
-                result["themes"] = _parse_yaml_list(yaml_block, key) or []
-            elif key == "tone":
-                result["tone"] = _parse_yaml_list(yaml_block, key) or []
-            elif key == "language":
-                result["language"] = val.strip('"').strip("'")
-            elif key == "id":
-                result["id"] = val.strip('"').strip("'")
-            elif key == "type":
-                result["type"] = val.strip('"').strip("'")
+            _apply_frontmatter_field(result, key, val, yaml_block)
     return result
 
 
