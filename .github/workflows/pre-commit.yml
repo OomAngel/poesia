@@ -14,8 +14,9 @@ jobs:
       - name: Install pre-commit + gitleaks
         run: |
           python -m pip install pre-commit
-          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.2/gitleaks_8.24.2_linux_x64.tar.gz -o /tmp/gl.tgz
+          curl -sSfL --retry 3 --retry-all-errors https://github.com/gitleaks/gitleaks/releases/download/v8.24.2/gitleaks_8.24.2_linux_x64.tar.gz -o /tmp/gl.tgz
           tar -xzf /tmp/gl.tgz -C /usr/local/bin gitleaks
+          test -x /usr/local/bin/gitleaks  # fail loudly
           chmod +x /usr/local/bin/gitleaks
       - name: Run pre-commit (all files)
         run: pre-commit run --all-files
