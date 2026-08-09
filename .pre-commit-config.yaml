@@ -8,6 +8,15 @@ repos:
         args: [--fix]
       - id: ruff-format
 
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        args: ["--ignore-words=.codespell-ignore-words.txt"]
+        # Spanish-language project: poetry corpus + data dirs are expected
+        # non-English; ignore-words covers Spanish false positives in source.
+        exclude: ^data/|^seeds/|^models/|^mlruns/|^memory-bank/|^share/|^dist/
+
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.25
     hooks:
