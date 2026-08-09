@@ -474,6 +474,123 @@ def _handle_write_save_and_illustrate(
                     rprint(f"[yellow]⚠[/yellow] [bold]image: not recorded:[/bold] {e}")
 
 
+def _build_write_config(
+    *,
+    theme: str,
+    form: str,
+    language: str,
+    llm: str,
+    n_candidates: int,
+    tone: str | None,
+    seeds: str | None,
+    brief_level: str,
+    use_brief: bool,
+    semantic: bool,
+    save: bool,
+    tags: str | None,
+    use_library: bool,
+    show_alternatives: int,
+    show_retrieval: bool,
+    interactive: bool,
+    yes: bool,
+    lines: int | None,
+    movement: str | None,
+):
+    """Build the validated WriteConfig from CLI option strings."""
+    from poesia.config.types import WriteConfig
+
+    tone_list = [t.strip() for t in tone.split(",")] if tone else None
+    seeds_list = [s.strip() for s in seeds.split(",")] if seeds else None
+    config = WriteConfig.build(
+        theme=theme,
+        form=form,
+        language=language,
+        llm=llm,
+        n_candidates=n_candidates,
+        max_repair_attempts=2,
+        tone=tone_list,
+        seeds=seeds_list,
+        brief_level=brief_level,
+        use_brief=use_brief,
+        semantic=semantic,
+        save=save,
+        tags=[t.strip() for t in tags.split(",")] if tags else None,
+        use_library=use_library,
+        show_alternatives=show_alternatives,
+        show_retrieval=show_retrieval,
+        interactive=interactive,
+        yes=yes,
+        lines=lines,
+        movement=movement,
+    )
+    return config, tone_list, seeds_list
+
+
+def _resolve_llm_client(llm: str):
+    """Resolve the LLM client via the registry (CLI error exit on unknown)."""
+    from poesia.generation.registry import get_llm, list_backends
+
+    try:
+        return get_llm(llm)
+    except ValueError as e:
+        rprint(f"[red]{e}[/red]")
+        rprint(f"[dim]Available backends: {', '.join(list_backends())}[/dim]")
+        raise typer.Exit(1) from None
+
+
+def _build_write_brief(
+    use_brief: bool, library_poems: list
+) -> tuple[object | None, list, list, object | None, bool]:
+    """Set up the brief builder + personal context, or a bare empty state."""
+    if not use_brief:
+        return None, [], [], None, False
+    from poesia.generation.brief_builder import BriefBuilder
+
+    fragments = _load_fragments()
+    influences = _load_influences()
+
+    # P1: Convert library poems to fragments for retrieval
+    if library_poems:
+        fragments = _library_poems_to_fragments(library_poems, fragments)
+
+    # Use real embedding client for semantic retrieval
+    embedding_client, semantic_mode_active = _setup_embedding_client()
+
+    brief_builder = BriefBuilder(
+        embedding_client=embedding_client,
+        fragments=fragments,
+        influences=influences,
+    )
+    return brief_builder, fragments, influences, embedding_client, semantic_mode_active
+
+
+def _make_line_selector(yes: bool, llm: str):
+    """Return a quick 3-choice line picker (Enter = best) for real LLMs.
+
+    ``None`` when --yes or the deterministic stub backend is used.
+    """
+    if yes or llm == "stub":
+        return None
+
+    def _quick_selector(line_index: int, candidates: list) -> str:
+        rprint(f"\n[bold]Line {line_index + 1}:[/bold] pick a candidate (Enter = best)")
+        for i, cand in enumerate(candidates[:3], 1):
+            marker = " [bold green]★ best[/bold green]" if i == 1 else ""
+            rprint(f"  [{i}] {cand.line}{marker}")
+        try:
+            raw = input("  Your choice [1-3, Enter=best]: ").strip()
+            if raw == "":
+                return candidates[0].line
+            idx = int(raw) - 1
+            if 0 <= idx < min(3, len(candidates)):
+                return candidates[idx].line
+        except (ValueError, EOFError):
+            pass
+        return candidates[0].line
+
+    return _quick_selector
+
+
 @app.command()
 def write(
     theme: str = typer.Option(..., help="Thematic anchor."),
@@ -525,27 +642,19 @@ def write(
     ),
 ) -> None:
     """Draft a poem — the machine's words are scaffolding, never the poem."""
-    from poesia.config.types import WriteConfig
-    from poesia.generation.registry import get_llm, list_backends
-
-    # Build validated config
-    tone_list = [t.strip() for t in tone.split(",")] if tone else None
-    seeds_list = [s.strip() for s in seeds.split(",")] if seeds else None
-
-    config = WriteConfig.build(
+    config, tone_list, seeds_list = _build_write_config(
         theme=theme,
         form=form,
         language=language,
         llm=llm,
         n_candidates=n_candidates,
-        max_repair_attempts=2,
-        tone=tone_list,
-        seeds=seeds_list,
+        tone=tone,
+        seeds=seeds,
         brief_level=brief_level,
         use_brief=use_brief,
         semantic=semantic,
         save=save,
-        tags=[t.strip() for t in tags.split(",")] if tags else None,
+        tags=tags,
         use_library=use_library,
         show_alternatives=show_alternatives,
         show_retrieval=show_retrieval,
@@ -556,12 +665,7 @@ def write(
     )
 
     # Resolve LLM client via registry
-    try:
-        llm_client = get_llm(config.llm)
-    except ValueError as e:
-        rprint(f"[red]{e}[/red]")
-        rprint(f"[dim]Available backends: {', '.join(list_backends())}[/dim]")
-        raise typer.Exit(1) from None
+    llm_client = _resolve_llm_client(config.llm)
 
     if verbose:
         rprint(
@@ -580,25 +684,9 @@ def write(
     # P1: Load library poems as additional context if requested
     library_poems = _load_write_library() if use_library else []
 
-    if use_brief:
-        from poesia.generation.brief_builder import BriefBuilder
-
-        # Load personal context if available
-        fragments = _load_fragments()
-        influences = _load_influences()
-
-        # P1: Convert library poems to fragments for retrieval
-        if library_poems:
-            fragments = _library_poems_to_fragments(library_poems, fragments)
-
-        # Use real embedding client for semantic retrieval
-        embedding_client, semantic_mode_active = _setup_embedding_client()
-
-        brief_builder = BriefBuilder(
-            embedding_client=embedding_client,
-            fragments=fragments,
-            influences=influences,
-        )
+    brief_builder, fragments, influences, embedding_client, semantic_mode_active = (
+        _build_write_brief(use_brief, library_poems)
+    )
 
     # --semantic: real theme/novelty scoring WITHOUT loading personal context
     # (no angel_fragments, no influences) — the clean path for better ranking
@@ -613,28 +701,7 @@ def write(
         )
 
     # --interactive: build a line_selector callback that pauses for human input.
-    # The loop must exist first (the selector scans typed lines through it), so
-    # it is created right after ConstrainedLoop below.
-    line_selector = None
-    if not yes and llm not in ("stub",):
-        # Default when using a real LLM without --yes: quick 3-choice picker
-        def _quick_selector(line_index: int, candidates: list) -> str:
-            rprint(f"\n[bold]Line {line_index + 1}:[/bold] pick a candidate (Enter = best)")
-            for i, cand in enumerate(candidates[:3], 1):
-                marker = " [bold green]★ best[/bold green]" if i == 1 else ""
-                rprint(f"  [{i}] {cand.line}{marker}")
-            try:
-                raw = input("  Your choice [1-3, Enter=best]: ").strip()
-                if raw == "":
-                    return candidates[0].line
-                idx = int(raw) - 1
-                if 0 <= idx < min(3, len(candidates)):
-                    return candidates[idx].line
-            except (ValueError, EOFError):
-                pass
-            return candidates[0].line
-
-        line_selector = _quick_selector
+    line_selector = _make_line_selector(yes, llm)
 
     # P5: Privacy confirmation — warn before personal context reaches a hosted provider
     _privacy_confirm(fragments, llm, llm_client, yes)
