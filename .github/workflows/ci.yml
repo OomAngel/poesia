@@ -76,4 +76,5 @@ jobs:
       - name: Check latest production model
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MLFLOW_ALLOW_FILE_STORE: "true"  # monitor falls back to the local file store when DATABASE_URL is unset
         run: python scripts/monitor_health.py
