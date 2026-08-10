@@ -17,6 +17,8 @@ import typer
 from rich import print as rprint
 
 if TYPE_CHECKING:
+    from poesia.generation.brief_builder import BriefBuilder
+    from poesia.memoria.embeddings import EmbeddingClient
     from poesia.phonology.base import PhonologyBackend
 
 
@@ -168,7 +170,7 @@ def _build_poem_provenance(
     )
 
 
-def _setup_embedding_client() -> tuple[object, bool]:
+def _setup_embedding_client() -> tuple[EmbeddingClient | None, bool]:
     """Instantiate the real embedding client (degraded stub on failure)."""
     from poesia.memoria.embeddings import get_embedding_client
 
@@ -650,7 +652,7 @@ def _resolve_llm_client(llm: str):
 
 def _build_write_brief(
     use_brief: bool, library_poems: list
-) -> tuple[object | None, list, list, object | None, bool]:
+) -> tuple[BriefBuilder | None, list, list, EmbeddingClient | None, bool]:
     """Set up the brief builder + personal context, or a bare empty state."""
     if not use_brief:
         return None, [], [], None, False
@@ -786,8 +788,8 @@ def write(
     # Build the loop with optional brief builder
     brief_builder = None
     embedding_client = None
-    fragments = []
-    influences = []
+    fragments: list = []
+    influences: list = []
     library_poems = []
     semantic_mode_active = False  # Track if we have semantic scoring
 
@@ -1235,6 +1237,7 @@ app.add_typer(eufonia_app, name="eufonia")
 # --- GalerIA: illustration ---------------------------------------------------
 
 galeria_app = typer.Typer(help="GalerIA: illustration for a poem (auca-style).")
+app.add_typer(galeria_app, name="galeria")
 
 
 def _trim_blank_edges(lines: list[str], trim_spaces: bool = False) -> list[str]:
