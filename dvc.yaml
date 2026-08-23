@@ -1,0 +1,52 @@
+# DVC skeleton — data-to-training lineage only.
+#
+# Division of labor (see docs/MLOPS_DIAGNOSIS.md and the 2026-08-10 research
+# session that added this file): DVC owns data versioning and dependency-
+# cached pipeline stages up to a trained adapter; MLflow (already wired,
+# see MLproject) owns everything from that adapter onward — autologging,
+# the model registry, serving. The two meet at the adapter directory each
+# `train` stage produces; nothing here duplicates what MLflow already does.
+#
+# This is a skeleton: stages mirror MLproject's `pipeline` entry point
+# (distill -> train -> eval) so `dvc repro` gets dependency-aware caching
+# (skip distillation if nothing upstream of it changed) that MLproject's
+# always-rerun entry points don't give for free. Not yet wired to run by
+# default -- existing `mlflow run` / `poesia` CLI workflows are unaffected
+# until this is adopted deliberately.
+
+stages:
+  distill:
+    cmd: python scripts/distill_sonetos.py --count 100 --output seeds/poetry_corpus/training_data_distilled
+    deps:
+      - scripts/distill_sonetos.py
+      - src/poesia/evaluation/emotion_lexicon.py
+      - src/poesia/galeria/imagery.py
+    outs:
+      - seeds/poetry_corpus/training_data_distilled
+
+  train:
+    cmd: python scripts/train_poetry_lora.py mlops/configs/train_v1.yaml
+    deps:
+      - scripts/train_poetry_lora.py
+      - mlops/configs/train_v1.yaml
+      - seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl
+    params:
+      - mlops/configs/train_v1.yaml:
+          - model
+          - lora_r
+          - lora_alpha
+          - lora_dropout
+          - epochs
+          - learning_rate
+    outs:
+      - models/poetry-lora-v2:
+          persist: true  # adapter dir; MLflow also logs this run's artifacts independently
+
+  evaluate:
+    cmd: python scripts/evaluate_adapter_mlflow.py --adapter models/poetry-lora-v2
+    deps:
+      - scripts/evaluate_adapter_mlflow.py
+      - models/poetry-lora-v2
+    # No `outs` here deliberately: eval results are metrics/artifacts that
+    # belong in MLflow (this script already logs there), not a second
+    # copy of the same numbers tracked by DVC.
