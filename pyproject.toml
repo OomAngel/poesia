@@ -35,6 +35,7 @@ english = [
     "pronouncing",
     "cmudict",
     "prosodic",
+    "g2p_en",  # neural G2P (ARPAbet output) fallback for words CMUdict misses
 ]
 
 # Multilingual phonology
