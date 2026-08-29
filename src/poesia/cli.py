@@ -231,7 +231,7 @@ def _show_write_retrieval(
     from poesia.forms.definitions import get_form
 
     preview_brief = brief_builder.build(
-        form=get_form(form),
+        form=get_form(form, language),
         theme=theme,
         tone=tone_list,
         seeds=seeds_list,
@@ -264,7 +264,7 @@ def _show_write_retrieval(
 
 def _privacy_confirm(fragments: list, llm: str, llm_client, yes: bool) -> None:
     """P5: warn + confirm before personal context reaches a hosted provider."""
-    _hosted_providers = {"groq", "gemini", "openai", "auto"}
+    _hosted_providers = {"groq", "gemini", "openai", "auto", "route"}
     if not (fragments and llm.lower() in _hosted_providers and not yes):
         return
     provider_name = llm_client.provider if hasattr(llm_client, "provider") else llm
@@ -605,12 +605,15 @@ def _build_write_config(
     yes: bool,
     lines: int | None,
     movement: str | None,
+    guest_lang: str | None = None,
+    guest_words: str | None = None,
 ):
     """Build the validated WriteConfig from CLI option strings."""
     from poesia.config.types import WriteConfig
 
     tone_list = [t.strip() for t in tone.split(",")] if tone else None
     seeds_list = [s.strip() for s in seeds.split(",")] if seeds else None
+    guest_words_list = [w.strip() for w in guest_words.split(",")] if guest_words else None
     config = WriteConfig.build(
         theme=theme,
         form=form,
@@ -632,6 +635,8 @@ def _build_write_config(
         yes=yes,
         lines=lines,
         movement=movement,
+        guest_lang=guest_lang,
+        guest_words=guest_words_list,
     )
     return config, tone_list, seeds_list
 
@@ -704,7 +709,10 @@ def _make_line_selector(yes: bool, llm: str):
 @app.command()
 def write(
     theme: str = typer.Option(..., help="Thematic anchor."),
-    language: str = typer.Option("es", help="Language code: 'es', 'en', 'nl'."),
+    language: str = typer.Option(
+        "es",
+        help="Language code: 'es' or 'en' ('nl' has no forms registered yet — see `scan`).",
+    ),
     form: str = typer.Option("soneto", help="Registered form name."),
     n_candidates: int = typer.Option(16, help="Candidate lines per position."),
     tone: str = typer.Option(None, help="Comma-separated tone descriptors."),
@@ -717,7 +725,9 @@ def write(
         help="Enable semantic theme/novelty scoring without personal context "
         "(needs sentence-transformers).",
     ),
-    llm: str = typer.Option("stub", help="LLM backend."),
+    llm: str = typer.Option(
+        "route", help="LLM backend (route = groq→openai→ollama→llama_cpp→stub)."
+    ),
     save: bool = typer.Option(False, "--save", help="Save to library."),
     no_title: bool = typer.Option(
         False,
@@ -737,6 +747,20 @@ def write(
     yes: bool = typer.Option(False, "--yes"),
     lines: int = typer.Option(None, "--lines"),
     movement: str = typer.Option(None, "--movement"),
+    guest_lang: str = typer.Option(
+        None,
+        "--guest-lang",
+        help="Macaronic word insertion: language code of --guest-words "
+        "('es', 'en', or 'nl'). Off by default — must be given with "
+        "--guest-words.",
+    ),
+    guest_words: str = typer.Option(
+        None,
+        "--guest-words",
+        help="Comma-separated word(s)/phrase(s) in --guest-lang to drop "
+        "mid-line into the poem, one per line, spread across the poem. "
+        "Must be given with --guest-lang.",
+    ),
     illustrate: bool = typer.Option(
         False, "--illustrate", help="Generate an illustrated auca sheet for the poem."
     ),
@@ -752,27 +776,33 @@ def write(
     ),
 ) -> None:
     """Draft a poem — the machine's words are scaffolding, never the poem."""
-    config, tone_list, seeds_list = _build_write_config(
-        theme=theme,
-        form=form,
-        language=language,
-        llm=llm,
-        n_candidates=n_candidates,
-        tone=tone,
-        seeds=seeds,
-        brief_level=brief_level,
-        use_brief=use_brief,
-        semantic=semantic,
-        save=save,
-        tags=tags,
-        use_library=use_library,
-        show_alternatives=show_alternatives,
-        show_retrieval=show_retrieval,
-        interactive=interactive,
-        yes=yes,
-        lines=lines,
-        movement=movement,
-    )
+    try:
+        config, tone_list, seeds_list = _build_write_config(
+            theme=theme,
+            form=form,
+            language=language,
+            llm=llm,
+            n_candidates=n_candidates,
+            tone=tone,
+            seeds=seeds,
+            brief_level=brief_level,
+            use_brief=use_brief,
+            semantic=semantic,
+            save=save,
+            tags=tags,
+            use_library=use_library,
+            show_alternatives=show_alternatives,
+            show_retrieval=show_retrieval,
+            interactive=interactive,
+            yes=yes,
+            lines=lines,
+            movement=movement,
+            guest_lang=guest_lang,
+            guest_words=guest_words,
+        )
+    except ValueError as e:
+        rprint(f"[red]{e}[/red]")
+        raise typer.Exit(1) from None
 
     # Resolve LLM client via registry
     llm_client = _resolve_llm_client(config.llm)
@@ -806,9 +836,13 @@ def write(
 
     # --show-retrieval: build a preview brief now just to show what was retrieved
     if show_retrieval and brief_builder is not None:
-        _show_write_retrieval(
-            brief_builder, form, theme, tone_list, seeds_list, brief_level, language, movement
-        )
+        try:
+            _show_write_retrieval(
+                brief_builder, form, theme, tone_list, seeds_list, brief_level, language, movement
+            )
+        except ValueError as e:
+            rprint(f"[red]{e}[/red]")
+            raise typer.Exit(1) from None
 
     # --interactive: build a line_selector callback that pauses for human input.
     line_selector = _make_line_selector(yes, llm)
@@ -818,31 +852,41 @@ def write(
 
     from poesia.generation.constrained_loop import ConstrainedLoop
 
-    loop = ConstrainedLoop(
-        language=language,
-        form=form,
-        llm=llm_client,
-        brief_builder=brief_builder,
-        embedding_client=embedding_client,
-        fragments=fragments,
-        influences=influences,
-    )
+    try:
+        loop = ConstrainedLoop(
+            language=language,
+            form=form,
+            llm=llm_client,
+            brief_builder=brief_builder,
+            embedding_client=embedding_client,
+            fragments=fragments,
+            influences=influences,
+        )
+    except ValueError as e:
+        rprint(f"[red]{e}[/red]")
+        raise typer.Exit(1) from None
     if interactive:
         line_selector = _make_interactive_selector(loop, language, form)
     # P5: Time the generation for latency provenance
     import time as _time
 
     _t0 = _time.time()
-    result = loop.run(
-        theme=theme,
-        n_candidates=n_candidates,
-        tone=tone_list,
-        seeds=seeds_list,
-        brief_level=brief_level,
-        line_selector=line_selector,
-        total_lines_override=lines,
-        movement=movement,
-    )
+    try:
+        result = loop.run(
+            theme=theme,
+            n_candidates=n_candidates,
+            tone=tone_list,
+            seeds=seeds_list,
+            brief_level=brief_level,
+            line_selector=line_selector,
+            total_lines_override=lines,
+            movement=movement,
+            guest_lang=config.guest_lang,
+            guest_words=config.guest_words,
+        )
+    except ValueError as e:
+        rprint(f"[red]{e}[/red]")
+        raise typer.Exit(1) from None
     _gen_latency_ms = int((_time.time() - _t0) * 1000)
 
     _display_write_result(
@@ -1075,7 +1119,11 @@ def scan(
     if form and target is None:
         from poesia.forms.definitions import get_form
 
-        spec = get_form(form)
+        try:
+            spec = get_form(form, language)
+        except ValueError as e:
+            rprint(f"[red]{e}[/red]")
+            raise typer.Exit(1) from None
         form_name = spec.name
         # For patterned forms (e.g. haiku 5-7-5), teach against the first
         # line's target; the poem-level loop teaches each line position.
@@ -1097,9 +1145,12 @@ def workshop(
         "--outlet",
         help="What you are carrying, pre-written (skips the outlet prompt).",
     ),
-    language: str = typer.Option("es", help="Language code: 'es', 'en', or 'nl'."),
+    language: str = typer.Option(
+        "es",
+        help="Language code: 'es' or 'en' ('nl' has no forms registered yet — see `scan`).",
+    ),
     form: str = typer.Option("soneto", help="Registered form name."),
-    llm: str = typer.Option("stub", help="LLM backend (drafts are scaffolding)."),
+    llm: str = typer.Option("route", help="LLM backend (drafts are scaffolding)."),
     n_candidates: int = typer.Option(16, help="Candidate lines per position."),
     save: bool = typer.Option(False, "--save", help="Save to library with the reflection."),
     no_title: bool = typer.Option(
@@ -1146,7 +1197,11 @@ def workshop(
     # 2. SHAPING — draft line by line, keeping the editor's seat.
     _workshop_banner("2 · Shaping", "raw feeling becomes a made thing — you keep the editor's seat")
     llm_client = get_llm(llm)
-    loop = ConstrainedLoop(language=language, form=form, llm=llm_client)
+    try:
+        loop = ConstrainedLoop(language=language, form=form, llm=llm_client)
+    except ValueError as e:
+        rprint(f"[red]{e}[/red]")
+        raise typer.Exit(1) from None
     line_selector = _make_interactive_selector(loop, language, form)
     result = loop.run(theme=theme, n_candidates=n_candidates, line_selector=line_selector)
 

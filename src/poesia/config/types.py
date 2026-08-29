@@ -35,7 +35,7 @@ class WriteConfig:
     temperature: float = 0.9
 
     # LLM
-    llm: str = "stub"
+    llm: str = "route"
     llm_provider: str | None = None  # resolved at runtime
 
     # Brief / enrichment
@@ -60,6 +60,10 @@ class WriteConfig:
     # Form override (for variable-length forms)
     lines: int | None = None
 
+    # Macaronic word insertion (off by default, opt-in only)
+    guest_lang: str | None = None
+    guest_words: list[str] | None = None
+
     # Metadata
     created_at: datetime = field(default_factory=datetime.now)
     config_source: str = "CLI"  # CLI, API, config file
@@ -70,20 +74,35 @@ class WriteConfig:
         theme: str,
         form: str = "soneto",
         language: str = "es",
-        llm: str = "stub",
+        llm: str = "route",
         tone: list[str] | None = None,
         seeds: list[str] | None = None,
         **kwargs,
     ) -> WriteConfig:
         """Convenience builder with validation."""
-        from poesia.forms.definitions import FORM_REGISTRY
-
-        if form not in FORM_REGISTRY:
-            known = ", ".join(sorted(FORM_REGISTRY))
-            raise ValueError(f"Unknown form '{form}'. Known: {known}")
+        from poesia.forms.definitions import get_form
 
         if language not in ("es", "en", "nl"):
             raise ValueError(f"Unsupported language '{language}'. Use es, en, nl.")
+
+        # Validates both "form exists at all" and "form exists for this
+        # language" — the latter catches e.g. form="soneto", language="en"
+        # silently building a config for the wrong (Spanish) form.
+        get_form(form, language)
+
+        # Macaronic word insertion: opt-in only, guest_lang/guest_words must
+        # be given together. Language support is re-checked here (not just
+        # deferred to ConstrainedLoop.run()) so a bad --guest-lang fails at
+        # config-build time with a clear message, before any LLM calls.
+        guest_lang = kwargs.get("guest_lang")
+        guest_words = kwargs.get("guest_words")
+        if bool(guest_lang) != bool(guest_words):
+            raise ValueError("guest_lang and guest_words must be given together (both or neither).")
+        if guest_lang is not None and guest_lang not in ("es", "en", "nl"):
+            raise ValueError(
+                f"No phonology backend registered for guest language '{guest_lang}'. "
+                "Use es, en, or nl."
+            )
 
         return cls(
             theme=theme,
