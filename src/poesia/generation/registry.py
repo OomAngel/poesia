@@ -20,12 +20,13 @@ _llm_registry: dict[str, type] = {}
 # Default params per backend (can be overridden by config/env)
 _DEFAULT_PARAMS: dict[str, dict[str, Any]] = {
     "stub": {},
-    "groq": {"model": "llama-3.3-70b-versatile", "provider": "groq"},
+    "groq": {"model": "qwen/qwen3.8-27b", "provider": "groq"},
     "gemini": {"provider": "gemini"},
     "openai": {"provider": "openai"},
     "auto": {"provider": "auto"},
     "ollama": {"model": "gemma2:2b"},
     "lora": {},
+    "llama_cpp": {},
     "outlines": {},
     "mlflow": {},
     "cloudflare": {"model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast"},
@@ -88,6 +89,14 @@ def get_llm(name: str, **overrides) -> Any:
         if adapter_path:
             return cls(adapter_path=adapter_path)
         return cls()
+    elif name == "llama_cpp":
+        model_path = overrides.get(
+            "model_path",
+            os.environ.get("LLAMACPP_MODEL_PATH"),
+        )
+        if model_path:
+            return cls(model_path=model_path)
+        return cls()
     elif name in ("groq", "gemini", "openai", "auto"):
         return cls(provider=params.get("provider", name))
     elif name == "ollama":
@@ -127,6 +136,7 @@ def list_backends() -> list[str]:
         "openai",
         "ollama",
         "lora",
+        "llama_cpp",
         "outlines",
         "mlflow",
         "cloudflare",
@@ -137,6 +147,7 @@ def list_backends() -> list[str]:
 
 # ── Auto-register built-in backends ──────────────────────────────
 from poesia.generation.cloudflare import CloudflareLLMClient  # noqa: E402
+from poesia.generation.llama_cpp import LlamaCppLoRAClient  # noqa: E402
 from poesia.generation.llm_client import (  # noqa: E402
     HostedLLMClient,
     LoRAClient,
@@ -154,6 +165,7 @@ _LLM_MAP = {
     "auto": HostedLLMClient,
     "ollama": OllamaClient,
     "lora": LoRAClient,
+    "llama_cpp": LlamaCppLoRAClient,
     "outlines": OutlinesClient,
     "mlflow": MLflowModelClient,
     "cloudflare": CloudflareLLMClient,
