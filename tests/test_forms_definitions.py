@@ -7,6 +7,7 @@ import pytest
 from poesia.forms.definitions import (
     FORM_REGISTRY,
     HAIKU_EN,
+    HAIKU_ES,
     ROMANCE_ES,
     SONETO_ES,
     SONNET_SHAKESPEAREAN_EN,
@@ -39,14 +40,45 @@ def test_defined_form_shapes() -> None:
 
 def test_form_registry_and_get_form() -> None:
     assert FORM_REGISTRY == {
-        "soneto": SONETO_ES,
-        "romance": ROMANCE_ES,
-        "sonnet_shakespearean": SONNET_SHAKESPEAREAN_EN,
-        "haiku": HAIKU_EN,
+        ("soneto", "es"): SONETO_ES,
+        ("romance", "es"): ROMANCE_ES,
+        ("sonnet_shakespearean", "en"): SONNET_SHAKESPEAREAN_EN,
+        ("haiku", "en"): HAIKU_EN,
+        ("haiku", "es"): HAIKU_ES,
     }
     assert get_form("soneto") is SONETO_ES
     with pytest.raises(ValueError, match="Unknown form 'villanelle'"):
         get_form("villanelle")
+
+
+def test_get_form_language_mismatch_is_rejected() -> None:
+    """`--form soneto --language en` used to silently return the *Spanish*
+    soneto spec (wrong syllable count, wrong rhyme scheme) instead of the
+    Shakespearean form the caller actually meant. Passing `language` now
+    catches that instead of generating against the wrong rules."""
+    with pytest.raises(ValueError, match="Form 'soneto' is not defined for language 'en'"):
+        get_form("soneto", language="en")
+
+    # Correct name for the requested language still resolves normally.
+    assert get_form("sonnet_shakespearean", language="en") is SONNET_SHAKESPEAREAN_EN
+    assert get_form("soneto", language="es") is SONETO_ES
+
+    # No language given -> old, permissive behavior (name lookup only).
+    assert get_form("soneto") is SONETO_ES
+
+
+def test_get_form_language_mismatch_hint_lists_alternatives() -> None:
+    with pytest.raises(ValueError, match="'soneto' is available for: es"):
+        get_form("soneto", language="en")
+
+
+def test_get_form_haiku_resolves_per_language() -> None:
+    """haiku is the one form registered for more than one language — each
+    variant is a distinct FormSpec instance (language field feeds the
+    generation prompt directly), not one spec reused across languages."""
+    assert get_form("haiku", language="en") is HAIKU_EN
+    assert get_form("haiku", language="es") is HAIKU_ES
+    assert HAIKU_EN.syllable_pattern == HAIKU_ES.syllable_pattern == [5, 7, 5]
 
 
 def test_formspec_is_frozen() -> None:
