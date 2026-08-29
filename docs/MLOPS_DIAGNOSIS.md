@@ -1,5 +1,8 @@
 # PoesIA MLOps — Diagnostic & Implementation Roadmap
 
+> **Where training runs:** the GPU workstation, not the dev laptop — see
+> [`TRAINING_RUNBOOK.md`](TRAINING_RUNBOOK.md) for the concrete commands.
+
 > **Status:** Active · **Last updated:** 2026-07-31 · **Authority:** Canonical MLOps reference
 >
 > This document records the comprehensive MLOps diagnosis performed 2026-07-30,
