@@ -32,6 +32,8 @@ class CandidateGenerator:
         target_rhyme_key: str | None = None,
         example_rhyme_word: str | None = None,
         rhyme_candidates: list[str] | None = None,
+        guest_word: str | None = None,
+        guest_lang: str | None = None,
     ) -> list[str]:
         """Generate a batch of candidate next-lines for a poem in progress.
 
@@ -45,6 +47,10 @@ class CandidateGenerator:
             target_rhyme_key: Phonetic rhyme key the line end must match.
             example_rhyme_word: A word already committed to this rhyme group
                 (e.g. "claras") shown in the prompt so the model can hear the sound.
+            guest_word: Macaronic insertion — a word/phrase from another
+                language this specific line should naturally work in.
+            guest_lang: Language code of `guest_word` (for the prompt's
+                human-readable name only; scanning is handled elsewhere).
 
         Returns:
             List of candidate lines from the LLM.
@@ -72,7 +78,19 @@ class CandidateGenerator:
             "Do NOT begin the line with the same word as any prior line." if prior_lines else ""
         )
 
-        constraints = " ".join(filter(None, [syllable_instruction, rhyme_instruction, anti_repeat]))
+        guest_instruction = ""
+        if guest_word:
+            guest_lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch", "la": "Latin"}.get(
+                guest_lang, guest_lang or "a different language"
+            )
+            guest_instruction = (
+                f'Naturally work the {guest_lang_name} word or phrase "{guest_word}" '
+                "into this line, somewhere in the middle — NOT as the last word."
+            )
+
+        constraints = " ".join(
+            filter(None, [syllable_instruction, rhyme_instruction, anti_repeat, guest_instruction])
+        )
         output_rule = (
             "Output ONLY the single bare poetry line — no explanation, "
             "no preamble, no numbering, no quotes."

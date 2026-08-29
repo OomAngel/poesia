@@ -205,6 +205,7 @@ def _repair_defect_description(
     actual_syllables: int | None,
     target_syllables: int,
     target_rhyme_key: str | None,
+    guest_word: str | None = None,
 ) -> str:
     """Build a precise repair request so the LLM knows the exact defect.
 
@@ -215,7 +216,62 @@ def _repair_defect_description(
     parts = [f"the line has {actual_syllables} syllables but must be exactly {target_syllables}"]
     if target_rhyme_key:
         parts.append(f"the line must end with rhyme key '{target_rhyme_key}'")
+    if guest_word:
+        parts.append(
+            f'the line must naturally include "{guest_word}" somewhere in the '
+            "middle — not as the last word"
+        )
     return "; ".join(parts)
+
+
+def _guest_word_ok(line: str, guest_word: str | None) -> bool:
+    """True if no guest word is required, or it's present and not line-final.
+
+    Mid-line-only macaronic insertion (v1): rhyme extraction still runs on
+    the unmodified line via the host phonology backend, so the guest word
+    must not be the last token, or it would silently corrupt the rhyme key.
+    """
+    if not guest_word:
+        return True
+    match = re.search(rf"\b{re.escape(guest_word)}\b", line, re.IGNORECASE)
+    if not match:
+        return False
+    tail = line[match.end() :].strip(" .,;:!?\"'()¿¡—")
+    return bool(tail)
+
+
+def _prefer_guest_word(candidates: list[str], guest_word: str) -> list[str]:
+    """Prefer candidates that actually worked `guest_word` in, mid-line.
+
+    Falls back to candidates that mention it anywhere (even line-final) if
+    none managed mid-line placement, then to the unfiltered list — the
+    repair loop is the backstop for whatever slips through.
+    """
+    mid_line = [c for c in candidates if _guest_word_ok(c, guest_word)]
+    if mid_line:
+        return mid_line
+    pattern = re.compile(rf"\b{re.escape(guest_word)}\b", re.IGNORECASE)
+    mentioned = [c for c in candidates if pattern.search(c)]
+    return mentioned or candidates
+
+
+def _assign_guest_lines(total_lines: int, guest_words: list[str]) -> dict[int, str]:
+    """Spread guest words evenly across the poem's line positions.
+
+    e.g. 2 guest words over a 14-line sonnet land around lines 5 and 10 —
+    spread out rather than clustered at the start — so no single stanza
+    carries all the macaronic insertions.
+    """
+    if not guest_words or total_lines <= 0:
+        return {}
+    n = min(len(guest_words), total_lines)
+    positions: list[int] = []
+    for i in range(n):
+        pos = int((i + 1) * total_lines / (n + 1))
+        while pos in positions and pos < total_lines - 1:
+            pos += 1
+        positions.append(pos)
+    return dict(zip(positions, guest_words[:n], strict=True))
 
 
 # Callable type: receives (line_index, scored_candidates) → returns chosen line text
@@ -255,7 +311,7 @@ class ConstrainedLoop:
         influences: list[InfluenceRecord] | None = None,
     ) -> None:
         self.language = language
-        self.form_spec: FormSpec = get_form(form)
+        self.form_spec: FormSpec = get_form(form, language)
         self._llm = llm or StubLLMClient()
         self._phonology = _phonology_for(language)
         self._generator = CandidateGenerator(self._llm)
@@ -306,17 +362,28 @@ class ConstrainedLoop:
         prior_lines: list[str],
         max_repair_attempts: int,
         line_index: int,
+        guest_word: str | None = None,
     ) -> ScoredCandidate | None:
-        """Repair an invalid best candidate up to max_repair_attempts."""
+        """Repair an invalid best candidate up to max_repair_attempts.
+
+        A line assigned a `guest_word` is also "invalid" (in the repair-loop
+        sense) until the guest word actually landed mid-line — see
+        `_guest_word_ok`.
+        """
         assert self._scorer is not None  # set up in _generate before repair runs
         attempts = 0
-        while best is not None and not best.scan.is_valid and attempts < max_repair_attempts:
+
+        def _needs_repair(candidate: ScoredCandidate) -> bool:
+            return not candidate.scan.is_valid or not _guest_word_ok(candidate.line, guest_word)
+
+        while best is not None and _needs_repair(best) and attempts < max_repair_attempts:
             repaired_text = self._llm.repair(
                 best.line,
                 defect_description=_repair_defect_description(
                     actual_syllables=best.scan.metrical_syllable_count,
                     target_syllables=target_syllables,
                     target_rhyme_key=target_rhyme_key,
+                    guest_word=guest_word,
                 ),
             )
             rescored = self._scorer.score_candidates([repaired_text], prior_lines=prior_lines)
@@ -325,15 +392,22 @@ class ConstrainedLoop:
             # Safety: if repair produced same text, it will never improve — move on
             if attempts > 0 and best.line == scored[0].line:
                 break
-        if best is not None and not best.scan.is_valid and attempts >= max_repair_attempts:
-            # Fallback: accept best scored candidate even if invalid,
-            # otherwise the loop hangs forever with a bad LLM.
+        if best is not None and _needs_repair(best) and attempts >= max_repair_attempts:
+            # Fallback: accept best scored candidate even if still invalid
+            # (or still missing its guest word), otherwise the loop hangs
+            # forever with a bad LLM.
             best = scored[0]
-            print(
-                f"  [WARN] Line {line_index + 1}: accepted best candidate despite invalid metre "
-                f"(syllables={scored[0].scan.metrical_syllable_count}, "
-                f"target={target_syllables})"
-            )
+            if not best.scan.is_valid:
+                print(
+                    f"  [WARN] Line {line_index + 1}: accepted best candidate despite invalid "
+                    f"metre (syllables={scored[0].scan.metrical_syllable_count}, "
+                    f"target={target_syllables})"
+                )
+            if guest_word and not _guest_word_ok(best.line, guest_word):
+                print(
+                    f"  [WARN] Line {line_index + 1}: accepted best candidate without "
+                    f'landing guest word "{guest_word}" mid-line'
+                )
         return best
 
     def _select_best(
@@ -376,6 +450,9 @@ class ConstrainedLoop:
         example_rhyme_word: str | None,
         rhyme_candidates: list[str],
         prior_lines: list[str],
+        guest_word: str | None = None,
+        guest_lang: str | None = None,
+        guest_phonology=None,
     ) -> list[ScoredCandidate]:
         """Generate + score the candidates for one line position."""
         # P4: extract fragment fidelity text from the brief (best fragment)
@@ -400,6 +477,9 @@ class ConstrainedLoop:
             target_rhyme_key=target_rhyme_key,
             language=self.language,
             fragment_fidelity_text=fidelity_text,
+            target_foot=self.form_spec.foot,
+            guest_word=guest_word,
+            guest_phonology=guest_phonology,
         )
         candidates = self._generator.generate_lines(
             theme=theme,
@@ -411,6 +491,8 @@ class ConstrainedLoop:
             target_rhyme_key=target_rhyme_key,
             example_rhyme_word=example_rhyme_word,
             rhyme_candidates=rhyme_candidates,
+            guest_word=guest_word,
+            guest_lang=guest_lang,
         )
         # Clean prompt-echo artifacts and reject exact repeats (accuracy)
         candidates = _clean_candidates(candidates, prior_lines)
@@ -420,6 +502,10 @@ class ConstrainedLoop:
             # Should not happen (fail-open in _filter_by_language),
             # but guard against empty list
             return []
+        if guest_word:
+            # Prefer candidates that actually worked the guest word in,
+            # mid-line, before scoring/ranking (see _prefer_guest_word).
+            candidates = _prefer_guest_word(candidates, guest_word)
         scored = self._scorer.score_candidates(candidates, prior_lines=prior_lines)
 
         # Observer: after scoring
@@ -447,6 +533,8 @@ class ConstrainedLoop:
         line_selector: LineSelector | None = None,
         total_lines_override: int | None = None,
         movement: str | None = None,
+        guest_lang: str | None = None,
+        guest_words: list[str] | None = None,
     ) -> LoopResult:
         """Generate a full poem, one line at a time, for `total_lines` lines.
 
@@ -464,10 +552,22 @@ class ConstrainedLoop:
             total_lines_override: Override the form's total_lines. Used for
                 variable-length forms like romance (which has lines_per_stanza=[])
                 where the user specifies the desired line count via --lines.
+            guest_lang: Language code for macaronic word insertion (e.g. 'en'
+                dropped into a Spanish poem). Off by default — must be given
+                together with `guest_words`. Raises ValueError if no phonology
+                backend is registered for it (see `_phonology_for`).
+            guest_words: Words/phrases in `guest_lang` to spread across the
+                poem's lines, one per line, mid-line only (see
+                `_assign_guest_lines`). Must be given together with
+                `guest_lang`.
 
         Returns:
             LoopResult with generated lines, scoring history, and brief used.
         """
+        if bool(guest_lang) != bool(guest_words):
+            raise ValueError("guest_lang and guest_words must be given together (both or neither).")
+        guest_phonology = _phonology_for(guest_lang) if guest_lang else None
+
         result = LoopResult()
 
         # Build brief if we have a builder (Phase 3E integration)
@@ -488,12 +588,16 @@ class ConstrainedLoop:
             total_lines_override if total_lines_override is not None else self.form_spec.total_lines
         )
 
+        # Macaronic insertion: which line index (if any) gets which guest word.
+        guest_line_map = _assign_guest_lines(total_lines, guest_words) if guest_words else {}
+
         # Generate lines one by one, updating scorer target for variable patterns (e.g., haiku)
         for line_index in range(total_lines):
             target_syllables = self.form_spec.syllables_for_line(line_index)
             target_rhyme_key = rhyme_tracker.target_key_for_line(line_index)
             example_rhyme_word = rhyme_tracker.example_word_for_line(line_index)
             rhyme_candidates = rhyme_tracker.candidates_for_line(line_index)
+            guest_word = guest_line_map.get(line_index)
 
             scored = self._generate_line(
                 line_index,
@@ -505,6 +609,9 @@ class ConstrainedLoop:
                 example_rhyme_word,
                 rhyme_candidates,
                 result.lines,
+                guest_word=guest_word,
+                guest_lang=guest_lang,
+                guest_phonology=guest_phonology,
             )
             if not scored:
                 continue
@@ -518,6 +625,7 @@ class ConstrainedLoop:
                 result.lines,
                 max_repair_attempts,
                 line_index,
+                guest_word=guest_word,
             )
             if best is not None:
                 chosen = self._select_best(line_index, scored, line_selector)
