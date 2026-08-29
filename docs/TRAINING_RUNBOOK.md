@@ -85,6 +85,22 @@ mlflow run . -e hpo -P n_trials=20
 scripts/launch_training.sh dpo    # uses mlops/configs/dpo_v1.yaml
 ```
 
+## Online training (no local GPU needed)
+
+If neither the dev laptop nor a local GPU workstation is available, training can
+run in the cloud. **Groq is inference-only** — it cannot fine-tune — so use one
+of the following instead.
+
+| Option | What it is | Cost |
+|---|---|---|
+| Cloud GPU rental (RunPod / Lambda / Vast.ai) | Rent an A100/4090/3090 by the hour, clone the repo, run `scripts/launch_training.sh local …` or `docker` there | ~$0.3–2/hr; a Qwen2.5-1.5B/3B QLoRA run is a few hours |
+| Hosted fine-tuning (Together AI / Fireworks / HF AutoTrain) | Upload `seeds/poetry_corpus/`, they fine-tune a base model, download the adapter into `models/` | pay-per-job |
+| Free GPU tiers (Google Colab T4, Kaggle) | 16 GB T4 — fine for 1.5B QLoRA; 3B in 4-bit is tight | free, session-limited |
+
+On the remote machine the command is identical to the local path:
+`scripts/launch_training.sh local mlops/configs/<config>.yaml`. Output adapters
+land in `models/` and are copied back to the dev machine.
+
 ## After training
 
 - `scripts/post_training_pipeline.sh` — evaluation + model-registry registration.
