@@ -17,7 +17,7 @@ class TestProviderAutoDetection:
         [
             ({"GEMINI_API_KEY": "gemini-key"}, "gemini", "gemini-2.5-flash"),
             ({"OPENAI_API_KEY": "openai-key"}, "openai", "gpt-4o-mini"),
-            ({"GROQ_API_KEY": "gsk_test"}, "groq", "llama-3.3-70b-versatile"),
+            ({"GROQ_API_KEY": "gsk_test"}, "groq", "qwen/qwen3.8-27b"),
         ],
         ids=["gemini", "openai", "groq"],
     )
