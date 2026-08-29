@@ -258,13 +258,60 @@ def fetch_rhyme_words(
 
 
 def _fetch_pronouncing(word: str) -> list[str]:
-    """English rhymes from CMUdict via the `pronouncing` library."""
+    """English rhymes from CMUdict via the `pronouncing` library.
+
+    CMUdict has no case distinction to filter proper nouns on — the raw
+    dict is all-uppercase, so "bartoli" and "harvest" look identical at
+    that level, and `pronouncing.rhymes` happily returns surnames and
+    place names alongside real words. Cross-checking against a general
+    English vocabulary (nltk's `words` corpus) filters most of those out;
+    if the vocabulary can't be loaded, or filtering would empty the
+    result, fall back to the unfiltered CMUdict rhymes rather than lose
+    rhyme coverage entirely.
+    """
     try:
         import pronouncing  # type: ignore[import-untyped]
 
-        return pronouncing.rhymes(word.lower())
+        candidates = pronouncing.rhymes(word.lower())
     except Exception:
         return []
+
+    common_words = _load_common_english_words()
+    if common_words:
+        filtered = [w for w in candidates if w in common_words]
+        if filtered:
+            return filtered
+    return candidates
+
+
+_common_words_cache: set[str] | None = None
+_common_words_load_attempted = False
+
+
+def _load_common_english_words() -> set[str] | None:
+    """Lazily load a general-vocabulary wordlist for proper-noun filtering.
+
+    Returns None (not an empty set) on any failure — including "not
+    downloaded yet and offline" — so the caller can tell "filter
+    unavailable" apart from "filter loaded, nothing matched".
+    """
+    global _common_words_cache, _common_words_load_attempted
+    if _common_words_load_attempted:
+        return _common_words_cache
+    _common_words_load_attempted = True
+    try:
+        import nltk
+
+        try:
+            nltk.data.find("corpora/words.zip")
+        except LookupError:
+            nltk.download("words", quiet=True)
+        from nltk.corpus import words as nltk_words
+
+        _common_words_cache = {w.lower() for w in nltk_words.words()}
+    except Exception:
+        _common_words_cache = None
+    return _common_words_cache
 
 
 def _fetch_datamuse(word: str, timeout: float = 3.0) -> list[str]:
