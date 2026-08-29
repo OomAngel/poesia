@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 from poesia.evaluation.metrics import (
     cliche_penalty,
     composite_score,
+    foot_score,
     metre_score,
     novelty_score,
     rhyme_score,
@@ -30,6 +31,7 @@ from poesia.memoria.embedding_validation import (
     validate_embedding_vector,
 )
 from poesia.phonology.base import ScanResult
+from poesia.phonology.macaronic import scan_mixed_line
 
 if TYPE_CHECKING:
     from poesia.memoria.embeddings import EmbeddingClient
@@ -99,12 +101,23 @@ class LineScorer:
         target_rhyme_key: str | None = None,
         language: str = "es",
         fragment_fidelity_text: str | None = None,
+        target_foot: str | None = None,
+        guest_word: str | None = None,
+        guest_phonology=None,
     ) -> None:
         self._phonology = phonology_backend
         self._target_syllable_count = target_syllable_count
         self._embedding_client = embedding_client
         self._target_rhyme_key = target_rhyme_key
         self._language = language
+        self._target_foot = target_foot
+        # Macaronic insertion: when set, this line is expected to carry a
+        # word/phrase from another language somewhere mid-line. `scan_line`
+        # on the host backend alone would mis-scan that span, so scoring
+        # switches to `scan_mixed_line` for candidates that actually contain
+        # it (see poesia.phonology.macaronic).
+        self._guest_word = guest_word
+        self._guest_phonology = guest_phonology
 
         # Pre-compute theme embedding if we have both client and theme
         self._theme_embedding: list[float] | None = None
@@ -190,10 +203,19 @@ class LineScorer:
 
         scored: list[ScoredCandidate] = []
         for line in candidates:
-            scan = self._phonology.scan_line(line)
+            if self._guest_word and self._guest_phonology is not None:
+                scan = scan_mixed_line(
+                    line, self._guest_word, self._phonology, self._guest_phonology
+                )
+            else:
+                scan = self._phonology.scan_line(line)
 
             # Metre score (always computed)
             m_score = metre_score(scan, self._target_syllable_count)
+
+            # Foot score: does stress actually alternate the way the form
+            # claims (e.g. iambic), not just land on the right syllable count.
+            f_score = foot_score(scan.stress_pattern, self._target_foot)
 
             # Rhyme score (if target rhyme key provided)
             r_score = 0.0
@@ -202,21 +224,7 @@ class LineScorer:
                 r_score = rhyme_score(candidate_rhyme.consonant, self._target_rhyme_key)
 
             # Theme score (if embedding client + theme available)
-            t_score = 0.0
-            candidate_embedding: list[float] | None = None
-            if self._embedding_client and self._theme_embedding:
-                try:
-                    raw_cand = self._embedding_client.embed_one(line)
-                    candidate_embedding = validate_embedding_vector(
-                        raw_cand,
-                        expected_dimension=self._embedding_client.dimension,
-                        context=f"candidate line '{line[:30]}...' embedding",
-                    )
-                    t_score = theme_score(candidate_embedding, self._theme_embedding)
-                except EmbeddingValidationError as e:
-                    raise ValueError(f"Invalid candidate embedding: {e}") from e
-                except Exception as e:
-                    raise RuntimeError(f"Failed to embed candidate line: {e}") from e
+            t_score, candidate_embedding = self._theme_score(line)
 
             # Novelty score (if we have prior embeddings)
             n_score = 1.0  # Maximum novelty if no priors
@@ -246,6 +254,7 @@ class LineScorer:
                 "cliche": c_penalty,
                 "end_word": ew_score,
                 "fragment_fidelity": ff_score,
+                "foot": f_score,
             }
             # breakdown keys are exactly composite_score's keyword params, but
             # mypy cannot match a plain dict unpack against a named signature.
@@ -253,3 +262,21 @@ class LineScorer:
             scored.append(ScoredCandidate(line=line, scan=scan, score=total, breakdown=breakdown))
 
         return sorted(scored, key=lambda c: c.score, reverse=True)
+
+    def _theme_score(self, line: str) -> tuple[float, list[float] | None]:
+        """Compute theme score + candidate embedding (if embedding enabled)."""
+        if not (self._embedding_client and self._theme_embedding):
+            return 0.0, None
+        try:
+            raw_cand = self._embedding_client.embed_one(line)
+            candidate_embedding = validate_embedding_vector(
+                raw_cand,
+                expected_dimension=self._embedding_client.dimension,
+                context=f"candidate line '{line[:30]}...' embedding",
+            )
+            t_score = theme_score(candidate_embedding, self._theme_embedding)
+            return t_score, candidate_embedding
+        except EmbeddingValidationError as e:
+            raise ValueError(f"Invalid candidate embedding: {e}") from e
+        except Exception as e:
+            raise RuntimeError(f"Failed to embed candidate line: {e}") from e
