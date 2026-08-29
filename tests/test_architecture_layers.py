@@ -30,19 +30,27 @@ SRC = Path(__file__).resolve().parent.parent / "src" / "poesia"
 ALLOWED: dict[str, set[str]] = {
     "phonology": {"phonology"},
     "evaluation": {"evaluation", "phonology", "memoria"},
-    "generation": {"generation", "phonology", "evaluation", "forms", "memoria", "exceptions"},
+    "generation": {
+        "generation",
+        "phonology",
+        "evaluation",
+        "forms",
+        "memoria",
+        "exceptions",
+        "device",
+    },
     "forms": {"forms"},
     "eufonia": {"eufonia", "phonology"},
     "galeria": {"galeria", "memoria"},
     "armonia": {"armonia", "phonology"},
-    "memoria": {"memoria", "exceptions"},
+    "memoria": {"memoria", "exceptions", "device"},
     "training": {"training", "phonology"},
     "config": {"config", "forms"},
 }
 
-# Top-level modules in ``src/poesia/`` (cli.py, api.py, exceptions.py) are entry
-# points / leaves and are exempt from the dependency matrix but still subject to
-# the heavy-import rule.
+# Top-level modules in ``src/poesia/`` (cli.py, api.py, exceptions.py,
+# device.py) are entry points / leaves and are exempt from the dependency
+# matrix but still subject to the heavy-import rule.
 
 # Heavy third-party libraries that must be lazy-imported.
 HEAVY_ROOTS = {

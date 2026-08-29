@@ -30,10 +30,19 @@ def test_lora_client_batches_candidates() -> None:
     """LoRAClient draws all n candidates in ONE forward pass (batching)."""
     import torch
 
+    from poesia.device import cuda_usable
     from poesia.generation.llm_client import LoRAClient
 
-    if not torch.cuda.is_available():
-        pytest.skip("LoRA batching test needs CUDA (generate() targets .to('cuda'))")
+    # `torch.cuda.is_available()` alone isn't enough: a GPU can be visible
+    # but below the installed torch build's minimum compute capability (e.g.
+    # Maxwell/Pascal on recent wheels), which crashes mid-generate with
+    # `cudaErrorNoKernelImageForDevice` instead of skipping cleanly. See
+    # `poesia.device.cuda_usable` (also used by `LoRAClient._load()` itself).
+    if not cuda_usable():
+        pytest.skip(
+            "LoRA batching test needs a CUDA device the installed torch build "
+            "actually ships kernels for (generate() targets .to('cuda'))"
+        )
 
     client = LoRAClient()
 
