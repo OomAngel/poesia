@@ -24,6 +24,7 @@ _DEFAULT_PARAMS: dict[str, dict[str, Any]] = {
     "gemini": {"provider": "gemini"},
     "openai": {"provider": "openai"},
     "auto": {"provider": "auto"},
+    "route": {},
     "ollama": {"model": "gemma2:2b"},
     "lora": {},
     "llama_cpp": {},
@@ -156,6 +157,7 @@ from poesia.generation.llm_client import (  # noqa: E402
     OutlinesClient,
     StubLLMClient,
 )
+from poesia.generation.router import RoutedLLMClient  # noqa: E402
 
 _LLM_MAP = {
     "stub": StubLLMClient,
@@ -163,6 +165,7 @@ _LLM_MAP = {
     "gemini": HostedLLMClient,
     "openai": HostedLLMClient,
     "auto": HostedLLMClient,
+    "route": RoutedLLMClient,
     "ollama": OllamaClient,
     "lora": LoRAClient,
     "llama_cpp": LlamaCppLoRAClient,
