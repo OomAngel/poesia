@@ -58,10 +58,12 @@ classical = [
     "cltk",
 ]
 
-# Interactive rhyme/near-rhyme/word discovery + statistical baseline
+# Interactive rhyme/near-rhyme/word discovery via the Datamuse API
+# (markovify dropped: a Markov-chain baseline generator doesn't feed the
+# evaluator/rhyme pipeline the way the other lexical tools here do — no
+# concrete integration point, unlike ml=/sl=/md=s on the Datamuse side).
 lexical-extra = [
     "python-datamuse",
-    "markovify",
 ]
 
 
