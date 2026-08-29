@@ -266,8 +266,9 @@ class BriefBuilder:
         Returns:
             GenerationBrief ready for LLM prompt rendering.
         """
-        # Resolve form
-        form_spec = get_form(form) if isinstance(form, str) else form
+        # Resolve form (validated against `language` if the caller knows it
+        # yet — see `get_form`'s docstring for why that matters)
+        form_spec = get_form(form, language) if isinstance(form, str) else form
         lang = language or form_spec.language
 
         # Expand seeds

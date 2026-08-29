@@ -24,6 +24,7 @@ class FormSpec:
     syllables_per_line: int
     rhyme_scheme: str  # e.g. "ABBAABBACDCDCD"
     syllable_pattern: list[int] | None = None  # For variable patterns like haiku [5, 7, 5]
+    foot: str | None = None  # e.g. "iambic" for pentameter; None = no foot claim
 
     @property
     def total_lines(self) -> int:
@@ -74,6 +75,7 @@ SONNET_SHAKESPEAREAN_EN = FormSpec(
     lines_per_stanza=[4, 4, 4, 2],
     syllables_per_line=10,  # iambic pentameter
     rhyme_scheme="ABABCDCDEFEFGG",
+    foot="iambic",
 )
 
 HAIKU_EN = FormSpec(
@@ -85,18 +87,65 @@ HAIKU_EN = FormSpec(
     syllable_pattern=[5, 7, 5],  # The defining 5-7-5 pattern
 )
 
-FORM_REGISTRY: dict[str, FormSpec] = {
-    "soneto": SONETO_ES,
-    "romance": ROMANCE_ES,
-    "sonnet_shakespearean": SONNET_SHAKESPEAREAN_EN,
-    "haiku": HAIKU_EN,
+# Haiku's 5-7-5 shape is not English-specific — it's a real, long-established
+# form in Spanish poetry too, with the same structural constraint (rhyme-free,
+# no foot claim). Registered separately from HAIKU_EN, rather than reused
+# across languages, because FormSpec.language also drives the generation
+# prompt's "write in X" instruction (see GenerationBrief._lang_name) — one
+# shared spec would print the wrong language into that instruction whichever
+# language it was tagged with.
+HAIKU_ES = FormSpec(
+    name="haiku",
+    language="es",
+    lines_per_stanza=[1, 1, 1],
+    syllables_per_line=5,
+    rhyme_scheme="",
+    syllable_pattern=[5, 7, 5],
+)
+
+# Keyed by (name, language): most forms have real, language-specific
+# structural rules (soneto's Petrarchan 11-syllable rules are not
+# sonnet_shakespearean's 10-syllable iambic rules, even though both are
+# "sonnets") and only exist for one language. haiku is the one form
+# registered under the same name for more than one language.
+FORM_REGISTRY: dict[tuple[str, str], FormSpec] = {
+    ("soneto", "es"): SONETO_ES,
+    ("romance", "es"): ROMANCE_ES,
+    ("sonnet_shakespearean", "en"): SONNET_SHAKESPEAREAN_EN,
+    ("haiku", "en"): HAIKU_EN,
+    ("haiku", "es"): HAIKU_ES,
 }
 
 
-def get_form(name: str) -> FormSpec:
-    """Look up a registered form by name, raising a clear error if unknown."""
+def get_form(name: str, language: str | None = None) -> FormSpec:
+    """Look up a registered form by name, raising a clear error if unknown.
+
+    Args:
+        name: Registered form name (e.g. "soneto", "sonnet_shakespearean").
+        language: If given, the form must actually be defined for this
+            language. Without this, ``get_form("soneto", language="en")``
+            used to silently return the *Spanish* soneto spec (11-syllable
+            hendecasyllable, Petrarchan rhyme scheme) — the caller asked to
+            write in English but every downstream syllable/rhyme/foot check
+            would run against Spanish rules with no warning at all.
+            If omitted, returns the form registered under `name` — or, for a
+            name registered in more than one language (currently only
+            "haiku"), an arbitrary but deterministic one. Callers that care
+            which language they get should always pass `language`.
+    """
+    variants = {lang: spec for (n, lang), spec in FORM_REGISTRY.items() if n == name}
+    if not variants:
+        known = ", ".join(sorted({n for n, _ in FORM_REGISTRY}))
+        raise ValueError(f"Unknown form '{name}'. Known forms: {known}")
+
+    if language is None:
+        return next(iter(variants.values()))
+
     try:
-        return FORM_REGISTRY[name]
-    except KeyError as exc:
-        known = ", ".join(sorted(FORM_REGISTRY))
-        raise ValueError(f"Unknown form '{name}'. Known forms: {known}") from exc
+        return variants[language]
+    except KeyError:
+        available = ", ".join(sorted(variants))
+        raise ValueError(
+            f"Form '{name}' is not defined for language '{language}'. "
+            f"'{name}' is available for: {available}."
+        ) from None
