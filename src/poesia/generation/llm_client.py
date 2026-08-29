@@ -213,7 +213,7 @@ class HostedLLMClient:
 
     # Groq Cloud base URL (OpenAI-compatible)
     _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-    _GROQ_DEFAULT_MODEL = "llama-3.3-70b-versatile"
+    _GROQ_DEFAULT_MODEL = "qwen/qwen3.8-27b"
 
     def __init__(
         self,
