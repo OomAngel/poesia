@@ -60,3 +60,60 @@ def test_sentence_transformer_client_real_integration() -> None:
     emb = client.embed_one("test sentence")
     assert len(emb) == 384
     assert all(isinstance(v, float) for v in emb)
+
+
+# `_safe_device` guards against a real bug: a GPU can be visible to
+# `torch.cuda.is_available()` while being unsupported by the installed
+# PyTorch build's compiled kernels (old compute capability). That surfaced
+# as a mid-embedding CUDA crash, not a clean startup fallback. These tests
+# mock `torch` so they run without needing the actual incompatible hardware.
+
+
+def test_safe_device_no_cuda(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No CUDA available at all -> cpu, no op attempted."""
+    import types
+
+    from poesia.memoria.embeddings import _safe_device
+
+    fake_torch = types.SimpleNamespace(cuda=types.SimpleNamespace(is_available=lambda: False))
+    monkeypatch.setitem(__import__("sys").modules, "torch", fake_torch)
+    assert _safe_device() == "cpu"
+
+
+def test_safe_device_cuda_present_but_unsupported(monkeypatch: pytest.MonkeyPatch) -> None:
+    """CUDA visible, but a trivial op on it raises -> falls back to cpu
+    instead of propagating the error (this is the bug this fix closes)."""
+    import types
+
+    from poesia.memoria.embeddings import _safe_device
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("CUDA error: no kernel image is available")
+
+    fake_torch = types.SimpleNamespace(
+        cuda=types.SimpleNamespace(is_available=lambda: True),
+        zeros=_boom,
+    )
+    monkeypatch.setitem(__import__("sys").modules, "torch", fake_torch)
+    assert _safe_device() == "cpu"
+
+
+def test_safe_device_cuda_present_and_working(monkeypatch: pytest.MonkeyPatch) -> None:
+    """CUDA visible and the trivial op succeeds -> cuda is actually used."""
+    import types
+
+    from poesia.memoria.embeddings import _safe_device
+
+    class _FakeTensor:
+        def __add__(self, other):
+            return self
+
+        def cpu(self):
+            return self
+
+    fake_torch = types.SimpleNamespace(
+        cuda=types.SimpleNamespace(is_available=lambda: True),
+        zeros=lambda *a, **k: _FakeTensor(),
+    )
+    monkeypatch.setitem(__import__("sys").modules, "torch", fake_torch)
+    assert _safe_device() == "cuda"
