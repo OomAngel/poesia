@@ -11,7 +11,7 @@ curated cliché phrase list or n-gram model (KenLM, Phase 2).
 
 from __future__ import annotations
 
-from poesia.phonology.base import ScanResult
+from poesia.phonology.base import ScanResult, Stress
 
 
 def metre_score(scan: ScanResult, target_syllable_count: int) -> float:
@@ -23,6 +23,39 @@ def metre_score(scan: ScanResult, target_syllable_count: int) -> float:
         return 0.0
     deviation = abs(scan.metrical_syllable_count - target_syllable_count)
     return max(0.0, 1.0 - deviation / target_syllable_count)
+
+
+def foot_score(stress_pattern: tuple[Stress, ...], foot: str | None) -> float:
+    """Score how closely a line's realized stress pattern matches a target foot.
+
+    `metre_score` only checks syllable *count* — a 10-syllable line can still
+    read entirely flat or trochaic instead of iambic. This checks the shape:
+    whether stress falls where the foot predicts, syllable by syllable.
+
+    Only "iambic" (weak-STRONG alternation, the shape sonnet forms claim) is
+    implemented. `foot=None` means the form makes no foot claim at all — e.g.
+    haiku, or Spanish forms already scored by syllable/sinalefa rules — and
+    returns 1.0 (neutral) rather than 0.0, so it doesn't drag down composite
+    scores for forms this check has nothing to say about.
+
+    SECONDARY stress counts as "stressed" for this comparison: metrical foot
+    theory is a binary strong/weak distinction, coarser than the three-way
+    lexical stress CMUdict/g2p_en report.
+    """
+    if foot is None:
+        return 1.0
+    if foot != "iambic":
+        raise ValueError(f"Unknown foot pattern: {foot!r}")
+    if not stress_pattern:
+        return 0.0
+
+    matches = 0
+    for position, stress in enumerate(stress_pattern):
+        is_stressed = stress in (Stress.PRIMARY, Stress.SECONDARY)
+        expected_stressed = position % 2 == 1  # iamb: weak, STRONG, weak, STRONG...
+        if is_stressed == expected_stressed:
+            matches += 1
+    return matches / len(stress_pattern)
 
 
 def rhyme_score(candidate_key: str, target_key: str) -> float:
@@ -125,13 +158,14 @@ def composite_score(
     cliche: float,
     end_word: float = 1.0,
     fragment_fidelity: float = 0.0,
+    foot: float = 1.0,
     weights: dict[str, float] | None = None,
     normalize_weights: bool = True,
 ) -> float:
     """Combine individual scores into a single ranking value.
 
     S = w_m*metre + w_r*rhyme + w_t*theme + w_f*fragment_fidelity + w_n*novelty
-        - w_c*cliche - w_e*(1 - end_word)
+        + w_o*foot - w_c*cliche - w_e*(1 - end_word)
 
     Args:
         metre: Syllable count accuracy score [0, 1]
@@ -141,6 +175,8 @@ def composite_score(
         cliche: Cliché penalty [0, 1] (subtracted)
         end_word: End-word repetition penalty — 1.0 if novel, 0.0 if repeated.
         fragment_fidelity: Cosine similarity to the source fragment embedding [0, 1].
+        foot: Metrical foot alternation score [0, 1] (see `foot_score`). Defaults
+            to 1.0 (neutral), matching forms that make no foot claim.
         weights: Optional custom weights dict
         normalize_weights: If True, redistribute weights of unused signals to
             active ones. Improves score differentiation in degraded mode.
@@ -149,13 +185,14 @@ def composite_score(
         Composite score, typically in [0, 1] when weights normalized.
     """
     w = weights or {
-        "metre": 0.25,
+        "metre": 0.22,
         "rhyme": 0.15,
         "theme": 0.20,
         "novelty": 0.10,
         "cliche": 0.08,
         "end_word": 0.07,
-        "fragment_fidelity": 0.15,
+        "fragment_fidelity": 0.13,
+        "foot": 0.05,
     }
 
     signals_used = {
@@ -165,6 +202,7 @@ def composite_score(
         "novelty": novelty,
         "end_word": end_word,
         "fragment_fidelity": fragment_fidelity,
+        "foot": foot,
     }
 
     if normalize_weights:
@@ -183,4 +221,5 @@ def composite_score(
         - w["cliche"] * cliche
         + w["end_word"] * end_word
         + w["fragment_fidelity"] * fragment_fidelity
+        + w["foot"] * foot
     )
