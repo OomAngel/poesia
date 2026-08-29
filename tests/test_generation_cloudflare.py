@@ -36,8 +36,9 @@ def test_generate_returns_n_candidates_in_one_request(mock_urlopen: MagicMock) -
 
 
 def test_generate_requires_credentials() -> None:
-    # poesia.cli loads .env at import time, so scrub the process env to prove
-    # the client refuses to run without credentials.
+    # Scrub the process env (the autouse conftest fixture already strips
+    # provider vars, but do it explicitly here too) to prove the client
+    # refuses to run without credentials, regardless of ambient shell state.
     with patch.dict("os.environ", {}, clear=True):
         client = CloudflareLLMClient(account_id="", api_token="")
         with pytest.raises(LLMProviderError, match="CLOUDFLARE_ACCOUNT_ID"):

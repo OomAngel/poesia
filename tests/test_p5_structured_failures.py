@@ -86,10 +86,16 @@ def test_llm_provider_error_structured() -> None:
 
 
 def test_llm_client_raises_provider_error_without_key() -> None:
+    from unittest.mock import patch
+
     from poesia.generation.llm_client import HostedLLMClient
 
-    client = HostedLLMClient(provider="groq", api_key="")
-    with pytest.raises(LLMProviderError) as excinfo:
-        client.generate("test")
+    # Isolate from real provider keys (e.g. from a loaded .env) — otherwise
+    # api_key="" alone doesn't guarantee "no key" reaches a live provider if
+    # something upstream regresses the explicit-empty-string handling.
+    with patch.dict("os.environ", {}, clear=True):
+        client = HostedLLMClient(provider="groq", api_key="")
+        with pytest.raises(LLMProviderError) as excinfo:
+            client.generate("test")
     assert "API key" in str(excinfo.value)
     assert excinfo.value.provider == "groq"
