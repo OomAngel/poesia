@@ -16,8 +16,9 @@ def test_composite_score_without_normalization():
         cliche=0.0,
         normalize_weights=False,
     )
-    # 0.25*0.5 + 0.10*1.0 + 0.07*1.0 = 0.125 + 0.10 + 0.07 = 0.295
-    assert abs(score - 0.295) < 0.01
+    # end_word and foot also default to 1.0 (no repetition, no foot claim):
+    # 0.22*0.5 + 0.10*1.0 + 0.07*1.0 + 0.05*1.0 = 0.11 + 0.10 + 0.07 + 0.05 = 0.33
+    assert abs(score - 0.33) < 0.01
 
 
 def test_composite_score_with_normalization():
@@ -31,11 +32,12 @@ def test_composite_score_with_normalization():
         cliche=0.0,
         normalize_weights=True,
     )
-    # Active weights: metre (0.25) + novelty (0.10) + end_word (0.07) = 0.42
-    # Normalization factor: 1.0 / 0.42 = 2.381...
-    # Normalized: metre=0.595, novelty=0.238, end_word=0.167
-    # Score: 0.595*0.5 + 0.238*1.0 + 0.167*1.0 = 0.298 + 0.238 + 0.167 = 0.703
-    assert abs(score - 0.703) < 0.01
+    # Active weights: metre (0.22) + novelty (0.10) + end_word (0.07) + foot (0.05,
+    # defaults to 1.0 — no foot claim passed) = 0.44
+    # Normalization factor: 1.0 / 0.44 = 2.273...
+    # Normalized: metre=0.5, novelty=0.227, end_word=0.159, foot=0.114
+    # Score: 0.5*0.5 + 0.227*1.0 + 0.159*1.0 + 0.114*1.0 = 0.25 + 0.227 + 0.159 + 0.114 = 0.75
+    assert abs(score - 0.75) < 0.01
 
 
 def test_normalization_with_all_signals_active():
@@ -58,11 +60,11 @@ def test_normalization_with_all_signals_active():
         normalize_weights=False,
     )
 
-    # With all signals active, weights sum to 0.92 (excluding fragment_fidelity=0)
-    # Normalization redistributes based on active signals
-    # Absolute: 0.25*0.8 + 0.15*0.6 + 0.20*0.7 + 0.10*0.5 + 0.07*1.0 - 0.08*0.1
-    #         = 0.20 + 0.09 + 0.14 + 0.05 + 0.07 - 0.008 = 0.542
-    assert abs(score_absolute - 0.542) < 0.01
+    # With all signals active except fragment_fidelity (defaults to 0, excluded),
+    # foot still defaults to 1.0 (no foot claim passed) and stays active:
+    # Absolute: 0.22*0.8 + 0.15*0.6 + 0.20*0.7 + 0.10*0.5 - 0.08*0.1 + 0.07*1.0 + 0.05*1.0
+    #         = 0.176 + 0.09 + 0.14 + 0.05 - 0.008 + 0.07 + 0.05 = 0.568
+    assert abs(score_absolute - 0.568) < 0.01
     # Normalized should give same ranking order even if absolute values differ slightly
     assert score_normalized > 0.5  # Reasonable score with all positive signals
 
@@ -109,12 +111,13 @@ def test_metre_always_considered_active():
         normalize_weights=True,
     )
 
-    # Should still normalize based on metre + novelty + end_word
-    # Active: metre (0.25) + novelty (0.10) + end_word (0.07) = 0.42
-    # Normalized novelty: 0.10 / 0.42 = 0.238
-    # Normalized end_word: 0.07 / 0.42 = 0.167
-    # Score: 0.238 * 1.0 + 0.167 * 1.0 = 0.405
-    assert abs(score - 0.405) < 0.01
+    # Should still normalize based on metre + novelty + end_word + foot
+    # Active: metre (0.22) + novelty (0.10) + end_word (0.07) + foot (0.05) = 0.44
+    # Normalized novelty: 0.10 / 0.44 = 0.227
+    # Normalized end_word: 0.07 / 0.44 = 0.159
+    # Normalized foot: 0.05 / 0.44 = 0.114
+    # Score (metre input is 0.0, contributes nothing): 0.227 + 0.159 + 0.114 = 0.5
+    assert abs(score - 0.5) < 0.01
 
 
 def test_cliche_penalty_not_affected_by_normalization():
