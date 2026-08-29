@@ -17,6 +17,17 @@ hosted LLM integration, or their CLI paths, read
 honest capability boundary, acceptance criteria, and definition of done for this work.
 Do not mark a RAG/LLM phase complete from file presence or aggregate test count alone.
 
+### Infrastructure & Data Authority
+
+Before touching or "cleaning up" any infrastructure, data store, or model
+artifact — PostgreSQL, the docker-compose stack, MLflow, DVC, `mlruns/`, or
+`models/` — read `docs/INFRASTRUCTURE_DECISIONS.md` completely. It records the
+current-vs-product premise and an explicit DO-NOT list. In particular: do not
+delete PostgreSQL, do not delete or trim model artifacts, do not collapse MLflow
+to SQLite, and do not rip out the DVC skeleton. PoesIA is a single-user CLI today
+with a long-term web/Android product intent; infrastructure work is a staged
+transition, not an all-at-once build or teardown.
+
 ---
 
 ## 2. Commit Preparation & Git Standards
@@ -51,7 +62,8 @@ Before making any git commit, adhere to the following workflow:
 ### Session Start
 1. Check `memory-bank/activeContext.md` and `memory-bank/tasks.md` to establish current state and active focus.
 2. For RAG/LLM work, read `docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md`.
-3. Run `pytest` to confirm working tree status.
+3. For infrastructure/data/model work, read `docs/INFRASTRUCTURE_DECISIONS.md`.
+4. Run `pytest` to confirm working tree status.
 
 ### Session End / Task Completion
 1. Update `memory-bank/activeContext.md` under **What We Just Did** and **Current Focus**.
