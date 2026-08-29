@@ -11,6 +11,21 @@ from __future__ import annotations
 from typing import Protocol
 
 
+def _safe_device() -> str:
+    """Pick "cuda" only if a trivial CUDA op actually succeeds on it.
+
+    `torch.cuda.is_available()` says yes for a GPU that is merely present,
+    not one the installed PyTorch build's compiled kernels actually support
+    (e.g. an old compute-capability card below the build's minimum) — that
+    mismatch surfaces later as an opaque CUDA error mid-embedding instead of
+    a clean, early fallback. See `poesia.device.cuda_usable` for the actual
+    probe (shared with the `lora`/`llama_cpp` generation backends).
+    """
+    from poesia.device import cuda_usable
+
+    return "cuda" if cuda_usable() else "cpu"
+
+
 class EmbeddingClient(Protocol):
     """Protocol for text embedding backends."""
 
@@ -113,7 +128,7 @@ class SentenceTransformerClient:
                 "sentence-transformers is not installed. Run: pip install -e '.[nlp]'"
             ) from exc
 
-        self._model = SentenceTransformer(self._model_name)
+        self._model = SentenceTransformer(self._model_name, device=_safe_device())
         # Use the new API name (get_embedding_dimension) if available
         if hasattr(self._model, "get_embedding_dimension"):
             self._dimension = self._model.get_embedding_dimension()
