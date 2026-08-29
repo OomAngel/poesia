@@ -132,7 +132,7 @@ all-lang = ["poesia[spanish,english,phonology-multi,phonology-extra,nlp]"]
 
 
 [project.scripts]
-poesia = "poesia.cli:app"
+poesia = "poesia.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

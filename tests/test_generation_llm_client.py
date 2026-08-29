@@ -102,11 +102,17 @@ def test_lora_client_batches_candidates() -> None:
 
 
 def test_hosted_llm_client_missing_key() -> None:
+    from unittest.mock import patch
+
     from poesia.exceptions import LLMProviderError
 
-    client = HostedLLMClient(api_key="", provider="openai")
-    with pytest.raises(LLMProviderError, match="requires an API key"):
-        client.generate("hello")
+    # Isolate from real provider keys (e.g. from a loaded .env) — otherwise
+    # api_key="" alone doesn't guarantee "no key" reaches a live provider if
+    # something upstream regresses the explicit-empty-string handling.
+    with patch.dict("os.environ", {}, clear=True):
+        client = HostedLLMClient(api_key="", provider="openai")
+        with pytest.raises(LLMProviderError, match="requires an API key"):
+            client.generate("hello")
 
 
 @patch("urllib.request.urlopen")

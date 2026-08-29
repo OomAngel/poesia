@@ -101,8 +101,6 @@ def _make_interactive_selector(loop, language: str, form: str):
     return _interactive_selector
 
 
-_load_dotenv()
-
 app = typer.Typer(
     help="An instrument for letting things out — you bring what you carry, "
     "it gives it the shape of poetry, and teaches you the craft as it goes."
@@ -1844,5 +1842,18 @@ def armonia_rhythm(
 app.add_typer(armonia_app, name="armonia")
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Real CLI entry point: loads ``.env`` once, then runs the Typer app.
+
+    Kept separate from ``app`` itself so that importing this module — e.g.
+    every ``CliRunner(app, ...)`` test — never triggers the ``.env`` load.
+    Only genuine CLI startup (the installed ``poesia`` script, or running
+    this file directly) goes through here. See conftest.py for the history
+    of the leak this fixes.
+    """
+    _load_dotenv()
     app()
+
+
+if __name__ == "__main__":
+    main()

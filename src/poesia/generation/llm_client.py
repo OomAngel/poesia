@@ -230,7 +230,11 @@ class HostedLLMClient:
         # Configurable so callers/tests can disable the deliberate sleep.
         self.groq_pace_seconds = groq_pace_seconds
 
-        if api_key:
+        if api_key is not None:
+            # Explicit, even "" — an explicitly-empty key means "no key",
+            # not "fall back to whatever's in the environment" (a truthy
+            # check here would silently ignore api_key="" and could send a
+            # different provider's real key to this one — see docs/... ).
             self.api_key = api_key
         elif os.environ.get("GEMINI_API_KEY"):
             self.api_key = os.environ.get("GEMINI_API_KEY", "")
