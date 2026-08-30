@@ -121,20 +121,35 @@ class LlamaCppLoRAClient:
         self._load()
         self.usage = LLMUsage()
         t0 = time.time()
-        max_new = 50 if "Write line" in prompt or "Output ONLY" in prompt else 100
+        # Line prompts stop at the first newline and need few tokens; whole-poem
+        # prompts (the --draft path) need many tokens and must span newlines.
+        is_line = "Write line" in prompt or "Output ONLY" in prompt
+        max_new = 50 if is_line else 250
 
         # Sequential, not batched: llama-cpp-python's high-level Llama.__call__
         # has no num_return_sequences equivalent, and a 2 GB Maxwell card has
         # no headroom for concurrent contexts anyway (see LoRAClient.generate
         # for the batched approach used on modern GPUs).
+        #
+        # repeat_penalty defaults to 1.0 (i.e. off) in llama-cpp-python — with
+        # it left unset, this small fine-tune degenerates into n-gram loops on
+        # longer (whole-poem draft) outputs, e.g. "y al sol, sol, la luz que a
+        # la luz Uz". top_p/top_k are left at the library's own defaults
+        # (0.95/40), which already do reasonable nucleus/top-k sampling.
         results: list[str] = []
         for _ in range(n):
-            out = self._llm(
-                prompt,
-                max_tokens=max_new,
-                temperature=temperature,
-                stop=["\n"],
-            )
+            if is_line:
+                out = self._llm(
+                    prompt,
+                    max_tokens=max_new,
+                    temperature=temperature,
+                    stop=["\n"],
+                    repeat_penalty=1.15,
+                )
+            else:
+                out = self._llm(
+                    prompt, max_tokens=max_new, temperature=temperature, repeat_penalty=1.15
+                )
             text = out["choices"][0]["text"].strip().strip('"').strip("'")
             if text:
                 results.append(text)
