@@ -825,6 +825,11 @@ def write(
         "--verbose",
         help="Show internal details (LLM backend, scoring mode).",
     ),
+    polish: bool = typer.Option(
+        False,
+        "--polish",
+        help="Rewrite stiff/awkward lines for naturalness (adds LLM calls per line).",
+    ),
 ) -> None:
     """Draft a poem — the machine's words are scaffolding, never the poem."""
     try:
@@ -934,6 +939,7 @@ def write(
             movement=movement,
             guest_lang=config.guest_lang,
             guest_words=config.guest_words,
+            polish=polish,
         )
     except ValueError as e:
         rprint(f"[red]{e}[/red]")
