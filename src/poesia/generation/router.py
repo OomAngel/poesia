@@ -16,10 +16,10 @@ from typing import Any
 # "use that provider's own default". This is the single source of truth for
 # routing — not a hardcoded default scattered across registry/llm_client.
 DEFAULT_ROUTE: list[dict[str, Any]] = [
-    {"provider": "groq", "model": "qwen/qwen3.8-27b"},
+    {"provider": "llama_cpp"},  # fine-tuned qwen3b-poetry GGUF (primary; CPU/CUDA)
+    {"provider": "groq", "model": "qwen/qwen3.8-27b"},  # hosted fallback
     {"provider": "openai"},  # default gpt-4o-mini (OPENAI_API_KEY)
     {"provider": "ollama"},  # local model (OLLAMA_HOST / gemma2:2b)
-    {"provider": "llama_cpp"},  # local CPU GGUF (LLAMACPP_MODEL_PATH or default)
     {"provider": "stub"},  # deterministic offline floor
 ]
 
