@@ -80,8 +80,12 @@ class CandidateGenerator:
 
         guest_instruction = ""
         if guest_word:
-            guest_lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch", "la": "Latin"}.get(
-                guest_lang, guest_lang or "a different language"
+            guest_lang_name = (
+                {"es": "Spanish", "en": "English", "nl": "Dutch", "la": "Latin"}.get(
+                    guest_lang, guest_lang
+                )
+                if guest_lang
+                else "a different language"
             )
             guest_instruction = (
                 f'Naturally work the {guest_lang_name} word or phrase "{guest_word}" '
