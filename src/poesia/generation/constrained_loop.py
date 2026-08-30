@@ -374,7 +374,12 @@ class ConstrainedLoop:
         attempts = 0
 
         def _needs_repair(candidate: ScoredCandidate) -> bool:
-            return not candidate.scan.is_valid or not _guest_word_ok(candidate.line, guest_word)
+            off_metre = candidate.scan.metrical_syllable_count != target_syllables
+            return (
+                not candidate.scan.is_valid
+                or off_metre
+                or not _guest_word_ok(candidate.line, guest_word)
+            )
 
         while best is not None and _needs_repair(best) and attempts < max_repair_attempts:
             repaired_text = self._llm.repair(
@@ -397,9 +402,9 @@ class ConstrainedLoop:
             # (or still missing its guest word), otherwise the loop hangs
             # forever with a bad LLM.
             best = scored[0]
-            if not best.scan.is_valid:
+            if not best.scan.is_valid or best.scan.metrical_syllable_count != target_syllables:
                 print(
-                    f"  [WARN] Line {line_index + 1}: accepted best candidate despite invalid "
+                    f"  [WARN] Line {line_index + 1}: accepted best candidate despite incorrect "
                     f"metre (syllables={scored[0].scan.metrical_syllable_count}, "
                     f"target={target_syllables})"
                 )
