@@ -64,3 +64,24 @@ def test_repair_description_includes_targets() -> None:
     )
     assert "exactly 11" in desc2
     assert "rhyme key 'ento'" in desc2
+
+
+def test_strips_trailing_rhyme_scheme_letter() -> None:
+    """Draft prompts embed the scheme literally ("Rhyme scheme: ABBA...") and the
+    model sometimes echoes its own letter back at the end of a line."""
+    assert _clean_candidate("la niebla sube a los jardines, (B)") == (
+        "la niebla sube a los jardines,"
+    )
+    assert _clean_candidate("iluminando el mudo acorazón (A)") == ("iluminando el mudo acorazón")
+    assert _clean_candidate("es el nido que busca el destierro (a)") == (
+        "es el nido que busca el destierro"
+    )
+    assert _clean_candidate("acorazón **(A)**") == "acorazón"
+
+
+def test_preserves_real_parentheticals() -> None:
+    """Only a single bare letter in parens is an echo artifact; real asides
+    (longer, or containing words) must survive untouched."""
+    assert _clean_candidate("un verso normal (risas)") == "un verso normal (risas)"
+    assert _clean_candidate("otro verso (o eso creía)") == "otro verso (o eso creía)"
+    assert _clean_candidate("la vida es (breve)") == "la vida es (breve)"

@@ -178,6 +178,12 @@ def _clean_candidate(line: str) -> str:
     match = re.match(r"^([A-ZÁÉÍÓÚÑ]{2,})\s", text)
     if match:
         text = match.group(1).lower() + text[match.end(1) :]
+    # Draft prompts embed the scheme as a literal string ("Rhyme scheme: ABBA...")
+    # and the model sometimes echoes its own letter back per line, e.g.
+    # "la niebla sube a los jardines, (B)" or "...acorazón **(A)**". Single
+    # letter only — real parentheticals ("(risas)", "(o eso creía)") are longer
+    # and must survive untouched.
+    text = re.sub(r"\s*\*{0,2}\([A-Za-z]\)\*{0,2}\s*$", "", text)
     return text.strip()
 
 
@@ -316,6 +322,11 @@ class LoopResult:
     lines: list[str] = field(default_factory=list)
     scored_history: list[list[ScoredCandidate]] = field(default_factory=list)
     brief: GenerationBrief | None = None  # The brief used (if any)
+    # Lines shipped despite failing a hard constraint (metre/rhyme/guest-word)
+    # after exhausting repair attempts — same text also printed as [WARN]
+    # at generation time (see ConstrainedLoop._warn), kept here so callers
+    # that don't scrape stdout can still detect a degraded result.
+    warnings: list[str] = field(default_factory=list)
 
 
 class ConstrainedLoop:
@@ -362,10 +373,24 @@ class ConstrainedLoop:
         from poesia.generation.hooks import CompositeHook
 
         self._hooks = CompositeHook()
+        # Reset per run() / run_draft() call; mirrored into LoopResult.warnings
+        # at the end so a hard-constraint failure is never silent-only.
+        self._warnings: list[str] = []
 
     def add_hook(self, hook: GenerationHook) -> None:
         """Attach a hook to observe generation events."""
         self._hooks.add(hook)
+
+    def _warn(self, message: str) -> None:
+        """Print and record a hard-constraint-violation warning.
+
+        Both `run()` and `run_draft()` funnel their "accepted a still-broken
+        line" cases through here so the message is never print-only — it also
+        lands in the returned LoopResult.warnings for callers that don't
+        scrape stdout (e.g. tests, or a future CLI summary).
+        """
+        print(f"  [WARN] {message}")
+        self._warnings.append(message)
 
     def _build_brief(
         self,
@@ -428,6 +453,12 @@ class ConstrainedLoop:
                     guest_word=guest_word,
                 ),
             )
+            # repair() output skips the batch-only _clean_candidates() call in
+            # _generate_line — clean it here too, or a prompt-echoed artifact
+            # (e.g. a rhyme-scheme letter the model tacks on) rides straight
+            # through rescoring untouched, since _needs_repair only checks
+            # metre/rhyme/guest-word, never surface text.
+            repaired_text = _clean_candidate(repaired_text)
             rescored = self._scorer.score_candidates([repaired_text], prior_lines=prior_lines)
             best = rescored[0]
             attempts += 1
@@ -440,13 +471,13 @@ class ConstrainedLoop:
             # forever with a bad LLM.
             best = scored[0]
             if not best.scan.is_valid or best.scan.metrical_syllable_count != target_syllables:
-                print(
-                    f"  [WARN] Line {line_index + 1}: accepted best candidate despite incorrect "
+                self._warn(
+                    f"Line {line_index + 1}: accepted best candidate despite incorrect "
                     f"metre ({scored[0].scan.metrical_syllable_count}/{target_syllables})"
                 )
             if guest_word and not _guest_word_ok(best.line, guest_word):
-                print(
-                    f"  [WARN] Line {line_index + 1}: accepted best candidate without "
+                self._warn(
+                    f"Line {line_index + 1}: accepted best candidate without "
                     f'landing guest word "{guest_word}" mid-line'
                 )
         if polish and best is not None:
@@ -477,6 +508,7 @@ class ConstrainedLoop:
                 candidate.line,
                 defect_description=_fluency_defect_description(target_syllables, target_rhyme_key),
             )
+            repaired_text = _clean_candidate(repaired_text)
             if not repaired_text or repaired_text == candidate.line:
                 return candidate
             rescored = self._scorer.score_candidates([repaired_text], prior_lines=prior_lines)
@@ -654,6 +686,7 @@ class ConstrainedLoop:
         if bool(guest_lang) != bool(guest_words):
             raise ValueError("guest_lang and guest_words must be given together (both or neither).")
         guest_phonology = _phonology_for(guest_lang) if guest_lang else None
+        self._warnings = []  # fresh per call — the instance may be reused
 
         result = LoopResult()
 
@@ -722,6 +755,7 @@ class ConstrainedLoop:
                 result.lines.append(best.line)
                 rhyme_tracker.commit(line_index, best.line)
 
+        result.warnings = self._warnings
         return result
 
     def _build_draft_prompt(self, theme: str, tone: list[str] | None) -> str:
@@ -762,6 +796,7 @@ class ConstrainedLoop:
         target_syllables: int,
         target_rhyme_key: str | None,
         max_attempts: int,
+        line_index: int = 0,
     ) -> str:
         """Repair a drafted line's metre/rhyme in place, without regenerating it."""
         scan = self._phonology.scan_line(line)
@@ -784,6 +819,9 @@ class ConstrainedLoop:
             if off_rhyme:
                 defects.append(f"the line must end with rhyme key '{target_rhyme_key}'")
             repaired = (self._repair_llm or self._llm).repair(line, "; ".join(defects))
+            # Same artifact risk as the line-by-line path's repair() call (see
+            # _repair_candidate) — clean before judging/accepting it.
+            repaired = _clean_candidate(repaired)
             if not repaired or repaired == line:
                 break
             new_scan = self._phonology.scan_line(repaired)
@@ -795,6 +833,26 @@ class ConstrainedLoop:
                 scan.metrical_syllable_count - target_syllables
             ):
                 line, scan = repaired, new_scan
+        # _repair_candidate (the run() path) never ships a still-broken line
+        # without saying so — give run_draft() the same transparency instead
+        # of quietly returning whatever repair got to after max_attempts.
+        off_metre = scan.metrical_syllable_count != target_syllables
+        off_rhyme = False
+        if target_rhyme_key:
+            try:
+                off_rhyme = self._phonology.rhyme_key(line).consonant != target_rhyme_key
+            except Exception:  # noqa: BLE001 — fail open on rhyme check
+                off_rhyme = False
+        if off_metre:
+            self._warn(
+                f"Line {line_index + 1}: accepted drafted line despite incorrect metre "
+                f"({scan.metrical_syllable_count}/{target_syllables})"
+            )
+        if off_rhyme:
+            self._warn(
+                f"Line {line_index + 1}: accepted drafted line with wrong rhyme key "
+                f"(needed '{target_rhyme_key}')"
+            )
         return line
 
     def _polish_draft_line(
@@ -811,6 +869,7 @@ class ConstrainedLoop:
             repaired = (self._repair_llm or self._llm).repair(
                 line, _fluency_defect_description(target_syllables, target_rhyme_key)
             )
+            repaired = _clean_candidate(repaired)
             if not repaired or repaired == line:
                 return line
             new_scan = self._phonology.scan_line(repaired)
@@ -842,6 +901,7 @@ class ConstrainedLoop:
         the ones that miss metre/rhyme are repaired in place. ``run`` is left
         untouched for the line-by-line, constraint-first flow.
         """
+        self._warnings = []  # fresh per call — the instance may be reused
         result = LoopResult()
         raw = self._llm.generate(self._build_draft_prompt(theme, tone), n=1, temperature=0.9)
         if not raw or not raw[0].strip():
@@ -859,7 +919,7 @@ class ConstrainedLoop:
             target_syllables = self.form_spec.syllables_for_line(line_index)
             target_rhyme_key = rhyme_tracker.target_key_for_line(line_index)
             fixed = self._repair_draft_line(
-                line, target_syllables, target_rhyme_key, max_repair_attempts
+                line, target_syllables, target_rhyme_key, max_repair_attempts, line_index
             )
             if polish:
                 fixed = self._polish_draft_line(
@@ -867,4 +927,5 @@ class ConstrainedLoop:
                 )
             result.lines.append(fixed)
             rhyme_tracker.commit(line_index, fixed)
+        result.warnings = self._warnings
         return result
