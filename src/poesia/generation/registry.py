@@ -20,7 +20,7 @@ _llm_registry: dict[str, type] = {}
 # Default params per backend (can be overridden by config/env)
 _DEFAULT_PARAMS: dict[str, dict[str, Any]] = {
     "stub": {},
-    "groq": {"model": "qwen/qwen3.8-27b", "provider": "groq"},
+    "groq": {"provider": "groq"},
     "gemini": {"provider": "gemini"},
     "openai": {"provider": "openai"},
     "auto": {"provider": "auto"},

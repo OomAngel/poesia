@@ -19,6 +19,10 @@ from typing import Any, Protocol
 
 from poesia.exceptions import LLMProviderError
 
+# Canonical Groq generation model — the single source of truth for which Groq
+# model poesia uses (referenced by both the router and the hosted client).
+GROQ_MODEL = "qwen/qwen3.8-27b"
+
 
 def _trace_decorator(span_type: str, name: str) -> Callable[[Any], Any]:
     """Return ``mlflow.trace(...)`` when mlflow is installed, else a no-op.
@@ -213,7 +217,7 @@ class HostedLLMClient:
 
     # Groq Cloud base URL (OpenAI-compatible)
     _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-    _GROQ_DEFAULT_MODEL = "qwen/qwen3.8-27b"
+    _GROQ_DEFAULT_MODEL = GROQ_MODEL
 
     def __init__(
         self,
