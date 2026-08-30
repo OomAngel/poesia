@@ -689,10 +689,15 @@ def _build_write_config(
     return config, tone_list, seeds_list
 
 
-def _resolve_llm_client(llm: str):
+def _resolve_llm_client(llm: str, language: str | None = None, form: str | None = None):
     """Resolve the LLM client via the registry (CLI error exit on unknown)."""
     from poesia.generation.registry import get_llm, list_backends
+    from poesia.generation.router import RoutedLLMClient
 
+    if llm == "route":
+        # Form-aware default: the fine-tuned GGUF leads only for its trained
+        # Spanish forms; everything else starts with a hosted general model.
+        return RoutedLLMClient(language=language, form=form)
     try:
         return get_llm(llm)
     except ValueError as e:
@@ -853,7 +858,7 @@ def write(
         raise typer.Exit(1) from None
 
     # Resolve LLM client via registry
-    llm_client = _resolve_llm_client(config.llm)
+    llm_client = _resolve_llm_client(config.llm, language=language, form=form)
 
     if verbose:
         rprint(
