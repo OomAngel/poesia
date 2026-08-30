@@ -774,7 +774,7 @@ def write(
         "(needs sentence-transformers).",
     ),
     llm: str = typer.Option(
-        "route", help="LLM backend (route = groq→openai→ollama→llama_cpp→stub)."
+        "route", help="LLM backend (route = llama_cpp→groq→openai→ollama→stub)."
     ),
     save: bool = typer.Option(False, "--save", help="Save to library."),
     no_title: bool = typer.Option(
