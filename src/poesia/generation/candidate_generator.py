@@ -70,7 +70,7 @@ class CandidateGenerator:
                 f"{word_bank}"
             )
         elif target_rhyme_key:
-            rhyme_instruction = f"End the line with a word whose rhyme key is '{target_rhyme_key}'."
+            rhyme_instruction = "End the line with a word that rhymes with its rhyme-group partner."
         else:
             rhyme_instruction = ""  # first of its rhyme group — model is free
 

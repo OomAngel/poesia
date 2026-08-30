@@ -221,7 +221,7 @@ def _repair_defect_description(
     """
     parts = [f"the line has {actual_syllables} syllables but must be exactly {target_syllables}"]
     if target_rhyme_key:
-        parts.append(f"the line must end with rhyme key '{target_rhyme_key}'")
+        parts.append("the line must end with a word that rhymes with its rhyme-group partner")
     if guest_word:
         parts.append(
             f'the line must naturally include "{guest_word}" somewhere in the '
@@ -257,7 +257,7 @@ def _fluency_defect_description(target_syllables: int, target_rhyme_key: str | N
     parts = ["the line reads stiffly or awkwardly — rewrite it so it sounds natural and fluent"]
     parts.append(f"keep it exactly {target_syllables} syllables")
     if target_rhyme_key:
-        parts.append(f"keep the same ending rhyme sound (rhyme key '{target_rhyme_key}')")
+        parts.append("keep the same ending rhyme sound")
     return "; ".join(parts)
 
 
@@ -774,6 +774,11 @@ class ConstrainedLoop:
         if form.rhyme_scheme:
             parts.append(f"Rhyme scheme: {form.rhyme_scheme}.")
         parts.append(f"Theme: {theme}.")
+        # The fine-tune was trained on exactly the shape above (no output
+        # directive); general models otherwise add "Here is a sonnet…" and a
+        # title before the poem.
+        if getattr(self._llm, "provider", None) != "llama_cpp":
+            parts.append("Output ONLY the poem — no title, preamble, or commentary.")
         parts.append("")
         return "\n".join(parts)
 
@@ -804,7 +809,9 @@ class ConstrainedLoop:
                     f"exactly {target_syllables}"
                 )
             if off_rhyme:
-                defects.append(f"the line must end with rhyme key '{target_rhyme_key}'")
+                defects.append(
+                    "the line must end with a word that rhymes with its rhyme-group partner"
+                )
             repaired = (self._repair_llm or self._llm).repair(line, "; ".join(defects))
             # Same artifact risk as the line-by-line path's repair() call (see
             # _repair_candidate) — clean before judging/accepting it.

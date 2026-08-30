@@ -49,7 +49,7 @@ def test_fluency_defect_includes_metre_and_rhyme() -> None:
     defect = _fluency_defect_description(10, "M")
     assert "natural and fluent" in defect
     assert "exactly 10 syllables" in defect
-    assert "rhyme key 'M'" in defect
+    assert "rhyme sound" in defect
 
 
 def test_fluency_defect_omits_rhyme_when_none() -> None:
