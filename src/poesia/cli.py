@@ -262,11 +262,31 @@ def _show_write_retrieval(
     rprint()
 
 
+def _route_has_reachable_hosted(llm_client) -> bool:
+    """True if a routed client's chain reaches a hosted provider with a key."""
+    import os
+
+    key_env = {"groq": "GROQ_API_KEY", "gemini": "GEMINI_API_KEY", "openai": "OPENAI_API_KEY"}
+    route = getattr(llm_client, "_route", None)
+    if not route:
+        return True  # unknown — err toward warning
+    return any(
+        entry["provider"] in key_env and os.environ.get(key_env[entry["provider"]])
+        for entry in route
+    )
+
+
 def _privacy_confirm(fragments: list, llm: str, llm_client, yes: bool) -> None:
     """P5: warn + confirm before personal context reaches a hosted provider."""
-    _hosted_providers = {"groq", "gemini", "openai", "auto", "route"}
-    if not (fragments and llm.lower() in _hosted_providers and not yes):
+    if not fragments or yes:
         return
+    llm_lower = llm.lower()
+    if llm_lower == "route":
+        # Warn only if the route actually reaches a keyed hosted provider.
+        if not _route_has_reachable_hosted(llm_client):
+            return
+    elif llm_lower not in {"groq", "gemini", "openai", "auto"}:
+        return  # stub / ollama / lora / llama_cpp — no hosted path
     provider_name = llm_client.provider if hasattr(llm_client, "provider") else llm
     rprint()
     rprint("[bold yellow]⚠ PRIVACY NOTICE[/bold yellow]")
@@ -374,6 +394,8 @@ def _display_write_result(
     for line in result.lines:
         rprint(line)
 
+    _show_line_metre(result, loop)
+
     # Point 3 — frame the output as scaffolding, not the poem
     rprint()
     rprint("[dim]These are proposals — scaffolding, never the poem. Keep the words that[/dim]")
@@ -382,6 +404,28 @@ def _display_write_result(
     # Show alternative candidates if requested
     if show_alternatives > 0 and result.scored_history:
         _show_line_alternatives(result, loop, show_alternatives, language, form)
+
+
+def _show_line_metre(result, loop) -> None:
+    """Per-line metre readout for the final poem — the craft layer, surfaced."""
+    rprint()
+    rprint("[bold cyan]Metre check[/bold cyan]")
+    correct = 0
+    for i, line in enumerate(result.lines):
+        target = loop.form_spec.syllables_for_line(i)
+        scan = loop._phonology.scan_line(line)
+        actual = scan.metrical_syllable_count
+        if actual == target:
+            rprint(f"  [green]✓[/green] {actual:>2}/{target:<2}  {line}")
+            correct += 1
+        else:
+            diff = actual - target
+            if diff > 0:
+                note = f" [dim]{diff} syllable{'s' if diff != 1 else ''} long[/dim]"
+            else:
+                note = f" [dim]{-diff} syllable{'s' if -diff != 1 else ''} short[/dim]"
+            rprint(f"  [red]✗[/red] {actual:>2}/{target:<2}  {line}{note}")
+    rprint(f"[dim]{correct}/{len(result.lines)} lines metrically correct[/dim]")
 
 
 def _show_line_alternatives(result, loop, show_alternatives: int, language: str, form: str) -> None:
