@@ -759,35 +759,22 @@ class ConstrainedLoop:
         return result
 
     def _build_draft_prompt(self, theme: str, tone: list[str] | None) -> str:
-        """Whole-poem prompt: form structure + quality directives.
+        """Whole-poem prompt, matched to the fine-tune's training format.
 
-        Unlike the line-by-line prompt, this treats metre/rhyme as targets to
-        correct afterward, so the model writes a coherent poem first instead of
-        satisfying per-line constraints at birth.
+        The GGUF was trained on ``"Write a soneto in Spanish.\\nRhyme scheme: X.\\n
+        Theme: Y.\\n\\n"``; keeping that exact shape makes it respond with verse
+        instead of annotation echo. General models handle the same format. Tone
+        is intentionally dropped — the training prompt has no tone line.
         """
         lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch"}.get(
             self.language, self.language
         )
         form = self.form_spec
-        parts = [
-            f"Write a complete {lang_name} {form.name.replace('_', ' ')} on the theme: {theme}.",
-            f"Form: {form.total_lines} lines, about {form.syllables_per_line} syllables per line, "
-            f"rhyme scheme {form.rhyme_scheme or 'none'}.",
-        ]
-        if form.foot:
-            parts.append(f"Meter: {form.foot}.")
-        if form.total_lines == 14:
-            parts.append("Give it a turn (volta) around line 9, shifting the argument or image.")
-        if tone:
-            parts.append(f"Tone: {', '.join(tone)}.")
-        parts.append(
-            "Write a real, coherent poem — vivid concrete imagery, a clear emotional or "
-            "argumentative arc, and a satisfying ending. Prioritize meaning and imagery over "
-            "exact syllable counts; the metre and rhyme will be corrected afterward."
-        )
-        parts.append(
-            "Output ONLY the poem, one line per line — no title, numbering, or commentary."
-        )
+        parts = [f"Write a {form.name} in {lang_name}."]
+        if form.rhyme_scheme:
+            parts.append(f"Rhyme scheme: {form.rhyme_scheme}.")
+        parts.append(f"Theme: {theme}.")
+        parts.append("")
         return "\n".join(parts)
 
     def _repair_draft_line(
