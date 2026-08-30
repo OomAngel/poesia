@@ -782,8 +782,11 @@ class ConstrainedLoop:
             if not repaired or repaired == line:
                 break
             new_scan = self._phonology.scan_line(repaired)
-            # Accept if metre got no worse; rhyme is re-checked on the next pass.
-            if abs(new_scan.metrical_syllable_count - target_syllables) <= abs(
+            # Accept only a strict improvement: an exact hit, or closer to target.
+            if new_scan.metrical_syllable_count == target_syllables:
+                line, scan = repaired, new_scan
+                break
+            if abs(new_scan.metrical_syllable_count - target_syllables) < abs(
                 scan.metrical_syllable_count - target_syllables
             ):
                 line, scan = repaired, new_scan
