@@ -19,15 +19,13 @@ class _FakeDraftLLM:
         return self.repair_to if self.repair_to is not None else line
 
 
-def test_build_draft_prompt_has_structure_and_quality() -> None:
-    """The whole-poem prompt carries form structure and quality directives."""
-    loop = ConstrainedLoop(language="en", form="sonnet_shakespearean")
-    prompt = loop._build_draft_prompt("the orchard", ["reverent"])
-    assert "14 lines" in prompt
-    assert "ABABCDCDEFEFGG" in prompt
-    assert "volta" in prompt
-    assert "concrete imagery" in prompt
-    assert "corrected afterward" in prompt
+def test_build_draft_prompt_matches_training_format() -> None:
+    """The whole-poem prompt uses the fine-tune's training prompt shape."""
+    loop = ConstrainedLoop(language="es", form="soneto")
+    prompt = loop._build_draft_prompt("la luna", ["reverent"])
+    assert prompt.startswith("Write a soneto in Spanish.\n")
+    assert "Rhyme scheme: ABBAABBACDCDCD." in prompt
+    assert "Theme: la luna." in prompt
 
 
 def test_run_draft_generates_and_splits_lines() -> None:
