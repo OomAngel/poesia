@@ -340,10 +340,15 @@ class ConstrainedLoop:
         embedding_client: EmbeddingClient | None = None,
         fragments: list[FragmentRecord] | None = None,
         influences: list[InfluenceRecord] | None = None,
+        repair_llm: LLMClient | None = None,
     ) -> None:
         self.language = language
         self.form_spec: FormSpec = get_form(form, language)
         self._llm = llm or StubLLMClient()
+        # Optional separate model for metre/rhyme repair (hybrid: draft with a
+        # coherent general model, repair with a metre-accurate one). None = reuse
+        # the draft model.
+        self._repair_llm = repair_llm
         self._phonology = _phonology_for(language)
         self._generator = CandidateGenerator(self._llm)
         # Phase 3E: brief building support
@@ -778,7 +783,7 @@ class ConstrainedLoop:
                 )
             if off_rhyme:
                 defects.append(f"the line must end with rhyme key '{target_rhyme_key}'")
-            repaired = self._llm.repair(line, "; ".join(defects))
+            repaired = (self._repair_llm or self._llm).repair(line, "; ".join(defects))
             if not repaired or repaired == line:
                 break
             new_scan = self._phonology.scan_line(repaired)
@@ -803,7 +808,7 @@ class ConstrainedLoop:
         for _ in range(max_attempts):
             if not _line_is_stiff(line, self.language, self._llm):
                 return line
-            repaired = self._llm.repair(
+            repaired = (self._repair_llm or self._llm).repair(
                 line, _fluency_defect_description(target_syllables, target_rhyme_key)
             )
             if not repaired or repaired == line:

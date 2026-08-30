@@ -706,6 +706,16 @@ def _resolve_llm_client(llm: str, language: str | None = None, form: str | None 
         raise typer.Exit(1) from None
 
 
+def _should_draft(
+    form_spec, interactive: bool, show_alternatives: int, guest_words: list[str] | None
+) -> bool:
+    """Auto-enable draft for long rhymed forms (sonnets) unless a line-by-line-only
+    feature (interactive, alternatives, macaronic words) is requested."""
+    if interactive or show_alternatives > 0 or guest_words:
+        return False
+    return form_spec.total_lines >= 8 and bool(form_spec.rhyme_scheme)
+
+
 def _build_write_brief(
     use_brief: bool, library_poems: list
 ) -> tuple[BriefBuilder | None, list, list, EmbeddingClient | None, bool]:
@@ -835,6 +845,11 @@ def write(
         "--draft",
         help="Draft the whole poem in one coherent pass, then repair metre/rhyme.",
     ),
+    repair_llm: str = typer.Option(
+        None,
+        "--repair-llm",
+        help="Backend for metre/rhyme repair in --draft mode (default: same as --llm).",
+    ),
 ) -> None:
     """Draft a poem — the machine's words are scaffolding, never the poem."""
     try:
@@ -867,6 +882,11 @@ def write(
 
     # Resolve LLM client via registry
     llm_client = _resolve_llm_client(config.llm, language=language, form=form)
+    repair_llm_client = (
+        _resolve_llm_client(repair_llm, language=language, form=form)
+        if repair_llm and repair_llm != config.llm
+        else None
+    )
 
     if verbose:
         rprint(
@@ -922,6 +942,7 @@ def write(
             embedding_client=embedding_client,
             fragments=fragments,
             influences=influences,
+            repair_llm=repair_llm_client,
         )
     except ValueError as e:
         rprint(f"[red]{e}[/red]")
@@ -933,7 +954,9 @@ def write(
 
     _t0 = _time.time()
     try:
-        if draft:
+        if draft or _should_draft(
+            loop.form_spec, interactive, show_alternatives, config.guest_words
+        ):
             result = loop.run_draft(
                 theme=theme,
                 tone=tone_list,
