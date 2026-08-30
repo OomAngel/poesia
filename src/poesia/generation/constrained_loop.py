@@ -775,9 +775,14 @@ class ConstrainedLoop:
             parts.append(f"Rhyme scheme: {form.rhyme_scheme}.")
         parts.append(f"Theme: {theme}.")
         # The fine-tune was trained on exactly the shape above (no output
-        # directive); general models otherwise add "Here is a sonnet…" and a
-        # title before the poem.
+        # directive or syllable count); general models otherwise add a preamble
+        # and title, and draft variable-length lines without a metre target.
         if getattr(self._llm, "provider", None) != "llama_cpp":
+            if form.syllable_pattern:
+                pattern = ", ".join(map(str, form.syllable_pattern))
+                parts.append(f"Approximate syllable counts per line: {pattern}.")
+            else:
+                parts.append(f"Approximately {form.syllables_per_line} syllables per line.")
             parts.append("Output ONLY the poem — no title, preamble, or commentary.")
         parts.append("")
         return "\n".join(parts)
