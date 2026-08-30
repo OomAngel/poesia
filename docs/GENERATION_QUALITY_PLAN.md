@@ -52,3 +52,10 @@ route. Its value is *voice*, not metre.
 5. ✅ Make `--repair-llm` affect line-by-line repair too.
 6. Decide fine-tune fate — re-train vs deprioritize.
 7. Re-add form-aware routing once the fine-tune demonstrably beats groq.
+
+## MLOps / data engineering (added 2026-08-30)
+
+- ✅ `benchmark_metre.py` logs each cell to MLflow (params: backend/form/mode/theme; metric: `metre_accuracy`; artifact: `samples.txt`). Tracking URI = `DATABASE_URL` or `file:./mlruns`.
+- ✅ `dvc.yaml` gained a `benchmark` stage (deps: script + core generation modules; no outs — results go to MLflow).
+- ✅ `models/poetry-lora-qwen3b/qwen3b-poetry-Q4_K_M.gguf` is DVC-versioned (`.dvc` pointer committed; data in `.dvc/cache`).
+- ⚠️ Follow-up: full `.gitignore` ↔ DVC reconciliation. `models/` is still wholesale-ignored, so the `.dvc` pointer was committed with `git add -f`. Proper fix: restructure so `.dvc` pointers live in a git-tracked dir, or narrow the `models/` ignore.
