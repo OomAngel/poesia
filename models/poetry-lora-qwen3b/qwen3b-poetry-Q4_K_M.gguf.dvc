@@ -1,0 +1,5 @@
+outs:
+- md5: 0271005bb1c22ff47ce9b95ede623116
+  size: 1929902496
+  hash: md5
+  path: qwen3b-poetry-Q4_K_M.gguf

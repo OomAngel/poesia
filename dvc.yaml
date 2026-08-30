@@ -50,3 +50,11 @@ stages:
     # No `outs` here deliberately: eval results are metrics/artifacts that
     # belong in MLflow (this script already logs there), not a second
     # copy of the same numbers tracked by DVC.
+
+  benchmark:
+    cmd: python scripts/benchmark_metre.py --backends llama_cpp,groq --forms soneto:es --draft
+    deps:
+      - scripts/benchmark_metre.py
+      - src/poesia/generation/constrained_loop.py
+      - src/poesia/forms/definitions.py
+    # No `outs`: results are metrics/artifacts logged to MLflow (like `evaluate`).
