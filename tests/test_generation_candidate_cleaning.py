@@ -63,7 +63,7 @@ def test_repair_description_includes_targets() -> None:
         actual_syllables=9, target_syllables=11, target_rhyme_key="ento"
     )
     assert "exactly 11" in desc2
-    assert "rhyme key 'ento'" in desc2
+    assert "rhymes with its rhyme-group partner" in desc2
 
 
 def test_strips_trailing_rhyme_scheme_letter() -> None:
