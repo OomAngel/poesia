@@ -93,14 +93,25 @@ in the file:
   (or attempts are exhausted) in the draft path, and add rhyme-incorrectness to the
   line-by-line path's repair trigger with an honest warning when it can't be resolved.
 
-**Post-fix spot check (2026-08-31):** `poesia write --theme "la luna" --draft --llm groq
---repair-llm llama_cpp --verbose` after `b120de0` now surfaces explicit
-`accepted drafted line with wrong rhyme key (needed 'X')` warnings on 6/13 lines — previously
-these would have shipped silently. Confirms the fix does what it's meant to (honest reporting),
-though this single sample's raw metre accuracy (4/13, 30.8%) is lower than the earlier "la luna"
-trial (11/14, 78.6%) — consistent with the wide trial-to-trial variance already noted above, not
-evidence of regression. A proper before/after comparison would need the same 3-theme benchmark
-re-run, not done here.
+**Post-fix 3-theme re-run (2026-08-31), same themes as the original trial** (`poesia write
+--draft --llm groq --repair-llm llama_cpp --verbose`):
+
+| Theme | Metre correct | Rhyme-key warnings |
+|---|---|---|
+| la luna | 4/13 (30.8%) | 6 lines |
+| el mar | 6/14 (42.9%) | 9 lines |
+| el tiempo | 9/14 (64.3%) | 7 lines |
+| **Aggregate** | **19/41 (46.3%)** | **22/41 lines (53.7%)** |
+
+Pre-fix aggregate was 21/42 (50%). **Metre accuracy is statistically flat** (46.3% vs 50%, well
+within the trial-to-trial variance already documented) — the fix was never expected to move
+this number, since it targets rhyme enforcement, not metre. The real result: **rhyme-key
+warnings now surface on over half of all lines (22/41)**, confirming what the root-cause
+analysis suspected — this isn't a loop-logic bug that a fix resolves, it's a capability ceiling
+in the `llama_cpp`/qwen3b repair model itself. `b120de0` does exactly what it should: every one
+of these failures is now honestly reported instead of silently shipped. It can't make the repair
+model competent at rhyme it wasn't trained to prioritize. This reinforces the existing verdict
+above — the fine-tune isn't ready as repair either, not just as primary generator.
 
 ## MLOps / data engineering (added 2026-08-30, updated 2026-08-31)
 
