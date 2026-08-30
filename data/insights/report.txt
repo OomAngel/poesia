@@ -1,0 +1,72 @@
+POESIA CORPUS INSIGHTS
+poems: 41168
+============================================================
+
+[form_distribution]
+  soneto | 27894
+  None | 9622
+  romance | 1408
+  unknown | 853
+  decima | 667
+  cuarteto | 390
+  haiku | 136
+  quintilla | 128
+  poema | 70
+
+[language_distribution]
+  es | 31546
+  None | 9622
+
+[source_distribution]
+  disco | 18058
+  clasicos | 9894
+  None | 9622
+   | 2492
+  gutenberg_machado | 165
+  spanish_poetry | 120
+  gutenberg_mitre_rimas | 97
+  gutenberg_cien_poesias | 92
+  gutenberg_antologia_portorriquena | 78
+  gutenberg_lorca_libro | 69
+
+[top_20_authors]
+  Luis de Góngora | 974
+  Federico García Lorca | 876
+  Juan de Arguijo | 635
+  Lope de Vega | 440
+  Pablo Neruda | 393
+  Rubén Darío | 389
+  Marqués de Santillana | 362
+  Marilina Rébora | 348
+  Juan Nicasio Gallego | 325
+  Antonio Machado | 325
+  Manuel del Palacio | 322
+  Gaspar Núñez de Arce | 319
+  Clemente Althaus | 319
+  Juan Ramón Jiménez | 302
+  José Santos Chocano | 300
+  Julio Flores Roa | 294
+  Francisco Javier Ugarte y Pages | 293
+  Manuel Bernabé | 281
+  Ramón López Velarde | 277
+  Mario Benedetti | 274
+
+[lines_per_poem]
+  1 | 19.6 | 1282
+
+[soneto_metre_consistency_top15 (11-syllable adherence, >=20 lines)]
+  Antonio Fernández Grilo | 25 | 28 | 0.893
+  Manuel María Pérez | 24 | 28 | 0.857
+  Francisco Faria Correa | 24 | 28 | 0.857
+  Mercedes Marín de Solar | 35 | 42 | 0.833
+  Joseph de Valdivieso | 23 | 28 | 0.821
+  Miguel Antonio Caro | 23 | 28 | 0.821
+  José Lamarque de Novoa | 23 | 28 | 0.821
+  Manuel María Barbosa de Bocage | 34 | 42 | 0.81
+  Agustín Luján | 22 | 28 | 0.786
+  Juan Valle de Velasco | 33 | 42 | 0.786
+  Juana de Arteaga | 22 | 28 | 0.786
+  Francisco Ruiz Estébez | 33 | 42 | 0.786
+  Francisco de Quevedo | 22 | 28 | 0.786
+  Jerónimo González de Villanueva | 22 | 28 | 0.786
+  Álvaro Cubillo de Aragón | 22 | 28 | 0.786
