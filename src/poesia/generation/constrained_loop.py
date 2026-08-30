@@ -224,6 +224,37 @@ def _repair_defect_description(
     return "; ".join(parts)
 
 
+def _line_is_stiff(line: str, language: str, llm) -> bool:
+    """Ask the LLM whether a line reads stiffly/awkwardly (vs. naturally).
+
+    Fail-open: any error or unparsable response is treated as "not stiff", so
+    a fluency-check failure never blocks generation.
+    """
+    lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch"}.get(language, language)
+    prompt = (
+        f"Judge this {lang_name} poetic line for naturalness:\n"
+        f'"{line}"\n'
+        "Reply with exactly one word — STIFF if it reads awkwardly, forced, "
+        "ungrammatically, or like literal machine translation; NATURAL otherwise."
+    )
+    try:
+        responses = llm.generate(prompt, n=1, temperature=0.0)
+    except Exception:  # noqa: BLE001 — fail open on provider errors
+        return False
+    if not responses:
+        return False
+    return responses[0].strip().upper().startswith("STIFF")
+
+
+def _fluency_defect_description(target_syllables: int, target_rhyme_key: str | None) -> str:
+    """Repair request for a stiff line that keeps the metre/rhyme already fixed."""
+    parts = ["the line reads stiffly or awkwardly — rewrite it so it sounds natural and fluent"]
+    parts.append(f"keep it exactly {target_syllables} syllables")
+    if target_rhyme_key:
+        parts.append(f"keep the same ending rhyme sound (rhyme key '{target_rhyme_key}')")
+    return "; ".join(parts)
+
+
 def _guest_word_ok(line: str, guest_word: str | None) -> bool:
     """True if no guest word is required, or it's present and not line-final.
 
@@ -363,6 +394,7 @@ class ConstrainedLoop:
         max_repair_attempts: int,
         line_index: int,
         guest_word: str | None = None,
+        polish: bool = False,
     ) -> ScoredCandidate | None:
         """Repair an invalid best candidate up to max_repair_attempts.
 
@@ -412,7 +444,52 @@ class ConstrainedLoop:
                     f"  [WARN] Line {line_index + 1}: accepted best candidate without "
                     f'landing guest word "{guest_word}" mid-line'
                 )
+        if polish and best is not None:
+            best = self._polish_line(
+                best, target_syllables, target_rhyme_key, prior_lines, max_repair_attempts
+            )
         return best
+
+    def _polish_line(
+        self,
+        candidate: ScoredCandidate,
+        target_syllables: int,
+        target_rhyme_key: str | None,
+        prior_lines: list[str],
+        max_attempts: int,
+    ) -> ScoredCandidate:
+        """Rewrite a metrically-correct line to read naturally, preserving metre.
+
+        Runs after the metre/rhyme repair so the only remaining defect is
+        fluency. Accepts a repair only if it keeps the target syllable count
+        (and rhyme key, when one is required).
+        """
+        for _ in range(max_attempts):
+            if not _line_is_stiff(candidate.line, self.language, self._llm):
+                return candidate
+            assert self._scorer is not None  # set up in _generate before repair runs
+            repaired_text = self._llm.repair(
+                candidate.line,
+                defect_description=_fluency_defect_description(target_syllables, target_rhyme_key),
+            )
+            if not repaired_text or repaired_text == candidate.line:
+                return candidate
+            rescored = self._scorer.score_candidates([repaired_text], prior_lines=prior_lines)
+            if not rescored:
+                return candidate
+            new = rescored[0]
+            metre_ok = new.scan.metrical_syllable_count == target_syllables
+            rhyme_ok = True
+            if target_rhyme_key:
+                try:
+                    rhyme_ok = self._phonology.rhyme_key(new.line).consonant == target_rhyme_key
+                except Exception:  # noqa: BLE001 — fail open on rhyme check
+                    rhyme_ok = True
+            if metre_ok and rhyme_ok:
+                candidate = new
+                continue
+            return candidate  # repair broke a hard constraint — keep the original
+        return candidate
 
     def _select_best(
         self,
@@ -539,6 +616,7 @@ class ConstrainedLoop:
         movement: str | None = None,
         guest_lang: str | None = None,
         guest_words: list[str] | None = None,
+        polish: bool = False,
     ) -> LoopResult:
         """Generate a full poem, one line at a time, for `total_lines` lines.
 
@@ -630,6 +708,7 @@ class ConstrainedLoop:
                 max_repair_attempts,
                 line_index,
                 guest_word=guest_word,
+                polish=polish,
             )
             if best is not None:
                 chosen = self._select_best(line_index, scored, line_selector)
