@@ -5,11 +5,11 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-410%20passing-brightgreen)](#development)
+[![Tests](https://img.shields.io/badge/tests-461%20passing-brightgreen)](#development)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](#status)
 [![LLM backends](https://img.shields.io/badge/LLM%20backends-8%2B-blueviolet)](#core-generation)
 [![Image backends](https://img.shields.io/badge/image%20backends-6-orange)](#galeria--illustration)
-[![Languages](https://img.shields.io/badge/languages-es%20%7C%20en%20%7C%20nl-green)](#language-support)
+[![Languages](https://img.shields.io/badge/languages-es%20%7C%20en%20(nl%20scan--only)-green)](#language-support)
 [![Retrieval](https://img.shields.io/badge/retrieval-Graph%20RAG-purple)](#memoria)
 [![MLOps](https://img.shields.io/badge/MLOps-MLflow-important)](#tooling)
 
@@ -178,6 +178,10 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 - Grammar-constrained decoding via Outlines; LoRA/QLoRA fine-tuning (Qwen2.5) with MLflow tracking
 - Directive prompts: syllable targets, rhyme word banks, anti-repetition
 - Interactive line selection, alternative ranking, privacy guardrails for hosted providers
+- **Macaronic word insertion** (`--guest-lang`/`--guest-words`, opt-in): drop a
+  word or phrase from another language mid-line into an otherwise
+  single-language poem — rhyme and metre are still validated on the host
+  language; see [Language support](#language-support)
 
 ### Phonology — the deterministic spine
 
@@ -203,7 +207,7 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 ### Tooling
 
 - MLOps: MLflow single source of truth, model registry, evaluation, monitoring, Docker, CI/CD
-- 410 passing tests; ruff, mypy, bandit, safety enforced in CI
+- 461 passing tests (1 pre-existing GPU-only test skipped in non-CUDA envs); ruff, mypy, bandit, safety enforced in CI
 
 ---
 
@@ -404,7 +408,43 @@ only through abstract `Protocol` backends — no vendor SDK leaks into core logi
 |---|---|---|
 | Spanish | `silabeador`, `fonemas`, `phonemizer` | 45 stanza types, soneto, romance… |
 | English | `pronouncing` + CMUdict, `prosodic`, `phonemizer` | iambic pentameter, sonnets, haiku, free verse |
-| Dutch | `pyphen` | syllabic validation |
+| Dutch | `pyphen` | none registered yet — `write`/`workshop` will reject `--language nl`; `scan --language nl` works standalone for syllable/stress checking |
+
+`prosodic` is listed above as aspirational: it's declared as an optional
+dependency and referenced in comments, but not currently installed or wired
+into any code path (see [Development](#development) for the dependency
+groups that *are* actually wired in).
+
+### Macaronic word insertion
+
+`write` can drop a word or short phrase from another (*guest*) language
+mid-line into an otherwise single-language (*host*) poem — off by default,
+opt-in only:
+
+```bash
+poesia write --theme "the weight of silence" --form haiku --language en \
+  --guest-lang es --guest-words "silencio"
+```
+
+- **You choose the word** — `--guest-words` is a comma-separated list; the
+  system never invents which foreign word to insert, only where it lands.
+- **Mid-line only (v1)**: the guest word is placed in the middle of a line,
+  never as the line's last word, so rhyme extraction (which still runs on
+  the host language alone) is never corrupted by a word it can't parse.
+  Metre *is* still fully validated across the mixed line — a dedicated
+  `scan_mixed_line` helper scans the host and guest spans separately, through
+  their own phonology backends, and recombines the syllable/stress counts.
+- **Currently backed languages** (i.e. valid for both `--language` and
+  `--guest-lang`): `es`, `en`, `nl`. Any pairing among these works today
+  (e.g. English host with a Spanish guest word, or vice versa).
+- **Not yet backed**: Latin and Chinese pinyin guest words — no phonology
+  backend exists for either yet (`pyphen` has no Latin dictionary; `cltk`
+  2.x dropped its old scansion module; pinyin would need a new dependency
+  like `pypinyin`). Requesting them raises a clear error rather than
+  silently mis-scanning.
+- One guest word is assigned per line, spread evenly across the poem
+  (e.g. 2 guest words in a 14-line sonnet land around lines 5 and 10, not
+  clustered at the start).
 
 ---
 
@@ -412,7 +452,7 @@ only through abstract `Protocol` backends — no vendor SDK leaks into core logi
 
 ```bash
 pip install -e ".[dev]"
-pytest                       # 410 tests
+pytest                       # 461 tests
 ruff check src/ mlops/       # lint (CI-enforced)
 ruff format --check src/ mlops/
 mypy src/ --ignore-missing-imports
@@ -434,7 +474,7 @@ in [`USAGE_GUIDE.md`](USAGE_GUIDE.md).
 
 ## Status
 
-Core engine complete; Phases 0–5 + P0–P5 hardening done, **410 tests passing**
+Core engine complete; Phases 0–5 + P0–P5 hardening done, **461 tests passing**
 (2026-08). Fine-tuning and DPO pipelines operational (MLflow-tracked); GalerIA
 wired end-to-end for online (DALL·E / SDXL) and offline (`procedural`
 deterministic art, no key needed) illustration, with the `image:` link
