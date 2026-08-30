@@ -906,11 +906,24 @@ class ConstrainedLoop:
         result = LoopResult()
         raw = self._llm.generate(self._build_draft_prompt(theme, tone), n=1, temperature=0.9)
         if not raw or not raw[0].strip():
+            self._warn("draft LLM returned an empty completion — no lines to repair")
+            result.warnings = self._warnings
             return result
 
         lines = [ln.strip() for ln in raw[0].splitlines() if ln.strip()]
         lines = _clean_candidates(lines, [])
         total_lines = total_lines_override or self.form_spec.total_lines
+        if len(lines) < total_lines:
+            # A degraded upstream provider (e.g. the router falling all the way
+            # through to the offline stub, which only ever emits one line) can
+            # return a draft far short of the form's line count. Silently
+            # accepting the fragment as "the poem" would hide the failure
+            # entirely — surface it the same way a broken metre/rhyme line is.
+            self._warn(
+                f"draft has {len(lines)}/{total_lines} lines — provider likely "
+                "degraded (rate limit, fallback, or truncation); repairing "
+                "only the lines present"
+            )
         lines = lines[:total_lines]
 
         rhyme_tracker = RhymeTracker(

@@ -48,3 +48,18 @@ def test_run_draft_empty_response_is_safe() -> None:
     loop._llm = _FakeDraftLLM("")  # noqa: SLF001
     result = loop.run_draft(theme="the orchard")
     assert result.lines == []
+    assert result.warnings  # the empty completion must be surfaced, not silent
+
+
+def test_run_draft_short_completion_warns_instead_of_silently_shipping() -> None:
+    """A draft shorter than the form's line count is a degraded-provider signal.
+
+    A router falling all the way through to the offline stub (which only ever
+    emits one line, regardless of the whole-poem prompt it was given) must not
+    be mistaken for a complete poem — the gap has to show up in `warnings`.
+    """
+    loop = ConstrainedLoop(language="es", form="soneto")
+    loop._llm = _FakeDraftLLM("Solo llega una línea de un proveedor degradado")  # noqa: SLF001
+    result = loop.run_draft(theme="the orchard")
+    assert len(result.lines) == 1
+    assert any("1/14 lines" in w for w in result.warnings)
