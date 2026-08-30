@@ -1,0 +1,6 @@
+outs:
+- md5: 6b7ccf162175e60d568034b6c64d7918.dir
+  size: 3217451
+  nfiles: 1
+  hash: md5
+  path: sonetos_curated
