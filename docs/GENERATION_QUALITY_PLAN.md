@@ -53,9 +53,11 @@ route. Its value is *voice*, not metre.
 6. Decide fine-tune fate — re-train vs deprioritize.
 7. Re-add form-aware routing once the fine-tune demonstrably beats groq.
 
-## MLOps / data engineering (added 2026-08-30)
+## MLOps / data engineering (added 2026-08-30, updated 2026-08-31)
 
-- ✅ `benchmark_metre.py` logs each cell to MLflow (params: backend/form/mode/theme; metric: `metre_accuracy`; artifact: `samples.txt`). Tracking URI = `DATABASE_URL` or `file:./mlruns`.
+- ✅ `benchmark_metre.py` logs each cell to MLflow (params: backend/form/mode/theme; metric: `metre_accuracy`; artifact: `samples.txt`). Tracking URI = `DATABASE_URL` or `sqlite:///mlruns/mlflow.db` (`file:./mlruns` was removed by MLflow 3.x and silently no-op'd — fixed 2026-08-31, regression test added: `tests/test_mlflow_wiring.py`).
 - ✅ `dvc.yaml` gained a `benchmark` stage (deps: script + core generation modules; no outs — results go to MLflow).
-- ✅ `models/poetry-lora-qwen3b/qwen3b-poetry-Q4_K_M.gguf` is DVC-versioned (`.dvc` pointer committed; data in `.dvc/cache`).
-- ⚠️ Follow-up: full `.gitignore` ↔ DVC reconciliation. `models/` is still wholesale-ignored, so the `.dvc` pointer was committed with `git add -f`. Proper fix: restructure so `.dvc` pointers live in a git-tracked dir, or narrow the `models/` ignore.
+- ✅ `models/poetry-lora-qwen3b/qwen3b-poetry-Q4_K_M.gguf` is DVC-versioned (`.dvc` pointer committed; data in `.dvc/cache`). `dvc status models/poetry-lora-qwen3b.dvc` confirmed up to date 2026-08-31.
+- ✅ 2026-08-31: re-ran `benchmark_metre.py --backends groq,llama_cpp --forms soneto:es --draft` now that MLflow logging actually works — groq 45% (5/11) vs. llama_cpp/qwen3b fine-tune 14% (2/14), confirmed queryable in `mlruns/mlflow.db` (`Default` experiment, runs `benchmark-metre-groq-soneto:es` / `benchmark-metre-llama_cpp-soneto:es`). Matches the fine-tune verdict above — groq still ahead on metre.
+- ⚠️ New blocker (found 2026-08-31): `evaluate_adapter_mlflow.py` is hardcoded to `LoRAClient` (transformers + bitsandbytes 4-bit, requires CUDA). This machine's GPU (Quadro M1000M, compute capability 5.0) is below the installed PyTorch's minimum (sm_75); `poesia.device.cuda_usable()` returns `False`, so the script fails fast for **all 9 trained adapters** — not just some. Only `poetry-lora-qwen3b` has a GGUF export usable via the `llama_cpp` fallback, and the eval script doesn't route through it. Evaluating the other 8 adapters (`v2`, `v2-fixed`, `dpo-expanded`, `composite`, `multiform`, `3b`, `distilled`, `smoke-test-adapter`) needs either cloud/compatible GPU access or a GGUF export + llama_cpp eval path per adapter — out of scope until prioritized.
+- ⚠️ Follow-up (lower priority): `.gitignore`'s `models/*.dvc` pattern only un-ignores top-level `.dvc` files, not nested ones (e.g. a hypothetical per-file `models/poetry-lora-qwen3b/foo.dvc` would still be ignored) — not currently biting anything since `poetry-lora-qwen3b.dvc` tracks the whole directory as one dir-output, but worth narrowing if per-file `.dvc` pointers are ever added under `models/`.
