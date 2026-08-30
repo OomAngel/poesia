@@ -33,7 +33,9 @@ class TestP1EndToEndJourney:
 
     def test_write_generates_poem(self, runner: CliRunner) -> None:
         """Basic write command should generate a poem."""
-        result = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku"])
+        result = runner.invoke(
+            app, ["write", "--theme", "luna", "--form", "haiku", "--llm", "stub"]
+        )
         assert result.exit_code == 0
         assert "Theme: luna" in result.output
 
@@ -42,7 +44,9 @@ class TestP1EndToEndJourney:
         old_home = os.environ.get("HOME")
         try:
             os.environ["HOME"] = str(temp_home)
-            result = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku", "--save"])
+            result = runner.invoke(
+                app, ["write", "--theme", "luna", "--form", "haiku", "--save", "--llm", "stub"]
+            )
             assert result.exit_code == 0
             assert "Saved to library" in result.output
 
@@ -66,7 +70,8 @@ class TestP1EndToEndJourney:
 
             # Test without --brief to avoid slow embedding load
             result = runner.invoke(
-                app, ["write", "--theme", "noche", "--form", "haiku", "--use-library"]
+                app,
+                ["write", "--theme", "noche", "--form", "haiku", "--use-library", "--llm", "stub"],
             )
             assert result.exit_code == 0
             assert "Loaded 1 poems from library" in result.output

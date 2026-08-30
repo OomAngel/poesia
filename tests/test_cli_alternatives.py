@@ -18,6 +18,8 @@ def test_write_without_alternatives_shows_only_poem():
             "luna",
             "--form",
             "haiku",
+            "--llm",
+            "stub",
         ],
     )
 
@@ -41,6 +43,8 @@ def test_write_with_alternatives_shows_candidates():
             "haiku",
             "--show-alternatives",
             "3",
+            "--llm",
+            "stub",
         ],
     )
 
@@ -76,6 +80,8 @@ def test_alternatives_shows_correct_line_count():
             "haiku",  # 3 lines
             "--show-alternatives",
             "2",
+            "--llm",
+            "stub",
         ],
     )
 
@@ -92,8 +98,10 @@ def test_alternatives_shows_correct_line_count():
 def test_verbose_flag_reveals_internal_details():
     """Internal diagnostics (LLM backend, scoring mode) are hidden unless --verbose."""
     runner = CliRunner()
-    default = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku"])
-    verbose = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku", "--verbose"])
+    default = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku", "--llm", "stub"])
+    verbose = runner.invoke(
+        app, ["write", "--theme", "luna", "--form", "haiku", "--verbose", "--llm", "stub"]
+    )
 
     assert default.exit_code == 0
     assert "Using LLM:" not in default.output
@@ -108,7 +116,7 @@ def test_verbose_flag_reveals_internal_details():
 def test_write_output_frames_draft_as_scaffolding():
     """The draft is framed as proposals, never as the poem itself."""
     runner = CliRunner()
-    result = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku"])
+    result = runner.invoke(app, ["write", "--theme", "luna", "--form", "haiku", "--llm", "stub"])
     assert result.exit_code == 0
     assert "proposals" in result.output.lower()
     assert "scaffolding" in result.output.lower()
@@ -127,6 +135,8 @@ def test_alternatives_respects_limit():
             "haiku",
             "--show-alternatives",
             "2",  # Only top 2
+            "--llm",
+            "stub",
         ],
     )
 
