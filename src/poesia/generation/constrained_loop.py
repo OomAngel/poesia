@@ -718,3 +718,145 @@ class ConstrainedLoop:
                 rhyme_tracker.commit(line_index, best.line)
 
         return result
+
+    def _build_draft_prompt(self, theme: str, tone: list[str] | None) -> str:
+        """Whole-poem prompt: form structure + quality directives.
+
+        Unlike the line-by-line prompt, this treats metre/rhyme as targets to
+        correct afterward, so the model writes a coherent poem first instead of
+        satisfying per-line constraints at birth.
+        """
+        lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch"}.get(
+            self.language, self.language
+        )
+        form = self.form_spec
+        parts = [
+            f"Write a complete {lang_name} {form.name.replace('_', ' ')} on the theme: {theme}.",
+            f"Form: {form.total_lines} lines, about {form.syllables_per_line} syllables per line, "
+            f"rhyme scheme {form.rhyme_scheme or 'none'}.",
+        ]
+        if form.foot:
+            parts.append(f"Meter: {form.foot}.")
+        if form.total_lines == 14:
+            parts.append("Give it a turn (volta) around line 9, shifting the argument or image.")
+        if tone:
+            parts.append(f"Tone: {', '.join(tone)}.")
+        parts.append(
+            "Write a real, coherent poem — vivid concrete imagery, a clear emotional or "
+            "argumentative arc, and a satisfying ending. Prioritize meaning and imagery over "
+            "exact syllable counts; the metre and rhyme will be corrected afterward."
+        )
+        parts.append(
+            "Output ONLY the poem, one line per line — no title, numbering, or commentary."
+        )
+        return "\n".join(parts)
+
+    def _repair_draft_line(
+        self,
+        line: str,
+        target_syllables: int,
+        target_rhyme_key: str | None,
+        max_attempts: int,
+    ) -> str:
+        """Repair a drafted line's metre/rhyme in place, without regenerating it."""
+        scan = self._phonology.scan_line(line)
+        for _ in range(max_attempts):
+            off_metre = scan.metrical_syllable_count != target_syllables
+            off_rhyme = False
+            if target_rhyme_key:
+                try:
+                    off_rhyme = self._phonology.rhyme_key(line).consonant != target_rhyme_key
+                except Exception:  # noqa: BLE001 — fail open on rhyme check
+                    off_rhyme = False
+            if not (off_metre or off_rhyme):
+                break
+            defects = []
+            if off_metre:
+                defects.append(
+                    f"the line has {scan.metrical_syllable_count} syllables but must be "
+                    f"exactly {target_syllables}"
+                )
+            if off_rhyme:
+                defects.append(f"the line must end with rhyme key '{target_rhyme_key}'")
+            repaired = self._llm.repair(line, "; ".join(defects))
+            if not repaired or repaired == line:
+                break
+            new_scan = self._phonology.scan_line(repaired)
+            # Accept if metre got no worse; rhyme is re-checked on the next pass.
+            if abs(new_scan.metrical_syllable_count - target_syllables) <= abs(
+                scan.metrical_syllable_count - target_syllables
+            ):
+                line, scan = repaired, new_scan
+        return line
+
+    def _polish_draft_line(
+        self,
+        line: str,
+        target_syllables: int,
+        target_rhyme_key: str | None,
+        max_attempts: int,
+    ) -> str:
+        """String-based fluency polish for a drafted line (no scorer needed)."""
+        for _ in range(max_attempts):
+            if not _line_is_stiff(line, self.language, self._llm):
+                return line
+            repaired = self._llm.repair(
+                line, _fluency_defect_description(target_syllables, target_rhyme_key)
+            )
+            if not repaired or repaired == line:
+                return line
+            new_scan = self._phonology.scan_line(repaired)
+            metre_ok = new_scan.metrical_syllable_count == target_syllables
+            rhyme_ok = True
+            if target_rhyme_key:
+                try:
+                    rhyme_ok = self._phonology.rhyme_key(repaired).consonant == target_rhyme_key
+                except Exception:  # noqa: BLE001 — fail open on rhyme check
+                    rhyme_ok = True
+            if metre_ok and rhyme_ok:
+                line = repaired
+            else:
+                return line
+        return line
+
+    def run_draft(
+        self,
+        theme: str,
+        tone: list[str] | None = None,
+        max_repair_attempts: int = 2,
+        polish: bool = False,
+        total_lines_override: int | None = None,
+    ) -> LoopResult:
+        """Draft the whole poem coherently, then repair metre/rhyme per line.
+
+        The meaning-first counterpart to ``run``: one LLM call writes the complete
+        poem (prioritizing imagery and arc), then each line is scanned and only
+        the ones that miss metre/rhyme are repaired in place. ``run`` is left
+        untouched for the line-by-line, constraint-first flow.
+        """
+        result = LoopResult()
+        raw = self._llm.generate(self._build_draft_prompt(theme, tone), n=1, temperature=0.9)
+        if not raw or not raw[0].strip():
+            return result
+
+        lines = [ln.strip() for ln in raw[0].splitlines() if ln.strip()]
+        lines = _clean_candidates(lines, [])
+        total_lines = total_lines_override or self.form_spec.total_lines
+        lines = lines[:total_lines]
+
+        rhyme_tracker = RhymeTracker(
+            self.form_spec.rhyme_scheme, self._phonology, language=self.language
+        )
+        for line_index, line in enumerate(lines):
+            target_syllables = self.form_spec.syllables_for_line(line_index)
+            target_rhyme_key = rhyme_tracker.target_key_for_line(line_index)
+            fixed = self._repair_draft_line(
+                line, target_syllables, target_rhyme_key, max_repair_attempts
+            )
+            if polish:
+                fixed = self._polish_draft_line(
+                    fixed, target_syllables, target_rhyme_key, max_repair_attempts
+                )
+            result.lines.append(fixed)
+            rhyme_tracker.commit(line_index, fixed)
+        return result

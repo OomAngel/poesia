@@ -830,6 +830,11 @@ def write(
         "--polish",
         help="Rewrite stiff/awkward lines for naturalness (adds LLM calls per line).",
     ),
+    draft: bool = typer.Option(
+        False,
+        "--draft",
+        help="Draft the whole poem in one coherent pass, then repair metre/rhyme.",
+    ),
 ) -> None:
     """Draft a poem — the machine's words are scaffolding, never the poem."""
     try:
@@ -928,19 +933,27 @@ def write(
 
     _t0 = _time.time()
     try:
-        result = loop.run(
-            theme=theme,
-            n_candidates=n_candidates,
-            tone=tone_list,
-            seeds=seeds_list,
-            brief_level=brief_level,
-            line_selector=line_selector,
-            total_lines_override=lines,
-            movement=movement,
-            guest_lang=config.guest_lang,
-            guest_words=config.guest_words,
-            polish=polish,
-        )
+        if draft:
+            result = loop.run_draft(
+                theme=theme,
+                tone=tone_list,
+                polish=polish,
+                total_lines_override=lines,
+            )
+        else:
+            result = loop.run(
+                theme=theme,
+                n_candidates=n_candidates,
+                tone=tone_list,
+                seeds=seeds_list,
+                brief_level=brief_level,
+                line_selector=line_selector,
+                total_lines_override=lines,
+                movement=movement,
+                guest_lang=config.guest_lang,
+                guest_words=config.guest_words,
+                polish=polish,
+            )
     except ValueError as e:
         rprint(f"[red]{e}[/red]")
         raise typer.Exit(1) from None
