@@ -150,6 +150,41 @@ def _phonology_for(language: str):
     raise ValueError(f"No phonology backend registered for language '{language}'.")
 
 
+def _off_rhyme(phonology, line: str, target_rhyme_key: str | None) -> bool:
+    """True if `line`'s rhyme key doesn't match `target_rhyme_key`; fails open."""
+    if not target_rhyme_key:
+        return False
+    try:
+        return phonology.rhyme_key(line).consonant != target_rhyme_key
+    except Exception:  # noqa: BLE001 — fail open on rhyme check
+        return False
+
+
+def _accept_draft_repair(
+    line: str,
+    scan,
+    repaired: str,
+    new_scan,
+    new_off_rhyme: bool,
+    target_syllables: int,
+) -> tuple[str, object, bool]:
+    """Decide whether a draft repair attempt replaces `line` and/or ends the retry loop.
+
+    `done` is only True once metre *and* rhyme both hold — a repair that fixes
+    metre alone is kept (so the next attempt starts from it) but doesn't stop
+    the retry loop, unlike the metre-only acceptance this replaced.
+    """
+    metre_fixed = new_scan.metrical_syllable_count == target_syllables
+    metre_closer = abs(new_scan.metrical_syllable_count - target_syllables) < abs(
+        scan.metrical_syllable_count - target_syllables
+    )
+    if metre_fixed and not new_off_rhyme:
+        return repaired, new_scan, True
+    if metre_fixed or metre_closer:
+        return repaired, new_scan, False
+    return line, scan, False
+
+
 # ── Candidate cleaning ────────────────────────────────────────────────────
 # Local/fine-tuned models frequently echo prompt fragments back as line
 # prefixes: numbering ("3. "), rhyme-scheme letters ("AE ", "FLO ", "FI "),
@@ -435,11 +470,15 @@ class ConstrainedLoop:
         assert self._scorer is not None  # set up in _generate before repair runs
         attempts = 0
 
+        def _candidate_off_rhyme(candidate: ScoredCandidate) -> bool:
+            return _off_rhyme(self._phonology, candidate.line, target_rhyme_key)
+
         def _needs_repair(candidate: ScoredCandidate) -> bool:
             off_metre = candidate.scan.metrical_syllable_count != target_syllables
             return (
                 not candidate.scan.is_valid
                 or off_metre
+                or _candidate_off_rhyme(candidate)
                 or not _guest_word_ok(candidate.line, guest_word)
             )
 
@@ -474,6 +513,11 @@ class ConstrainedLoop:
                 self._warn(
                     f"Line {line_index + 1}: accepted best candidate despite incorrect "
                     f"metre ({scored[0].scan.metrical_syllable_count}/{target_syllables})"
+                )
+            if _candidate_off_rhyme(best):
+                self._warn(
+                    f"Line {line_index + 1}: accepted best candidate with wrong rhyme key "
+                    f"(needed '{target_rhyme_key}')"
                 )
             if guest_word and not _guest_word_ok(best.line, guest_word):
                 self._warn(
@@ -801,12 +845,7 @@ class ConstrainedLoop:
         scan = self._phonology.scan_line(line)
         for _ in range(max_attempts):
             off_metre = scan.metrical_syllable_count != target_syllables
-            off_rhyme = False
-            if target_rhyme_key:
-                try:
-                    off_rhyme = self._phonology.rhyme_key(line).consonant != target_rhyme_key
-                except Exception:  # noqa: BLE001 — fail open on rhyme check
-                    off_rhyme = False
+            off_rhyme = _off_rhyme(self._phonology, line, target_rhyme_key)
             if not (off_metre or off_rhyme):
                 break
             defects = []
@@ -826,24 +865,21 @@ class ConstrainedLoop:
             if not repaired or repaired == line:
                 break
             new_scan = self._phonology.scan_line(repaired)
-            # Accept only a strict improvement: an exact hit, or closer to target.
-            if new_scan.metrical_syllable_count == target_syllables:
-                line, scan = repaired, new_scan
+            new_off_rhyme = _off_rhyme(self._phonology, repaired, target_rhyme_key)
+            if (not off_rhyme) and new_off_rhyme:
+                # This attempt broke a rhyme that was already fine — discard it
+                # and try again rather than trading one defect for another.
+                continue
+            line, scan, done = _accept_draft_repair(
+                line, scan, repaired, new_scan, new_off_rhyme, target_syllables
+            )
+            if done:
                 break
-            if abs(new_scan.metrical_syllable_count - target_syllables) < abs(
-                scan.metrical_syllable_count - target_syllables
-            ):
-                line, scan = repaired, new_scan
         # _repair_candidate (the run() path) never ships a still-broken line
         # without saying so — give run_draft() the same transparency instead
         # of quietly returning whatever repair got to after max_attempts.
         off_metre = scan.metrical_syllable_count != target_syllables
-        off_rhyme = False
-        if target_rhyme_key:
-            try:
-                off_rhyme = self._phonology.rhyme_key(line).consonant != target_rhyme_key
-            except Exception:  # noqa: BLE001 — fail open on rhyme check
-                off_rhyme = False
+        off_rhyme = _off_rhyme(self._phonology, line, target_rhyme_key)
         if off_metre:
             self._warn(
                 f"Line {line_index + 1}: accepted drafted line despite incorrect metre "
