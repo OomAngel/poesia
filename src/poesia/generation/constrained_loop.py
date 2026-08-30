@@ -444,7 +444,7 @@ class ConstrainedLoop:
             )
 
         while best is not None and _needs_repair(best) and attempts < max_repair_attempts:
-            repaired_text = self._llm.repair(
+            repaired_text = (self._repair_llm or self._llm).repair(
                 best.line,
                 defect_description=_repair_defect_description(
                     actual_syllables=best.scan.metrical_syllable_count,
@@ -504,7 +504,7 @@ class ConstrainedLoop:
             if not _line_is_stiff(candidate.line, self.language, self._llm):
                 return candidate
             assert self._scorer is not None  # set up in _generate before repair runs
-            repaired_text = self._llm.repair(
+            repaired_text = (self._repair_llm or self._llm).repair(
                 candidate.line,
                 defect_description=_fluency_defect_description(target_syllables, target_rhyme_key),
             )
@@ -783,6 +783,8 @@ class ConstrainedLoop:
                 parts.append(f"Approximate syllable counts per line: {pattern}.")
             else:
                 parts.append(f"Approximately {form.syllables_per_line} syllables per line.")
+            if tone:
+                parts.append(f"Tone: {', '.join(tone)}.")
             parts.append("Output ONLY the poem — no title, preamble, or commentary.")
         parts.append("")
         return "\n".join(parts)

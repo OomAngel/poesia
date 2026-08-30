@@ -87,6 +87,62 @@ def _measure(
     }
 
 
+def _measure_draft(
+    backend: str,
+    form: str,
+    language: str,
+    theme: str,
+) -> dict[str, object]:
+    """Measure raw whole-poem draft accuracy (no repair), for models used via
+    the --draft path rather than line-by-line generation."""
+    from poesia.forms.definitions import get_form
+    from poesia.generation.constrained_loop import (
+        ConstrainedLoop,
+        _clean_candidates,
+        _phonology_for,
+    )
+    from poesia.generation.registry import get_llm
+
+    label = f"{form}:{language}"
+    try:
+        form_spec = get_form(form, language)
+        llm = get_llm(backend)
+        loop = ConstrainedLoop(language=language, form=form, llm=llm)
+        phonology = _phonology_for(language)
+        raw = llm.generate(loop._build_draft_prompt(theme, None), n=1, temperature=0.9)
+    except Exception as exc:  # noqa: BLE001 — report backend unavailability
+        return {"backend": backend, "form": label, "error": str(exc)}
+
+    if not raw or not raw[0].strip():
+        return {"backend": backend, "form": label, "error": "empty completion"}
+
+    lines = [ln.strip() for ln in raw[0].splitlines() if ln.strip()]
+    lines = _clean_candidates(lines, [])[: form_spec.total_lines]
+
+    correct = 0
+    total = 0
+    samples: list[str] = []
+    for i, line in enumerate(lines):
+        target = form_spec.syllables_for_line(i)
+        scan = phonology.scan_line(line)
+        total += 1
+        ok = scan.metrical_syllable_count == target
+        if ok:
+            correct += 1
+        if len(samples) < 4:
+            mark = "✓" if ok else "✗"
+            samples.append(f"  {mark} {scan.metrical_syllable_count}/{target}  {line}")
+
+    return {
+        "backend": backend,
+        "form": label,
+        "correct": correct,
+        "total": total,
+        "pct": (100.0 * correct / total) if total else 0.0,
+        "samples": samples,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -98,6 +154,11 @@ def main() -> None:
         "--positions", type=int, default=3, help="line positions to sample per form"
     )
     parser.add_argument("--theme", default="la luna", help="theme for generated lines")
+    parser.add_argument(
+        "--draft",
+        action="store_true",
+        help="measure the whole-poem --draft path instead of line generation",
+    )
     args = parser.parse_args()
 
     _load_env()
@@ -111,18 +172,22 @@ def main() -> None:
         name, _, lang = spec.partition(":")
         forms.append((name or "soneto", lang or "es"))
 
-    print(
-        f"Raw metrical accuracy — {args.n_candidates} candidates × "
-        f"{args.positions} positions, theme={args.theme!r}\n"
+    mode = (
+        "draft (whole-poem)"
+        if args.draft
+        else f"{args.n_candidates} candidates × {args.positions} positions"
     )
+    print(f"Raw metrical accuracy — {mode}, theme={args.theme!r}\n")
 
     results: list[dict[str, object]] = []
     for backend in backends:
         for form, lang in forms:
             print(f"· {backend}/{form}:{lang} …", flush=True)
-            results.append(
-                _measure(backend, form, lang, args.theme, args.n_candidates, args.positions)
-            )
+            if args.draft:
+                r = _measure_draft(backend, form, lang, args.theme)
+            else:
+                r = _measure(backend, form, lang, args.theme, args.n_candidates, args.positions)
+            results.append(r)
 
     print()
     print(f"{'backend':<12} {'form':<16} {'correct':>8} {'total':>6} {'%':>6}")
