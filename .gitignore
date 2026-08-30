@@ -53,6 +53,7 @@ data/corpus/
 # Generated / derived output
 mlruns/
 /galeria/
+data/insights/*.parquet
 
 # Docker runtime volumes
 docker/volumes/
