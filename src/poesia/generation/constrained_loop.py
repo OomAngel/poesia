@@ -405,8 +405,7 @@ class ConstrainedLoop:
             if not best.scan.is_valid or best.scan.metrical_syllable_count != target_syllables:
                 print(
                     f"  [WARN] Line {line_index + 1}: accepted best candidate despite incorrect "
-                    f"metre (syllables={scored[0].scan.metrical_syllable_count}, "
-                    f"target={target_syllables})"
+                    f"metre ({scored[0].scan.metrical_syllable_count}/{target_syllables})"
                 )
             if guest_word and not _guest_word_ok(best.line, guest_word):
                 print(
