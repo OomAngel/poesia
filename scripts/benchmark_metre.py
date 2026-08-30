@@ -21,6 +21,7 @@ on the local GPU — lower ``--n-candidates``/``--positions`` for a quick pass.
 from __future__ import annotations
 
 import argparse
+import os
 
 
 def _load_env() -> None:
@@ -143,6 +144,30 @@ def _measure_draft(
     }
 
 
+def _log_mlflow(result: dict[str, object], mode: str, theme: str) -> None:
+    """Log one benchmark cell to MLflow (best-effort; no-op without mlflow)."""
+    try:
+        import mlflow  # noqa: PLC0415 — lazy, keeps the script importable without mlflow
+    except ImportError:
+        return
+    try:
+        mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "file:./mlruns"))
+        with mlflow.start_run(run_name=f"benchmark-metre-{result['backend']}-{result['form']}"):
+            mlflow.log_param("backend", result["backend"])
+            mlflow.log_param("form", result["form"])
+            mlflow.log_param("mode", mode)
+            mlflow.log_param("theme", theme)
+            if "error" in result:
+                mlflow.log_param("error", str(result["error"]))
+            else:
+                mlflow.log_metric("metre_accuracy", round(float(result["pct"]), 2))
+                mlflow.log_metric("correct_lines", int(result["correct"]))
+                mlflow.log_metric("total_lines", int(result["total"]))
+                mlflow.log_text("\n".join(result["samples"]), "samples.txt")  # type: ignore[arg-type]
+    except Exception:  # noqa: BLE001 — tracking must never fail the benchmark
+        pass
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -177,6 +202,7 @@ def main() -> None:
         if args.draft
         else f"{args.n_candidates} candidates × {args.positions} positions"
     )
+    mode_key = "draft" if args.draft else "line"
     print(f"Raw metrical accuracy — {mode}, theme={args.theme!r}\n")
 
     results: list[dict[str, object]] = []
@@ -188,6 +214,7 @@ def main() -> None:
             else:
                 r = _measure(backend, form, lang, args.theme, args.n_candidates, args.positions)
             results.append(r)
+            _log_mlflow(r, mode_key, args.theme)
 
     print()
     print(f"{'backend':<12} {'form':<16} {'correct':>8} {'total':>6} {'%':>6}")
