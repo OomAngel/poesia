@@ -1,6 +1,24 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-06 (Session: behavioral layer — teaching voice, reflection field, workshop flow)_
+_Last updated: 2026-08-31 (recovery note added — see "Status update" below; this file trails the recent commits)_
+
+---
+
+## Status update (2026-08-31) — MLflow wiring fix committed; this file trails the repo
+
+- The MLflow wiring was fixed and **committed** (not left uncommitted): commit
+  `3161f39` "fix(mlops): use sqlite MLflow backend, MLflow 3.x dropped file:// tracking".
+  `scripts/benchmark_metre.py`'s `_log_mlflow` now uses `DATABASE_URL` (canonical
+  PostgreSQL via `.env_mlflow`; sqlite fallback), because MLflow 3.x removed the
+  `file://` tracking backend (logging was silently no-oping). Regression test
+  `tests/test_mlflow_wiring.py` added. Follow-on commits landed through `b120de0`
+  (2026-08-31): generation repair-loop fix, Model Registry backfill, docs.
+- The re-entry checklist below still says "PostgreSQL — NOT sqlite anymore"; that
+  remains true for the **canonical** backend. The sqlite reference in commit `3161f39`
+  is only the code-level *fallback* default, not a switch away from PostgreSQL.
+- ⚠️ This memory-bank is stale: it was last updated 2026-08-06, but the branch has
+  advanced well beyond it (DVC/MLOps/analytics work through 2026-08-31). Treat older
+  sections as historical; verify against `git log` before acting.
 
 ---
 
@@ -112,7 +130,7 @@ MLflow run `005dad7e` "v2-fixed-format" **RUNNING** in experiment
 
 The training plan (as designed):
 - 38K line-by-line examples matching the inference prompt EXACTLY
-- 1 epoch ≈ 4,750 steps ≈ ~2h on RTX 2000 Ada
+- 1 epoch ≈ 4,750 steps ≈ ~2h on an 8 GB GPU (RTX 2000 Ada then; RTX 3070 Ti now)
 - Adds title-generation examples (983 in full dataset)
 - Post-training pipeline auto-runs: evaluate → register → migrate to PG
 
