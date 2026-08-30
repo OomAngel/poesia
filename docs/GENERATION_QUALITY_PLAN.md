@@ -34,22 +34,21 @@ route. Its value is *voice*, not metre.
 | # | Gap | Status |
 |---|---|---|
 | 1 | Draft prompt syllable-count hint | ✅ done |
-| 2 | Re-run full suite after parallel commits | ⏳ in progress |
-| 3 | `benchmark_metre.py` tests line gen, not draft path | todo — add `--draft` mode |
-| 4 | Draft path drops `--interactive`/`--show-alternatives`/`--guest-words`/`--seeds`/`--brief` | todo |
-| 5 | `--repair-llm` only affects draft-path repair | todo |
+| 2 | Re-run full suite after parallel commits | ✅ done (0 fail / 0 err / 1 skip) |
+| 3 | `benchmark_metre.py` tests line gen, not draft path | ✅ done — added `--draft` mode |
+| 4 | Draft path drops `--interactive`/`--show-alternatives`/`--guest-words`/`--seeds`/`--brief` | by design (falls back to line-by-line) |
+| 5 | `--repair-llm` only affects draft-path repair | ✅ done — now affects both paths |
 | 6 | No form-aware routing (fine-tune removed entirely) | todo — re-add when fine-tune ready |
-| 7 | `tone` silently dropped in draft prompt | todo |
-| 8 | `--repair-llm` unvalidated (bad backend degrades silently) | todo |
-| 9 | Fine-tune fate: re-train (production format + syllable count) vs deprioritize | decision needed |
+| 7 | `tone` silently dropped in draft prompt | ✅ done — restored (backend-aware) |
+| 8 | `--repair-llm` unvalidated | ✅ done — `_resolve_llm_client` already fails fast |
+| 9 | Fine-tune fate: re-train vs deprioritize | decision needed |
 
 ## Next actions (priority order)
 
 1. ✅ Syllable-count hint in draft prompt.
-2. ⏳ Re-run full test suite (confirm green).
-3. Decide fine-tune fate — re-train on production format + explicit syllable
-   count, or deprioritize (groq is acceptable).
-4. Extend `benchmark_metre.py` with a `--draft` mode so it measures the path
-   that actually matters.
-5. Validate `--repair-llm` against `list_backends()` and fail fast.
-6. Re-add form-aware routing once the fine-tune demonstrably beats groq.
+2. ✅ Re-run full test suite (0 failures, 0 errors, 1 skip).
+3. ✅ Extend `benchmark_metre.py` with a `--draft` mode.
+4. ✅ Restore `tone` in the draft prompt (backend-aware).
+5. ✅ Make `--repair-llm` affect line-by-line repair too.
+6. Decide fine-tune fate — re-train vs deprioritize.
+7. Re-add form-aware routing once the fine-tune demonstrably beats groq.
