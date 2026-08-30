@@ -1,10 +1,10 @@
-"""Tests for poesia.generation.router: form-aware default routing."""
+"""Tests for poesia.generation.router: default routing + overrides."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from poesia.generation.router import default_route_for
+from poesia.generation.router import RoutedLLMClient, default_route_for
 
 
 def _first_provider(route: list[dict[str, Any]]) -> str | None:
@@ -15,32 +15,31 @@ def _providers(route: list[dict[str, Any]]) -> list[str]:
     return [entry["provider"] for entry in route]
 
 
-def test_fine_tune_leads_for_trained_spanish_forms() -> None:
-    """The GGUF leads for the Spanish forms it was trained on."""
-    for form in ("soneto", "romance"):
-        route = default_route_for(form=form, language="es")
-        assert _first_provider(route) == "llama_cpp"
-        assert "llama_cpp" in _providers(route)
-
-
-def test_fine_tune_skipped_for_other_spanish_forms() -> None:
-    """Sparse/unseen Spanish forms skip the GGUF to avoid annotation overfit."""
-    for form in ("haiku", "decima", "cuarteto", "quintilla"):
-        route = default_route_for(form=form, language="es")
-        assert "llama_cpp" not in _providers(route)
+def test_default_route_is_form_agnostic_and_groq_first() -> None:
+    """Every form/language starts with groq; the fine-tune is excluded."""
+    for form, lang in [
+        ("soneto", "es"),
+        ("romance", "es"),
+        ("haiku", "es"),
+        ("haiku", "en"),
+        ("sonnet_shakespearean", "en"),
+        (None, None),
+    ]:
+        route = default_route_for(form=form, language=lang)
         assert _first_provider(route) == "groq"
-
-
-def test_fine_tune_skipped_for_english_forms() -> None:
-    """English forms never use the Spanish-trained GGUF."""
-    for form in ("haiku", "sonnet_shakespearean"):
-        route = default_route_for(form=form, language="en")
         assert "llama_cpp" not in _providers(route)
-        assert _first_provider(route) == "groq"
 
 
-def test_fine_tune_skipped_when_language_or_form_unknown() -> None:
-    """Without a known es+form pair, the GGUF is skipped (safe default)."""
-    assert "llama_cpp" not in _providers(default_route_for())
-    assert "llama_cpp" not in _providers(default_route_for(form="soneto"))
-    assert "llama_cpp" not in _providers(default_route_for(language="es"))
+def test_explicit_route_override_wins() -> None:
+    """An explicit route is used verbatim, ignoring the default."""
+    explicit = [{"provider": "stub"}]
+    assert RoutedLLMClient(route=explicit)._route == explicit
+
+
+def test_env_route_override(monkeypatch) -> None:
+    """LLM_ROUTE overrides the default route."""
+    monkeypatch.setenv("LLM_ROUTE", "stub,groq:gpt-x")
+    assert RoutedLLMClient()._route == [
+        {"provider": "stub"},
+        {"provider": "groq", "model": "gpt-x"},
+    ]

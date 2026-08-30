@@ -778,9 +778,7 @@ def write(
         help="Enable semantic theme/novelty scoring without personal context "
         "(needs sentence-transformers).",
     ),
-    llm: str = typer.Option(
-        "route", help="LLM backend (route = llama_cpp→groq→openai→ollama→stub)."
-    ),
+    llm: str = typer.Option("route", help="LLM backend (route = groq→openai→ollama→stub)."),
     save: bool = typer.Option(False, "--save", help="Save to library."),
     no_title: bool = typer.Option(
         False,
