@@ -1,0 +1,6 @@
+outs:
+- md5: 3ed6007dc016540687aafec3d16c4937.dir
+  size: 162601366
+  nfiles: 18
+  hash: md5
+  path: poetry-lora-distilled

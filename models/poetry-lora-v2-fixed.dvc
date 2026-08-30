@@ -1,0 +1,6 @@
+outs:
+- md5: 32f89c541a612ac5bc04377c1038a359.dir
+  size: 92926666
+  nfiles: 21
+  hash: md5
+  path: poetry-lora-v2-fixed

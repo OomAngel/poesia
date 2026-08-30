@@ -1,0 +1,6 @@
+outs:
+- md5: 1d35eb8fbf04d150c2ea3656b1c09f95.dir
+  size: 162619679
+  nfiles: 18
+  hash: md5
+  path: poetry-lora-multiform

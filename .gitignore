@@ -36,8 +36,11 @@ config_local.yaml
 *.gguf
 *.bin
 *.safetensors
-models/
-checkpoints/
+models/*
+checkpoints/*
+# DVC pointer files are git-tracked (the data they reference stays out)
+!models/*.dvc
+!checkpoints/*.dvc
 
 # Derived / generated training data (regenerate via scripts/build_fixed_dataset.py)
 mlops/data/

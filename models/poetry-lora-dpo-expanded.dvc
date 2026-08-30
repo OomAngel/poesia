@@ -1,0 +1,6 @@
+outs:
+- md5: 0058aa61a36ad02e8b9083fa39d9ce0e.dir
+  size: 93257048
+  nfiles: 22
+  hash: md5
+  path: poetry-lora-dpo-expanded

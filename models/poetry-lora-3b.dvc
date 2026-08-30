@@ -1,0 +1,6 @@
+outs:
+- md5: e2ec05573255e13f6c5ca62f0d9dcb34.dir
+  size: 92890336
+  nfiles: 18
+  hash: md5
+  path: poetry-lora-3b
