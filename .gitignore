@@ -54,6 +54,7 @@ data/corpus/
 mlruns/
 /galeria/
 data/insights/*.parquet
+mlruns-test.db*
 
 # Docker runtime volumes
 docker/volumes/
