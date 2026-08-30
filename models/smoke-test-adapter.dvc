@@ -1,0 +1,6 @@
+outs:
+- md5: 404a8793d1d250a3d6f2687808606696.dir
+  size: 40451967
+  nfiles: 20
+  hash: md5
+  path: smoke-test-adapter
