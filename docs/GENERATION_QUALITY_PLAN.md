@@ -1,6 +1,6 @@
 # Generation Quality — Status & Plan
 
-Living tracker for poesia poem-quality work. Last updated 2026-08-30.
+Living tracker for poesia poem-quality work. Last updated 2026-08-31.
 
 ## Goal
 
@@ -19,15 +19,23 @@ Produce coherent, metrically-correct, fluent poems — not just scaffolding.
 | 7 | Fine-tune prompt | aligned to training format + `repeat_penalty=1.15` |
 | 8 | Rhyme-key hygiene | raw keys removed from all 4 LLM-facing prompts |
 | 9 | Draft prompt | adds "no title/preamble" + syllable-count hint for general models |
+| 10 | Draft length validation | `run_draft()` warns when the draft is shorter than the form requires, instead of silently shipping a fragment as "the poem" (commit `9b7b0a2`) |
 
-## Fine-tune verdict (measured 2026-08-30)
+## Fine-tune verdict (measured 2026-08-30, corrected 2026-08-31)
 
-- fine-tune draft: **5/13** metrically correct (authentic voice, off-metre)
-- groq draft: **7/14** (better metre)
-- hybrid (groq draft + fine-tune repair): 8/14 but **injected literal rhyme keys**
+- fine-tune draft (raw, unrepaired), **3 themes**: **7/42 (16.7%)**
+- groq draft (raw, unrepaired), **3 themes**: **13/40 (32.5%)** — groq wins ~2× on raw metre
+- hybrid (groq draft + fine-tune repair via `--repair-llm llama_cpp`), **3 full-length trials**:
+  "la luna" 11/14 (78.6%), "el mar" 5/14 (35.7%), "el tiempo" 5/14 (35.7%) — **aggregate 21/42
+  (50%)**, statistically indistinguishable from the pure-groq line-by-line baseline (7–9/14,
+  ~50–64% measured separately). The original single-sample 8/14 hybrid figure above was **not
+  representative** — variance across themes is wide (35.7%–78.6%). Rhyme-key correctness was
+  weak in every one of the 3 trials (the dominant defect class in every log, not injected-key
+  leakage specifically — that leak was already fixed per gap #8).
 
-→ **Fine-tune is not ready** to be primary or repair. Keep it out of the default
-route. Its value is *voice*, not metre.
+→ **Fine-tune is still not ready** to be primary or repair, and the earlier "hybrid clearly
+wins" read does not hold up under more than one sample. Keep it out of the default route.
+Its value is *voice*, not metre.
 
 ## Open seams / gaps
 
@@ -42,6 +50,9 @@ route. Its value is *voice*, not metre.
 | 7 | `tone` silently dropped in draft prompt | ✅ done — restored (backend-aware) |
 | 8 | `--repair-llm` unvalidated | ✅ done — `_resolve_llm_client` already fails fast |
 | 9 | Fine-tune fate: re-train vs deprioritize | decision needed |
+| 10 | Draft shorter than form's line count silently accepted | ✅ done — `run_draft()` now warns (`draft has N/M lines...`) |
+| 11 | Rhyme-key correctness weak even after repair (hybrid path, all 3 trials) | **not started — top candidate, see below** |
+| 12 | Stray non-Spanish/English fragments leak into cleaned candidates (e.g. a bare `"e.g."`, a dangling `", y."`) seen in one "el mar" trial | not started — minor, one-off so far |
 
 ## Next actions (priority order)
 
@@ -50,8 +61,37 @@ route. Its value is *voice*, not metre.
 3. ✅ Extend `benchmark_metre.py` with a `--draft` mode.
 4. ✅ Restore `tone` in the draft prompt (backend-aware).
 5. ✅ Make `--repair-llm` affect line-by-line repair too.
-6. Decide fine-tune fate — re-train vs deprioritize.
-7. Re-add form-aware routing once the fine-tune demonstrably beats groq.
+6. ✅ Warn instead of silently shipping a short/degraded draft.
+7. ~~Investigate rhyme-key repair correctness~~ ✅ root-caused 2026-08-31, see analysis below —
+   fix not yet implemented.
+8. Decide fine-tune fate — re-train vs deprioritize.
+9. Re-add form-aware routing once the fine-tune demonstrably beats groq.
+
+### Root cause: rhyme-key repair (gap #11)
+
+Two independent bugs, one in each repair path, plus one correct reference pattern already
+in the file:
+
+- **Draft path** (`_repair_draft_line`, `constrained_loop.py` ~L792-857): the retry loop's
+  accept/`break` condition only re-checks metrical syllable count, never rhyme. When metre
+  is already correct going in — the common case where rhyme is the *only* defect — the
+  repair LLM is asked to fix the rhyme, but the loop exits after that single attempt whether
+  or not the rhyme actually changed. This is why draft-path trials show wrong-rhyme-key
+  warnings on most lines (see the three hybrid trial logs above: rhyme was the dominant
+  defect class in all of them).
+- **Line-by-line path** (`_repair_candidate`/`_needs_repair`, ~L417-465): rhyme isn't part
+  of the repair trigger at all — `_needs_repair()` only checks validity, off-metre, and
+  guest-word placement. Rhyme correctness is assumed to already be handled upstream by
+  scoring/ranking the `n_candidates` batch and picking the best-scored one. If none of the
+  sampled candidates happen to rhyme correctly, the best-scoring wrong-rhyme line ships
+  **silently** — the fallback-acceptance warning block (~L466-476) only warns about metre
+  and guest-word, never rhyme, so this failure mode currently produces no diagnostic at all.
+- **Reference pattern, already correct**: `_polish_line()` (~L484-521), which runs after
+  both repair steps to fix fluency, computes `rhyme_ok` after each rewrite and only accepts
+  the rewrite `if metre_ok and rhyme_ok`, otherwise keeps the original candidate. The fix for
+  both paths above is to adopt this same discipline — loop until metre *and* rhyme both hold
+  (or attempts are exhausted) in the draft path, and add rhyme-incorrectness to the
+  line-by-line path's repair trigger with an honest warning when it can't be resolved.
 
 ## MLOps / data engineering (added 2026-08-30, updated 2026-08-31)
 
