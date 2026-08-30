@@ -1,0 +1,6 @@
+outs:
+- md5: 940bc01b619091951e228dddf9b75b9b.dir
+  size: 25470308
+  nfiles: 37
+  hash: md5
+  path: training_data_structured
