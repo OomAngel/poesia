@@ -431,6 +431,7 @@ def _load_write_library() -> list:
 def _save_poem_record(
     result,
     *,
+    title: str = "",
     no_title: bool,
     config,
     llm_client,
@@ -452,7 +453,8 @@ def _save_poem_record(
     """Persist the generated poem to the library with full provenance."""
     from poesia.memoria.library import Library, PoemRecord
 
-    title = _suggest_write_title(result, no_title, config, llm_client, language, form, theme)
+    if not title:
+        title = _suggest_write_title(result, no_title, config, llm_client, language, form, theme)
 
     # Build provenance metadata
     provenance = _build_poem_provenance(
@@ -527,6 +529,7 @@ def _illustrate_poem_result(
 def _handle_write_save_and_illustrate(
     result,
     *,
+    title: str = "",
     save: bool,
     no_title: bool,
     config,
@@ -554,6 +557,7 @@ def _handle_write_save_and_illustrate(
     if save and result.lines:
         record, library = _save_poem_record(
             result,
+            title=title,
             no_title=no_title,
             config=config,
             llm_client=llm_client,
@@ -904,9 +908,15 @@ def write(
         show_alternatives,
     )
 
+    # Suggest a title whenever the backend can — not only when saving.
+    suggested_title = _suggest_write_title(
+        result, no_title, config, llm_client, language, form, theme
+    )
+
     # P1: Save to library with full provenance
     _handle_write_save_and_illustrate(
         result,
+        title=suggested_title,
         save=save,
         no_title=no_title,
         config=config,
