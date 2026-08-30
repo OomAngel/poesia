@@ -105,13 +105,32 @@ in the file:
 
 Pre-fix aggregate was 21/42 (50%). **Metre accuracy is statistically flat** (46.3% vs 50%, well
 within the trial-to-trial variance already documented) — the fix was never expected to move
-this number, since it targets rhyme enforcement, not metre. The real result: **rhyme-key
-warnings now surface on over half of all lines (22/41)**, confirming what the root-cause
-analysis suspected — this isn't a loop-logic bug that a fix resolves, it's a capability ceiling
-in the `llama_cpp`/qwen3b repair model itself. `b120de0` does exactly what it should: every one
-of these failures is now honestly reported instead of silently shipped. It can't make the repair
-model competent at rhyme it wasn't trained to prioritize. This reinforces the existing verdict
-above — the fine-tune isn't ready as repair either, not just as primary generator.
+this number, since it targets rhyme enforcement, not metre. `b120de0` does exactly what it
+should: every rhyme failure that survives repair is now honestly reported instead of silently
+shipped.
+
+**Root cause correction (2026-08-31):** the "capability ceiling" framing above was wrong, or at
+least incomplete. Checked `seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl`
+directly: all 500 training examples are one shape — `"Write a soneto in Spanish.\nRhyme
+scheme: X.\nTheme: Y."` → full poem. **Zero** are line-level edit/repair examples. But
+`LlamaCppLoRAClient.repair()` sends `'Fix this poetic line: {defect}\nLine: "{line}"\nOutput
+ONLY the corrected line.'` — a task shape the model has never once seen in training. This is a
+prompt/task-format mismatch, not evidence the model is bad at rhyme.
+
+Proof: re-ran "la luna" through the *actual default* path (`--draft --llm groq`, no
+`--repair-llm` override, so repair goes through groq too — what most users would actually run)
+— **11/14 (78.6%) lines metrically correct**, matching the original pre-fix "la luna" baseline
+and dramatically beating the 4/13 (30.8%) seen with `--repair-llm llama_cpp`. General-purpose
+instruct models (groq) can follow an arbitrary "fix this line" instruction because that's
+exactly what they're trained for; the narrow qwen3b fine-tune cannot, because it was never shown
+that task once.
+
+**Revised verdict:** `--repair-llm llama_cpp` should not be recommended/used as-is — it's not
+"the fine-tune isn't good enough," it's "we're asking it to do something outside its training
+distribution entirely." Either exclude it from the repair role until retrained on repair-style
+examples, or drop the `--repair-llm llama_cpp` option pending that. The original "fine-tune
+isn't ready as *primary generator*" verdict (measured via `--llm llama_cpp`, a task it *was*
+trained for) still stands on its own evidence and is unaffected by this correction.
 
 ## MLOps / data engineering (added 2026-08-30, updated 2026-08-31)
 
