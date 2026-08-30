@@ -12,7 +12,7 @@ def test_no_title_flag_is_accepted() -> None:
     runner = CliRunner()
     result = runner.invoke(
         app,
-        ["write", "--theme", "luna", "--form", "haiku", "--no-title", "--yes"],
+        ["write", "--theme", "luna", "--form", "haiku", "--no-title", "--yes", "--llm", "stub"],
     )
     assert result.exit_code == 0
     assert "Suggested title" not in result.output

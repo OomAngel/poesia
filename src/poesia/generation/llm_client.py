@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -127,6 +128,22 @@ class StubLLMClient:
         "in gardens where the {word} blooms in spring",
     ]
 
+    # Single-syllable, sinalefa-safe padding words used to nudge a line onto
+    # its exact target syllable count (see _fit_syllables). The templates
+    # above are hand-authored assuming a ~2-syllable {word}; a 1- or
+    # 3+-syllable theme word (or a hosted-LLM repair) throws that off, so
+    # every line is snapped to the real scanner's count rather than trusted
+    # as-is.
+    _SPANISH_FILLERS = ["sol", "luz", "paz", "voz", "mar", "flor", "fe", "sal"]
+    _ENGLISH_FILLERS = ["light", "night", "song", "dream", "sky", "star", "sea", "rain"]
+
+    # Common function words that only ever appear in this class's own
+    # Spanish templates — cheap enough to distinguish repair()'s input line
+    # (which carries no language tag of its own) without a real detector.
+    _SPANISH_MARKERS = {"la", "el", "en", "de", "que", "con", "del", "las", "los"}
+
+    _phonology_cache: dict[str, Any] = {}
+
     @_trace_decorator(span_type="LLM", name="hosted_generate")
     def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
         """Generate plausible short lines based on prompt keywords."""
@@ -135,68 +152,175 @@ class StubLLMClient:
         language = self._extract_language(prompt)
 
         # Pick template based on context (look for syllable hints in prompt)
-        templates = self._select_templates(prompt, language)
+        templates, target = self._select_templates(prompt, language)
 
         # Generate n candidates by cycling through templates
         results = []
         for i in range(n):
             template = templates[i % len(templates)]
             line = template.format(word=theme_word)
-            results.append(line)
+            results.append(self._fit_syllables(line, target, language))
 
         return results
 
     def repair(self, line: str, defect_description: str) -> str:
-        """Simple repair: slightly modify the line."""
-        # For now, just add a word to try to fix syllable count
-        return f"{line} clara"
+        """Deterministic repair: trim/pad the line onto the syllable count
+        stated in defect_description (see _repair_defect_description),
+        rather than a no-op text tweak that can never satisfy the
+        constrained loop's hard metre gate.
+        """
+        match = re.search(r"exactly (\d+)", defect_description)
+        if not match:
+            return f"{line} clara"
+        target = int(match.group(1))
+        language = self._guess_language(line)
+        return self._fit_syllables(line, target, language)
+
+    def _guess_language(self, line: str) -> str:
+        """Best-effort language guess from a line this class itself produced."""
+        words = {w.strip(".,;:!?\"'¡¿").lower() for w in line.split()}
+        return "es" if words & self._SPANISH_MARKERS else "en"
+
+    def _phonology_for(self, language: str) -> Any:
+        """Lazily construct and cache a phonology scanner per language."""
+        if language not in self._phonology_cache:
+            if language == "es":
+                from poesia.phonology.spanish import SpanishPhonology
+
+                self._phonology_cache[language] = SpanishPhonology()
+            else:
+                from poesia.phonology.english import EnglishPhonology
+
+                self._phonology_cache[language] = EnglishPhonology()
+        return self._phonology_cache[language]
+
+    def _fit_syllables(self, line: str, target: int, language: str) -> str:
+        """Trim or pad `line` word-by-word until it scans to exactly
+        `target` metrical syllables under the real phonology backend.
+
+        The hand-authored templates above are only exactly right for the
+        theme word they were eyeballed against — a different theme word
+        (or a hosted LLM's own repair attempt) shifts the count. Verifying
+        against the same scanner the constrained loop checks against makes
+        the stub reliably metre-correct instead of only correct by luck.
+        """
+        phonology = self._phonology_for(language)
+        fillers = self._SPANISH_FILLERS if language == "es" else self._ENGLISH_FILLERS
+        words = line.split()
+
+        # Trim from the end while too long.
+        while len(words) > 1:
+            actual = phonology.scan_line(" ".join(words)).metrical_syllable_count
+            if actual <= target:
+                break
+            words.pop()
+
+        # Pad with single-syllable fillers while too short, preferring
+        # whichever filler lands exactly on target this step.
+        attempts = 0
+        while attempts < 20:
+            actual = phonology.scan_line(" ".join(words)).metrical_syllable_count
+            if actual >= target:
+                break
+            exact, under = None, None
+            for filler in fillers:
+                candidate = [*words, filler]
+                candidate_count = phonology.scan_line(" ".join(candidate)).metrical_syllable_count
+                if candidate_count == target:
+                    exact = candidate
+                    break
+                if candidate_count < target and under is None:
+                    under = candidate
+            words = exact or under or [*words, fillers[attempts % len(fillers)]]
+            attempts += 1
+
+        return " ".join(words)
+
+    # Human-readable language names CandidateGenerator's non-brief prompt
+    # ("You are writing a {lang_name} poem...") and GenerationBrief's
+    # constraint line ("You MUST write in {lang_name}.") both use.
+    _LANG_NAMES = {"spanish": "es", "english": "en", "dutch": "nl"}
 
     def _extract_theme(self, prompt: str) -> str:
-        """Extract the main theme word from prompt."""
-        # Look for "Theme: <word>" pattern
-        if "Theme:" in prompt or "Tema:" in prompt:
-            for line in prompt.split("\n"):
-                if "Theme:" in line or "Tema:" in line or "theme:" in line:
-                    parts = line.split(":", 1)
-                    if len(parts) > 1:
-                        theme = parts[1].strip().split()[0]  # First word of theme
-                        return theme
+        """Extract the main theme word from prompt.
+
+        Matches the two prompt shapes CandidateGenerator actually builds —
+        the inline "...on the theme: X." sentence (no brief) and
+        GenerationBrief's "## THEME\\n- X" block (with a brief) — plus the
+        older colon-tagged "Theme:"/"Tema:" convention some direct-prompt
+        callers/tests still use. None of these appeared verbatim in either
+        real prompt shape before, so this previously always fell through to
+        the "luna" fallback for every non-synthetic prompt.
+        """
+        for pattern in (
+            r"on the theme:\s*([^\n.]+)",
+            r"##\s*THEME\s*\n-\s*([^\n]+)",
+            r"(?:Theme|Tema):\s*([^\n]+)",
+        ):
+            match = re.search(pattern, prompt, re.IGNORECASE)
+            if match:
+                word = match.group(1).strip().split()[0]
+                return word.strip(".,;:!?\"'¡¿()")
         return "luna"  # fallback
 
     def _extract_language(self, prompt: str) -> str:
-        """Extract language from prompt."""
+        """Extract language from prompt.
+
+        Checks the older "Language: es"/"Idioma: es" tag first (still used
+        by some direct-prompt callers/tests), then the real prompt shapes:
+        CandidateGenerator's "writing a Spanish/English poem" sentence and
+        GenerationBrief's "Language: {code}" form-metadata line (already
+        covered by the first check).
+        """
         if "Language: es" in prompt or "Idioma: es" in prompt:
             return "es"
-        if "Language: en" in prompt:
+        if "Language: en" in prompt or "Idioma: en" in prompt:
             return "en"
+        match = re.search(r"writing an? (\w+) poem", prompt, re.IGNORECASE)
+        if match:
+            return self._LANG_NAMES.get(match.group(1).lower(), "es")
         return "es"  # fallback
 
-    def _select_templates(self, prompt: str, language: str) -> list[str]:
-        """Select appropriate templates based on prompt context."""
-        # Without form info in prompt, default to short lines (5-7 syllables)
-        # Real LLMs would get this from the brief or learn from examples
-        prompt_lower = prompt.lower()
+    def _select_templates(self, prompt: str, language: str) -> tuple[list[str], int]:
+        """Select templates matching the prompt's real target syllable
+        count.
 
-        # Count existing lines to handle haiku's 5-7-5 pattern
-        poem_so_far = prompt.split("Poem so far:")[-1].strip() if "Poem so far:" in prompt else ""
-        existing_lines = [line.strip() for line in poem_so_far.split("\n") if line.strip()]
-        line_number = len(existing_lines)
+        CandidateGenerator renders any known target verbatim as "Exactly N
+        syllables." in every real prompt (see also repair()'s "exactly N"
+        parsing above) — that's authoritative regardless of poem form, so
+        it's read first. Only prompts with no explicit target (forms that
+        don't fix a syllable count) fall back to guessing from haiku's
+        well-known 5-7-5 line-position pattern, the sole current caller
+        that omits it.
+        """
+        match = re.search(r"[Ee]xactly (\d+) syllables", prompt)
+        if match:
+            target = int(match.group(1))
+        else:
+            poem_so_far = (
+                prompt.split("Poem so far:")[-1].strip() if "Poem so far:" in prompt else ""
+            )
+            existing_lines = [line.strip() for line in poem_so_far.split("\n") if line.strip()]
+            line_number = len(existing_lines)
+            target = 7 if line_number == 1 else 5
 
-        if language == "es":
-            # For haiku pattern: line 0 -> 5, line 1 -> 7, line 2 -> 5
-            if line_number == 1 or "7" in prompt:
-                return self._SPANISH_TEMPLATES_7
-            elif "haiku" in prompt_lower or line_number in [0, 2] or "5" in prompt:
-                return self._SPANISH_TEMPLATES_5
-            else:
-                return self._SPANISH_TEMPLATES_11  # Sonnet default
-        else:  # English
-            if line_number == 1 or "7" in prompt:
-                return self._ENGLISH_TEMPLATES_7
-            elif "haiku" in prompt_lower or line_number in [0, 2] or "5" in prompt:
-                return self._ENGLISH_TEMPLATES_5
-            else:
-                return self._ENGLISH_TEMPLATES_10  # Sonnet default
+        buckets = {
+            "es": {
+                5: self._SPANISH_TEMPLATES_5,
+                7: self._SPANISH_TEMPLATES_7,
+                11: self._SPANISH_TEMPLATES_11,
+            },
+            "en": {
+                5: self._ENGLISH_TEMPLATES_5,
+                7: self._ENGLISH_TEMPLATES_7,
+                10: self._ENGLISH_TEMPLATES_10,
+            },
+        }[language if language in ("es", "en") else "en"]
+        # The starting template only sets flavor/word choice — _fit_syllables
+        # (in generate()) corrects the exact count regardless of which
+        # bucket this picks, so the closest available one is good enough.
+        closest = min(buckets, key=lambda n: abs(n - target))
+        return buckets[closest], target
 
 
 class HostedLLMClient:

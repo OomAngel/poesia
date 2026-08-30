@@ -36,6 +36,8 @@ def test_reflection_flag_is_stored_on_save() -> None:
                 "--save",
                 "--reflection",
                 "lo escribí cuando no podía dormir",
+                "--llm",
+                "stub",
             ],
         )
     assert result.exit_code == 0
@@ -49,7 +51,7 @@ def test_reflection_prompt_skipped_with_yes() -> None:
     runner = CliRunner()
     result = runner.invoke(
         app,
-        ["write", "--theme", "luna", "--form", "haiku", "--yes"],
+        ["write", "--theme", "luna", "--form", "haiku", "--yes", "--llm", "stub"],
     )
     assert result.exit_code == 0
     assert "What were you carrying" not in result.output

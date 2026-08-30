@@ -25,7 +25,18 @@ def test_semantic_enables_theme_novelty_scoring() -> None:
         return_value=FakeEmbeddingClient(),
     ):
         result = runner.invoke(
-            app, ["write", "--theme", "luna", "--form", "haiku", "--semantic", "--verbose"]
+            app,
+            [
+                "write",
+                "--theme",
+                "luna",
+                "--form",
+                "haiku",
+                "--semantic",
+                "--verbose",
+                "--llm",
+                "stub",
+            ],
         )
     assert result.exit_code == 0
     assert "metre + theme + novelty" in result.output
@@ -39,7 +50,17 @@ def test_semantic_degrades_gracefully_without_embeddings() -> None:
     ):
         result = runner.invoke(
             app,
-            ["write", "--theme", "luna", "--form", "haiku", "--semantic", "--verbose"],
+            [
+                "write",
+                "--theme",
+                "luna",
+                "--form",
+                "haiku",
+                "--semantic",
+                "--verbose",
+                "--llm",
+                "stub",
+            ],
         )
     assert result.exit_code == 0
     assert "metre only (semantic scoring unavailable)" in result.output
