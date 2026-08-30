@@ -1,9 +1,9 @@
 """LLM routing chain — ordered fallback across providers.
 
-The fine-tuned GGUF leads only for the Spanish forms it was trained on
-(soneto/romance); for every other form or language the chain starts with a
-hosted general model (``groq → openai → ollama → stub``), since the GGUF
-overfits its training prompts' annotation format out of domain. Register this
+The default chain is ``groq → openai → ollama → stub``. The fine-tuned GGUF
+(``llama_cpp``) is deliberately excluded: it was trained on a different prompt
+format and, on the production prompt, emits annotation echo and base-model
+leakage instead of verse (see ``scripts/benchmark_metre.py``). Register this
 client as ``route`` in ``registry`` so ``poesia write`` uses the chain by
 default. The router sticks to the first provider that serves a request and
 falls back on any failure (missing key, 401/429, model-not-found, unreachable
@@ -21,8 +21,7 @@ from poesia.generation.llm_client import GROQ_MODEL
 # "use that provider's own default". This is the single source of truth for
 # routing — not a hardcoded default scattered across registry/llm_client.
 DEFAULT_ROUTE: list[dict[str, Any]] = [
-    {"provider": "llama_cpp"},  # fine-tuned qwen3b-poetry GGUF (primary; CPU/CUDA)
-    {"provider": "groq", "model": GROQ_MODEL},  # hosted fallback
+    {"provider": "groq", "model": GROQ_MODEL},  # hosted general model (primary)
     {"provider": "openai"},  # default gpt-4o-mini (OPENAI_API_KEY)
     {"provider": "ollama"},  # local model (OLLAMA_HOST / gemma2:2b)
     {"provider": "stub"},  # deterministic offline floor
@@ -47,27 +46,18 @@ def _route_from_env() -> list[dict[str, Any]] | None:
     return route
 
 
-# Forms with enough fine-tune training data to trust the GGUF as primary.
-# master_train_filtered.jsonl counts: soneto=4781, decima=99, romance=87,
-# cuarteto=26, quintilla=21, haiku=15. The GGUF overfits the soneto annotation
-# format ("Rhyme scheme: ABBA ..."), so only the two well-represented forms are
-# routed to it; everything else starts with a hosted general model.
-_FINETUNE_FORMS = frozenset({"soneto", "romance"})
-
-
 def default_route_for(
     form: str | None = None,
     language: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Form-aware default route.
+    """Default route — currently form-agnostic.
 
-    The fine-tuned GGUF leads only for the Spanish forms it was trained on
-    (soneto/romance). For any other form or language it is skipped, since it
-    regresses to emitting its training prompts' annotation text.
+    ``form``/``language`` are accepted (and already threaded through from the
+    CLI) so routing can become form-aware again once the fine-tuned GGUF is
+    re-trained against the production prompt and re-proven by the benchmark.
+    Until then every form is served by the hosted chain in ``DEFAULT_ROUTE``.
     """
-    if language == "es" and form in _FINETUNE_FORMS:
-        return DEFAULT_ROUTE
-    return [entry for entry in DEFAULT_ROUTE if entry["provider"] != "llama_cpp"]
+    return DEFAULT_ROUTE
 
 
 class RoutedLLMClient:
