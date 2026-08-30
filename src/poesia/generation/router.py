@@ -1,11 +1,13 @@
 """LLM routing chain — ordered fallback across providers.
 
-The default chain is ``llama_cpp → groq → openai → ollama → stub``: the
-fine-tuned GGUF first, then hosted models, ending in the deterministic offline
-stub. Register this client as ``route`` in ``registry`` so ``poesia write``
-uses the chain by default. The router sticks to the first provider that serves
-a request and falls back on any failure (missing key, 401/429, model-not-found,
-unreachable local service).
+The fine-tuned GGUF leads only for the Spanish forms it was trained on
+(soneto/romance); for every other form or language the chain starts with a
+hosted general model (``groq → openai → ollama → stub``), since the GGUF
+overfits its training prompts' annotation format out of domain. Register this
+client as ``route`` in ``registry`` so ``poesia write`` uses the chain by
+default. The router sticks to the first provider that serves a request and
+falls back on any failure (missing key, 401/429, model-not-found, unreachable
+local service).
 """
 
 from __future__ import annotations
@@ -45,6 +47,29 @@ def _route_from_env() -> list[dict[str, Any]] | None:
     return route
 
 
+# Forms with enough fine-tune training data to trust the GGUF as primary.
+# master_train_filtered.jsonl counts: soneto=4781, decima=99, romance=87,
+# cuarteto=26, quintilla=21, haiku=15. The GGUF overfits the soneto annotation
+# format ("Rhyme scheme: ABBA ..."), so only the two well-represented forms are
+# routed to it; everything else starts with a hosted general model.
+_FINETUNE_FORMS = frozenset({"soneto", "romance"})
+
+
+def default_route_for(
+    form: str | None = None,
+    language: str | None = None,
+) -> list[dict[str, Any]]:
+    """Form-aware default route.
+
+    The fine-tuned GGUF leads only for the Spanish forms it was trained on
+    (soneto/romance). For any other form or language it is skipped, since it
+    regresses to emitting its training prompts' annotation text.
+    """
+    if language == "es" and form in _FINETUNE_FORMS:
+        return DEFAULT_ROUTE
+    return [entry for entry in DEFAULT_ROUTE if entry["provider"] != "llama_cpp"]
+
+
 class RoutedLLMClient:
     """LLMClient that routes across providers, sticking to the first that works.
 
@@ -54,8 +79,13 @@ class RoutedLLMClient:
     active provider and re-walks the chain.
     """
 
-    def __init__(self, route: list[dict[str, Any]] | None = None) -> None:
-        self._route = route or _route_from_env() or DEFAULT_ROUTE
+    def __init__(
+        self,
+        route: list[dict[str, Any]] | None = None,
+        form: str | None = None,
+        language: str | None = None,
+    ) -> None:
+        self._route = route or _route_from_env() or default_route_for(form=form, language=language)
         self._clients: list[tuple[str, Any]] = []
         self._active: tuple[str, Any] | None = None
         self.provider = "route"
