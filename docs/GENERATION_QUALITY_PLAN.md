@@ -51,7 +51,7 @@ Its value is *voice*, not metre.
 | 8 | `--repair-llm` unvalidated | ✅ done — `_resolve_llm_client` already fails fast |
 | 9 | Fine-tune fate: re-train vs deprioritize | decision needed |
 | 10 | Draft shorter than form's line count silently accepted | ✅ done — `run_draft()` now warns (`draft has N/M lines...`) |
-| 11 | Rhyme-key correctness weak even after repair (hybrid path, all 3 trials) | **not started — top candidate, see below** |
+| 11 | Rhyme-key correctness weak even after repair (hybrid path, all 3 trials) | ✅ fix landed (`b120de0`) — repair loop now enforces rhyme, not just metre, in both paths; warns when repair still fails after max attempts instead of shipping silently |
 | 12 | Stray non-Spanish/English fragments leak into cleaned candidates (e.g. a bare `"e.g."`, a dangling `", y."`) seen in one "el mar" trial | not started — minor, one-off so far |
 
 ## Next actions (priority order)
@@ -62,8 +62,8 @@ Its value is *voice*, not metre.
 4. ✅ Restore `tone` in the draft prompt (backend-aware).
 5. ✅ Make `--repair-llm` affect line-by-line repair too.
 6. ✅ Warn instead of silently shipping a short/degraded draft.
-7. ~~Investigate rhyme-key repair correctness~~ ✅ root-caused 2026-08-31, see analysis below —
-   fix not yet implemented.
+7. ✅ Rhyme-key repair correctness — root-caused and fixed 2026-08-31 (`b120de0`), see analysis
+   below.
 8. Decide fine-tune fate — re-train vs deprioritize.
 9. Re-add form-aware routing once the fine-tune demonstrably beats groq.
 
@@ -92,6 +92,15 @@ in the file:
   both paths above is to adopt this same discipline — loop until metre *and* rhyme both hold
   (or attempts are exhausted) in the draft path, and add rhyme-incorrectness to the
   line-by-line path's repair trigger with an honest warning when it can't be resolved.
+
+**Post-fix spot check (2026-08-31):** `poesia write --theme "la luna" --draft --llm groq
+--repair-llm llama_cpp --verbose` after `b120de0` now surfaces explicit
+`accepted drafted line with wrong rhyme key (needed 'X')` warnings on 6/13 lines — previously
+these would have shipped silently. Confirms the fix does what it's meant to (honest reporting),
+though this single sample's raw metre accuracy (4/13, 30.8%) is lower than the earlier "la luna"
+trial (11/14, 78.6%) — consistent with the wide trial-to-trial variance already noted above, not
+evidence of regression. A proper before/after comparison would need the same 3-theme benchmark
+re-run, not done here.
 
 ## MLOps / data engineering (added 2026-08-30, updated 2026-08-31)
 
