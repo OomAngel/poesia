@@ -36,6 +36,13 @@ jobs:
       - run: |
           pip install -e ".[spanish,english,phonology-extra,nlp,dev]"
           python -m spacy download es_core_news_sm  # GalerIA imagery extraction
+          # g2p_en's own nltk.download('averaged_perceptron_tagger') fallback
+          # targets NLTK's pre-3.9 resource name; NLTK 3.9+ split POS taggers
+          # per-language and pos_tag() looks for the "_eng" name instead, so
+          # the OOV-fallback tests in test_phonology_english.py need it fetched
+          # explicitly on a fresh runner (not reproducible on a machine that
+          # already has it cached).
+          python -m nltk.downloader averaged_perceptron_tagger averaged_perceptron_tagger_eng cmudict
       - run: |
           pytest tests/ \
             --ignore=tests/test_generation_llm_client.py \
