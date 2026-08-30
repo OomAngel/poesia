@@ -151,7 +151,7 @@ def _log_mlflow(result: dict[str, object], mode: str, theme: str) -> None:
     except ImportError:
         return
     try:
-        mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "file:./mlruns"))
+        mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "sqlite:///mlruns/mlflow.db"))
         with mlflow.start_run(run_name=f"benchmark-metre-{result['backend']}-{result['form']}"):
             mlflow.log_param("backend", result["backend"])
             mlflow.log_param("form", result["form"])
