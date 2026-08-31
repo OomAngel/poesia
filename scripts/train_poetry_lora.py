@@ -110,8 +110,21 @@ def _capture_git_commit() -> str:
         return "unknown"
 
 
+def _pop_resume_flag(argv: list[str]) -> bool:
+    """Pull a `--resume-from-checkpoint` flag out of argv in place, so a
+    positional config path can still be given in any order. Needed for
+    Colab: a disconnect/session-limit kill mid-run should resume from the
+    Trainer's last save_steps checkpoint instead of restarting from scratch.
+    """
+    if "--resume-from-checkpoint" in argv:
+        argv.remove("--resume-from-checkpoint")
+        return True
+    return False
+
+
 def main():
     # ── Config ────────────────────────────────────────────────────────
+    resume_from_checkpoint = _pop_resume_flag(sys.argv)
     config_path = sys.argv[1] if len(sys.argv) > 1 else "mlops/configs/train_v1.yaml"
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
@@ -334,8 +347,8 @@ def main():
             )
             print("Standard Trainer with cross-entropy loss")
 
-        print("Starting training...")
-        train_result = trainer.train()
+        print(f"Starting training... (resume_from_checkpoint={resume_from_checkpoint})")
+        train_result = trainer.train(resume_from_checkpoint=resume_from_checkpoint or None)
 
         # ── Log final metrics to MLflow ──────────────────────────────
         final_loss = None
