@@ -856,6 +856,13 @@ def write(
         "--repair-llm",
         help="Backend for metre/rhyme repair in --draft mode (default: same as --llm).",
     ),
+    log_repairs: bool = typer.Option(
+        False,
+        "--log-repairs",
+        help="Append each repair attempt (before/defect/after/resolved) to "
+        "seeds/poetry_corpus/repair_examples/repair_log.jsonl for future "
+        "repair-specific fine-tuning.",
+    ),
 ) -> None:
     """Draft a poem — the machine's words are scaffolding, never the poem."""
     try:
@@ -954,6 +961,10 @@ def write(
     except ValueError as e:
         rprint(f"[red]{e}[/red]")
         raise typer.Exit(1) from None
+    if log_repairs:
+        from poesia.generation.hooks import RepairDatasetHook
+
+        loop.add_hook(RepairDatasetHook())
     if interactive:
         line_selector = _make_interactive_selector(loop, language, form)
     # P5: Time the generation for latency provenance
