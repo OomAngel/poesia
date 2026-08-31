@@ -179,6 +179,24 @@ def _off_rhyme(
         return False
 
 
+def _rhyme_defect_parts(target_rhyme_key: str | None, example_word: str | None) -> list[str]:
+    """Build the repair-prompt phrase(s) describing a rhyme defect.
+
+    Naming a concrete word to rhyme with gives an instruct LLM something it
+    can actually act on ("find a word that rhymes with X" is a task these
+    models are good at); the raw phonetic rhyme key is deliberately never
+    surfaced here (see gap #8 — it read as gibberish and confused repairs).
+    """
+    if not target_rhyme_key:
+        return []
+    if example_word:
+        return [
+            f'the line must end with a new word that rhymes with "{example_word}" '
+            f'(not "{example_word}" itself)'
+        ]
+    return ["the line must end with a word that rhymes with its rhyme-group partner"]
+
+
 def _rhyme_repair_warning(
     line_index: int,
     line: str,
@@ -294,12 +312,7 @@ def _repair_defect_description(
     rhyme key it must hit makes repairs effective instead of destructive.
     """
     parts = [f"the line has {actual_syllables} syllables but must be exactly {target_syllables}"]
-    if target_rhyme_key:
-        parts.append("the line must end with a word that rhymes with its rhyme-group partner")
-        if example_word:
-            parts.append(
-                f'it must not end on the word "{example_word}", already used for this rhyme'
-            )
+    parts.extend(_rhyme_defect_parts(target_rhyme_key, example_word))
     if guest_word:
         parts.append(
             f'the line must naturally include "{guest_word}" somewhere in the '
@@ -912,13 +925,7 @@ class ConstrainedLoop:
                     f"exactly {target_syllables}"
                 )
             if off_rhyme:
-                defects.append(
-                    "the line must end with a word that rhymes with its rhyme-group partner"
-                )
-                if example_word:
-                    defects.append(
-                        f'it must not end on the word "{example_word}", already used for this rhyme'
-                    )
+                defects.extend(_rhyme_defect_parts(target_rhyme_key, example_word))
             repaired = (self._repair_llm or self._llm).repair(line, "; ".join(defects))
             # Same artifact risk as the line-by-line path's repair() call (see
             # _repair_candidate) — clean before judging/accepting it.

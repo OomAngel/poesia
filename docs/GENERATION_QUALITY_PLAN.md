@@ -54,6 +54,7 @@ Its value is *voice*, not metre.
 | 11 | Rhyme-key correctness weak even after repair (hybrid path, all 3 trials) | ✅ fix landed (`b120de0`) — repair loop now enforces rhyme, not just metre, in both paths; warns when repair still fails after max attempts instead of shipping silently |
 | 12 | Stray non-Spanish/English fragments leak into cleaned candidates (e.g. a bare `"e.g."`, a dangling `", y."`) seen in one "el mar" trial | not started — minor, one-off so far |
 | 13 | Rhyme repair accepts a literal repeated word as a "resolved" rhyme (e.g. two A-rhyme lines both ending on "swell") — passes `rhyme_key()` trivially since it's the same word, but it's not a rhyme | ✅ fix landed — see below |
+| 14 | Repair prompt for a wrong-rhyme-sound defect is vague ("rhymes with its rhyme-group partner") — gives the repair LLM no concrete word to work from, so genuine sound mismatches (seen live: needed `'UW1 F'`) often survive `max_repair_attempts` | ✅ fix landed — see below |
 
 ## Next actions (priority order)
 
@@ -150,6 +151,28 @@ through `_repair_candidate`, `_polish_line`, `_repair_draft_line`, `_polish_draf
 LLM explicitly not to reuse that word, and the warning emitted when repair still can't fix it
 (`_rhyme_repair_warning()`) says "repeats the word X" instead of the generic "wrong rhyme key" —
 the rhyme *sound* may be fine; the defect is that it isn't a new word. Regression tests in
+`tests/test_generation_rhyme_repair.py`.
+
+### Repair-prompt fix: name the actual rhyme word (gap #14)
+
+Same live run also surfaced two `[WARN]` lines that gap #11's fix correctly *reported* rather
+than silently shipping — a genuine off-metre line and a genuine wrong-rhyme-sound line that
+survived `max_repair_attempts` (default 2). Root cause: `_repair_defect_description()` and
+`_repair_draft_line()`'s inline defect list told the repair LLM only "the line must end with a
+word that rhymes with its rhyme-group partner" — no concrete word, nothing to act on. This
+phrasing dates to gap #8 (raw phonetic rhyme keys like `'UW1 F'` were removed from prompts
+because they read as gibberish), but the fix over-corrected: it dropped the *word* along with
+the *key*, even though the candidate-generation prompt (`candidate_generator.py`) already names
+the concrete word ("rhymes with 'X' … use a DIFFERENT word") and works fine.
+
+Fix: extracted `_rhyme_defect_parts()`, used by both repair paths, which names the actual
+`example_word` when known — `'the line must end with a new word that rhymes with "X" (not "X"
+itself)'` — matching the pattern that was already working in candidate generation. Falls back to
+the old vague phrasing only when no example word exists yet (a rhyme group's opening line, which
+never has a rhyme defect to repair in the first place). Never reintroduces the raw phonetic key.
+This doesn't guarantee every repair now succeeds within `max_repair_attempts` — that remains
+inherent LLM variance, honestly reported when it happens — but gives the model something
+concrete to work with instead of an abstract instruction. Regression tests in
 `tests/test_generation_rhyme_repair.py`.
 
 ## MLOps / data engineering (added 2026-08-30, updated 2026-08-31)
