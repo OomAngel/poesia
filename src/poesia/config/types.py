@@ -31,7 +31,7 @@ class WriteConfig:
     form: str = "soneto"
     language: str = "es"
     n_candidates: int = 16
-    max_repair_attempts: int = 2
+    max_repair_attempts: int = 4
     temperature: float = 0.9
 
     # LLM

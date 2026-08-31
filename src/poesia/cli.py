@@ -639,6 +639,7 @@ def _build_write_config(
     language: str,
     llm: str,
     n_candidates: int,
+    max_repair_attempts: int,
     tone: str | None,
     seeds: str | None,
     brief_level: str,
@@ -668,7 +669,7 @@ def _build_write_config(
         language=language,
         llm=llm,
         n_candidates=n_candidates,
-        max_repair_attempts=2,
+        max_repair_attempts=max_repair_attempts,
         tone=tone_list,
         seeds=seeds_list,
         brief_level=brief_level,
@@ -778,6 +779,11 @@ def write(
     ),
     form: str = typer.Option("soneto", help="Registered form name."),
     n_candidates: int = typer.Option(16, help="Candidate lines per position."),
+    max_repair_attempts: int = typer.Option(
+        4,
+        "--max-repair-attempts",
+        help="Max repair attempts per line before accepting the best try and warning.",
+    ),
     tone: str = typer.Option(None, help="Comma-separated tone descriptors."),
     seeds: str = typer.Option(None, help="Comma-separated seed words."),
     brief_level: str = typer.Option("standard", help="Brief verbosity."),
@@ -859,6 +865,7 @@ def write(
             language=language,
             llm=llm,
             n_candidates=n_candidates,
+            max_repair_attempts=max_repair_attempts,
             tone=tone,
             seeds=seeds,
             brief_level=brief_level,
@@ -960,6 +967,7 @@ def write(
             result = loop.run_draft(
                 theme=theme,
                 tone=tone_list,
+                max_repair_attempts=config.max_repair_attempts,
                 polish=polish,
                 total_lines_override=lines,
             )
@@ -967,6 +975,7 @@ def write(
             result = loop.run(
                 theme=theme,
                 n_candidates=n_candidates,
+                max_repair_attempts=config.max_repair_attempts,
                 tone=tone_list,
                 seeds=seeds_list,
                 brief_level=brief_level,
