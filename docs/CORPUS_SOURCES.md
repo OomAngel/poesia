@@ -139,9 +139,21 @@ curl -sL https://www.gutenberg.org/cache/epub/{ID}/pg{ID}.txt -o /tmp/gutenberg_
   none beyond an accidental Gutenberg-boilerplate regex and had also gone
   stale — it last ran before this round's corpus expansion, so none of the
   new Spanish lines had synthetic repair pairs until it was re-run
-  (560 -> 1,847 pairs; `repair_finetune.jsonl` regenerated to match). Other
-  scripts that touch `training_data_structured/` and use
-  `SpanishPhonology` have not been individually audited for the same gap.
+  (560 -> 1,847 pairs; `repair_finetune.jsonl` regenerated to match).
+  Audited the rest of the scripts that touch `training_data_structured/`
+  and use `SpanishPhonology` (2026-08-31): none currently have a live
+  version of this bug. `quality_filter.py` reads a static, pre-bilingual
+  snapshot (`master_train.jsonl`, all `es`, dated before this expansion) —
+  not a live risk today, but would become one if that file is ever
+  regenerated from a full-corpus glob instead of hand-curated. All
+  `mlops/configs/*.yaml` training configs point at specific pre-existing
+  curated files (`sonetos_*`, `master_train*`, `multiform_train`), not at
+  the new `gutenberg_*` files or a directory glob — the new bilingual data
+  is not yet wired into any training pipeline at all, which is a separate,
+  pre-existing gap unrelated to this bug class. Remaining scripts
+  (`score_training_data.py`, `filter_exact_syllables.py`, etc.) require an
+  explicit `--input` path with no default, so any exposure to English data
+  would be a visible, deliberate choice rather than silent contamination.
 
 ## License & provenance
 
