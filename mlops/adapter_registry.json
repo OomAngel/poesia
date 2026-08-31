@@ -13,7 +13,9 @@
       "eval_syllable_deviation": 1.1,
       "eval_line_count_accuracy": 1.0,
       "mlflow_run_id": "813c3821880c41019106a3ddafaccc1c",
-      "mlflow_model_name": "poesia-lora-20260728_231807"
+      "mlflow_model_name": "poesia-lora-20260728_231807",
+      "gguf_f16": "models/poetry-lora-v2/v2-poetry-f16.gguf",
+      "gguf_q4_k_m": "models/poetry-lora-v2/v2-poetry-Q4_K_M.gguf"
     },
     {
       "id": "20260729_123255",
@@ -28,7 +30,9 @@
       "eval_syllable_deviation": 2.14,
       "eval_line_count_accuracy": 1.0,
       "mlflow_run_id": "b6d53a74031a48aca0058cab7fd34d87",
-      "mlflow_model_name": "poesia-lora-20260729_123255"
+      "mlflow_model_name": "poesia-lora-20260729_123255",
+      "gguf_f16": "models/poetry-lora-multiform/multiform-poetry-f16.gguf",
+      "gguf_q4_k_m": "models/poetry-lora-multiform/multiform-poetry-Q4_K_M.gguf"
     },
     {
       "id": "20260729_144938",
@@ -43,7 +47,9 @@
       "eval_syllable_deviation": 2.11,
       "eval_line_count_accuracy": 1.0,
       "mlflow_run_id": "4380378a20404236b245a1c8a88f8ee4",
-      "mlflow_model_name": "poesia-lora-20260729_144938"
+      "mlflow_model_name": "poesia-lora-20260729_144938",
+      "gguf_f16": "models/poetry-lora-distilled/distilled-poetry-f16.gguf",
+      "gguf_q4_k_m": "models/poetry-lora-distilled/distilled-poetry-Q4_K_M.gguf"
     },
     {
       "id": "20260730_163543",
@@ -57,7 +63,9 @@
       "train_loss": 2.9734775543212892,
       "adapter_path": "models/smoke-test-adapter/final_adapter",
       "notes": "",
-      "mlflow_model_version": 1
+      "mlflow_model_version": 1,
+      "gguf_f16": "models/smoke-test-adapter/smoke-test-poetry-f16.gguf",
+      "gguf_q4_k_m": "models/smoke-test-adapter/smoke-test-poetry-Q4_K_M.gguf"
     },
     {
       "id": "20260730_164422",
@@ -71,7 +79,56 @@
       "train_loss": 2.4360912322998045,
       "adapter_path": "models/poetry-lora-qwen3b/final_adapter",
       "notes": "",
-      "mlflow_model_version": 1
+      "mlflow_model_version": 1,
+      "gguf_f16": "models/poetry-lora-qwen3b/qwen3b-poetry-f16.gguf",
+      "gguf_q4_k_m": "models/poetry-lora-qwen3b/qwen3b-poetry-Q4_K_M.gguf"
+    },
+    {
+      "id": "20260728_202612",
+      "created": "2026-07-28T20:26:12.136880",
+      "config": null,
+      "data_sha256": null,
+      "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "lora_r": 16,
+      "train_loss": null,
+      "adapter_path": "models/poetry-lora-3b/final_adapter",
+      "notes": "Early 3B attempt, pre-config (per TRAINING_RUNBOOK.md) — despite the name, adapter_config.json shows base_model_name_or_path is Qwen2.5-1.5B-Instruct, not the 3B model; no legacy JSONL or YAML config recovered, so config/data_sha256/train_loss are unknown rather than lost.",
+      "mlflow_run_id": "0ad4892a23cf4ea185385d6e794acff3",
+      "mlflow_model_name": "poesia-lora-3b",
+      "mlflow_model_version": 1,
+      "gguf_f16": "models/poetry-lora-3b/3b-poetry-f16.gguf",
+      "gguf_q4_k_m": "models/poetry-lora-3b/3b-poetry-Q4_K_M.gguf"
+    },
+    {
+      "id": "20260731_023723",
+      "created": "2026-07-31T02:37:23.364028",
+      "config": "mlops/configs/dpo_v1.yaml",
+      "data_sha256": null,
+      "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "lora_r": 16,
+      "train_loss": null,
+      "adapter_path": "models/poetry-lora-dpo-expanded/final_adapter",
+      "notes": "DPO preference-optimization run (CE + LineScorer.composite_score() reward) on top of the CE baseline; see scripts/evaluate_dpo_result.py for the comparison harness. No training-time metrics were logged to MLflow (its MLflow run is a backfill-registration run only), so train_loss is unknown rather than lost.",
+      "mlflow_run_id": "008e8eaba36049f2a40e6696aa6af75e",
+      "mlflow_model_name": "poesia-lora-dpo-expanded",
+      "mlflow_model_version": 1,
+      "gguf_f16": "models/poetry-lora-dpo-expanded/dpo-expanded-poetry-f16.gguf",
+      "gguf_q4_k_m": "models/poetry-lora-dpo-expanded/dpo-expanded-poetry-Q4_K_M.gguf"
+    },
+    {
+      "id": "poetry-lora-composite",
+      "created": null,
+      "config": "mlops/configs/train_composite.yaml",
+      "data_sha256": null,
+      "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "lora_r": 16,
+      "train_loss": null,
+      "adapter_path": "models/poetry-lora-composite/final_adapter",
+      "notes": "DEAD — never completed. Composite-loss (CE + scorer_weight 0.15) experiment on 47 records; MLflow run b04465bb94e142ad8efb090b4960ee16 shows FINISHED status but start_time/end_time differ by only ~16ms and metrics is empty, meaning the run was killed/interrupted immediately, not a completed-then-lost run. models/poetry-lora-composite.dvc has pointed at an empty artifact (size 0, nfiles 0) since it was first added in b84ec82 — no adapter weights were ever produced. Not recoverable; would need a fresh training run to exist. See docs/MLOPS_DIAGNOSIS.md.",
+      "mlflow_run_id": "b04465bb94e142ad8efb090b4960ee16",
+      "mlflow_model_name": null,
+      "gguf_f16": null,
+      "gguf_q4_k_m": null
     },
     {
       "id": "20260806_151949",
@@ -87,7 +144,9 @@
       "notes": "",
       "mlflow_model_version": 1,
       "eval_syllable_deviation": 11.67,
-      "eval_line_count_accuracy": 1.0
+      "eval_line_count_accuracy": 1.0,
+      "gguf_f16": "models/poetry-lora-v2-fixed/v2-fixed-poetry-f16.gguf",
+      "gguf_q4_k_m": "models/poetry-lora-v2-fixed/v2-fixed-poetry-Q4_K_M.gguf"
     }
   ],
   "description": "Registry of all trained LoRA adapters. Each entry records the adapter path, config used, data hash, and evaluation metrics. Updated manually or via training script.",
@@ -102,6 +161,8 @@
     "eval_syllable_accuracy": "fraction of lines with correct syllable count",
     "eval_line_count_accuracy": "fraction of generated poems with correct line count",
     "adapter_path": "path to saved adapter",
-    "notes": "free text notes"
+    "notes": "free text notes",
+    "gguf_f16": "path to fp16 GGUF export",
+    "gguf_q4_k_m": "path to Q4_K_M quantized GGUF export"
   }
 }
