@@ -153,17 +153,23 @@ def main():
         pass  # Experiment already exists
     mlflow.set_experiment(experiment_name)
 
-    # Phase 2: Enable PyTorch autologging — captures GPU metrics (memory,
-    # utilization), optimizer state, and system-level metrics automatically.
-    # NOTE: mlflow.transformers.autolog() was attempted here but it is a
-    # no-op (only disables sub-model logging). The real training metrics
-    # come from HF Trainer's report_to='mlflow' in TrainingArguments below.
+    # Phase 2: Enable PyTorch autologging — captures optimizer state and
+    # training metrics via HF Trainer's report_to='mlflow' in TrainingArguments
+    # below. NOTE: mlflow.transformers.autolog() was attempted here but it is
+    # a no-op (only disables sub-model logging).
+    #
+    # `mlflow.pytorch.autolog()` does NOT log hardware/system metrics (CPU,
+    # GPU utilization, memory) on its own — a prior version of this comment
+    # claimed it did; it doesn't. `mlflow.enable_system_metrics_logging()` is
+    # the actual API for that, polling in a background thread for the
+    # lifetime of the active run.
     mlflow.pytorch.autolog(
         log_models=False,  # We handle model saving manually
         log_datasets=False,  # We use data_manifest.py for dataset tracking
         disable=False,
         silent=True,
     )
+    mlflow.enable_system_metrics_logging()
 
     run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     run_name = cfg.get("run_name", f"run_{run_id}")
@@ -375,7 +381,19 @@ def main():
         # Phase 3: Log the model as an MLflow pyfunc model and register it
         model_registry_name = f"poesia-lora-{experiment_name}"
         try:
+            import pandas as pd
+            from mlflow.models import infer_signature
+
             from poesia.training.model_wrapper import PoetryModelWrapper
+
+            # A signature lets the Model Registry and `mlflow models serve`
+            # validate input/output shape before running inference, and
+            # documents the contract (a 'prompt' column in, generated text
+            # out) for anyone loading this model later. It was previously
+            # missing — `log_model()` accepted whatever was passed with no
+            # schema check.
+            input_example = pd.DataFrame({"prompt": ["Write a soneto in Spanish about the sea."]})
+            signature = infer_signature(input_example, ["example generated poem text"])
 
             mlflow.pyfunc.log_model(
                 artifact_path="model",
@@ -383,6 +401,8 @@ def main():
                 artifacts={"adapter": adapter_path},
                 model_config={"base_model": model_name},
                 registered_model_name=model_registry_name,
+                signature=signature,
+                input_example=input_example,
             )
             print(f"Model registered in MLflow Registry: {model_registry_name}")
             mlflow.set_tag("mlflow.registeredModelName", model_registry_name)
