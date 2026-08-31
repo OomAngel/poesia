@@ -134,6 +134,14 @@ curl -sL https://www.gutenberg.org/cache/epub/{ID}/pg{ID}.txt -o /tmp/gutenberg_
   downstream code that assumes every record is Spanish (e.g. applying
   `SpanishPhonology` indiscriminately across the full structured corpus) needs a
   `language`-aware guard before consuming these new files.
+  `scripts/generate_synthetic_repair_pairs.py` (Plan B's synthetic
+  defect→fix generator) has this guard as of 2026-08-31; it previously had
+  none beyond an accidental Gutenberg-boilerplate regex and had also gone
+  stale — it last ran before this round's corpus expansion, so none of the
+  new Spanish lines had synthetic repair pairs until it was re-run
+  (560 -> 1,847 pairs; `repair_finetune.jsonl` regenerated to match). Other
+  scripts that touch `training_data_structured/` and use
+  `SpanishPhonology` have not been individually audited for the same gap.
 
 ## License & provenance
 

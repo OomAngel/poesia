@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import random
 
 from poesia.phonology.spanish import SpanishPhonology
@@ -9,6 +10,7 @@ from scripts.generate_synthetic_repair_pairs import (
     _BOILERPLATE_RE,
     corrupt_rhyme,
     corrupt_syllables,
+    extract_lines,
 )
 
 
@@ -46,3 +48,32 @@ def test_boilerplate_filter_catches_gutenberg_legal_text() -> None:
 def test_boilerplate_filter_does_not_flag_ordinary_spanish_verse() -> None:
     clean = "bajo la luna brillante caminan las sombras"
     assert not _BOILERPLATE_RE.search(clean)
+
+
+def test_extract_lines_skips_english_records(tmp_path) -> None:
+    corpus_dir = tmp_path / "training_data_structured"
+    corpus_dir.mkdir()
+    (corpus_dir / "es_book.jsonl").write_text(
+        json.dumps(
+            {
+                "completion": "bajo la luna brillante caminan las sombras",
+                "language": "es",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (corpus_dir / "en_book.jsonl").write_text(
+        json.dumps(
+            {
+                "completion": "success is counted sweetest by those who ne'er succeed",
+                "language": "en",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    lines = extract_lines(str(corpus_dir / "*.jsonl"))
+
+    assert lines == ["bajo la luna brillante caminan las sombras"]
