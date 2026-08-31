@@ -1,0 +1,83 @@
+schema: '2.0'
+stages:
+  distill:
+    cmd: python scripts/distill_sonetos.py --count 100 --output
+      seeds/poetry_corpus/training_data_distilled
+    deps:
+    - path: scripts/distill_sonetos.py
+      hash: md5
+      md5: ad7855a99ad20e83816cfed493d5daef
+      size: 15212
+    - path: src/poesia/evaluation/emotion_lexicon.py
+      hash: md5
+      md5: b8c664e9d13eb70705a52423bf02606c
+      size: 2936
+    - path: src/poesia/galeria/imagery.py
+      hash: md5
+      md5: 6fb976e6bc12947607f5b8b4954d480f
+      size: 5503
+    outs:
+    - path: seeds/poetry_corpus/training_data_distilled
+      hash: md5
+      md5: c213101f6936aa3e60fc859617344a4d.dir
+      size: 57862
+      nfiles: 1
+  train:
+    cmd: python scripts/train_poetry_lora.py mlops/configs/train_v1.yaml
+    deps:
+    - path: mlops/configs/train_v1.yaml
+      hash: md5
+      md5: 7a6575636cf9bd76109e6216616b7061
+      size: 924
+    - path: scripts/train_poetry_lora.py
+      hash: md5
+      md5: 30353195eb67d378cbb9595d94e93e66
+      size: 21607
+    - path: seeds/poetry_corpus/training_data_structured/sonetos_train.jsonl
+      hash: md5
+      md5: c3697367022ce60cde9eb9b121219c50
+      size: 369691
+    params:
+      mlops/configs/train_v1.yaml:
+        epochs: 10
+        learning_rate: 0.0002
+        lora_alpha: 32
+        lora_dropout: 0.05
+        lora_r: 16
+        model: Qwen/Qwen2.5-1.5B-Instruct
+    outs:
+    - path: models/poetry-lora-v2
+      hash: md5
+      md5: 9d589795422f4347e466feab510077ee.dir
+      size: 92875103
+      nfiles: 18
+  evaluate:
+    cmd: python scripts/evaluate_adapter_mlflow.py --adapter
+      models/poetry-lora-v2
+    deps:
+    - path: models/poetry-lora-v2
+      hash: md5
+      md5: 9d589795422f4347e466feab510077ee.dir
+      size: 92875103
+      nfiles: 18
+    - path: scripts/evaluate_adapter_mlflow.py
+      hash: md5
+      md5: 5b7ddd72757bc4ff42905c486448b1a0
+      size: 4091
+  benchmark:
+    cmd: python scripts/benchmark_metre.py --backends llama_cpp,groq --forms
+      soneto:es --draft
+    deps:
+    - path: scripts/benchmark_metre.py
+      hash: md5
+      md5: 7ff40ec013984d18eaad984420cc9f42
+      size: 8752
+      isexec: true
+    - path: src/poesia/forms/definitions.py
+      hash: md5
+      md5: 0aa073d8365bd101aeb8dfd26b5f9e36
+      size: 5543
+    - path: src/poesia/generation/constrained_loop.py
+      hash: md5
+      md5: 102ff5d7dfe9841392562ee302f0b55d
+      size: 43480
