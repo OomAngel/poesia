@@ -75,6 +75,10 @@ class BookSpec:
     # introductions) alongside the actual verse. When set, only the text
     # from this exact standalone line onward is considered.
     section_start: str | None = None
+    # Some editions append a critical/variorum apparatus (footnotes, editor
+    # notes in other languages) after the actual poems end. When set, text
+    # from this literal substring onward is dropped.
+    section_end: str | None = None
 
 
 MANIFEST: list[BookSpec] = [
@@ -104,6 +108,33 @@ MANIFEST: list[BookSpec] = [
         "es",
         "Poe",
     ),
+    BookSpec(
+        49333,
+        "Jorge Manrique",
+        "gutenberg_manrique_coplas",
+        "es",
+        "Manrique",
+        section_start="COPLAS",  # skips the editor's French-language critical preface
+        section_end="Titre: _A._ Torna el actor y faze fin",  # skips the variorum apparatus after copla 40
+    ),
+    BookSpec(
+        70984,
+        "Rosalía de Castro",
+        "gutenberg_rosalia_castro_sar",
+        "es",
+        "Castro",
+        section_start="ORILLAS DEL SAR",  # skips Murguía's prose prologue
+    ),
+    BookSpec(29497, "Tomás de Iriarte", "gutenberg_iriarte_fabulas", "es", "Iriarte"),
+    BookSpec(
+        55206,
+        "Félix María Samaniego",
+        "gutenberg_samaniego_fabulas",
+        "es",
+        "Samaniego",
+        section_start="LIBRO PRIMERO",  # skips editor bio/vocabulary front matter
+    ),
+    BookSpec(64058, "María Goyri (comp.)", "gutenberg_goyri_fabulas_cuentos", "es", "Goyri"),
     # --- English ---
     BookSpec(12242, "Emily Dickinson", "gutenberg_dickinson_poems", "en", "Dickinson"),
     BookSpec(1057, "Oscar Wilde", "gutenberg_wilde_poems", "en", "Wilde"),
@@ -198,10 +229,13 @@ def split_into_poems(body: str) -> list[tuple[str, str]]:
             # punctuation that marks a mid-sentence prose fragment is.
             and stripped0[-1] not in ",;:?!"
             and not _BOILERPLATE_PHRASE_RE.search(stripped0)
+            # Footnote/variant-apparatus entries ("[2] _A._ maestro.") look
+            # like short titles but aren't — reject them explicitly.
+            and not _FOOTNOTE_MARKER_RE.match(stripped0)
         )
         if is_title_like:
             flush()
-            title = stripped0
+            title = _clean_line(stripped0)
             continue
         if title is None:
             continue  # front matter before the first detected title
@@ -252,6 +286,13 @@ def process_book(spec: BookSpec, dry_run: bool) -> int:
             print(f"  SKIP {spec.tag}: section_start {spec.section_start!r} not found")
             return 0
         body = body[marker.start() :]
+
+    if spec.section_end is not None:
+        end_idx = body.find(spec.section_end)
+        if end_idx == -1:
+            print(f"  SKIP {spec.tag}: section_end {spec.section_end!r} not found")
+            return 0
+        body = body[:end_idx]
 
     poems = split_into_poems(body)
     if not poems:
