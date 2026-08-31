@@ -55,6 +55,7 @@ Its value is *voice*, not metre.
 | 12 | Stray non-Spanish/English fragments leak into cleaned candidates (e.g. a bare `"e.g."`, a dangling `", y."`) seen in one "el mar" trial | not started — minor, one-off so far |
 | 13 | Rhyme repair accepts a literal repeated word as a "resolved" rhyme (e.g. two A-rhyme lines both ending on "swell") — passes `rhyme_key()` trivially since it's the same word, but it's not a rhyme | ✅ fix landed — see below |
 | 14 | Repair prompt for a wrong-rhyme-sound defect is vague ("rhymes with its rhyme-group partner") — gives the repair LLM no concrete word to work from, so genuine sound mismatches (seen live: needed `'UW1 F'`) often survive `max_repair_attempts` | ✅ fix landed — see below |
+| 15 | `WriteConfig.max_repair_attempts` was built (hardcoded to 2 in `_build_write_config`) but never actually passed to `loop.run()`/`loop.run_draft()` — raising the budget was impossible even by editing code, since the field was dead | ✅ fix landed — wired through, exposed as `--max-repair-attempts` (default raised 2→4) |
 
 ## Next actions (priority order)
 
@@ -174,6 +175,22 @@ This doesn't guarantee every repair now succeeds within `max_repair_attempts` �
 inherent LLM variance, honestly reported when it happens — but gives the model something
 concrete to work with instead of an abstract instruction. Regression tests in
 `tests/test_generation_rhyme_repair.py`.
+
+### Wiring gap: `max_repair_attempts` was a no-op (gap #15)
+
+The same live run's remaining `[WARN]` (a genuine wrong-rhyme-sound line surviving repair) calls
+for more attempts, not more prompt engineering. But raising the budget did nothing: `_build_
+write_config()` hardcoded `max_repair_attempts=2` into `WriteConfig` regardless of any future
+flag, and — the actual bug — `cli.py`'s calls to `loop.run(...)` and `loop.run_draft(...)` never
+passed `max_repair_attempts` at all, so both silently fell back to their own internal default of
+2. `WriteConfig.max_repair_attempts` was dead code; there was no way to raise the repair budget
+short of editing `constrained_loop.py`'s defaults directly.
+
+Fix: added a `--max-repair-attempts` CLI flag (default 4, up from the old hardcoded 2), threaded
+it through `_build_write_config()` into `WriteConfig`, and passed `config.max_repair_attempts`
+into both `loop.run()` and `loop.run_draft()` call sites. `WriteConfig`'s own default raised to 4
+to match, for non-CLI callers. Regression tests in `tests/test_cli_max_repair_attempts.py` assert
+both the new default and that the flag's value actually reaches `ConstrainedLoop.run()`.
 
 ## MLOps / data engineering (added 2026-08-30, updated 2026-08-31)
 
