@@ -41,7 +41,7 @@ Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
 | **QLoRA r=64** | `lora_r: 64` | More capacity for patterns | Edit one line | ★★ |
 | **LoRA all linear layers** | Add `gate_proj`, `up_proj`, `down_proj` | 2x more learnable params | Edit one line | ★★ |
 | **Unsloth** | Replace LoRA with Unsloth | **2x training speed** | Install unsloth, change 3 lines | ★★★★★ |
-| **DPO** (new script) | Use `scripts/train_poetry_dpo.py` | Directly optimises for our metrics | 🏃 **Running** | ★★★★★ |
+| **DPO** (new script) | Use `scripts/train_poetry_dpo.py` | Directly optimises for our metrics | ✅ **Trained & registered** (`poetry-lora-dpo-expanded`), eval blocked — see `MLOPS_DIAGNOSIS.md` §4 | ★★★★★ |
 | **Multi-teacher distillation** | Ensemble Groq + Gemini outputs | More diverse training data | Run both APIs | ★★★ |
 | **Syllable-filtered data** | Use `sonetos_filtered_t2.jsonl` | Cleaner training signal | Change data path | ★★★ |
 
@@ -50,19 +50,25 @@ Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
 ## 4. Recommended Run Order
 
 ```
-1. ✅ DPO ~~on existing v2 data~~ **Running** (2100/5625 steps) (evaluating after completion)
-   → python scripts/train_poetry_dpo.py mlops/configs/dpo_v1.yaml
+1. ✅ DPO — trained and registered (`poetry-lora-dpo-expanded`). Evaluation
+   is blocked: local GPU (compute capability 5.0) can't run the eval
+   script's CUDA path. Needs cloud/compatible GPU or a GGUF+llama_cpp eval
+   path — see MLOPS_DIAGNOSIS.md §4.
+   → python scripts/evaluate_dpo_result.py (once unblocked)
 
-2. Unsloth + r=64 (tests if faster training + more params helps)
+2. Unsloth + r=64 (tests if faster training + more params helps) — not started
    → pip install unsloth; edit train_multiform.yaml (lora_r: 64)
 
-3. Ruli-3B + current config (tests if Spanish-native model helps)
-   → edit train_multiform.yaml (model: "Ruli-3B")
+3. ✅ Qwen2.5-3B + current config — trained and registered
+   (`poesia-lora-soneto-qwen3b`), GGUF-converted. "Ruli-3B" never existed on
+   HuggingFace (see §2 correction above); this was its replacement.
 
-4. MLflow Recipes (automate the whole pipeline)
+4. MLflow Recipes (automate the whole pipeline) — not started
    → mlflow run . -- entry-point train
 
-5. MLflow Model Registry (auto-select best adapter)
+5. MLflow Model Registry (auto-select best adapter) — registry itself is
+   populated (9 adapters), but nothing tags/selects a "production" adapter
+   automatically yet
    → Tag best run as "production" → LORAdAPTER_PATH reads from registry
 ```
 
