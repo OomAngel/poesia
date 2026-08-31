@@ -9,7 +9,7 @@ rhyme-key repair (gap #11)".
 from __future__ import annotations
 
 from poesia.evaluation.scorer import LineScorer, ScoredCandidate
-from poesia.generation.constrained_loop import ConstrainedLoop
+from poesia.generation.constrained_loop import ConstrainedLoop, _repair_defect_description
 
 
 class _QueuedRepairLLM:
@@ -200,6 +200,49 @@ def test_repair_candidate_warns_with_repeat_message_when_repeat_never_gets_fixed
     assert result is not None
     assert any('repeats the word "mat"' in w for w in loop._warnings)
     assert not any("wrong rhyme key" in w for w in loop._warnings)
+
+
+def test_repair_defect_description_names_concrete_rhyme_word() -> None:
+    """The old phrasing ("rhymes with its rhyme-group partner") gave an
+    instruct LLM nothing concrete to act on; naming the actual word is a
+    task these models handle well.
+    """
+    desc = _repair_defect_description(
+        actual_syllables=9, target_syllables=11, target_rhyme_key="ento", example_word="viento"
+    )
+    assert 'rhymes with "viento"' in desc
+    assert 'not "viento" itself' in desc
+
+
+def test_repair_draft_line_sends_concrete_rhyme_word_to_repair_llm() -> None:
+    """`_repair_draft_line`'s prompt to the repair LLM must name the actual
+    word to rhyme with, not the vague "its rhyme-group partner" phrasing.
+    """
+    loop = ConstrainedLoop(language="en", form="haiku")
+
+    class _CapturingLLM(_QueuedRepairLLM):
+        def __init__(self, responses: list[str]) -> None:
+            super().__init__(responses)
+            self.defect_descriptions: list[str] = []
+
+        def repair(self, line: str, defect_description: str) -> str:
+            self.defect_descriptions.append(defect_description)
+            return super().repair(line, defect_description)
+
+    llm = _CapturingLLM(["The dog sat with a hat"])
+    loop._llm = llm  # noqa: SLF001 — test seam
+
+    loop._repair_draft_line(  # noqa: SLF001 — test seam
+        "The dog sat on the map",  # wrong rhyme sound, not a repeated word
+        target_syllables=6,
+        target_rhyme_key="AE1 T",
+        max_attempts=1,
+        line_index=1,
+        example_word="mat",
+    )
+
+    assert llm.defect_descriptions
+    assert 'rhymes with "mat"' in llm.defect_descriptions[0]
 
 
 def test_repair_candidate_warns_when_rhyme_cant_be_fixed() -> None:
