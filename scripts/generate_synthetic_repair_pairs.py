@@ -123,6 +123,8 @@ def extract_lines(corpus_glob: str) -> list[str]:
                     record = json.loads(raw)
                 except json.JSONDecodeError:
                     continue
+                if record.get("language") != "es":
+                    continue
                 completion = record.get("completion", "")
                 for line in completion.splitlines():
                     line = line.strip()
