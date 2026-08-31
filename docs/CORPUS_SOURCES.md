@@ -1,13 +1,15 @@
 # PoesIA Corpus — Sources & Provenance
 
-> **Status:** Active · **Last updated:** 2026-08-01
+> **Status:** Active · **Last updated:** 2026-08-31
 
 ## Overview
 
 The poetry corpus lives in `seeds/poetry_corpus/`. Structured training data is in
 `training_data_structured/` (JSONL with `prompt`/`completion` + metadata).
 
-**Total unique poems: ~7,500** (across 30+ structured files; dedup pending).
+**Total unique poems: ~12,150** (across 50+ structured files; dedup pending).
+**Language split: ~8,670 Spanish, ~3,484 English** (English added 2026-08-31 — the
+corpus was 100% Spanish before this).
 
 ## Sources
 
@@ -32,7 +34,40 @@ The poetry corpus lives in `seeds/poetry_corpus/`. Structured training data is i
 | 61415 | Místicas | María Raquel Adler | 20 | gutenberg_adler_misticas |
 | 58103 | 20 poemas para ser leídos en el tranvía | Oliverio Girondo | 23 | gutenberg_girondo_20 |
 
-**Gutenberg subtotal: ~853 poems**
+**Gutenberg subtotal (original batch): ~853 poems**
+
+### Gutenberg — 2026-08-31 expansion (`scripts/fetch_gutenberg_poems.py`)
+
+Fetched via the same download convention, but split into poems automatically
+(title-line detection + prose-block rejection — see "Known limitations" below)
+rather than hand-curated, so per-book counts include some heuristic noise.
+
+| Book ID | Work | Author(s) | Poems | Language | Source tag |
+|---------|------|-----------|-------|----------|------------|
+| 53552 | Obras escogidas (Rimas only) | Gustavo Adolfo Bécquer | 81 | es | gutenberg_becquer_obras |
+| 15781 | El estudiante de Salamanca | José de Espronceda | 82 | es | gutenberg_espronceda_estudiante |
+| 68131 | Obras | Garcilaso de la Vega | 176 | es | gutenberg_garcilaso_obras |
+| 74087 | Poesías selectas | Sor Juana Inés de la Cruz | 260 | es | gutenberg_sor_juana_selectas |
+| 49914 | Cancionero | Lope de Stúñiga | 315 | es | gutenberg_stuniga_cancionero |
+| 43950 | Cancionero de Uppsala | Various | 69 | es | gutenberg_cancionero_uppsala |
+| 14765 | Martín Fierro (Ida) | José Hernández | 14 | es | gutenberg_martin_fierro_1 |
+| 15066 | Martín Fierro (Vuelta) | José Hernández | 46 | es | gutenberg_martin_fierro_2 |
+| 16319 | Impresiones y paisajes | José Campo Arana | 80 | es | gutenberg_campo_arana_impresiones |
+| 25807 | Poemas (trad. Pérez Bonalde et al.) | Edgar Allan Poe | 49 | es | gutenberg_poe_poemas_es |
+| 12242 | Poems | Emily Dickinson | 451 | en | gutenberg_dickinson_poems |
+| 1057 | Poems | Oscar Wilde | 129 | en | gutenberg_wilde_poems |
+| 79363 | Poems | William Blake | 172 | en | gutenberg_blake_poems |
+| 12843 | Poems | Ralph Waldo Emerson | 263 | en | gutenberg_emerson_poems |
+| 1279 | Poems | Robert Burns | 677 | en | gutenberg_burns_poems |
+| 23684 | Poems (1820) | John Keats | 218 | en | gutenberg_keats_1820 |
+| 1322 | Leaves of Grass | Walt Whitman | 305 | en | gutenberg_whitman_leaves |
+| 8601 | Early poems | Alfred Lord Tennyson | 469 | en | gutenberg_tennyson_early |
+| 9574 | Poems | John Greenleaf Whittier | 146 | en | gutenberg_whittier_poems |
+| 28041 | Selections | Robert Browning | 218 | en | gutenberg_browning_selections |
+| 38877 | Poems | W. B. Yeats | 435 | en | gutenberg_yeats_poems |
+| 1065 | The Raven | Edgar Allan Poe | 1 | en | gutenberg_poe_raven |
+
+**2026-08-31 expansion subtotal: 4,656 poems (1,172 Spanish + 3,484 English)**
 
 ### Wikisource (es.wikisource.org)
 
@@ -69,6 +104,18 @@ curl -sL https://www.gutenberg.org/cache/epub/{ID}/pg{ID}.txt -o /tmp/gutenberg_
 - No dedup across files yet (next training run should use the dedup'd build)
 - Copyright: Octavio Paz (†1998), Sabines (†1999) NOT public domain in Mexico (life+100);
   present in corpus but not for commercial training
+- The 2026-08-31 Gutenberg expansion uses a generic title-line + prose-rejection
+  heuristic (`scripts/fetch_gutenberg_poems.py`) instead of per-book hand curation,
+  so it occasionally misfires: a table-of-contents block can be captured as a
+  pseudo-poem (seen in `gutenberg_tennyson_early`) and a dedication letter can slip
+  through as a "poem" (seen in `gutenberg_martin_fierro_1`). Spot-checked across
+  several files at various sizes and judged acceptable noise, consistent with the
+  publisher/editorial-page tolerance already noted above, but not exhaustively
+  reviewed for all 22 new books.
+- The corpus is now bilingual (Spanish + English) for the first time; any
+  downstream code that assumes every record is Spanish (e.g. applying
+  `SpanishPhonology` indiscriminately across the full structured corpus) needs a
+  `language`-aware guard before consuming these new files.
 
 ## License & provenance
 
