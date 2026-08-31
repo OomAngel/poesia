@@ -150,14 +150,52 @@ def _phonology_for(language: str):
     raise ValueError(f"No phonology backend registered for language '{language}'.")
 
 
-def _off_rhyme(phonology, line: str, target_rhyme_key: str | None) -> bool:
-    """True if `line`'s rhyme key doesn't match `target_rhyme_key`; fails open."""
+def _last_word(line: str) -> str:
+    """Extract a line's last word, stripped of trailing punctuation — mirrors
+    how `RhymeTracker.commit()` derives the word it remembers for a group."""
+    words = line.split()
+    if not words:
+        return ""
+    return words[-1].rstrip(".,;:!?¿¡\"'")
+
+
+def _off_rhyme(
+    phonology, line: str, target_rhyme_key: str | None, example_word: str | None = None
+) -> bool:
+    """True if `line` doesn't satisfy its rhyme requirement; fails open.
+
+    Two distinct failure modes, both worth repairing: the rhyme *sound* is
+    wrong, or the line ends on the exact same word already committed for
+    this group (`example_word`) — that passes the sound check trivially
+    (it's the same word) but is a craft defect, not a resolved rhyme.
+    """
     if not target_rhyme_key:
         return False
+    if example_word and _last_word(line).lower() == example_word.lower():
+        return True
     try:
         return phonology.rhyme_key(line).consonant != target_rhyme_key
     except Exception:  # noqa: BLE001 — fail open on rhyme check
         return False
+
+
+def _rhyme_repair_warning(
+    line_index: int,
+    line: str,
+    target_rhyme_key: str | None,
+    example_word: str | None,
+    subject: str,
+) -> str:
+    """Pick the right rhyme-defect warning: wrong sound vs. a repeated word."""
+    if example_word and _last_word(line).lower() == example_word.lower():
+        return (
+            f'Line {line_index + 1}: accepted {subject} that repeats the word "{example_word}" '
+            "instead of a new word rhyming with it"
+        )
+    return (
+        f"Line {line_index + 1}: accepted {subject} with wrong rhyme key "
+        f"(needed '{target_rhyme_key}')"
+    )
 
 
 def _accept_draft_repair(
@@ -247,6 +285,7 @@ def _repair_defect_description(
     target_syllables: int,
     target_rhyme_key: str | None,
     guest_word: str | None = None,
+    example_word: str | None = None,
 ) -> str:
     """Build a precise repair request so the LLM knows the exact defect.
 
@@ -257,6 +296,10 @@ def _repair_defect_description(
     parts = [f"the line has {actual_syllables} syllables but must be exactly {target_syllables}"]
     if target_rhyme_key:
         parts.append("the line must end with a word that rhymes with its rhyme-group partner")
+        if example_word:
+            parts.append(
+                f'it must not end on the word "{example_word}", already used for this rhyme'
+            )
     if guest_word:
         parts.append(
             f'the line must naturally include "{guest_word}" somewhere in the '
@@ -460,18 +503,21 @@ class ConstrainedLoop:
         line_index: int,
         guest_word: str | None = None,
         polish: bool = False,
+        example_word: str | None = None,
     ) -> ScoredCandidate | None:
         """Repair an invalid best candidate up to max_repair_attempts.
 
         A line assigned a `guest_word` is also "invalid" (in the repair-loop
         sense) until the guest word actually landed mid-line — see
-        `_guest_word_ok`.
+        `_guest_word_ok`. `example_word` is the word that already established
+        this line's rhyme group (if any) — repeating it verbatim rhymes
+        trivially but isn't a resolved rhyme; see `_off_rhyme`.
         """
         assert self._scorer is not None  # set up in _generate before repair runs
         attempts = 0
 
         def _candidate_off_rhyme(candidate: ScoredCandidate) -> bool:
-            return _off_rhyme(self._phonology, candidate.line, target_rhyme_key)
+            return _off_rhyme(self._phonology, candidate.line, target_rhyme_key, example_word)
 
         def _needs_repair(candidate: ScoredCandidate) -> bool:
             off_metre = candidate.scan.metrical_syllable_count != target_syllables
@@ -490,6 +536,7 @@ class ConstrainedLoop:
                     target_syllables=target_syllables,
                     target_rhyme_key=target_rhyme_key,
                     guest_word=guest_word,
+                    example_word=example_word,
                 ),
             )
             # repair() output skips the batch-only _clean_candidates() call in
@@ -516,8 +563,9 @@ class ConstrainedLoop:
                 )
             if _candidate_off_rhyme(best):
                 self._warn(
-                    f"Line {line_index + 1}: accepted best candidate with wrong rhyme key "
-                    f"(needed '{target_rhyme_key}')"
+                    _rhyme_repair_warning(
+                        line_index, best.line, target_rhyme_key, example_word, "best candidate"
+                    )
                 )
             if guest_word and not _guest_word_ok(best.line, guest_word):
                 self._warn(
@@ -526,7 +574,12 @@ class ConstrainedLoop:
                 )
         if polish and best is not None:
             best = self._polish_line(
-                best, target_syllables, target_rhyme_key, prior_lines, max_repair_attempts
+                best,
+                target_syllables,
+                target_rhyme_key,
+                prior_lines,
+                max_repair_attempts,
+                example_word,
             )
         return best
 
@@ -537,12 +590,14 @@ class ConstrainedLoop:
         target_rhyme_key: str | None,
         prior_lines: list[str],
         max_attempts: int,
+        example_word: str | None = None,
     ) -> ScoredCandidate:
         """Rewrite a metrically-correct line to read naturally, preserving metre.
 
         Runs after the metre/rhyme repair so the only remaining defect is
         fluency. Accepts a repair only if it keeps the target syllable count
-        (and rhyme key, when one is required).
+        (and rhyme key, when one is required — including not lapsing into a
+        repeat of `example_word`, the word already committed for this group).
         """
         for _ in range(max_attempts):
             if not _line_is_stiff(candidate.line, self.language, self._llm):
@@ -560,12 +615,7 @@ class ConstrainedLoop:
                 return candidate
             new = rescored[0]
             metre_ok = new.scan.metrical_syllable_count == target_syllables
-            rhyme_ok = True
-            if target_rhyme_key:
-                try:
-                    rhyme_ok = self._phonology.rhyme_key(new.line).consonant == target_rhyme_key
-                except Exception:  # noqa: BLE001 — fail open on rhyme check
-                    rhyme_ok = True
+            rhyme_ok = not _off_rhyme(self._phonology, new.line, target_rhyme_key, example_word)
             if metre_ok and rhyme_ok:
                 candidate = new
                 continue
@@ -791,6 +841,7 @@ class ConstrainedLoop:
                 line_index,
                 guest_word=guest_word,
                 polish=polish,
+                example_word=example_rhyme_word,
             )
             if best is not None:
                 chosen = self._select_best(line_index, scored, line_selector)
@@ -840,12 +891,18 @@ class ConstrainedLoop:
         target_rhyme_key: str | None,
         max_attempts: int,
         line_index: int = 0,
+        example_word: str | None = None,
     ) -> str:
-        """Repair a drafted line's metre/rhyme in place, without regenerating it."""
+        """Repair a drafted line's metre/rhyme in place, without regenerating it.
+
+        `example_word` is the word that already established this line's rhyme
+        group (if any) — see `_off_rhyme` for why repeating it verbatim still
+        counts as a rhyme defect.
+        """
         scan = self._phonology.scan_line(line)
         for _ in range(max_attempts):
             off_metre = scan.metrical_syllable_count != target_syllables
-            off_rhyme = _off_rhyme(self._phonology, line, target_rhyme_key)
+            off_rhyme = _off_rhyme(self._phonology, line, target_rhyme_key, example_word)
             if not (off_metre or off_rhyme):
                 break
             defects = []
@@ -858,6 +915,10 @@ class ConstrainedLoop:
                 defects.append(
                     "the line must end with a word that rhymes with its rhyme-group partner"
                 )
+                if example_word:
+                    defects.append(
+                        f'it must not end on the word "{example_word}", already used for this rhyme'
+                    )
             repaired = (self._repair_llm or self._llm).repair(line, "; ".join(defects))
             # Same artifact risk as the line-by-line path's repair() call (see
             # _repair_candidate) — clean before judging/accepting it.
@@ -865,7 +926,7 @@ class ConstrainedLoop:
             if not repaired or repaired == line:
                 break
             new_scan = self._phonology.scan_line(repaired)
-            new_off_rhyme = _off_rhyme(self._phonology, repaired, target_rhyme_key)
+            new_off_rhyme = _off_rhyme(self._phonology, repaired, target_rhyme_key, example_word)
             if (not off_rhyme) and new_off_rhyme:
                 # This attempt broke a rhyme that was already fine — discard it
                 # and try again rather than trading one defect for another.
@@ -879,7 +940,7 @@ class ConstrainedLoop:
         # without saying so — give run_draft() the same transparency instead
         # of quietly returning whatever repair got to after max_attempts.
         off_metre = scan.metrical_syllable_count != target_syllables
-        off_rhyme = _off_rhyme(self._phonology, line, target_rhyme_key)
+        off_rhyme = _off_rhyme(self._phonology, line, target_rhyme_key, example_word)
         if off_metre:
             self._warn(
                 f"Line {line_index + 1}: accepted drafted line despite incorrect metre "
@@ -887,8 +948,9 @@ class ConstrainedLoop:
             )
         if off_rhyme:
             self._warn(
-                f"Line {line_index + 1}: accepted drafted line with wrong rhyme key "
-                f"(needed '{target_rhyme_key}')"
+                _rhyme_repair_warning(
+                    line_index, line, target_rhyme_key, example_word, "drafted line"
+                )
             )
         return line
 
@@ -898,6 +960,7 @@ class ConstrainedLoop:
         target_syllables: int,
         target_rhyme_key: str | None,
         max_attempts: int,
+        example_word: str | None = None,
     ) -> str:
         """String-based fluency polish for a drafted line (no scorer needed)."""
         for _ in range(max_attempts):
@@ -911,12 +974,7 @@ class ConstrainedLoop:
                 return line
             new_scan = self._phonology.scan_line(repaired)
             metre_ok = new_scan.metrical_syllable_count == target_syllables
-            rhyme_ok = True
-            if target_rhyme_key:
-                try:
-                    rhyme_ok = self._phonology.rhyme_key(repaired).consonant == target_rhyme_key
-                except Exception:  # noqa: BLE001 — fail open on rhyme check
-                    rhyme_ok = True
+            rhyme_ok = not _off_rhyme(self._phonology, repaired, target_rhyme_key, example_word)
             if metre_ok and rhyme_ok:
                 line = repaired
             else:
@@ -968,12 +1026,18 @@ class ConstrainedLoop:
         for line_index, line in enumerate(lines):
             target_syllables = self.form_spec.syllables_for_line(line_index)
             target_rhyme_key = rhyme_tracker.target_key_for_line(line_index)
+            example_word = rhyme_tracker.example_word_for_line(line_index)
             fixed = self._repair_draft_line(
-                line, target_syllables, target_rhyme_key, max_repair_attempts, line_index
+                line,
+                target_syllables,
+                target_rhyme_key,
+                max_repair_attempts,
+                line_index,
+                example_word,
             )
             if polish:
                 fixed = self._polish_draft_line(
-                    fixed, target_syllables, target_rhyme_key, max_repair_attempts
+                    fixed, target_syllables, target_rhyme_key, max_repair_attempts, example_word
                 )
             result.lines.append(fixed)
             rhyme_tracker.commit(line_index, fixed)

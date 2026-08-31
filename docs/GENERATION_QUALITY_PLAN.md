@@ -53,6 +53,7 @@ Its value is *voice*, not metre.
 | 10 | Draft shorter than form's line count silently accepted | ✅ done — `run_draft()` now warns (`draft has N/M lines...`) |
 | 11 | Rhyme-key correctness weak even after repair (hybrid path, all 3 trials) | ✅ fix landed (`b120de0`) — repair loop now enforces rhyme, not just metre, in both paths; warns when repair still fails after max attempts instead of shipping silently |
 | 12 | Stray non-Spanish/English fragments leak into cleaned candidates (e.g. a bare `"e.g."`, a dangling `", y."`) seen in one "el mar" trial | not started — minor, one-off so far |
+| 13 | Rhyme repair accepts a literal repeated word as a "resolved" rhyme (e.g. two A-rhyme lines both ending on "swell") — passes `rhyme_key()` trivially since it's the same word, but it's not a rhyme | ✅ fix landed — see below |
 
 ## Next actions (priority order)
 
@@ -131,6 +132,25 @@ distribution entirely." Either exclude it from the repair role until retrained o
 examples, or drop the `--repair-llm llama_cpp` option pending that. The original "fine-tune
 isn't ready as *primary generator*" verdict (measured via `--llm llama_cpp`, a task it *was*
 trained for) still stands on its own evidence and is unaffected by this correction.
+
+### Root cause: identical-word "rhyme" (gap #13)
+
+Found live: a `poesia write --form sonnet_shakespearean --language en` run produced a
+quatrain whose A-rhyme pair both ended on the literal word "swell" — mechanically valid
+(`rhyme_key()` on a word against itself always matches) but not a rhyme at all. No existing
+check caught this: `RhymeTracker` only stores each group's target consonant key and an example
+word for prompting; `_off_rhyme()` (both repair paths) and `_polish_line`/`_polish_draft_line`
+only ever compared consonant keys, never the actual words.
+
+Fix: `_off_rhyme()` now also takes an `example_word` (the word already committed for that rhyme
+group, from `RhymeTracker.example_word_for_line()`, `None` on a group's opening line) and flags
+a candidate whose last word matches it case-insensitively, regardless of key match. Threaded
+through `_repair_candidate`, `_polish_line`, `_repair_draft_line`, `_polish_draft_line`, and both
+`run()`/`run_draft()` call sites. The repair prompt (`_repair_defect_description`) now tells the
+LLM explicitly not to reuse that word, and the warning emitted when repair still can't fix it
+(`_rhyme_repair_warning()`) says "repeats the word X" instead of the generic "wrong rhyme key" —
+the rhyme *sound* may be fine; the defect is that it isn't a new word. Regression tests in
+`tests/test_generation_rhyme_repair.py`.
 
 ## MLOps / data engineering (added 2026-08-30, updated 2026-08-31)
 
