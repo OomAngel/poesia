@@ -13,6 +13,9 @@ correct completion to train on.
 
 Usage:
     python scripts/format_repair_examples.py [--output PATH]
+    python scripts/format_repair_examples.py --split \\
+        --train-output mlops/data/train_repair.jsonl \\
+        --eval-output mlops/data/eval_repair.jsonl
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 
 from poesia.generation.llm_client import LORA_REPAIR_PROMPT_TEMPLATE
 
@@ -42,9 +46,30 @@ def format_record(record: dict) -> dict | None:
     return {"prompt": prompt, "completion": after.strip()}
 
 
+def split_train_eval(
+    records: list[dict], eval_ratio: float, seed: int
+) -> tuple[list[dict], list[dict]]:
+    """Shuffle deterministically and split off an eval slice. Returns
+    (train, eval); eval always gets at least 1 record if records is non-empty."""
+    rng = random.Random(seed)
+    shuffled = list(records)
+    rng.shuffle(shuffled)
+    n_eval = max(1, int(len(shuffled) * eval_ratio)) if shuffled else 0
+    return shuffled[n_eval:], shuffled[:n_eval]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--split",
+        action="store_true",
+        help="Also write a shuffled train/eval split (for fine-tune configs).",
+    )
+    parser.add_argument("--train-output", default="mlops/data/train_repair.jsonl")
+    parser.add_argument("--eval-output", default="mlops/data/eval_repair.jsonl")
+    parser.add_argument("--eval-ratio", type=float, default=0.05)
+    parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     formatted = []
@@ -76,6 +101,19 @@ def main() -> None:
         for record in formatted:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
     print(f"Wrote {len(formatted)} fine-tune-ready repair examples to {args.output}")
+
+    if args.split:
+        train_examples, eval_examples = split_train_eval(formatted, args.eval_ratio, args.seed)
+
+        os.makedirs(os.path.dirname(args.train_output), exist_ok=True)
+        with open(args.train_output, "w", encoding="utf-8") as f:
+            for record in train_examples:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        with open(args.eval_output, "w", encoding="utf-8") as f:
+            for record in eval_examples:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        print(f"Train: {len(train_examples)} -> {args.train_output}")
+        print(f"Eval:  {len(eval_examples)} -> {args.eval_output}")
 
 
 if __name__ == "__main__":

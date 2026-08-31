@@ -3,7 +3,7 @@
 > **Where training runs:** the GPU workstation, not the dev laptop — see
 > [`TRAINING_RUNBOOK.md`](TRAINING_RUNBOOK.md) for the concrete commands.
 
-> **Status:** Active · **Last updated:** 2026-07-31 · **Authority:** Canonical MLOps reference
+> **Status:** Active · **Last updated:** 2026-08-31 (Next Execution Steps reconciled against a month of subsequent work — see §4) · **Authority:** Canonical MLOps reference
 >
 > This document records the comprehensive MLOps diagnosis performed 2026-07-30,
 > the 11-phase implementation plan derived from it, and the model/technique
@@ -138,19 +138,21 @@ All MLOps phases have been coded and most have been validated:
 - **Phase 9**: GitHub Actions workflows exist — need GitHub repo + secrets to activate
 - **Phase 10**: `monitor_health.py` exists — schedule only activates on GitHub
 
-### 🏃 Currently Running
+### ✅ Completed since last update
 
-- **DPO training** — first-ever run, using `scripts/train_poetry_dpo.py` with `mlops/configs/dpo_v1.yaml`. ~2100/5625 steps (~37%), estimated ~55min remaining.
+- **DPO training finished and registered.** Run `20260731_023723`, config `mlops/configs/dpo_v1.yaml` → `poetry-lora-dpo-expanded` in `adapter_registry.json`. No training-time metrics were logged for this run (see registry notes); a comparison harness exists at `scripts/evaluate_dpo_result.py` but hasn't been run against it yet.
+- **Qwen2.5-3B training finished and registered.** Run `20260730_164422` → `poesia-lora-soneto-qwen3b` in the MLflow registry, adapter at `models/poetry-lora-qwen3b/final_adapter`. GGUF-converted; it's the only adapter with a working eval path today (see next bullet).
+- **New blocker found 2026-08-31** (see `GENERATION_QUALITY_PLAN.md`): `evaluate_adapter_mlflow.py` is hardcoded to `LoRAClient` (needs CUDA sm_75+); this workstation's GPU (Quadro M1000M, sm_5.0) can't run it. 8 of 9 registered adapters — including the just-finished DPO one — are unevaluated as a result. Only `poetry-lora-qwen3b`'s GGUF export is evaluable via the `llama_cpp` fallback, and the eval script doesn't route through it yet. Needs cloud/compatible GPU access or a GGUF+llama_cpp eval path per adapter.
 
-### 🎯 Next Execution Steps (priority order)
+### 🎯 Next Execution Steps (priority order, reconciled 2026-08-31)
 
-1. **Evaluate DPO adapter** — compare metrics vs CE baseline after training finishes
-2. **Run experiment grid** — CE vs Composite vs DPO comparison
-3. **Run Qwen2.5-3B training** — now that `LoRAClient` supports 3B, train with full MLOps pipeline
-4. **Docker compose up** — verify postgres + mlflow-ui + training stack end-to-end
-5. **Wire `PoetryModelWrapper`** into `mlflow models serve` for production inference
-6. **HPO search** — Optuna hyperparameter search
-7. **Unsloth** — install and test 2x faster training
+1. **Get adapter evaluation unblocked** — either cloud/compatible GPU access, or a GGUF+`llama_cpp` eval path in `evaluate_adapter_mlflow.py` so the 8 pending adapters (DPO included) can be scored at all.
+2. **Evaluate DPO adapter** — compare metrics vs CE baseline (`scripts/evaluate_dpo_result.py`), once #1 unblocks it.
+3. **Run experiment grid** — CE vs Composite vs DPO comparison, same blocker as #1/#2.
+4. **Docker compose up** — verify postgres + mlflow-ui + training stack end-to-end. Not verified as of this update; unconfirmed whether it's been exercised since Phase 8 was coded.
+5. **Wire `PoetryModelWrapper`** into `mlflow models serve` for production inference. Phase 6 shipped the wrapper + `MLflowModelClient` CLI backend (`--llm mlflow`), but that's a different path from `mlflow models serve`; not confirmed done.
+6. **HPO search** — `scripts/hpo_search.py` (Optuna) exists but no run of it was found in this repo; still not prioritized.
+7. **Unsloth** — still not installed (`pip show unsloth` finds nothing); still not prioritized.
 
 ---
 

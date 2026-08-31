@@ -1,0 +1,38 @@
+# Repair-role fine-tune — trains on defect->fix line repair examples
+# (seeds/poetry_corpus/repair_examples/repair_finetune.jsonl), the exact
+# task shape `--repair-llm llama_cpp` sends at inference time (see
+# docs/GENERATION_QUALITY_PLAN.md gap #9 / root cause under gap #11).
+# The original fine-tune was never trained on this shape at all — this
+# run tests whether that gap, not model capability, explains why it
+# underperformed groq as a repair model (30.8% vs 78.6%).
+experiment: "repair-role-finetune"
+run_name: "repair-v1"
+tags: ["repair", "defect-to-fix", "line-level"]
+
+model: "Qwen/Qwen2.5-1.5B-Instruct"
+quantization: "4bit"
+train_data: "mlops/data/train_repair.jsonl"
+eval_data: "mlops/data/eval_repair.jsonl"
+max_length: 160
+
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+batch_size: 8
+gradient_accumulation: 1
+effective_batch: 8
+epochs: 3
+learning_rate: 0.0001
+lr_scheduler: "cosine"
+warmup_steps: 50
+weight_decay: 0.01
+fp16: true
+logging_steps: 25
+eval_steps: 100
+save_steps: 200
+save_total_limit: 2
+
+output_dir: "models/poetry-lora-repair"
+loss_fn: "ce"
