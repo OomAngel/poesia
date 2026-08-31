@@ -148,6 +148,49 @@ MANIFEST: list[BookSpec] = [
     BookSpec(28041, "Robert Browning", "gutenberg_browning_selections", "en", "Browning"),
     BookSpec(38877, "W. B. Yeats", "gutenberg_yeats_poems", "en", "Yeats"),
     BookSpec(1065, "Edgar Allan Poe", "gutenberg_poe_raven", "en", "Poe"),
+    BookSpec(
+        8774,
+        "William Wordsworth",
+        "gutenberg_wordsworth_poems_v1",
+        "en",
+        "Wordsworth",
+        section_start="TO THE DAISY.",  # skips the italicized front-matter table of contents
+        section_end="_NOTES to the FIRST VOLUME_",  # skips the trailing editor's-notes apparatus
+    ),
+    BookSpec(
+        2002,
+        "Elizabeth Barrett Browning",
+        "gutenberg_ebb_sonnets_portuguese",
+        "en",
+        "Barrett Browning",
+    ),
+    BookSpec(
+        16950,
+        "Christina Rossetti",
+        "gutenberg_rossetti_goblin_market",
+        "en",
+        "Rossetti",
+        section_start="GOBLIN MARKET",  # skips the front-matter table of contents
+    ),
+    BookSpec(
+        10031,
+        "Edgar Allan Poe",
+        "gutenberg_poe_complete",
+        "en",
+        "Poe",
+        section_start="THE RAVEN.",  # skips the TOC + prose memoir of Poe's life
+        section_end="PROSE POEMS.",  # this "complete works" edition also bundles Poe's prose
+    ),
+    # Shelley's, Longfellow's, and Coleridge's "Complete Poetical Works" editions
+    # (4800; 1365; 29090/29091/29092) were evaluated and dropped: unlike the books
+    # above, they bundle full dramatic works (plays) and, in Coleridge's case, a
+    # footnoted-variorum apparatus, interspersed throughout the whole text rather
+    # than confined to a front/back block that section_start/section_end could cut.
+    # Random sampling found the heuristic splitter misdetecting stage directions
+    # and play dialogue as "poems" at 20-50% rates (worse for Longfellow, whose
+    # "Complete Poetical Works" is even more play-heavy), far above the noise
+    # tolerance accepted elsewhere in this corpus. Skipped rather than force a bad
+    # fix; a hand-curated lyric-only selection from each could be revisited later.
 ]
 
 
