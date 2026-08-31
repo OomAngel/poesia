@@ -24,6 +24,16 @@ from poesia.exceptions import LLMProviderError
 # model poesia uses (referenced by both the router and the hosted client).
 GROQ_MODEL = "qwen/qwen3.8-27b"
 
+# LoRAClient's repair prompt — the single source of truth for the fine-tuned
+# model's repair task format. scripts/format_repair_examples.py builds its
+# training examples from this exact constant so the fine-tune never drifts
+# from the real inference-time prompt (see docs/GENERATION_QUALITY_PLAN.md:
+# a prompt/task-format mismatch is why the original fine-tune underperformed
+# at repair despite being trained on generation).
+LORA_REPAIR_PROMPT_TEMPLATE = (
+    'Fix this poetic line: {defect_description}\nLine: "{line}"\nOutput ONLY the corrected line.\n'
+)
+
 
 def _trace_decorator(span_type: str, name: str) -> Callable[[Any], Any]:
     """Return ``mlflow.trace(...)`` when mlflow is installed, else a no-op.
@@ -1061,7 +1071,9 @@ class LoRAClient:
         return results
 
     def repair(self, line: str, defect_description: str) -> str:
-        prompt = f'Fix this poetic line: {defect_description}\nLine: "{line}"\nOutput ONLY the corrected line.\n'
+        prompt = LORA_REPAIR_PROMPT_TEMPLATE.format(
+            defect_description=defect_description, line=line
+        )
         candidates = self.generate(prompt, n=1, temperature=0.7)
         return candidates[0].strip().strip("\"'") if candidates else line
 
