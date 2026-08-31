@@ -10,6 +10,8 @@ Usage:
 
 from __future__ import annotations
 
+import json
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -71,3 +73,28 @@ class LoggingHook(GenerationHook):
             print(
                 f"  [hook] line {event.line_index + 1}: {n} candidates in {elapsed:.2f}s, best={best:.3f}"
             )
+
+
+class RepairDatasetHook(GenerationHook):
+    """Harvests real repair attempts (before/defect/after/resolved) into a JSONL
+    file, formatted for a future repair-specific fine-tune — training-format
+    data collected for free from ordinary generation runs, rather than
+    authored or synthesized separately.
+    """
+
+    DEFAULT_PATH = "seeds/poetry_corpus/repair_examples/repair_log.jsonl"
+
+    def __init__(self, path: str = DEFAULT_PATH) -> None:
+        self._path = path
+
+    def on_event(self, event: HookEvent) -> None:
+        if event.phase != "after_repair":
+            return
+        os.makedirs(os.path.dirname(self._path) or ".", exist_ok=True)
+        record = {
+            "timestamp": event.timestamp.isoformat(),
+            "line_index": event.line_index,
+            **event.data,
+        }
+        with open(self._path, "a") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")

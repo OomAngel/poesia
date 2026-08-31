@@ -542,15 +542,17 @@ class ConstrainedLoop:
             )
 
         while best is not None and _needs_repair(best) and attempts < max_repair_attempts:
+            before_line = best.line
+            defect_description = _repair_defect_description(
+                actual_syllables=best.scan.metrical_syllable_count,
+                target_syllables=target_syllables,
+                target_rhyme_key=target_rhyme_key,
+                guest_word=guest_word,
+                example_word=example_word,
+            )
             repaired_text = (self._repair_llm or self._llm).repair(
-                best.line,
-                defect_description=_repair_defect_description(
-                    actual_syllables=best.scan.metrical_syllable_count,
-                    target_syllables=target_syllables,
-                    target_rhyme_key=target_rhyme_key,
-                    guest_word=guest_word,
-                    example_word=example_word,
-                ),
+                before_line,
+                defect_description=defect_description,
             )
             # repair() output skips the batch-only _clean_candidates() call in
             # _generate_line — clean it here too, or a prompt-echoed artifact
@@ -561,6 +563,24 @@ class ConstrainedLoop:
             rescored = self._scorer.score_candidates([repaired_text], prior_lines=prior_lines)
             best = rescored[0]
             attempts += 1
+            # Harvest this attempt as repair-format training data (gap: the
+            # fine-tune was only ever trained on full-poem generation, never
+            # on this defect->fix task shape — see GENERATION_QUALITY_PLAN.md).
+            self._hooks.on_event(
+                HookEvent(
+                    line_index=line_index,
+                    phase="after_repair",
+                    data={
+                        "before": before_line,
+                        "defect_description": defect_description,
+                        "after": best.line,
+                        "resolved": not _needs_repair(best),
+                        "target_syllables": target_syllables,
+                        "target_rhyme_key": target_rhyme_key,
+                        "attempt": attempts,
+                    },
+                )
+            )
             # Safety: if repair produced same text, it will never improve — move on
             if attempts > 0 and best.line == scored[0].line:
                 break
