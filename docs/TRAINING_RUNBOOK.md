@@ -120,6 +120,14 @@ backend isn't reachable from the notebook — route `mlflow` at a SQLite file on
 mounted Drive for the run, then import/merge it into the real tracking store
 afterward rather than trying to point Colab at a local Postgres server.
 
+**Surviving a Colab disconnect:** `output_dir` must point at a path on
+mounted Drive (not the ephemeral local disk), since `TrainingArguments`
+already checkpoints every `save_steps` — a killed/disconnected session loses
+nothing past the last checkpoint. Re-run with
+`python scripts/train_poetry_lora.py mlops/configs/<config>.yaml
+--resume-from-checkpoint` to pick up from the newest checkpoint in
+`output_dir` instead of restarting from scratch.
+
 ## After training
 
 - `scripts/post_training_pipeline.sh` — evaluation + model-registry registration.
