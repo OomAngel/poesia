@@ -7,8 +7,8 @@
 The poetry corpus lives in `seeds/poetry_corpus/`. Structured training data is in
 `training_data_structured/` (JSONL with `prompt`/`completion` + metadata).
 
-**Total unique poems: ~12,680** (across 55+ structured files; dedup pending).
-**Language split: ~9,300 Spanish, ~3,373 English** (English added 2026-08-31 — the
+**Total unique poems: ~13,049** (across 55+ structured files; dedup pending).
+**Language split: ~9,300 Spanish, ~3,742 English** (English added 2026-08-31 — the
 corpus was 100% Spanish before this).
 
 ## Sources
@@ -72,13 +72,26 @@ rather than hand-curated, so per-book counts include some heuristic noise.
 | 38877 | Poems | W. B. Yeats | 435 | en | gutenberg_yeats_poems |
 | 1065 | The Raven | Edgar Allan Poe | 1 | en | gutenberg_poe_raven |
 
-**2026-08-31 expansion subtotal: 5,177 poems (1,804 Spanish + 3,373 English)**, spanning
-sonnets/silvas (Garcilaso), rimas (Bécquer), coplas de pie quebrado (Manrique),
-romance/cancionero verse (Stúñiga, Uppsala), gauchesque octosyllables (Martín
-Fierro), and verse fables (Iriarte, Samaniego, Goyri) on the Spanish side. Note:
-per-book counts for Garcilaso, Stúñiga, Tennyson, and Emerson were revised down
-slightly from an earlier pass after a bugfix (see "Known limitations" below) —
-these are corrected, final counts.
+**2026-08-31 expansion subtotal (Spanish-forms round): 5,177 poems (1,804 Spanish +
+3,373 English)**, spanning sonnets/silvas (Garcilaso), rimas (Bécquer), coplas de
+pie quebrado (Manrique), romance/cancionero verse (Stúñiga, Uppsala), gauchesque
+octosyllables (Martín Fierro), and verse fables (Iriarte, Samaniego, Goyri) on the
+Spanish side. Note: per-book counts for Garcilaso, Stúñiga, Tennyson, and Emerson
+were revised down slightly from an earlier pass after a bugfix (see "Known
+limitations" below) — these are corrected, final counts.
+
+| 8774 | Poems in Two Volumes, Vol. 1 | William Wordsworth | 63 | en | gutenberg_wordsworth_poems_v1 |
+| 2002 | Sonnets from the Portuguese | Elizabeth Barrett Browning | 46 | en | gutenberg_ebb_sonnets_portuguese |
+| 16950 | Goblin Market, The Prince's Progress, and Other Poems | Christina Rossetti | 152 | en | gutenberg_rossetti_goblin_market |
+| 10031 | The Complete Poetical Works of Edgar Allan Poe | Edgar Allan Poe | 108 | en | gutenberg_poe_complete |
+
+**2026-08-31 expansion subtotal (English round): 369 poems, all English.** Shelley's,
+Longfellow's, and Coleridge's "Complete Poetical Works" editions (Gutenberg IDs
+4800, 1365, 29090/29091/29092) were evaluated and rejected: they bundle full
+dramatic works (plays) whose stage directions and dialogue get misdetected as
+poems throughout the text (not confined to a fixable front/back block) — random
+sampling found 20-50% contamination rates, well above this corpus's noise
+tolerance. See `scripts/fetch_gutenberg_poems.py`'s manifest comment for detail.
 
 ### Wikisource (es.wikisource.org)
 
