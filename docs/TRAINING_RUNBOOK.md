@@ -1,8 +1,12 @@
 # PoesIA — Training Runbook
 
-> **Where training happens:** on the GPU workstation, **not** on the development
-> laptop. The laptop GPU is a Quadro M1000M (2 GB, Maxwell) and cannot train the
-> models. Use the RTX 3070 Ti (8 GB) or the previous RTX 2000 Ada (8 GB).
+> **Current state (2026-08-31):** there is no local or rented GPU available —
+> the RTX 3070 Ti / RTX 2000 Ada workstation referenced below is not currently
+> accessible. The dev laptop's Quadro M1000M (2 GB, Maxwell) has never been
+> able to train these models. Until a workstation or rented GPU is back in the
+> picture, use the [Online training](#online-training-no-local-gpu-needed)
+> section — see `company-intelligence/docs/FREE_COMPUTE_EXPLOITATION.md` for
+> the fuller, cross-repo writeup of free/cheap options this section summarizes.
 
 ## TL;DR
 
@@ -24,8 +28,11 @@
 | Machine | GPU | VRAM | Can train? |
 |---|---|---|---|
 | Dev laptop | Quadro M1000M (Maxwell, sm_50) | 2 GB | ❌ no |
-| GPU workstation | RTX 3070 Ti (Ampere, sm_86) | 8 GB | ✅ 1.5B & 3B, 4-bit QLoRA |
-| (previous) | RTX 2000 Ada | 8 GB | ✅ same |
+| GPU workstation | RTX 3070 Ti (Ampere, sm_86) | 8 GB | ⚠️ not currently available (as of 2026-08-31) |
+| (previous) | RTX 2000 Ada | 8 GB | ⚠️ not currently available |
+
+Both workstation GPUs would support 1.5B & 3B, 4-bit QLoRA if/when available
+again. Until then, see [Online training](#online-training-no-local-gpu-needed).
 
 The `training` docker-compose service already requests the GPU
 (`driver: nvidia, capabilities: [gpu]`); the conda path uses the `poesia-gpu`
@@ -45,7 +52,7 @@ environment.
 | `smoke-test-adapter` | `mlops/configs/train_smoke.yaml` | Qwen2.5-1.5B-Instruct |
 | `poetry-lora-3b` | (early 3B attempt, pre-config) | — |
 
-## How to train on the GPU workstation
+## How to train on a GPU workstation (when one is available)
 
 ### 0. Prerequisites
 
@@ -87,19 +94,31 @@ scripts/launch_training.sh dpo    # uses mlops/configs/dpo_v1.yaml
 
 ## Online training (no local GPU needed)
 
-If neither the dev laptop nor a local GPU workstation is available, training can
-run in the cloud. **Groq is inference-only** — it cannot fine-tune — so use one
-of the following instead.
+Since neither the dev laptop nor a local GPU workstation is currently
+available (2026-08-31), training has to run in the cloud. **Groq is
+inference-only** — it cannot fine-tune — so use one of the following instead.
+Full cross-repo detail, dated sources, and a per-repo compute mapping live in
+`company-intelligence/docs/FREE_COMPUTE_EXPLOITATION.md`; this table is the
+poesia-specific summary of it.
 
-| Option | What it is | Cost |
+| Option | What it is | Cost / limits |
 |---|---|---|
+| **Google Colab** (primary free option) | T4, 16 GB — fine for 1.5B QLoRA; 3B in 4-bit is tight | free; ~12h session cap, ~90min idle timeout |
+| Kaggle | Notebook GPU, similar shape to Colab | free; 30h/week GPU quota |
+| Lightning AI Studio | Free monthly GPU credits | free tier, amount unverified |
 | Cloud GPU rental (RunPod / Lambda / Vast.ai) | Rent an A100/4090/3090 by the hour, clone the repo, run `scripts/launch_training.sh local …` or `docker` there | ~$0.3–2/hr; a Qwen2.5-1.5B/3B QLoRA run is a few hours |
 | Hosted fine-tuning (Together AI / Fireworks / HF AutoTrain) | Upload `seeds/poetry_corpus/`, they fine-tune a base model, download the adapter into `models/` | pay-per-job |
-| Free GPU tiers (Google Colab T4, Kaggle) | 16 GB T4 — fine for 1.5B QLoRA; 3B in 4-bit is tight | free, session-limited |
+| GCP / AWS burst credits | $300 (GCP) / equivalent (AWS) new-account credit, or always-free micro instances | 90-day burst, or free but CPU-only (no GPU) |
+| HF Spaces / ZeroGPU | Shared Blackwell-class hardware | **inference/demo only — cannot run training jobs**; 5min/day free quota |
+| Oracle Cloud Always Free | Ampere A1 Flex (~2 OCPU/12GB RAM) + 2× AMD micro | **no GPU** — CPU-only; useful for hosting/orchestration, not training |
 
-On the remote machine the command is identical to the local path:
-`scripts/launch_training.sh local mlops/configs/<config>.yaml`. Output adapters
-land in `models/` and are copied back to the dev machine.
+On a GPU-backed remote machine (Colab, Kaggle, rented instance) the command is
+identical to the local path: `scripts/launch_training.sh local
+mlops/configs/<config>.yaml`. Output adapters land in `models/` and need to be
+copied back to the dev machine. On Colab specifically, MLflow's local-Postgres
+backend isn't reachable from the notebook — route `mlflow` at a SQLite file on
+mounted Drive for the run, then import/merge it into the real tracking store
+afterward rather than trying to point Colab at a local Postgres server.
 
 ## After training
 
