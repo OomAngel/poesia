@@ -142,13 +142,13 @@ All MLOps phases have been coded and most have been validated:
 
 - **DPO training finished and registered.** Run `20260731_023723`, config `mlops/configs/dpo_v1.yaml` → `poetry-lora-dpo-expanded` in `adapter_registry.json`. No training-time metrics were logged for this run (see registry notes); a comparison harness exists at `scripts/evaluate_dpo_result.py` but hasn't been run against it yet.
 - **Qwen2.5-3B training finished and registered.** Run `20260730_164422` → `poesia-lora-soneto-qwen3b` in the MLflow registry, adapter at `models/poetry-lora-qwen3b/final_adapter`. GGUF-converted; it's the only adapter with a working eval path today (see next bullet).
-- **New blocker found 2026-08-31** (see `GENERATION_QUALITY_PLAN.md`): `evaluate_adapter_mlflow.py` is hardcoded to `LoRAClient` (needs CUDA sm_75+); this workstation's GPU (Quadro M1000M, sm_5.0) can't run it. 8 of 9 registered adapters — including the just-finished DPO one — are unevaluated as a result. Only `poetry-lora-qwen3b`'s GGUF export is evaluable via the `llama_cpp` fallback, and the eval script doesn't route through it yet. Needs cloud/compatible GPU access or a GGUF+llama_cpp eval path per adapter.
+- **Blocker found 2026-08-31, resolved 2026-09-01/02** (full detail in `GENERATION_QUALITY_PLAN.md`, not restated here): `evaluate_adapter_mlflow.py` was hardcoded to `LoRAClient` (needs CUDA sm_75+, this workstation's GPU is sm_5.0), so 8 of 9 registered adapters were unevaluated. Fixed with a CUDA/llama.cpp dispatch — all 8 non-empty adapters now evaluate on this laptop, and the run is wired into DVC's `evaluate` foreach stage (`DVC_INTEGRATION.md`).
 
-### 🎯 Next Execution Steps (priority order, reconciled 2026-08-31)
+### 🎯 Next Execution Steps (priority order, reconciled 2026-09-02)
 
-1. **Get adapter evaluation unblocked** — either cloud/compatible GPU access, or a GGUF+`llama_cpp` eval path in `evaluate_adapter_mlflow.py` so the 8 pending adapters (DPO included) can be scored at all.
-2. **Evaluate DPO adapter** — compare metrics vs CE baseline (`scripts/evaluate_dpo_result.py`), once #1 unblocks it.
-3. **Run experiment grid** — CE vs Composite vs DPO comparison, same blocker as #1/#2.
+1. **Evaluate DPO adapter against a CE baseline specifically** — `poetry-lora-dpo-expanded` now has syllable-deviation metrics from the general eval sweep, but the dedicated DPO-vs-CE comparison harness (`scripts/evaluate_dpo_result.py`) still hasn't been run.
+2. **Run experiment grid** — CE vs Composite vs DPO comparison; no longer blocked by adapter evaluation (that's fixed), just not yet executed. Note `poetry-lora-composite`'s `.dvc`-tracked artifact is empty (no real weights), so it's excluded until re-trained.
+3. **Score rhyme-key correctness in the eval pipeline**, not just syllable count — per `GENERATION_QUALITY_PLAN.md`, this is now the actual open gap in adapter quality, not metre.
 4. **Docker compose up** — verify postgres + mlflow-ui + training stack end-to-end. Not verified as of this update; unconfirmed whether it's been exercised since Phase 8 was coded.
 5. **Wire `PoetryModelWrapper`** into `mlflow models serve` for production inference. Phase 6 shipped the wrapper + `MLflowModelClient` CLI backend (`--llm mlflow`), but that's a different path from `mlflow models serve`; not confirmed done.
 6. **HPO search** — `scripts/hpo_search.py` (Optuna) exists but no run of it was found in this repo; still not prioritized.
