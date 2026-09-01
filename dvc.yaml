@@ -43,13 +43,30 @@ stages:
           persist: true  # adapter dir; MLflow also logs this run's artifacts independently
 
   evaluate:
-    cmd: python scripts/evaluate_adapter_mlflow.py --adapter models/poetry-lora-v2
-    deps:
-      - scripts/evaluate_adapter_mlflow.py
-      - models/poetry-lora-v2
-    # No `outs` here deliberately: eval results are metrics/artifacts that
-    # belong in MLflow (this script already logs there), not a second
-    # copy of the same numbers tracked by DVC.
+    # foreach, not a single stage: each locally trained adapter gets its own
+    # dvc.lock entry keyed on that adapter's own directory hash, so `dvc repro
+    # evaluate` only re-runs the adapters whose weights or the eval script
+    # actually changed (see the 2026-09-01 GGUF/llama.cpp sweep in
+    # docs/GENERATION_QUALITY_PLAN.md — run manually before this was wired up).
+    # `poetry-lora-composite` is excluded: its .dvc-tracked artifact is empty
+    # (no real weights).
+    foreach:
+      - poetry-lora-v2
+      - poetry-lora-v2-fixed
+      - poetry-lora-dpo-expanded
+      - poetry-lora-multiform
+      - poetry-lora-3b
+      - poetry-lora-distilled
+      - poetry-lora-qwen3b
+      - smoke-test-adapter
+    do:
+      cmd: python scripts/evaluate_adapter_mlflow.py --adapter models/${item}/final_adapter --themes luna mar tiempo
+      deps:
+        - scripts/evaluate_adapter_mlflow.py
+        - models/${item}/final_adapter
+      # No `outs` here deliberately: eval results are metrics/artifacts that
+      # belong in MLflow (this script already logs there), not a second
+      # copy of the same numbers tracked by DVC.
 
   benchmark:
     cmd: python scripts/benchmark_metre.py --backends llama_cpp,groq --forms soneto:es --draft
