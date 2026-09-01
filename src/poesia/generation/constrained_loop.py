@@ -298,6 +298,26 @@ def _clean_candidates(candidates: list[str], prior_lines: list[str]) -> list[str
     return cleaned or candidates
 
 
+def _metre_defect_text(actual_syllables: int | None, target_syllables: int) -> str:
+    """Describe a syllable-count defect, calling out severe undershoots.
+
+    A drafted line missing more than ~40% of its target syllable count is
+    rarely a near-miss to nudge — in run_draft() it's usually two disconnected
+    fragments concatenated during line-splitting (gap #12; reproduced examples:
+    "tranquila alta.", "brinda, ansia.", "pura, elida.", "corazón, espíritu.").
+    Telling the repair LLM to just hit a syllable count invites it to pad the
+    fragment rather than rewrite it as one coherent thought.
+    """
+    if actual_syllables is not None and actual_syllables <= target_syllables * 0.6:
+        return (
+            f"the line is only {actual_syllables} syllables — it reads as two "
+            "disconnected fragments concatenated together rather than one complete "
+            f"thought; rewrite it as a single coherent {target_syllables}-syllable line, "
+            "not a padded version of the fragment"
+        )
+    return f"the line has {actual_syllables} syllables but must be exactly {target_syllables}"
+
+
 def _repair_defect_description(
     actual_syllables: int | None,
     target_syllables: int,
@@ -311,7 +331,7 @@ def _repair_defect_description(
     model to guess the target; giving it the actual vs target count and the
     rhyme key it must hit makes repairs effective instead of destructive.
     """
-    parts = [f"the line has {actual_syllables} syllables but must be exactly {target_syllables}"]
+    parts = [_metre_defect_text(actual_syllables, target_syllables)]
     parts.extend(_rhyme_defect_parts(target_rhyme_key, example_word))
     if guest_word:
         parts.append(
@@ -332,7 +352,10 @@ def _line_is_stiff(line: str, language: str, llm) -> bool:
         f"Judge this {lang_name} poetic line for naturalness:\n"
         f'"{line}"\n'
         "Reply with exactly one word — STIFF if it reads awkwardly, forced, "
-        "ungrammatically, or like literal machine translation; NATURAL otherwise."
+        "ungrammatically, like literal machine translation, OR like two disconnected "
+        "phrases/fragments crammed into one line rather than a single flowing thought "
+        '(e.g. "tranquila alta." or "brinda, ansia." — two unrelated words each '
+        "terminated on their own, not one idea); NATURAL otherwise."
     )
     try:
         responses = llm.generate(prompt, n=1, temperature=0.0)
@@ -940,10 +963,7 @@ class ConstrainedLoop:
                 break
             defects = []
             if off_metre:
-                defects.append(
-                    f"the line has {scan.metrical_syllable_count} syllables but must be "
-                    f"exactly {target_syllables}"
-                )
+                defects.append(_metre_defect_text(scan.metrical_syllable_count, target_syllables))
             if off_rhyme:
                 defects.extend(_rhyme_defect_parts(target_rhyme_key, example_word))
             repaired = (self._repair_llm or self._llm).repair(line, "; ".join(defects))
