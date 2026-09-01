@@ -7,6 +7,11 @@
 > picture, use the [Online training](#online-training-no-local-gpu-needed)
 > section — see `company-intelligence/docs/FREE_COMPUTE_EXPLOITATION.md` for
 > the fuller, cross-repo writeup of free/cheap options this section summarizes.
+>
+> This constraint is training-only. **Evaluating** already-trained adapters
+> works fine on this laptop via the GGUF/llama.cpp fallback (same GPU,
+> different backend) — see `docs/DVC_INTEGRATION.md` and
+> `docs/GENERATION_QUALITY_PLAN.md`.
 
 ## TL;DR
 
