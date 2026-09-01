@@ -81,3 +81,107 @@ stages:
       hash: md5
       md5: 102ff5d7dfe9841392562ee302f0b55d
       size: 43480
+  evaluate@poetry-lora-v2:
+    cmd: python scripts/evaluate_adapter_mlflow.py --adapter
+      models/poetry-lora-v2/final_adapter --themes luna mar tiempo
+    deps:
+    - path: models/poetry-lora-v2/final_adapter
+      hash: md5
+      md5: 42836b5ea7db823f95e2c83f2976ca8f.dir
+      size: 28893936
+      nfiles: 6
+    - path: scripts/evaluate_adapter_mlflow.py
+      hash: md5
+      md5: bf889bced75d77b2d77d11d536dc0da2
+      size: 5264
+  evaluate@poetry-lora-v2-fixed:
+    cmd: python scripts/evaluate_adapter_mlflow.py --adapter
+      models/poetry-lora-v2-fixed/final_adapter --themes luna mar tiempo
+    deps:
+    - path: models/poetry-lora-v2-fixed/final_adapter
+      hash: md5
+      md5: d7b2993cd8030054885098569a3674f4.dir
+      size: 28893936
+      nfiles: 6
+    - path: scripts/evaluate_adapter_mlflow.py
+      hash: md5
+      md5: bf889bced75d77b2d77d11d536dc0da2
+      size: 5264
+  evaluate@poetry-lora-dpo-expanded:
+    cmd: python scripts/evaluate_adapter_mlflow.py --adapter
+      models/poetry-lora-dpo-expanded/final_adapter --themes luna mar tiempo
+    deps:
+    - path: models/poetry-lora-dpo-expanded/final_adapter
+      hash: md5
+      md5: 1f5ecdba2054db834343121941fa3ace.dir
+      size: 37641112
+      nfiles: 8
+    - path: scripts/evaluate_adapter_mlflow.py
+      hash: md5
+      md5: bf889bced75d77b2d77d11d536dc0da2
+      size: 5264
+  evaluate@poetry-lora-multiform:
+    cmd: python scripts/evaluate_adapter_mlflow.py --adapter
+      models/poetry-lora-multiform/final_adapter --themes luna mar tiempo
+    deps:
+    - path: models/poetry-lora-multiform/final_adapter
+      hash: md5
+      md5: 5c9cff0b3462b6e41589c4520095ad39.dir
+      size: 46326655
+      nfiles: 6
+    - path: scripts/evaluate_adapter_mlflow.py
+      hash: md5
+      md5: bf889bced75d77b2d77d11d536dc0da2
+      size: 5264
+  evaluate@poetry-lora-3b:
+    cmd: python scripts/evaluate_adapter_mlflow.py --adapter
+      models/poetry-lora-3b/final_adapter --themes luna mar tiempo
+    deps:
+    - path: models/poetry-lora-3b/final_adapter
+      hash: md5
+      md5: 5c737e7b2fe7345f5d4faf4426942514.dir
+      size: 28893936
+      nfiles: 6
+    - path: scripts/evaluate_adapter_mlflow.py
+      hash: md5
+      md5: bf889bced75d77b2d77d11d536dc0da2
+      size: 5264
+  evaluate@poetry-lora-distilled:
+    cmd: python scripts/evaluate_adapter_mlflow.py --adapter
+      models/poetry-lora-distilled/final_adapter --themes luna mar tiempo
+    deps:
+    - path: models/poetry-lora-distilled/final_adapter
+      hash: md5
+      md5: ce0fc9c5fd43e663b0873abc4ea9b867.dir
+      size: 46326655
+      nfiles: 6
+    - path: scripts/evaluate_adapter_mlflow.py
+      hash: md5
+      md5: bf889bced75d77b2d77d11d536dc0da2
+      size: 5264
+  evaluate@poetry-lora-qwen3b:
+    cmd: python scripts/evaluate_adapter_mlflow.py --adapter
+      models/poetry-lora-qwen3b/final_adapter --themes luna mar tiempo
+    deps:
+    - path: models/poetry-lora-qwen3b/final_adapter
+      hash: md5
+      md5: 491afc5db921a6fb106e76d20d951a7e.dir
+      size: 40961250
+      nfiles: 6
+    - path: scripts/evaluate_adapter_mlflow.py
+      hash: md5
+      md5: bf889bced75d77b2d77d11d536dc0da2
+      size: 5264
+  evaluate@smoke-test-adapter:
+    cmd: python scripts/evaluate_adapter_mlflow.py --adapter
+      models/smoke-test-adapter/final_adapter --themes luna mar tiempo
+    deps:
+    - path: models/smoke-test-adapter/final_adapter
+      hash: md5
+      md5: 26bd621884dd395ea58588fb78989ca4.dir
+      size: 15804315
+      nfiles: 6
+    - path: scripts/evaluate_adapter_mlflow.py
+      hash: md5
+      md5: bf889bced75d77b2d77d11d536dc0da2
+      size: 5264
