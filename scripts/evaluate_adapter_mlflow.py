@@ -29,6 +29,32 @@ from poesia.generation.llm_client import LoRAClient
 from poesia.phonology.spanish import SpanishPhonology
 
 
+def _make_llm_client(adapter_path):
+    """Pick LoRAClient (bitsandbytes 4-bit) when CUDA actually supports it,
+    else fall back to the GGUF/llama.cpp client (see llama_cpp.py) so
+    evaluation isn't hardcoded to CUDA-only hardware."""
+    from poesia.device import cuda_usable
+
+    if cuda_usable():
+        return LoRAClient(adapter_path=adapter_path)
+
+    import glob
+
+    from poesia.exceptions import LLMProviderError
+    from poesia.generation.llama_cpp import LlamaCppLoRAClient
+
+    matches = glob.glob(os.path.join(os.path.dirname(adapter_path), "*Q4_K_M.gguf"))
+    if not matches:
+        raise LLMProviderError(
+            "No usable CUDA device for bitsandbytes 4-bit inference, and no "
+            f"*Q4_K_M.gguf sibling found next to {adapter_path} for the llama.cpp "
+            "fallback (see poesia/generation/llama_cpp.py for the merge/convert/"
+            "quantize pipeline).",
+            provider="lora",
+        )
+    return LlamaCppLoRAClient(model_path=matches[0])
+
+
 def evaluate(adapter_path, themes, form, language="es", parent_run_id=None):
     phonology = SpanishPhonology()
     results = []
@@ -53,9 +79,11 @@ def evaluate(adapter_path, themes, form, language="es", parent_run_id=None):
             loop = ConstrainedLoop(
                 language=language,
                 form=form,
-                llm=LoRAClient(adapter_path=adapter_path),
+                llm=_make_llm_client(adapter_path),
             )
-            result = loop.run(theme=theme, n_candidates=8)
+            # match the CLI's own default (gap #15) — loop.run()'s own default of 2
+            # understates what an adapter can hit once fully repaired.
+            result = loop.run(theme=theme, n_candidates=8, max_repair_attempts=4)
             lines = result.lines
             line_count = len(lines)
 

@@ -53,7 +53,7 @@ class LlamaCppLoRAClient:
         "models/poetry-lora-qwen3b/qwen3b-poetry-Q4_K_M.gguf",
     ]
 
-    def __init__(self, model_path: str | None = None, n_ctx: int = 512) -> None:
+    def __init__(self, model_path: str | None = None, n_ctx: int = 2048) -> None:
         self.usage: LLMUsage = LLMUsage()
         self.provider = "llama_cpp"
         self.n_ctx = n_ctx
