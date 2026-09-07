@@ -15,7 +15,8 @@
       "mlflow_run_id": "813c3821880c41019106a3ddafaccc1c",
       "mlflow_model_name": "poesia-lora-20260728_231807",
       "gguf_f16": "models/poetry-lora-v2/v2-poetry-f16.gguf",
-      "gguf_q4_k_m": "models/poetry-lora-v2/v2-poetry-Q4_K_M.gguf"
+      "gguf_q4_k_m": "models/poetry-lora-v2/v2-poetry-Q4_K_M.gguf",
+      "merged": "models/poetry-lora-v2/merged"
     },
     {
       "id": "20260729_123255",
@@ -32,7 +33,8 @@
       "mlflow_run_id": "b6d53a74031a48aca0058cab7fd34d87",
       "mlflow_model_name": "poesia-lora-20260729_123255",
       "gguf_f16": "models/poetry-lora-multiform/multiform-poetry-f16.gguf",
-      "gguf_q4_k_m": "models/poetry-lora-multiform/multiform-poetry-Q4_K_M.gguf"
+      "gguf_q4_k_m": "models/poetry-lora-multiform/multiform-poetry-Q4_K_M.gguf",
+      "merged": "models/poetry-lora-multiform/merged"
     },
     {
       "id": "20260729_144938",
@@ -49,7 +51,8 @@
       "mlflow_run_id": "4380378a20404236b245a1c8a88f8ee4",
       "mlflow_model_name": "poesia-lora-20260729_144938",
       "gguf_f16": "models/poetry-lora-distilled/distilled-poetry-f16.gguf",
-      "gguf_q4_k_m": "models/poetry-lora-distilled/distilled-poetry-Q4_K_M.gguf"
+      "gguf_q4_k_m": "models/poetry-lora-distilled/distilled-poetry-Q4_K_M.gguf",
+      "merged": "models/poetry-lora-distilled/merged"
     },
     {
       "id": "20260730_163543",
@@ -65,7 +68,8 @@
       "notes": "",
       "mlflow_model_version": 1,
       "gguf_f16": "models/smoke-test-adapter/smoke-test-poetry-f16.gguf",
-      "gguf_q4_k_m": "models/smoke-test-adapter/smoke-test-poetry-Q4_K_M.gguf"
+      "gguf_q4_k_m": "models/smoke-test-adapter/smoke-test-poetry-Q4_K_M.gguf",
+      "merged": "models/smoke-test-adapter/merged"
     },
     {
       "id": "20260730_164422",
@@ -81,7 +85,8 @@
       "notes": "",
       "mlflow_model_version": 1,
       "gguf_f16": "models/poetry-lora-qwen3b/qwen3b-poetry-f16.gguf",
-      "gguf_q4_k_m": "models/poetry-lora-qwen3b/qwen3b-poetry-Q4_K_M.gguf"
+      "gguf_q4_k_m": "models/poetry-lora-qwen3b/qwen3b-poetry-Q4_K_M.gguf",
+      "merged": "models/poetry-lora-qwen3b/merged"
     },
     {
       "id": "20260728_202612",
@@ -97,7 +102,8 @@
       "mlflow_model_name": "poesia-lora-3b",
       "mlflow_model_version": 1,
       "gguf_f16": "models/poetry-lora-3b/3b-poetry-f16.gguf",
-      "gguf_q4_k_m": "models/poetry-lora-3b/3b-poetry-Q4_K_M.gguf"
+      "gguf_q4_k_m": "models/poetry-lora-3b/3b-poetry-Q4_K_M.gguf",
+      "merged": "models/poetry-lora-3b/merged"
     },
     {
       "id": "20260731_023723",
@@ -113,7 +119,8 @@
       "mlflow_model_name": "poesia-lora-dpo-expanded",
       "mlflow_model_version": 1,
       "gguf_f16": "models/poetry-lora-dpo-expanded/dpo-expanded-poetry-f16.gguf",
-      "gguf_q4_k_m": "models/poetry-lora-dpo-expanded/dpo-expanded-poetry-Q4_K_M.gguf"
+      "gguf_q4_k_m": "models/poetry-lora-dpo-expanded/dpo-expanded-poetry-Q4_K_M.gguf",
+      "merged": "models/poetry-lora-dpo-expanded/merged"
     },
     {
       "id": "poetry-lora-composite",
@@ -128,7 +135,8 @@
       "mlflow_run_id": "b04465bb94e142ad8efb090b4960ee16",
       "mlflow_model_name": null,
       "gguf_f16": null,
-      "gguf_q4_k_m": null
+      "gguf_q4_k_m": null,
+      "merged": null
     },
     {
       "id": "20260806_151949",
@@ -146,7 +154,8 @@
       "eval_syllable_deviation": 11.67,
       "eval_line_count_accuracy": 1.0,
       "gguf_f16": "models/poetry-lora-v2-fixed/v2-fixed-poetry-f16.gguf",
-      "gguf_q4_k_m": "models/poetry-lora-v2-fixed/v2-fixed-poetry-Q4_K_M.gguf"
+      "gguf_q4_k_m": "models/poetry-lora-v2-fixed/v2-fixed-poetry-Q4_K_M.gguf",
+      "merged": "models/poetry-lora-v2-fixed/merged"
     }
   ],
   "description": "Registry of all trained LoRA adapters. Each entry records the adapter path, config used, data hash, and evaluation metrics. Updated manually or via training script.",
@@ -163,6 +172,7 @@
     "adapter_path": "path to saved adapter",
     "notes": "free text notes",
     "gguf_f16": "path to fp16 GGUF export",
-    "gguf_q4_k_m": "path to Q4_K_M quantized GGUF export"
+    "gguf_q4_k_m": "path to Q4_K_M quantized GGUF export",
+    "merged": "path to merged full model (HF safetensors), regenerable via scripts/convert_adapters_to_gguf.py"
   }
 }
