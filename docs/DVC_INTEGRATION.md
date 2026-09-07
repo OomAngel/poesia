@@ -78,6 +78,17 @@ upstream `train`) would run, without executing anything.
   (`merged/` full-model safetensors and `*-f16.gguf`) are excluded via
   `.dvcignore`. `poetry-lora-qwen3b` was re-tracked under this rule,
   shrinking it from ~20.7 GB to ~2.1 GB.
+- Regenerable intermediates (`merged/` full-model safetensors, `*-f16.gguf`)
+  are rebuilt from `final_adapter/` + the base model by
+  `scripts/convert_adapters_to_gguf.py`.
+- MLflow results are **not** in the Docker Postgres backend (that DB only
+  holds MLflow's own demo traces). They live in the local SQLite/FileStore
+  at `mlruns/` — metadata in `mlruns/mlflow.db` (71 runs, 8 registered
+  models), artifacts in `mlruns/<experiment_id>/<run_id>/`. A point-in-time
+  SQL dump is committed at `mlops/mlflow_metadata_dump.sql`; regenerate it
+  with a SQLite dump of `mlruns/mlflow.db` (e.g. `sqlite3 mlruns/mlflow.db
+  .dump` or Python's `sqlite3.Connection.iterdump()`). To also back up
+  artifacts, archive `mlruns/` itself.
 - `distill` and `train` are still declared but not executed under DVC --
   running `train` for real, and deciding whether to fold `dvc repro` into
   the `poesia` CLI or `MLproject`, stays out of scope until it can be done
