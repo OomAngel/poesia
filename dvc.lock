@@ -48,9 +48,9 @@ stages:
     outs:
     - path: models/poetry-lora-v2
       hash: md5
-      md5: 9d589795422f4347e466feab510077ee.dir
-      size: 92875103
-      nfiles: 18
+      md5: a0664beb9f0dfa8016c2512c35ea2ce2.dir
+      size: 1078923103
+      nfiles: 19
   evaluate:
     cmd: python scripts/evaluate_adapter_mlflow.py --adapter
       models/poetry-lora-v2

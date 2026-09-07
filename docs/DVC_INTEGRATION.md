@@ -71,10 +71,13 @@ upstream `train`) would run, without executing anything.
   MLflow via `evaluate_adapter_mlflow.py`; DVC tracking the same numbers
   a second time would recreate the "dual unsynchronized tracking" failure
   mode `MLOPS_DIAGNOSIS.md` Gap #1 already named and fixed once.
-- No remote storage configured (`dvc remote add`) -- large files
-  (`models/poetry-lora-v2`, the distilled JSONL) stay wherever they
-  already live until a real remote (S3/local NAS/etc.) is chosen
-  deliberately.
+- Remote storage is `local_d_drive` → `/mnt/d/dvc-remotes/poesia` (a local
+  D: drive path, added 2026-08-31). Tracking policy (2026-09-07): DVC
+  versions the source LoRA weights (`final_adapter/`) plus the deployable
+  quantized GGUF (`*-Q4_K_M.gguf`); the regenerable intermediates
+  (`merged/` full-model safetensors and `*-f16.gguf`) are excluded via
+  `.dvcignore`. `poetry-lora-qwen3b` was re-tracked under this rule,
+  shrinking it from ~20.7 GB to ~2.1 GB.
 - `distill` and `train` are still declared but not executed under DVC --
   running `train` for real, and deciding whether to fold `dvc repro` into
   the `poesia` CLI or `MLproject`, stays out of scope until it can be done
