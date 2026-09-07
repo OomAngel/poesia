@@ -1,3 +1,9 @@
-# Add patterns of files dvc should ignore, which could improve
-# the performance. Learn more at
-# https://dvc.org/doc/user-guide/dvcignore
+# Derived/regenerable artifacts — excluded from DVC under the 2026-09-07
+# policy: track source (final_adapter/) + deployable *-Q4_K_M.gguf only.
+# `merged/` (full HF model) and `*-f16.gguf` (pre-quantization GGUF) are
+# regenerable via scripts/convert_adapters_to_gguf.py.
+merged/
+*-f16.gguf
+
+# Interrupted-merge leftovers
+*.tmp
