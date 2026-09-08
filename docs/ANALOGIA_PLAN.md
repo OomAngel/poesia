@@ -11,6 +11,38 @@ AnalogIA is the observatory of PoesIA: the tool that looks backward across all e
 
 ---
 
+## Current adapter comparison (2026-09-08)
+
+All 8 non-empty adapters have been evaluated via
+`scripts/evaluate_adapter_mlflow.py` (3 themes: luna, mar, tiempo), logged to
+MLflow (`poesia-evaluation` experiment, 27 runs). Lower syllable deviation is
+better; line-count accuracy is 1.00 for every adapter.
+
+| Adapter | avg syllable dev | line acc | base model | training |
+|---|---|---|---|---|
+| poetry-lora-distilled | **0.90** | 1.00 | Qwen2.5-1.5B | knowledge distillation |
+| poetry-lora-qwen3b | 1.13 | 1.00 | Qwen2.5-3B | structured |
+| poetry-lora-v2 | 1.97 | 1.00 | Qwen2.5-1.5B | structured |
+| poetry-lora-3b | 3.91 | 1.00 | Qwen2.5-1.5B | early/legacy |
+| smoke-test-adapter | 4.08 | 1.00 | Qwen2.5-1.5B | smoke |
+| poetry-lora-v2-fixed | 4.80 | 1.00 | Qwen2.5-1.5B | "fixed" format |
+| poetry-lora-dpo-expanded | 6.07 | 1.00 | Qwen2.5-1.5B | DPO |
+| poetry-lora-multiform | 9.29 | 1.00 | Qwen2.5-1.5B | multi-form |
+
+**Champion: `poetry-lora-distilled` (0.90).** Challenger: `poetry-lora-qwen3b`
+(1.13).
+
+Surprises worth investigating: the "fixed-format" retraining (v2-fixed, 4.80)
+and the multi-form v3 (multiform, 9.29) are *worse* than the earlier
+distilled/v2/qwen3b adapters, and DPO (6.07) underperforms plain CE — the
+"fixed format" hypothesis in `TRAINING_RUNBOOK.md` did not pan out.
+
+Note: these MLflow `avg_syllable_deviation` values differ from the legacy
+`eval_syllable_deviation` in `mlops/adapter_registry.json` (pre-MLflow manual
+eval); treat the MLflow values as the current methodology.
+
+---
+
 ## Planned Features
 
 ### Phase 1: A/B Testing (MVP — partially done in mlops/ab_compare.py)

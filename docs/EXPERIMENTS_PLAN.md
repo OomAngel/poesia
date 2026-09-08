@@ -41,7 +41,7 @@ Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
 | **QLoRA r=64** | `lora_r: 64` | More capacity for patterns | Edit one line | ★★ |
 | **LoRA all linear layers** | Add `gate_proj`, `up_proj`, `down_proj` | 2x more learnable params | Edit one line | ★★ |
 | **Unsloth** | Replace LoRA with Unsloth | **2x training speed** | Install unsloth, change 3 lines | ★★★★★ |
-| **DPO** (new script) | Use `scripts/train_poetry_dpo.py` | Directly optimises for our metrics | ✅ **Trained & registered** (`poetry-lora-dpo-expanded`), eval blocked — see `MLOPS_DIAGNOSIS.md` §4 | ★★★★★ |
+| **DPO** (new script) | Use `scripts/train_poetry_dpo.py` | Directly optimises for our metrics | ✅ **Trained, registered & evaluated** (`poetry-lora-dpo-expanded`, avg_syll_dev 6.07) — underperforms CE distilled (0.90) | ★★★★★ |
 | **Multi-teacher distillation** | Ensemble Groq + Gemini outputs | More diverse training data | Run both APIs | ★★★ |
 | **Syllable-filtered data** | Use `sonetos_filtered_t2.jsonl` | Cleaner training signal | Change data path | ★★★ |
 
@@ -50,11 +50,10 @@ Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
 ## 4. Recommended Run Order
 
 ```
-1. ✅ DPO — trained and registered (`poetry-lora-dpo-expanded`). Evaluation
-   is blocked: local GPU (compute capability 5.0) can't run the eval
-   script's CUDA path. Needs cloud/compatible GPU or a GGUF+llama_cpp eval
-   path — see MLOPS_DIAGNOSIS.md §4.
-   → python scripts/evaluate_dpo_result.py (once unblocked)
+1. ✅ DPO — trained, registered, and evaluated (`poetry-lora-dpo-expanded`,
+   avg_syll_dev 6.07 via the GGUF/llama.cpp eval path). Underperforms plain CE
+   (distilled 0.90), so DPO did not beat the metric-driven baseline — see
+   `ANALOGIA_PLAN.md` "Current adapter comparison".
 
 2. Unsloth + r=64 (tests if faster training + more params helps) — not started
    → pip install unsloth; edit train_multiform.yaml (lora_r: 64)

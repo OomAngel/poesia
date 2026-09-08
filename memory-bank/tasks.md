@@ -6,29 +6,24 @@
 
 ## BACKLOG (priority order)
 
-- [ ] **research-tools: xenon cleanup + push** — AFTER KG restructuring settles
-      (user's active rebuild: SQLite store, `tools/kg/`). Then: one
-      behavior-preserving pass over the 6 over-threshold functions
-      (`enrich_all`, `build_kg`, `_parse_biblio(_xml)`, `enrich_reference_graph`,
-      `api_search`), verify `xenon ≤ C` + repo tests, then push (carries README
-      commit `9f45e89`, main ahead 11). Trigger: user says "push research-tools".
+> ⚠️ (2026-09-08) Adapter eval done — champion is `poetry-lora-distilled` (0.90).
+> The "fixed-format" v2-fixed (4.80) and multi-form v3 (9.29) underperform the
+> earlier distilled/v2/qwen3b; DPO (6.07) lost to plain CE. Full table in
+> `docs/ANALOGIA_PLAN.md`.
 
-## BACKLOG (priority order)
-
-- [ ] **Evaluate v2-fixed adapter** — auto via post-training pipeline when done
-- [ ] **Test poem generation with v2-fixed** — write a soneto, verify no instruction-echo
-- [ ] **Compare adapters** — v2-fixed vs old qwen3b vs DPO (metre accuracy)
-- [ ] **Run experiment grid** — CE vs Composite vs DPO
+- [x] **Evaluate v2-fixed adapter** — DONE (2026-09-08): avg_syll_dev 4.80, line_acc 1.00 — not the champion.
+- [x] **Compare adapters** — DONE (2026-09-08): champion `poetry-lora-distilled` (0.90); see `ANALOGIA_PLAN.md`.
+- [x] **Run experiment grid (CE vs Composite vs DPO)** — effectively DONE: CE (distilled 0.90) beats DPO (6.07); `composite` never trained (dead).
+- [ ] **Test poem generation with v2-fixed** — write a soneto, verify no instruction-echo (v2-fixed is mid-pack, 4.80).
 - [ ] **Docker compose end-to-end** — postgres + mlflow-ui stack is UP (test training service)
 - [ ] **Run HPO search** — Optuna hyperparameter search
-- [ ] **Run Qwen2.5-3B training** with fixed format
+- [ ] **Run Qwen2.5-3B training _with fixed format_** — 3B already trained (`poetry-lora-qwen3b`, 1.13, 2nd-best); only the "fixed-format" 3B variant is still open.
 - [ ] **Wire `PoetryModelWrapper`** into `mlflow models serve`
 - [ ] **Add titles to Machado poems** — extract from Gutenberg TOC
-- [ ] **Deduplicate corpus** across all files before next training
+- [ ] **Deduplicate corpus** across all files before next training (~13,049 poems, dedup pending — `CORPUS_SOURCES.md`)
 - [ ] **Try Unsloth** — install and test 2x faster training
-- [ ] **Model Registry aliases** — "champion" / "challenger"
+- [ ] **Model Registry aliases** — promote `poetry-lora-distilled` "champion", `poetry-lora-qwen3b` "challenger"
 - [ ] **Phase 4E** — literary taxonomy auto-tagging
-- [ ] **Wire retrieval into GalerIA** — illustration style anchoring
 - [ ] **WordNet Spanish** (omw-es:1.4) — retry when server is up
 - [ ] **Snapshot tests** — CLI + generation pipeline
 
