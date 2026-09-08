@@ -2,17 +2,7 @@
 
 ## IN PROGRESS
 
-- [x] **v2-fixed retraining — RELAUNCHED (2026-08-06)** — docker was started
-  (WSL integration enabled; native `docker` on PATH). Postgres + MLflow stack
-  UP (mlflow-ui :5000 HTTP 200; verified this session). Old run e5129188 was
-  unverifiable. Relaunched 2026-08-06 ~15:15 directly (bypassing the
-  launcher's interactive prompt): `conda run -n poesia python
-  scripts/train_poetry_lora.py mlops/configs/train_v2_fixed.yaml` —
-  log `/tmp/train_v2_fixed_relaunch.log`. Prereqs verified: model cached
-  (Qwen2.5-1.5B-Instruct 2.9G), data present (train_fixed.jsonl 191MB),
-  GPU free, tracking → postgres. Estimated ~2h (38K examples, 1 epoch,
-  ~4,750 steps). **Next: verify run registered in MLflow + eval via
-  post-training pipeline.**
+(nothing in progress)
 
 ## BACKLOG (priority order)
 
@@ -43,6 +33,13 @@
 - [ ] **Snapshot tests** — CLI + generation pipeline
 
 ## DONE
+
+### 2026-09-08 (v2-fixed retraining completed)
+- [x] **v2-fixed retraining** (relaunched 2026-08-06) — completed and
+      registered in MLflow as `poesia-lora-20260806_151949` (train_loss 0.38,
+      eval_syllable_deviation 11.67, eval_line_count_accuracy 1.0); weights in
+      DVC. ⚠️ Low train_loss but high syllable deviation — review before relying
+      on it.
 
 ### 2026-08-06 (test-suite thinning)
 - [x] **Test-suite thinning** — test-pyramid principle (avoid duplication,

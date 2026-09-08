@@ -5,7 +5,7 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-461%20passing-brightgreen)](#development)
+[![Tests](https://img.shields.io/badge/tests-438%20passing-brightgreen)](#development)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](#status)
 [![LLM backends](https://img.shields.io/badge/LLM%20backends-8%2B-blueviolet)](#core-generation)
 [![Image backends](https://img.shields.io/badge/image%20backends-6-orange)](#galeria--illustration)
@@ -207,7 +207,7 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 ### Tooling
 
 - MLOps: MLflow single source of truth, model registry, evaluation, monitoring, Docker, CI/CD
-- 461 passing tests (1 pre-existing GPU-only test skipped in non-CUDA envs); ruff, mypy, bandit, safety enforced in CI
+- 438 tests pass in CI (hosted-LLM/image/GPU tests excluded; 511 collected, 1 pre-existing GPU-only test skipped); ruff, mypy, bandit, safety enforced in CI
 
 ---
 
@@ -452,7 +452,7 @@ poesia write --theme "the weight of silence" --form haiku --language en \
 
 ```bash
 pip install -e ".[dev]"
-pytest                       # 461 tests
+pytest                       # 511 collected; 438 run in CI
 ruff check src/ mlops/       # lint (CI-enforced)
 ruff format --check src/ mlops/
 mypy src/ --ignore-missing-imports
@@ -479,7 +479,7 @@ in [`USAGE_GUIDE.md`](USAGE_GUIDE.md).
 
 ## Status
 
-Core engine complete; Phases 0–5 + P0–P5 hardening done, **461 tests passing**
+Core engine complete; Phases 0–5 + P0–P5 hardening done, **438 tests** pass in CI (511 collected)
 (2026-08). Fine-tuning and DPO pipelines operational (MLflow-tracked); GalerIA
 wired end-to-end for online (DALL·E / SDXL) and offline (`procedural`
 deterministic art, no key needed) illustration, with the `image:` link
