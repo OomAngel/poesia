@@ -1,7 +1,7 @@
 # Infrastructure & Data Decisions — PoesIA
 
 > **Status:** Authoritative. Read this **before** touching any infrastructure,
-> data store, or model artifact. Last reviewed 2026-08-29.
+> data store, or model artifact. Last reviewed 2026-09-08 (DVC adopted + model-artifact policy revised — see §7).
 
 ## 1. The premise (read this first)
 
@@ -29,10 +29,10 @@ starts.
 | Web / API | **None** — no FastAPI/Flask/uvicorn in `src/` or `pyproject.toml`; only *outbound* LLM calls |
 | Poem library (MemorIA) | Local Markdown + **SQLite** index (`~/.poesia/poems/`, `library.db`) |
 | Experiment tracking | **MLflow** with a **PostgreSQL** backend (docker-compose: `postgres` + `mlflow-ui`) |
-| Model artifacts | `models/` (~20 GB), **gitignored, local-only** (0 tracked files) |
-| DVC | Installed in the `poesia` env (3.67.1); `dvc.yaml` is a skeleton; **no remote configured** |
+| Model artifacts | `models/` (~9 GB): `final_adapter/` + `*-Q4_K_M.gguf` tracked in DVC; `merged/` + `*-f16.gguf` regenerable, deleted (see §7) |
+| DVC | **Adopted** (2026-09-08): remote `local_d_drive` → `/mnt/d/dvc-remotes/poesia`; tracks source + deployable only |
 | Serving | `serving.Dockerfile` = `mlflow models serve` sketch only (not an app backend) |
-| Local MLflow history | `mlruns/mlflow.db` (SQLite): 30 runs / 11 experiments, 2026-07-29 → 2026-08-01 |
+| Local MLflow history | `mlruns/mlflow.db` (SQLite): 71 runs / 13 experiments, 8 registered models; dumped to `mlops/mlflow_metadata_dump.sql` in git |
 
 ## 3. Decisions
 
@@ -40,33 +40,36 @@ starts.
 
 - **PostgreSQL + MLflow (docker-compose).** Working and cheap. Keep for
   experiment tracking. Do **not** collapse MLflow back to SQLite.
-- **Model artifacts in `models/`.** These are serving/edge assets, not junk:
-  - `poetry-lora-qwen3b/merged/` (12 GB) — merged fp16 model for server-side serving.
-  - `qwen3b-poetry-f16.gguf` (5.8 GB) — fp16 GGUF for high-quality local inference.
-  - `qwen3b-poetry-Q4_K_M.gguf` (1.8 GB) — 4-bit GGUF for low-RAM/mobile/edge.
-  - `final_adapter/` (40 MB) — the trained LoRA adapter.
-- **The local SQLite MLflow history** (`mlruns/mlflow.db`) — training provenance.
-- **`dvc.yaml` skeleton** — documents the intended data→model lineage.
+- **DVC + remote (adopted 2026-09-08).** DVC is the system of record for model
+  weights: it tracks `final_adapter/` (source LoRA) + `*-Q4_K_M.gguf`
+  (deployable GGUF), pushed to `local_d_drive` → `/mnt/d/dvc-remotes/poesia`.
+- **Model artifacts (source + deployable).** Keep the non-regenerable / deployable
+  assets:
+  - `final_adapter/` — the trained LoRA adapter (source of truth; not regenerable without retraining).
+  - `*-Q4_K_M.gguf` — the deployable quantized GGUF (what llama.cpp serves).
+- **The local SQLite MLflow history** (`mlruns/mlflow.db`) — training provenance
+  (also dumped to `mlops/mlflow_metadata_dump.sql` in git).
+- **`dvc.yaml`** — documents the data→model lineage.
 
 ### Defer (product-build work — not now)
 
-- **DVC adoption** (remote + `dvc repro` wiring). Needed once the corpus grows
-  and models are iterated for a served product. The tool decision (DVC vs Git
-  LFS + manifest vs model registry + object storage) is made **then**, not now.
 - **SQLite → PostgreSQL migration for MemorIA.** Do this when the multi-user
   web/Android backend is built, not while the app is a CLI.
 - **Web/API backend** (FastAPI or similar) and **model serving for users**.
 
 ### Fix (storage, not deletion)
 
-- `models/` is gitignored and backed up nowhere. Put it on durable storage
-  (D: drive or object storage). This is a **backup** task, not a deletion task.
+- Done 2026-09-08: model weights are now backed up via the DVC remote. The
+  regenerable intermediates (`merged/`, `*-f16.gguf`) are intentionally
+  **not** stored — see §7.
 
 ## 4. Guardrails (DO NOT)
 
 1. Do **not** delete PostgreSQL, the docker-compose stack, or collapse MLflow to SQLite.
-2. Do **not** delete, trim, or gitignore-away the model artifacts in `models/`
-   (`merged/`, `*-f16.gguf`, `*-Q4_K_M.gguf`, `final_adapter/`).
+2. Do **not** delete the source or deployable artifacts (`final_adapter/`,
+   `*-Q4_K_M.gguf`), the trained adapters, or the MLflow history. The
+   regenerable intermediates (`merged/`, `*-f16.gguf`) may be deleted and
+   regenerated via `scripts/convert_adapters_to_gguf.py` (see §7).
 3. Do **not** delete the local MLflow history (`mlruns/mlflow.db`) or the trained adapters.
 4. Do **not** rip out the DVC skeleton, the training/serving Dockerfiles, or the `MLproject`.
 5. Do **not** "clean up" infrastructure as if poesia were a finished personal toy.
@@ -90,3 +93,29 @@ A prior agent session repeatedly flip-flopped between "delete the heavy
 infrastructure" and "build the full product infrastructure now" because the
 product-vs-personal premise was never established before advising. This document
 pins the premise, the current state, and the decisions so that does not recur.
+
+## 7. Data/model system-of-record (adopted 2026-09-08)
+
+Division of labor — one system of record per artifact type:
+
+- **DVC** = versioning + backup of model weights: `final_adapter/` (source LoRA)
+  and `*-Q4_K_M.gguf` (deployable GGUF), pushed to
+  `local_d_drive` → `/mnt/d/dvc-remotes/poesia`.
+- **Git** = provenance + results: `mlops/adapter_registry.json`, configs,
+  scripts, docs, and the MLflow metadata dump `mlops/mlflow_metadata_dump.sql`.
+- **MLflow** = experiment tracking (runs/params/metrics) + model registry.
+  Metadata lives in `mlruns/mlflow.db` (SQLite, local) — **not** in the Docker
+  Postgres (that DB only holds MLflow's own demo traces). `mlruns/` is a local,
+  disposable artifact cache (gitignored, not DVC-tracked): its model copies are
+  redundant with DVC, and its eval artifacts are regenerable via
+  `scripts/evaluate_adapter_mlflow.py`.
+- **Regenerable intermediates** — `models/*/merged/` and `models/*/*-f16.gguf`
+  are derived (merge → convert → quantize), excluded via `.dvcignore`, deleted
+  locally, and rebuilt on demand by `scripts/convert_adapters_to_gguf.py`
+  (base model cached; llama.cpp tooling present).
+
+Rule of thumb: a new **source-of-truth** artifact (adapter weights or a new
+deployable) goes to DVC; a new **derived** artifact is regenerated, not stored.
+
+This reverses the pre-2026-09-08 decisions in this document ("do not delete/trim
+model artifacts", "defer DVC adoption") — a deliberate, user-directed change.
