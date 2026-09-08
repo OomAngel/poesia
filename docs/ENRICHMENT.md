@@ -313,4 +313,4 @@ The existing PoemRecord gains optional linkage fields (influences, fragments_use
 - [x] CLI wiring for all enrichment commands
 - [x] Auto-embed on GraphRAGRetriever.ingest()
 - [x] Integration tests
-- [ ] Wire retrieval into Galeria for style anchoring (deferred)
+- [x] Wire retrieval into Galeria for style anchoring — `--style-from-retrieval` (2026-08-04)

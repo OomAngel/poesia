@@ -21,14 +21,14 @@ The correct posture is a **staged transition**: keep what is cheap and already
 working, and defer product-only infrastructure until the product build actually
 starts.
 
-## 2. Current state (verified 2026-08-29)
+## 2. Current state (verified 2026-09-08)
 
 | Component | State |
 |---|---|
 | Application | Single-user Python CLI (`poesia write|scan|workshop|galeria|memoria|armonia`) |
 | Web / API | **None** — no FastAPI/Flask/uvicorn in `src/` or `pyproject.toml`; only *outbound* LLM calls |
 | Poem library (MemorIA) | Local Markdown + **SQLite** index (`~/.poesia/poems/`, `library.db`) |
-| Experiment tracking | **MLflow** with a **PostgreSQL** backend (docker-compose: `postgres` + `mlflow-ui`) |
+| Experiment tracking | **MLflow** (docker `postgres` + `mlflow-ui` is the canonical backend; the actual 71 runs / 8 models live in local SQLite `mlruns/mlflow.db` — see §7) |
 | Model artifacts | `models/` (~9 GB): `final_adapter/` + `*-Q4_K_M.gguf` tracked in DVC; `merged/` + `*-f16.gguf` regenerable, deleted (see §7) |
 | DVC | **Adopted** (2026-09-08): remote `local_d_drive` → `/mnt/d/dvc-remotes/poesia`; tracks source + deployable only |
 | Serving | `serving.Dockerfile` = `mlflow models serve` sketch only (not an app backend) |
