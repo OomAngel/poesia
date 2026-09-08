@@ -61,21 +61,19 @@ poesia galeria illustrate poem.txt --backend pollinations --output auca.png
 poesia galeria illustrate seeds/library/20260731_030227_142539_el_peso_del_saber__ingenuidad.md \
   --backend procedural --output docs/examples/auca_el_peso_del_saber.png
 
-# Quick MLflow sanity (PostgreSQL — NOT sqlite anymore):
+# MLflow sanity — the actual 71 runs / 8 registered models are in the LOCAL
+# SQLite store `mlruns/mlflow.db` (NOT the docker Postgres, which only holds
+# MLflow's demo traces). See docs/INFRASTRUCTURE_DECISIONS.md §7.
 source scripts/poesia_env.sh --source 2>/dev/null
 /home/angel/miniconda3/envs/poesia/bin/python -c "
-import mlflow; mlflow.set_tracking_uri('postgresql://mlflow:mlflow@localhost:5432/mlflow');
-from mlflow.tracking import MlflowClient; c = MlflowClient();
-for e in c.search_experiments():
-    runs = c.search_runs([e.experiment_id])
-    statuses = {}
-    for r in runs: statuses[r.info.status] = statuses.get(r.info.status, 0) + 1
-    print(f'{e.name:30s} {statuses}')" 2>/dev/null
+import sqlite3
+c = sqlite3.connect('mlruns/mlflow.db')
+for eid, name in c.execute('SELECT experiment_id, name FROM experiments'):
+    n = c.execute('SELECT count(*) FROM runs WHERE experiment_id=?', (eid,)).fetchone()[0]
+    print(f'{name:30s} {n} runs')" 2>/dev/null
 
-# MLflow UI (docker): http://localhost:5000
-# PostgreSQL: mlflow:mlflow@localhost:5432/mlflow
-# docker is UP (2026-08-06): WSL integration enabled, native `docker` on PATH
-# (~/.local/bin/docker). If the stack is down, bring it up with:
+# MLflow UI (docker): http://localhost:5000  (docker Postgres: mlflow:mlflow@localhost:5432/mlflow)
+# docker is UP: native `docker` on PATH. If the stack is down:
 #   docker compose -f docker/docker-compose.yml up -d postgres mlflow-ui
 ```
 

@@ -458,8 +458,13 @@ ruff format --check src/ mlops/
 mypy src/ --ignore-missing-imports
 ```
 
-MLflow experiments, model registry and monitoring run against PostgreSQL
-(`docker compose -f docker/docker-compose.yml up`); training entry point:
+MLflow experiments, model registry and monitoring use PostgreSQL as the
+canonical backend (`docker compose -f docker/docker-compose.yml up`) — though
+the historical runs currently live in the local SQLite store
+(`mlruns/mlflow.db`), since the docker Postgres only holds MLflow's demo traces
+(see [`docs/INFRASTRUCTURE_DECISIONS.md`](docs/INFRASTRUCTURE_DECISIONS.md) §7).
+Model weights (`final_adapter/` + `*-Q4_K_M.gguf`) are versioned with DVC
+(remote `local_d_drive`); training entry point:
 `bash scripts/launch_training.sh local mlops/configs/train_<config>.yaml`.
 
 **Documentation**: `docs/` — the human position
