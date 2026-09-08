@@ -1,6 +1,24 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-08-31 (recovery note added — see "Status update" below; this file trails the recent commits)_
+_Last updated: 2026-09-08 (DVC adopted + model-artifact policy changed — see docs/INFRASTRUCTURE_DECISIONS.md §7)_
+
+---
+
+## What We Just Did (2026-09-08) — DVC adopted; model artifacts re-tracked
+
+- **Git sync:** resolved branch divergence (Colab auto-commit) via rebase + push.
+- **DVC adopted** as the system of record for weights: remote `local_d_drive`
+  → `/mnt/d/dvc-remotes/poesia`; tracks `final_adapter/` (source LoRA) +
+  `*-Q4_K_M.gguf` (deployable) only. Remote/cache slimmed to 8.8 GB.
+- **Regenerable intermediates deleted:** `models/*/merged/` and `*-f16.gguf`
+  (~58 GB) are derived via `scripts/convert_adapters_to_gguf.py` and excluded
+  by `.dvcignore`.
+- **Records:** added `merged` provenance to `mlops/adapter_registry.json`;
+  committed MLflow metadata dump `mlops/mlflow_metadata_dump.sql` (71 runs,
+  8 registered models). MLflow's real store is `mlruns/` (SQLite), **not** the
+  Docker Postgres (which only holds demo traces).
+- **Policy encoded** in `docs/INFRASTRUCTURE_DECISIONS.md` §7 (DVC = weights,
+  Git = provenance/results, `mlruns/` = local disposable cache).
 
 ---
 

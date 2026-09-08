@@ -23,10 +23,15 @@ Before touching or "cleaning up" any infrastructure, data store, or model
 artifact — PostgreSQL, the docker-compose stack, MLflow, DVC, `mlruns/`, or
 `models/` — read `docs/INFRASTRUCTURE_DECISIONS.md` completely. It records the
 current-vs-product premise and an explicit DO-NOT list. In particular: do not
-delete PostgreSQL, do not delete or trim model artifacts, do not collapse MLflow
-to SQLite, and do not rip out the DVC skeleton. PoesIA is a single-user CLI today
-with a long-term web/Android product intent; infrastructure work is a staged
-transition, not an all-at-once build or teardown.
+delete PostgreSQL, do not collapse MLflow to SQLite, do not rip out the DVC
+skeleton, and do not delete source/deployable model artifacts (`final_adapter/`,
+`*-Q4_K_M.gguf`) or the MLflow history (`mlruns/mlflow.db`). Regenerable
+intermediates (`models/*/merged/`, `models/*/*-f16.gguf`) are excluded from
+tracking and may be deleted/regenerated via `scripts/convert_adapters_to_gguf.py`
+(see `docs/INFRASTRUCTURE_DECISIONS.md` §7). System of record: **DVC** = model
+weights, **Git** = provenance/results, **`mlruns/`** = local disposable cache.
+PoesIA is a single-user CLI today with a long-term web/Android product intent;
+infrastructure work is a staged transition, not an all-at-once build or teardown.
 
 ---
 
