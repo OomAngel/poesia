@@ -5,32 +5,28 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-438%20passing-brightgreen)](#development)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](#status)
-[![LLM backends](https://img.shields.io/badge/LLM%20backends-8%2B-blueviolet)](#core-generation)
-[![Image backends](https://img.shields.io/badge/image%20backends-6-orange)](#galeria--illustration)
 [![Languages](https://img.shields.io/badge/languages-es%20%7C%20en%20(nl%20scan--only)-green)](#language-support)
-[![Retrieval](https://img.shields.io/badge/retrieval-Graph%20RAG-purple)](#memoria)
-[![MLOps](https://img.shields.io/badge/MLOps-MLflow-important)](#tooling)
 
 An **instrument for letting things out** — not a poetry generator. You bring what
 you carry: a thought, a feeling, a grievance, a joy that never became words.
 PoesIA gives it the shape of poetry and, in the shaping, teaches you the craft —
 so that it needs you a little less each time.
 
-The machine underneath exists to serve that purpose, and its thesis is simple and
-evidence-backed:
+The machine underneath exists to serve that purpose, and it divides authority on
+one principle:
 
 > **You** for meaning — the feeling, the memory, the words only you have.
 > **Algorithms** for the craft — syllable count, stress, rhyme, measurable repetition.
 > **The machine** for scaffolding — drafts and proposals that are *never* the
 > poem; the poem is whatever you decide to keep.
 
-Why the craft layer is the teacher: pure LLM generation produces formally valid
-poetry less than ~4% of the time. Wrapping the same generation in deterministic
-phonological verification raises validity to ~73%. The exact numbers differ per
-language; the architectural lesson does not: **never trust an LLM to count
-syllables** — which is exactly why the machine can teach them to you.
+The reason the craft layer is deterministic and not learned: a language model
+predicts what a metrically correct line *looks like*; it does not count. Scansion,
+sinalefa and stress placement are decidable, so PoesIA decides them in code and
+lets the model propose only what code can then check. The generator is never
+asked to validate its own output — which is also why the checks can explain
+themselves to you, line by line, instead of asserting that something is wrong.
 
 > Why PoesIA exists, who it is for, and the landscape research showing this
 > position is unoccupied: [`docs/POSITIONING.md`](docs/POSITIONING.md).
@@ -207,7 +203,7 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 ### Tooling
 
 - MLOps: MLflow single source of truth, model registry, evaluation, monitoring, Docker, CI/CD
-- 438 tests pass in CI (hosted-LLM/image/GPU tests excluded; 511 collected, 1 pre-existing GPU-only test skipped); ruff, mypy, bandit, safety enforced in CI
+- CI enforces ruff, mypy, bandit and safety, and runs the test suite with hosted-LLM, image and GPU tests excluded so a run needs no API keys and no GPU
 
 ---
 
@@ -479,8 +475,7 @@ in [`USAGE_GUIDE.md`](USAGE_GUIDE.md).
 
 ## Status
 
-Core engine complete; Phases 0–5 + P0–P5 hardening done, **438 tests** pass in CI (511 collected)
-(2026-08). Fine-tuning and DPO pipelines operational (MLflow-tracked); GalerIA
+Core engine complete; Phases 0–5 and P0–P5 hardening done (2026-08). Fine-tuning and DPO pipelines operational (MLflow-tracked); GalerIA
 wired end-to-end for online (DALL·E / SDXL) and offline (`procedural`
 deterministic art, no key needed) illustration, with the `image:` link
 persisted in the library frontmatter.
