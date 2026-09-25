@@ -9,6 +9,13 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import pytest
+
+# The script imports its training stack at module level; CI's CPU-safe job
+# installs none of it, so skip instead of erroring at collection.
+for _dep in ("mlflow", "torch", "yaml", "datasets", "peft", "transformers"):
+    pytest.importorskip(_dep)
+
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "train_poetry_lora.py"
 spec = importlib.util.spec_from_file_location("train_poetry_lora", SCRIPT_PATH)
 train_poetry_lora = importlib.util.module_from_spec(spec)
