@@ -448,7 +448,7 @@ poesia write --theme "the weight of silence" --form haiku --language en \
 
 ```bash
 pip install -e ".[dev]"
-pytest                       # 511 collected; 438 run in CI
+pytest                       # 511 tests; CI runs 435 (11 provider files ignored; 3 need the training stack)
 ruff check src/ mlops/       # lint (CI-enforced)
 ruff format --check src/ mlops/
 mypy src/ --ignore-missing-imports
