@@ -41,6 +41,10 @@ What regenerates rather than needs pulling: `merged/` and `*-f16.gguf` are exclu
 `final_adapter/` is the trained source (`docs/INFRASTRUCTURE_DECISIONS.md` §7) — retraining
 from the same config produces a comparable adapter, not the identical one.
 
+> **Update 2026-09-26:** this machine is now an RTX 3070 (8 GB, Ampere sm_86) — the same
+> VRAM and architecture class the adapters were trained on — so the Quadro M1000M below
+> describes the previous laptop. Local training has not yet been re-run here.
+
 **None of these adapters were trained on this laptop.** Its Quadro M1000M (2 GB, Maxwell
 sm_50) cannot train; it only *evaluates* adapters through llama.cpp. Training ran on an
 8 GB GPU (RTX 3070 Ti workstation; see `docs/TRAINING_RUNBOOK.md`), which is what capped

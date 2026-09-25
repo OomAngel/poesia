@@ -1,5 +1,11 @@
 # PoesIA — Training Runbook
 
+> **Update (2026-09-26):** this machine is now an **RTX 3070** (8 GB, Ampere
+> sm_86), the same class as the workstation below, so the 1.5B/3B 4-bit QLoRA
+> configs should fit locally again (not yet re-run here). The Quadro M1000M
+> statements below describe the previous laptop; the 2026-08-31 state is kept
+> as history.
+
 > **Current state (2026-08-31):** there is no local or rented GPU available —
 > the RTX 3070 Ti / RTX 2000 Ada workstation referenced below is not currently
 > accessible. The dev laptop's Quadro M1000M (2 GB, Maxwell) has never been
@@ -32,7 +38,8 @@
 
 | Machine | GPU | VRAM | Can train? |
 |---|---|---|---|
-| Dev laptop | Quadro M1000M (Maxwell, sm_50) | 2 GB | ❌ no |
+| This machine (as of 2026-09-26) | RTX 3070 (Ampere, sm_86) | 8 GB | ✅ expected (same class as the workstation; not yet re-run) |
+| Dev laptop (previous) | Quadro M1000M (Maxwell, sm_50) | 2 GB | ❌ no |
 | GPU workstation | RTX 3070 Ti (Ampere, sm_86) | 8 GB | ⚠️ not currently available (as of 2026-08-31) |
 | (previous) | RTX 2000 Ada | 8 GB | ⚠️ not currently available |
 
