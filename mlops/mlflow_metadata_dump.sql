@@ -1,167 +1,167 @@
 BEGIN TRANSACTION;
 CREATE TABLE alembic_version (
-	version_num VARCHAR(32) NOT NULL, 
+	version_num VARCHAR(32) NOT NULL,
 	CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
 );
 INSERT INTO "alembic_version" VALUES('b7e4c1a90f23');
 CREATE TABLE assessments (
-	assessment_id VARCHAR(50) NOT NULL, 
-	trace_id VARCHAR(50) NOT NULL, 
-	name VARCHAR(250) NOT NULL, 
-	assessment_type VARCHAR(20) NOT NULL, 
-	value TEXT NOT NULL, 
-	error TEXT, 
-	created_timestamp BIGINT NOT NULL, 
-	last_updated_timestamp BIGINT NOT NULL, 
-	source_type VARCHAR(50) NOT NULL, 
-	source_id VARCHAR(250), 
-	run_id VARCHAR(32), 
-	span_id VARCHAR(50), 
-	rationale TEXT, 
-	overrides VARCHAR(50), 
-	valid BOOLEAN NOT NULL, 
-	assessment_metadata TEXT, 
-	CONSTRAINT assessments_pk PRIMARY KEY (assessment_id), 
+	assessment_id VARCHAR(50) NOT NULL,
+	trace_id VARCHAR(50) NOT NULL,
+	name VARCHAR(250) NOT NULL,
+	assessment_type VARCHAR(20) NOT NULL,
+	value TEXT NOT NULL,
+	error TEXT,
+	created_timestamp BIGINT NOT NULL,
+	last_updated_timestamp BIGINT NOT NULL,
+	source_type VARCHAR(50) NOT NULL,
+	source_id VARCHAR(250),
+	run_id VARCHAR(32),
+	span_id VARCHAR(50),
+	rationale TEXT,
+	overrides VARCHAR(50),
+	valid BOOLEAN NOT NULL,
+	assessment_metadata TEXT,
+	CONSTRAINT assessments_pk PRIMARY KEY (assessment_id),
 	CONSTRAINT fk_assessments_trace_id FOREIGN KEY(trace_id) REFERENCES trace_info (request_id) ON DELETE CASCADE
 );
 CREATE TABLE budget_policies (
-	budget_policy_id VARCHAR(36) NOT NULL, 
-	budget_unit VARCHAR(32) NOT NULL, 
-	budget_amount FLOAT NOT NULL, 
-	duration_unit VARCHAR(32) NOT NULL, 
-	duration_value INTEGER NOT NULL, 
-	target_scope VARCHAR(32) NOT NULL, 
-	budget_action VARCHAR(32) NOT NULL, 
-	created_by VARCHAR(255), 
-	created_at BIGINT NOT NULL, 
-	last_updated_by VARCHAR(255), 
-	last_updated_at BIGINT NOT NULL, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
+	budget_policy_id VARCHAR(36) NOT NULL,
+	budget_unit VARCHAR(32) NOT NULL,
+	budget_amount FLOAT NOT NULL,
+	duration_unit VARCHAR(32) NOT NULL,
+	duration_value INTEGER NOT NULL,
+	target_scope VARCHAR(32) NOT NULL,
+	budget_action VARCHAR(32) NOT NULL,
+	created_by VARCHAR(255),
+	created_at BIGINT NOT NULL,
+	last_updated_by VARCHAR(255),
+	last_updated_at BIGINT NOT NULL,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
 	CONSTRAINT budget_policies_pk PRIMARY KEY (budget_policy_id)
 );
 CREATE TABLE "datasets" (
-	dataset_uuid VARCHAR(36) NOT NULL, 
-	experiment_id INTEGER NOT NULL, 
-	name VARCHAR(500) NOT NULL, 
-	digest VARCHAR(36) NOT NULL, 
-	dataset_source_type VARCHAR(36) NOT NULL, 
-	dataset_source TEXT NOT NULL, 
-	dataset_schema TEXT, 
-	dataset_profile TEXT, 
-	CONSTRAINT dataset_pk PRIMARY KEY (experiment_id, name, digest), 
+	dataset_uuid VARCHAR(36) NOT NULL,
+	experiment_id INTEGER NOT NULL,
+	name VARCHAR(500) NOT NULL,
+	digest VARCHAR(36) NOT NULL,
+	dataset_source_type VARCHAR(36) NOT NULL,
+	dataset_source TEXT NOT NULL,
+	dataset_schema TEXT,
+	dataset_profile TEXT,
+	CONSTRAINT dataset_pk PRIMARY KEY (experiment_id, name, digest),
 	CONSTRAINT fk_datasets_experiment_id_experiments FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id) ON DELETE CASCADE
 );
 INSERT INTO "datasets" VALUES('5606dfa0414e43b4a055cc37ad260676',0,'soneto-quality','6a5b942b','local','{"uri": "seeds/poetry_corpus/training_data_structured/sonetos_scored.jsonl"}','{"mlflow_colspec": [{"type": "string", "name": "prompt", "required": true}, {"type": "string", "name": "completion", "required": true}, {"type": "double", "name": "quality_score", "required": true}]}','{"num_rows": 5, "num_elements": 15}');
 INSERT INTO "datasets" VALUES('86e80ef7ec2f4cdcb932a08a956bd2c5',0,'dataset','6a5b942b','code','{"tags": {"mlflow.user": "angel", "mlflow.source.name": "scripts/evaluate_mlflow.py", "mlflow.source.type": "LOCAL", "mlflow.source.git.commit": "1b0557c76531d2e8072b68a286d93f99dfc9698b", "mlflow.source.git.branch": "main"}}','{"mlflow_colspec": [{"type": "string", "name": "prompt", "required": true}, {"type": "string", "name": "completion", "required": true}, {"type": "double", "name": "quality_score", "required": true}]}','{"num_rows": 5, "num_elements": 15}');
 CREATE TABLE endpoint_bindings (
-	endpoint_id VARCHAR(36) NOT NULL, 
-	resource_type VARCHAR(50) NOT NULL, 
-	resource_id VARCHAR(255) NOT NULL, 
-	created_at BIGINT NOT NULL, 
-	created_by VARCHAR(255), 
-	last_updated_at BIGINT NOT NULL, 
-	last_updated_by VARCHAR(255), display_name VARCHAR(255), 
-	CONSTRAINT endpoint_bindings_pk PRIMARY KEY (endpoint_id, resource_type, resource_id), 
+	endpoint_id VARCHAR(36) NOT NULL,
+	resource_type VARCHAR(50) NOT NULL,
+	resource_id VARCHAR(255) NOT NULL,
+	created_at BIGINT NOT NULL,
+	created_by VARCHAR(255),
+	last_updated_at BIGINT NOT NULL,
+	last_updated_by VARCHAR(255), display_name VARCHAR(255),
+	CONSTRAINT endpoint_bindings_pk PRIMARY KEY (endpoint_id, resource_type, resource_id),
 	CONSTRAINT fk_endpoint_bindings_endpoint_id FOREIGN KEY(endpoint_id) REFERENCES endpoints (endpoint_id) ON DELETE CASCADE
 );
 CREATE TABLE endpoint_model_mappings (
-	mapping_id VARCHAR(36) NOT NULL, 
-	endpoint_id VARCHAR(36) NOT NULL, 
-	model_definition_id VARCHAR(36) NOT NULL, 
-	weight FLOAT NOT NULL, 
-	created_by VARCHAR(255), 
-	created_at BIGINT NOT NULL, linkage_type VARCHAR(64) DEFAULT 'PRIMARY' NOT NULL, fallback_order INTEGER, 
-	CONSTRAINT endpoint_model_mappings_pk PRIMARY KEY (mapping_id), 
-	CONSTRAINT fk_endpoint_model_mappings_endpoint_id FOREIGN KEY(endpoint_id) REFERENCES endpoints (endpoint_id) ON DELETE CASCADE, 
+	mapping_id VARCHAR(36) NOT NULL,
+	endpoint_id VARCHAR(36) NOT NULL,
+	model_definition_id VARCHAR(36) NOT NULL,
+	weight FLOAT NOT NULL,
+	created_by VARCHAR(255),
+	created_at BIGINT NOT NULL, linkage_type VARCHAR(64) DEFAULT 'PRIMARY' NOT NULL, fallback_order INTEGER,
+	CONSTRAINT endpoint_model_mappings_pk PRIMARY KEY (mapping_id),
+	CONSTRAINT fk_endpoint_model_mappings_endpoint_id FOREIGN KEY(endpoint_id) REFERENCES endpoints (endpoint_id) ON DELETE CASCADE,
 	CONSTRAINT fk_endpoint_model_mappings_model_definition_id FOREIGN KEY(model_definition_id) REFERENCES model_definitions (model_definition_id)
 );
 CREATE TABLE endpoint_tags (
-	"key" VARCHAR(250) NOT NULL, 
-	value VARCHAR(5000), 
-	endpoint_id VARCHAR(36) NOT NULL, 
-	CONSTRAINT endpoint_tag_pk PRIMARY KEY ("key", endpoint_id), 
+	"key" VARCHAR(250) NOT NULL,
+	value VARCHAR(5000),
+	endpoint_id VARCHAR(36) NOT NULL,
+	CONSTRAINT endpoint_tag_pk PRIMARY KEY ("key", endpoint_id),
 	CONSTRAINT fk_endpoint_tags_endpoint_id FOREIGN KEY(endpoint_id) REFERENCES endpoints (endpoint_id) ON DELETE CASCADE
 );
 CREATE TABLE "endpoints" (
-	endpoint_id VARCHAR(36) NOT NULL, 
-	name VARCHAR(255), 
-	created_by VARCHAR(255), 
-	created_at BIGINT NOT NULL, 
-	last_updated_by VARCHAR(255), 
-	last_updated_at BIGINT NOT NULL, 
-	routing_strategy VARCHAR(64), 
-	fallback_config_json TEXT, 
-	experiment_id INTEGER, 
-	usage_tracking BOOLEAN DEFAULT '0' NOT NULL, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
-	CONSTRAINT endpoints_pk PRIMARY KEY (endpoint_id), 
-	CONSTRAINT fk_endpoints_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id) ON DELETE SET NULL, 
+	endpoint_id VARCHAR(36) NOT NULL,
+	name VARCHAR(255),
+	created_by VARCHAR(255),
+	created_at BIGINT NOT NULL,
+	last_updated_by VARCHAR(255),
+	last_updated_at BIGINT NOT NULL,
+	routing_strategy VARCHAR(64),
+	fallback_config_json TEXT,
+	experiment_id INTEGER,
+	usage_tracking BOOLEAN DEFAULT '0' NOT NULL,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
+	CONSTRAINT endpoints_pk PRIMARY KEY (endpoint_id),
+	CONSTRAINT fk_endpoints_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id) ON DELETE SET NULL,
 	CONSTRAINT uq_endpoints_workspace_name UNIQUE (workspace, name)
 );
 CREATE TABLE entity_associations (
-	association_id VARCHAR(36) NOT NULL, 
-	source_type VARCHAR(36) NOT NULL, 
-	source_id VARCHAR(36) NOT NULL, 
-	destination_type VARCHAR(36) NOT NULL, 
-	destination_id VARCHAR(36) NOT NULL, 
-	created_time BIGINT, 
+	association_id VARCHAR(36) NOT NULL,
+	source_type VARCHAR(36) NOT NULL,
+	source_id VARCHAR(36) NOT NULL,
+	destination_type VARCHAR(36) NOT NULL,
+	destination_id VARCHAR(36) NOT NULL,
+	created_time BIGINT,
 	CONSTRAINT entity_associations_pk PRIMARY KEY (source_type, source_id, destination_type, destination_id)
 );
 CREATE TABLE "evaluation_dataset_records" (
-	dataset_record_id VARCHAR(36) NOT NULL, 
-	dataset_id VARCHAR(36) NOT NULL, 
-	inputs JSON NOT NULL, 
-	expectations JSON, 
-	tags JSON, 
-	source JSON, 
-	source_id VARCHAR(36), 
-	source_type VARCHAR(255), 
-	created_time BIGINT, 
-	last_update_time BIGINT, 
-	created_by VARCHAR(255), 
-	last_updated_by VARCHAR(255), 
-	input_hash VARCHAR(64) NOT NULL, outputs JSON, 
-	CONSTRAINT evaluation_dataset_records_pk PRIMARY KEY (dataset_record_id), 
-	CONSTRAINT fk_evaluation_dataset_records_dataset_id FOREIGN KEY(dataset_id) REFERENCES evaluation_datasets (dataset_id) ON DELETE CASCADE, 
+	dataset_record_id VARCHAR(36) NOT NULL,
+	dataset_id VARCHAR(36) NOT NULL,
+	inputs JSON NOT NULL,
+	expectations JSON,
+	tags JSON,
+	source JSON,
+	source_id VARCHAR(36),
+	source_type VARCHAR(255),
+	created_time BIGINT,
+	last_update_time BIGINT,
+	created_by VARCHAR(255),
+	last_updated_by VARCHAR(255),
+	input_hash VARCHAR(64) NOT NULL, outputs JSON,
+	CONSTRAINT evaluation_dataset_records_pk PRIMARY KEY (dataset_record_id),
+	CONSTRAINT fk_evaluation_dataset_records_dataset_id FOREIGN KEY(dataset_id) REFERENCES evaluation_datasets (dataset_id) ON DELETE CASCADE,
 	CONSTRAINT unique_dataset_input UNIQUE (dataset_id, input_hash)
 );
 CREATE TABLE evaluation_dataset_tags (
-	dataset_id VARCHAR(36) NOT NULL, 
-	"key" VARCHAR(255) NOT NULL, 
-	value VARCHAR(5000), 
-	CONSTRAINT evaluation_dataset_tags_pk PRIMARY KEY (dataset_id, "key"), 
+	dataset_id VARCHAR(36) NOT NULL,
+	"key" VARCHAR(255) NOT NULL,
+	value VARCHAR(5000),
+	CONSTRAINT evaluation_dataset_tags_pk PRIMARY KEY (dataset_id, "key"),
 	CONSTRAINT fk_evaluation_dataset_tags_dataset_id FOREIGN KEY(dataset_id) REFERENCES evaluation_datasets (dataset_id) ON DELETE CASCADE
 );
 CREATE TABLE "evaluation_datasets" (
-	dataset_id VARCHAR(36) NOT NULL, 
-	name VARCHAR(255) NOT NULL, 
-	schema TEXT, 
-	profile TEXT, 
-	digest VARCHAR(64), 
-	created_time BIGINT, 
-	last_update_time BIGINT, 
-	created_by VARCHAR(255), 
-	last_updated_by VARCHAR(255), 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
+	dataset_id VARCHAR(36) NOT NULL,
+	name VARCHAR(255) NOT NULL,
+	schema TEXT,
+	profile TEXT,
+	digest VARCHAR(64),
+	created_time BIGINT,
+	last_update_time BIGINT,
+	created_by VARCHAR(255),
+	last_updated_by VARCHAR(255),
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
 	CONSTRAINT evaluation_datasets_pk PRIMARY KEY (dataset_id)
 );
 CREATE TABLE experiment_tags (
-	"key" VARCHAR(250) NOT NULL, 
-	value VARCHAR(5000), 
-	experiment_id INTEGER NOT NULL, 
-	CONSTRAINT experiment_tag_pk PRIMARY KEY ("key", experiment_id), 
+	"key" VARCHAR(250) NOT NULL,
+	value VARCHAR(5000),
+	experiment_id INTEGER NOT NULL,
+	CONSTRAINT experiment_tag_pk PRIMARY KEY ("key", experiment_id),
 	FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id)
 );
 CREATE TABLE "experiments" (
-	experiment_id INTEGER NOT NULL, 
-	name VARCHAR(256) NOT NULL, 
-	artifact_location VARCHAR(256), 
-	lifecycle_stage VARCHAR(32), 
-	creation_time BIGINT, 
-	last_update_time BIGINT, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
-	CONSTRAINT experiment_pk PRIMARY KEY (experiment_id), 
-	CONSTRAINT experiments_lifecycle_stage CHECK (lifecycle_stage IN ('active', 'deleted')), 
+	experiment_id INTEGER NOT NULL,
+	name VARCHAR(256) NOT NULL,
+	artifact_location VARCHAR(256),
+	lifecycle_stage VARCHAR(32),
+	creation_time BIGINT,
+	last_update_time BIGINT,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
+	CONSTRAINT experiment_pk PRIMARY KEY (experiment_id),
+	CONSTRAINT experiments_lifecycle_stage CHECK (lifecycle_stage IN ('active', 'deleted')),
 	CONSTRAINT uq_experiments_workspace_name UNIQUE (workspace, name)
 );
 INSERT INTO "experiments" VALUES(0,'Default','/home/angel/dev/poesia/mlruns/artifacts/0','active',1785368315799,1785368315799,'default');
@@ -178,46 +178,46 @@ INSERT INTO "experiments" VALUES(976141155803929347,'soneto-v2-fixed','/home/ang
 INSERT INTO "experiments" VALUES(976141155803929348,'model-registry-backfill','/home/angel/dev/poesia/mlruns/976141155803929348','active',1788128111831,1788128111831,'default');
 INSERT INTO "experiments" VALUES(976141155803929349,'poesia-evaluation','/home/angel/dev/poesia/mlruns/poesia-evaluation','active',1788218825883,1788218825883,'default');
 CREATE TABLE guardrail_configs (
-	endpoint_id VARCHAR(36) NOT NULL, 
-	guardrail_id VARCHAR(36) NOT NULL, 
-	execution_order INTEGER, 
-	created_by VARCHAR(255), 
-	created_at BIGINT NOT NULL, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
-	CONSTRAINT guardrail_configs_pk PRIMARY KEY (endpoint_id, guardrail_id), 
-	CONSTRAINT fk_guardrail_configs_endpoint_id FOREIGN KEY(endpoint_id) REFERENCES endpoints (endpoint_id) ON DELETE CASCADE, 
+	endpoint_id VARCHAR(36) NOT NULL,
+	guardrail_id VARCHAR(36) NOT NULL,
+	execution_order INTEGER,
+	created_by VARCHAR(255),
+	created_at BIGINT NOT NULL,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
+	CONSTRAINT guardrail_configs_pk PRIMARY KEY (endpoint_id, guardrail_id),
+	CONSTRAINT fk_guardrail_configs_endpoint_id FOREIGN KEY(endpoint_id) REFERENCES endpoints (endpoint_id) ON DELETE CASCADE,
 	CONSTRAINT fk_guardrail_configs_guardrail_id FOREIGN KEY(guardrail_id) REFERENCES guardrails (guardrail_id) ON DELETE CASCADE
 );
 CREATE TABLE guardrails (
-	guardrail_id VARCHAR(36) NOT NULL, 
-	name VARCHAR(255) NOT NULL, 
-	scorer_id VARCHAR(36) NOT NULL, 
-	scorer_version INTEGER NOT NULL, 
-	stage VARCHAR(32) NOT NULL, 
-	action VARCHAR(32) NOT NULL, 
-	action_endpoint_id VARCHAR(36), 
-	created_by VARCHAR(255), 
-	created_at BIGINT NOT NULL, 
-	last_updated_by VARCHAR(255), 
-	last_updated_at BIGINT NOT NULL, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
-	CONSTRAINT guardrails_pk PRIMARY KEY (guardrail_id), 
-	CONSTRAINT fk_guardrails_scorer_version FOREIGN KEY(scorer_id, scorer_version) REFERENCES scorer_versions (scorer_id, scorer_version), 
+	guardrail_id VARCHAR(36) NOT NULL,
+	name VARCHAR(255) NOT NULL,
+	scorer_id VARCHAR(36) NOT NULL,
+	scorer_version INTEGER NOT NULL,
+	stage VARCHAR(32) NOT NULL,
+	action VARCHAR(32) NOT NULL,
+	action_endpoint_id VARCHAR(36),
+	created_by VARCHAR(255),
+	created_at BIGINT NOT NULL,
+	last_updated_by VARCHAR(255),
+	last_updated_at BIGINT NOT NULL,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
+	CONSTRAINT guardrails_pk PRIMARY KEY (guardrail_id),
+	CONSTRAINT fk_guardrails_scorer_version FOREIGN KEY(scorer_id, scorer_version) REFERENCES scorer_versions (scorer_id, scorer_version),
 	CONSTRAINT fk_guardrails_action_endpoint_id FOREIGN KEY(action_endpoint_id) REFERENCES endpoints (endpoint_id) ON DELETE SET NULL
 );
 CREATE TABLE input_tags (
-	input_uuid VARCHAR(36) NOT NULL, 
-	name VARCHAR(255) NOT NULL, 
-	value VARCHAR(500) NOT NULL, 
+	input_uuid VARCHAR(36) NOT NULL,
+	name VARCHAR(255) NOT NULL,
+	value VARCHAR(500) NOT NULL,
 	CONSTRAINT input_tags_pk PRIMARY KEY (input_uuid, name)
 );
 INSERT INTO "input_tags" VALUES('7a9f9c9e68114857a3948360aac84906','mlflow.data.context','evaluation');
 CREATE TABLE inputs (
-	input_uuid VARCHAR(36) NOT NULL, 
-	source_type VARCHAR(36) NOT NULL, 
-	source_id VARCHAR(36) NOT NULL, 
-	destination_type VARCHAR(36) NOT NULL, 
-	destination_id VARCHAR(36) NOT NULL, step BIGINT DEFAULT '0' NOT NULL, 
+	input_uuid VARCHAR(36) NOT NULL,
+	source_type VARCHAR(36) NOT NULL,
+	source_id VARCHAR(36) NOT NULL,
+	destination_type VARCHAR(36) NOT NULL,
+	destination_id VARCHAR(36) NOT NULL, step BIGINT DEFAULT '0' NOT NULL,
 	CONSTRAINT inputs_pk PRIMARY KEY (source_type, source_id, destination_type, destination_id)
 );
 INSERT INTO "inputs" VALUES('7a9f9c9e68114857a3948360aac84906','DATASET','5606dfa0414e43b4a055cc37ad260676','RUN','3d7f640a483b4b53805b78099a6ce1c3',0);
@@ -237,61 +237,61 @@ INSERT INTO "inputs" VALUES('809a52eefc6c49f6abbbf6717f419824','RUN_OUTPUT','4ae
 INSERT INTO "inputs" VALUES('8d190cb2519f4ed183bcf224394686c6','RUN_OUTPUT','caf75b03dc81482785ade3e16526dc74','MODEL_OUTPUT','m-72987d1c2ec14a858d59a8d1637df899',0);
 INSERT INTO "inputs" VALUES('3e9eba7a8c194675a9f41f370fa208d8','RUN_OUTPUT','3d7c020feaf143b39f80846e76b4e6ff','MODEL_OUTPUT','m-4f38c16a93854a3d8bd68997814de867',0);
 CREATE TABLE issues (
-	issue_id VARCHAR(36) NOT NULL, 
-	experiment_id INTEGER NOT NULL, 
-	name VARCHAR(250) NOT NULL, 
-	description TEXT NOT NULL, 
-	status VARCHAR(50) NOT NULL, 
-	severity VARCHAR(50), 
-	root_causes TEXT, 
-	source_run_id VARCHAR(32), 
-	categories TEXT, 
-	created_timestamp BIGINT NOT NULL, 
-	last_updated_timestamp BIGINT NOT NULL, 
-	created_by VARCHAR(255), 
-	CONSTRAINT issues_pk PRIMARY KEY (issue_id), 
-	CONSTRAINT fk_issues_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id) ON DELETE CASCADE, 
+	issue_id VARCHAR(36) NOT NULL,
+	experiment_id INTEGER NOT NULL,
+	name VARCHAR(250) NOT NULL,
+	description TEXT NOT NULL,
+	status VARCHAR(50) NOT NULL,
+	severity VARCHAR(50),
+	root_causes TEXT,
+	source_run_id VARCHAR(32),
+	categories TEXT,
+	created_timestamp BIGINT NOT NULL,
+	last_updated_timestamp BIGINT NOT NULL,
+	created_by VARCHAR(255),
+	CONSTRAINT issues_pk PRIMARY KEY (issue_id),
+	CONSTRAINT fk_issues_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id) ON DELETE CASCADE,
 	CONSTRAINT fk_issues_source_run_id FOREIGN KEY(source_run_id) REFERENCES runs (run_uuid) ON DELETE SET NULL
 );
 CREATE TABLE "jobs" (
-	id VARCHAR(36) NOT NULL, 
-	creation_time BIGINT NOT NULL, 
-	job_name VARCHAR(500) NOT NULL, 
-	params TEXT NOT NULL, 
-	timeout FLOAT, 
-	status INTEGER NOT NULL, 
-	result TEXT, 
-	retry_count INTEGER NOT NULL, 
-	last_update_time BIGINT NOT NULL, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, status_details JSON, 
+	id VARCHAR(36) NOT NULL,
+	creation_time BIGINT NOT NULL,
+	job_name VARCHAR(500) NOT NULL,
+	params TEXT NOT NULL,
+	timeout FLOAT,
+	status INTEGER NOT NULL,
+	result TEXT,
+	retry_count INTEGER NOT NULL,
+	last_update_time BIGINT NOT NULL,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, status_details JSON,
 	CONSTRAINT jobs_pk PRIMARY KEY (id)
 );
 CREATE TABLE label_schemas (
-	schema_id VARCHAR(36) NOT NULL, 
-	experiment_id INTEGER NOT NULL, 
-	name VARCHAR(250) NOT NULL, 
-	type VARCHAR(16) NOT NULL, 
-	instruction TEXT, 
-	enable_comment BOOLEAN DEFAULT '0' NOT NULL, 
-	input_type VARCHAR(32) NOT NULL, 
-	input_config TEXT NOT NULL, 
-	created_by VARCHAR(255), 
-	created_time BIGINT NOT NULL, 
-	last_update_time BIGINT NOT NULL, 
-	is_default BOOLEAN DEFAULT 0 NOT NULL, 
-	CONSTRAINT label_schemas_pk PRIMARY KEY (schema_id), 
-	CONSTRAINT fk_label_schemas_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id) ON DELETE CASCADE, 
+	schema_id VARCHAR(36) NOT NULL,
+	experiment_id INTEGER NOT NULL,
+	name VARCHAR(250) NOT NULL,
+	type VARCHAR(16) NOT NULL,
+	instruction TEXT,
+	enable_comment BOOLEAN DEFAULT '0' NOT NULL,
+	input_type VARCHAR(32) NOT NULL,
+	input_config TEXT NOT NULL,
+	created_by VARCHAR(255),
+	created_time BIGINT NOT NULL,
+	last_update_time BIGINT NOT NULL,
+	is_default BOOLEAN DEFAULT 0 NOT NULL,
+	CONSTRAINT label_schemas_pk PRIMARY KEY (schema_id),
+	CONSTRAINT fk_label_schemas_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id) ON DELETE CASCADE,
 	CONSTRAINT uq_label_schemas_exp_name UNIQUE (experiment_id, name)
 );
 CREATE TABLE "latest_metrics" (
-	"key" VARCHAR(250) NOT NULL, 
-	value FLOAT NOT NULL, 
-	timestamp BIGINT, 
-	step BIGINT NOT NULL, 
-	is_nan BOOLEAN NOT NULL, 
-	run_uuid VARCHAR(32) NOT NULL, 
-	CONSTRAINT latest_metric_pk PRIMARY KEY ("key", run_uuid), 
-	FOREIGN KEY(run_uuid) REFERENCES runs (run_uuid), 
+	"key" VARCHAR(250) NOT NULL,
+	value FLOAT NOT NULL,
+	timestamp BIGINT,
+	step BIGINT NOT NULL,
+	is_nan BOOLEAN NOT NULL,
+	run_uuid VARCHAR(32) NOT NULL,
+	CONSTRAINT latest_metric_pk PRIMARY KEY ("key", run_uuid),
+	FOREIGN KEY(run_uuid) REFERENCES runs (run_uuid),
 	CHECK (is_nan IN (0, 1))
 );
 INSERT INTO "latest_metrics" VALUES('eval_loss',2.1800000000000006,1785367796439,19,0,'1d88cc6deb1140de8822ae487c912aea');
@@ -624,19 +624,19 @@ INSERT INTO "latest_metrics" VALUES('tiempo_syllable_dev',0.78571428571428648,17
 INSERT INTO "latest_metrics" VALUES('avg_line_accuracy',1.0,1788301901856,0,0,'938732a341364ca7880a2c5ac7dc792c');
 INSERT INTO "latest_metrics" VALUES('avg_syllable_deviation',5.1190476190476204,1788301901864,0,0,'938732a341364ca7880a2c5ac7dc792c');
 CREATE TABLE logged_model_metrics (
-	model_id VARCHAR(36) NOT NULL, 
-	metric_name VARCHAR(500) NOT NULL, 
-	metric_timestamp_ms BIGINT NOT NULL, 
-	metric_step BIGINT NOT NULL, 
-	metric_value FLOAT, 
-	experiment_id INTEGER NOT NULL, 
-	run_id VARCHAR(32) NOT NULL, 
-	dataset_uuid VARCHAR(36), 
-	dataset_name VARCHAR(500), 
-	dataset_digest VARCHAR(36), 
-	CONSTRAINT logged_model_metrics_pk PRIMARY KEY (model_id, metric_name, metric_timestamp_ms, metric_step, run_id), 
-	CONSTRAINT fk_logged_model_metrics_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id), 
-	CONSTRAINT fk_logged_model_metrics_model_id FOREIGN KEY(model_id) REFERENCES logged_models (model_id) ON DELETE CASCADE, 
+	model_id VARCHAR(36) NOT NULL,
+	metric_name VARCHAR(500) NOT NULL,
+	metric_timestamp_ms BIGINT NOT NULL,
+	metric_step BIGINT NOT NULL,
+	metric_value FLOAT,
+	experiment_id INTEGER NOT NULL,
+	run_id VARCHAR(32) NOT NULL,
+	dataset_uuid VARCHAR(36),
+	dataset_name VARCHAR(500),
+	dataset_digest VARCHAR(36),
+	CONSTRAINT logged_model_metrics_pk PRIMARY KEY (model_id, metric_name, metric_timestamp_ms, metric_step, run_id),
+	CONSTRAINT fk_logged_model_metrics_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id),
+	CONSTRAINT fk_logged_model_metrics_model_id FOREIGN KEY(model_id) REFERENCES logged_models (model_id) ON DELETE CASCADE,
 	CONSTRAINT fk_logged_model_metrics_run_id FOREIGN KEY(run_id) REFERENCES runs (run_uuid) ON DELETE CASCADE
 );
 INSERT INTO "logged_model_metrics" VALUES('m-25c60be8db9b4bfba2b8f1f1ea98db76','train_loss',1785422465042,0,2.9734775543212892,976141155803929343,'0d51a36b702e44edb0bfed4143d3ec61',NULL,NULL,NULL);
@@ -668,12 +668,12 @@ INSERT INTO "logged_model_metrics" VALUES('m-a35dda64c3fd477fbd57a951a91090af','
 INSERT INTO "logged_model_metrics" VALUES('m-a35dda64c3fd477fbd57a951a91090af','eval_line_count_accuracy',1788184536753,0,1.0,976141155803929348,'4ae7ba6c6bc342289cb6e97269f47848',NULL,NULL,NULL);
 INSERT INTO "logged_model_metrics" VALUES('m-a35dda64c3fd477fbd57a951a91090af','eval_syllable_deviation',1788184536799,0,11.67,976141155803929348,'4ae7ba6c6bc342289cb6e97269f47848',NULL,NULL,NULL);
 CREATE TABLE logged_model_params (
-	model_id VARCHAR(36) NOT NULL, 
-	experiment_id INTEGER NOT NULL, 
-	param_key VARCHAR(255) NOT NULL, 
-	param_value TEXT NOT NULL, 
-	CONSTRAINT logged_model_params_pk PRIMARY KEY (model_id, param_key), 
-	CONSTRAINT fk_logged_model_params_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id), 
+	model_id VARCHAR(36) NOT NULL,
+	experiment_id INTEGER NOT NULL,
+	param_key VARCHAR(255) NOT NULL,
+	param_value TEXT NOT NULL,
+	CONSTRAINT logged_model_params_pk PRIMARY KEY (model_id, param_key),
+	CONSTRAINT fk_logged_model_params_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id),
 	CONSTRAINT fk_logged_model_params_model_id FOREIGN KEY(model_id) REFERENCES logged_models (model_id) ON DELETE CASCADE
 );
 INSERT INTO "logged_model_params" VALUES('m-25c60be8db9b4bfba2b8f1f1ea98db76',976141155803929343,'model','Qwen/Qwen2.5-1.5B-Instruct');
@@ -909,12 +909,12 @@ INSERT INTO "logged_model_params" VALUES('m-4f38c16a93854a3d8bd68997814de867',97
 INSERT INTO "logged_model_params" VALUES('m-4f38c16a93854a3d8bd68997814de867',976141155803929348,'base_model','Qwen/Qwen2.5-1.5B-Instruct');
 INSERT INTO "logged_model_params" VALUES('m-4f38c16a93854a3d8bd68997814de867',976141155803929348,'source','backfill-registration');
 CREATE TABLE logged_model_tags (
-	model_id VARCHAR(36) NOT NULL, 
-	experiment_id INTEGER NOT NULL, 
-	tag_key VARCHAR(255) NOT NULL, 
-	tag_value TEXT NOT NULL, 
-	CONSTRAINT logged_model_tags_pk PRIMARY KEY (model_id, tag_key), 
-	CONSTRAINT fk_logged_model_tags_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id), 
+	model_id VARCHAR(36) NOT NULL,
+	experiment_id INTEGER NOT NULL,
+	tag_key VARCHAR(255) NOT NULL,
+	tag_value TEXT NOT NULL,
+	CONSTRAINT logged_model_tags_pk PRIMARY KEY (model_id, tag_key),
+	CONSTRAINT fk_logged_model_tags_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id),
 	CONSTRAINT fk_logged_model_tags_model_id FOREIGN KEY(model_id) REFERENCES logged_models (model_id) ON DELETE CASCADE
 );
 INSERT INTO "logged_model_tags" VALUES('m-25c60be8db9b4bfba2b8f1f1ea98db76',976141155803929343,'mlflow.user','angel');
@@ -1014,19 +1014,19 @@ INSERT INTO "logged_model_tags" VALUES('m-4f38c16a93854a3d8bd68997814de867',9761
 INSERT INTO "logged_model_tags" VALUES('m-4f38c16a93854a3d8bd68997814de867',976141155803929348,'mlflow.source.git.repoURL','git@github-personal:OomAngel/poesia.git');
 INSERT INTO "logged_model_tags" VALUES('m-4f38c16a93854a3d8bd68997814de867',976141155803929348,'mlflow.modelVersions','[{"name": "poesia-lora-dpo-expanded", "version": 2}]');
 CREATE TABLE logged_models (
-	model_id VARCHAR(36) NOT NULL, 
-	experiment_id INTEGER NOT NULL, 
-	name VARCHAR(500) NOT NULL, 
-	artifact_location VARCHAR(1000) NOT NULL, 
-	creation_timestamp_ms BIGINT NOT NULL, 
-	last_updated_timestamp_ms BIGINT NOT NULL, 
-	status INTEGER NOT NULL, 
-	lifecycle_stage VARCHAR(32), 
-	model_type VARCHAR(500), 
-	source_run_id VARCHAR(32), 
-	status_message VARCHAR(1000), 
-	CONSTRAINT logged_models_pk PRIMARY KEY (model_id), 
-	CONSTRAINT logged_models_lifecycle_stage_check CHECK (lifecycle_stage IN ('active', 'deleted')), 
+	model_id VARCHAR(36) NOT NULL,
+	experiment_id INTEGER NOT NULL,
+	name VARCHAR(500) NOT NULL,
+	artifact_location VARCHAR(1000) NOT NULL,
+	creation_timestamp_ms BIGINT NOT NULL,
+	last_updated_timestamp_ms BIGINT NOT NULL,
+	status INTEGER NOT NULL,
+	lifecycle_stage VARCHAR(32),
+	model_type VARCHAR(500),
+	source_run_id VARCHAR(32),
+	status_message VARCHAR(1000),
+	CONSTRAINT logged_models_pk PRIMARY KEY (model_id),
+	CONSTRAINT logged_models_lifecycle_stage_check CHECK (lifecycle_stage IN ('active', 'deleted')),
 	CONSTRAINT fk_logged_models_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id) ON DELETE CASCADE
 );
 INSERT INTO "logged_models" VALUES('m-25c60be8db9b4bfba2b8f1f1ea98db76',976141155803929343,'model','/home/angel/dev/poesia/mlruns/smoke-test-mlflow-pipeline/models/m-25c60be8db9b4bfba2b8f1f1ea98db76/artifacts',1785422465502,1785422474347,2,'active',NULL,'0d51a36b702e44edb0bfed4143d3ec61',NULL);
@@ -1044,14 +1044,14 @@ INSERT INTO "logged_models" VALUES('m-a35dda64c3fd477fbd57a951a91090af',97614115
 INSERT INTO "logged_models" VALUES('m-72987d1c2ec14a858d59a8d1637df899',976141155803929348,'model','/home/angel/dev/poesia/mlruns/976141155803929348/models/m-72987d1c2ec14a858d59a8d1637df899/artifacts',1788184603097,1788184674743,2,'active',NULL,'caf75b03dc81482785ade3e16526dc74',NULL);
 INSERT INTO "logged_models" VALUES('m-4f38c16a93854a3d8bd68997814de867',976141155803929348,'model','/home/angel/dev/poesia/mlruns/976141155803929348/models/m-4f38c16a93854a3d8bd68997814de867/artifacts',1788184675291,1788184761806,2,'active',NULL,'3d7c020feaf143b39f80846e76b4e6ff',NULL);
 CREATE TABLE "metrics" (
-	"key" VARCHAR(250) NOT NULL, 
-	value FLOAT NOT NULL, 
-	timestamp BIGINT NOT NULL, 
-	run_uuid VARCHAR(32) NOT NULL, 
-	step BIGINT DEFAULT '0' NOT NULL, 
-	is_nan BOOLEAN DEFAULT '0' NOT NULL, 
-	CONSTRAINT metric_pk PRIMARY KEY ("key", timestamp, step, run_uuid, value, is_nan), 
-	FOREIGN KEY(run_uuid) REFERENCES runs (run_uuid), 
+	"key" VARCHAR(250) NOT NULL,
+	value FLOAT NOT NULL,
+	timestamp BIGINT NOT NULL,
+	run_uuid VARCHAR(32) NOT NULL,
+	step BIGINT DEFAULT '0' NOT NULL,
+	is_nan BOOLEAN DEFAULT '0' NOT NULL,
+	CONSTRAINT metric_pk PRIMARY KEY ("key", timestamp, step, run_uuid, value, is_nan),
+	FOREIGN KEY(run_uuid) REFERENCES runs (run_uuid),
 	CHECK (is_nan IN (0, 1))
 );
 INSERT INTO "metrics" VALUES('eval_loss',3.2,1785367796414,'1d88cc6deb1140de8822ae487c912aea',0,0);
@@ -11027,45 +11027,45 @@ INSERT INTO "metrics" VALUES('tiempo_syllable_dev',0.78571428571428648,178830190
 INSERT INTO "metrics" VALUES('avg_line_accuracy',1.0,1788301901856,'938732a341364ca7880a2c5ac7dc792c',0,0);
 INSERT INTO "metrics" VALUES('avg_syllable_deviation',5.1190476190476204,1788301901864,'938732a341364ca7880a2c5ac7dc792c',0,0);
 CREATE TABLE "model_definitions" (
-	model_definition_id VARCHAR(36) NOT NULL, 
-	name VARCHAR(255) NOT NULL, 
-	secret_id VARCHAR(36), 
-	provider VARCHAR(64) NOT NULL, 
-	model_name VARCHAR(256) NOT NULL, 
-	created_by VARCHAR(255), 
-	created_at BIGINT NOT NULL, 
-	last_updated_by VARCHAR(255), 
-	last_updated_at BIGINT NOT NULL, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
-	CONSTRAINT model_definitions_pk PRIMARY KEY (model_definition_id), 
-	CONSTRAINT fk_model_definitions_secret_id FOREIGN KEY(secret_id) REFERENCES secrets (secret_id) ON DELETE SET NULL, 
+	model_definition_id VARCHAR(36) NOT NULL,
+	name VARCHAR(255) NOT NULL,
+	secret_id VARCHAR(36),
+	provider VARCHAR(64) NOT NULL,
+	model_name VARCHAR(256) NOT NULL,
+	created_by VARCHAR(255),
+	created_at BIGINT NOT NULL,
+	last_updated_by VARCHAR(255),
+	last_updated_at BIGINT NOT NULL,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
+	CONSTRAINT model_definitions_pk PRIMARY KEY (model_definition_id),
+	CONSTRAINT fk_model_definitions_secret_id FOREIGN KEY(secret_id) REFERENCES secrets (secret_id) ON DELETE SET NULL,
 	CONSTRAINT uq_model_definitions_workspace_name UNIQUE (workspace, name)
 );
 CREATE TABLE "model_version_tags" (
-	"key" VARCHAR(250) NOT NULL, 
-	value TEXT, 
-	name VARCHAR(256) NOT NULL, 
-	version INTEGER NOT NULL, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
-	CONSTRAINT model_version_tag_pk PRIMARY KEY (workspace, "key", name, version), 
+	"key" VARCHAR(250) NOT NULL,
+	value TEXT,
+	name VARCHAR(256) NOT NULL,
+	version INTEGER NOT NULL,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
+	CONSTRAINT model_version_tag_pk PRIMARY KEY (workspace, "key", name, version),
 	CONSTRAINT fk_model_version_tags_model_versions FOREIGN KEY(workspace, name, version) REFERENCES model_versions (workspace, name, version) ON UPDATE CASCADE
 );
 CREATE TABLE "model_versions" (
-	name VARCHAR(256) NOT NULL, 
-	version INTEGER NOT NULL, 
-	creation_time BIGINT, 
-	last_updated_time BIGINT, 
-	description VARCHAR(5000), 
-	user_id VARCHAR(256), 
-	current_stage VARCHAR(20), 
-	source VARCHAR(500), 
-	run_id VARCHAR(32), 
-	status VARCHAR(20), 
-	status_message VARCHAR(500), 
-	run_link VARCHAR(500), 
-	storage_location VARCHAR(500), 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
-	CONSTRAINT model_version_pk PRIMARY KEY (workspace, name, version), 
+	name VARCHAR(256) NOT NULL,
+	version INTEGER NOT NULL,
+	creation_time BIGINT,
+	last_updated_time BIGINT,
+	description VARCHAR(5000),
+	user_id VARCHAR(256),
+	current_stage VARCHAR(20),
+	source VARCHAR(500),
+	run_id VARCHAR(32),
+	status VARCHAR(20),
+	status_message VARCHAR(500),
+	run_link VARCHAR(500),
+	storage_location VARCHAR(500),
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
+	CONSTRAINT model_version_pk PRIMARY KEY (workspace, name, version),
 	CONSTRAINT fk_model_versions_registered_models FOREIGN KEY(workspace, name) REFERENCES registered_models (workspace, name) ON UPDATE CASCADE
 );
 INSERT INTO "model_versions" VALUES('poesia-lora-smoke-test-mlflow-pipeline',1,1785422474371,1785422474371,NULL,NULL,'None','models:/m-25c60be8db9b4bfba2b8f1f1ea98db76','0d51a36b702e44edb0bfed4143d3ec61','READY',NULL,NULL,'/home/angel/dev/poesia/mlruns/smoke-test-mlflow-pipeline/models/m-25c60be8db9b4bfba2b8f1f1ea98db76/artifacts','default');
@@ -11083,20 +11083,20 @@ INSERT INTO "model_versions" VALUES('poesia-lora-v2-fixed',2,1788184602727,17881
 INSERT INTO "model_versions" VALUES('poesia-lora-3b',2,1788184674843,1788184674843,NULL,NULL,'None','models:/m-72987d1c2ec14a858d59a8d1637df899','caf75b03dc81482785ade3e16526dc74','READY',NULL,NULL,'/home/angel/dev/poesia/mlruns/976141155803929348/models/m-72987d1c2ec14a858d59a8d1637df899/artifacts','default');
 INSERT INTO "model_versions" VALUES('poesia-lora-dpo-expanded',2,1788184761934,1788184761934,NULL,NULL,'None','models:/m-4f38c16a93854a3d8bd68997814de867','3d7c020feaf143b39f80846e76b4e6ff','READY',NULL,NULL,'/home/angel/dev/poesia/mlruns/976141155803929348/models/m-4f38c16a93854a3d8bd68997814de867/artifacts','default');
 CREATE TABLE online_scoring_configs (
-	online_scoring_config_id VARCHAR(36) NOT NULL, 
-	scorer_id VARCHAR(36) NOT NULL, 
-	sample_rate FLOAT NOT NULL, 
-	experiment_id INTEGER NOT NULL, 
-	filter_string TEXT, 
-	CONSTRAINT online_scoring_config_pk PRIMARY KEY (online_scoring_config_id), 
-	CONSTRAINT fk_online_scoring_configs_scorer_id FOREIGN KEY(scorer_id) REFERENCES scorers (scorer_id) ON DELETE CASCADE, 
+	online_scoring_config_id VARCHAR(36) NOT NULL,
+	scorer_id VARCHAR(36) NOT NULL,
+	sample_rate FLOAT NOT NULL,
+	experiment_id INTEGER NOT NULL,
+	filter_string TEXT,
+	CONSTRAINT online_scoring_config_pk PRIMARY KEY (online_scoring_config_id),
+	CONSTRAINT fk_online_scoring_configs_scorer_id FOREIGN KEY(scorer_id) REFERENCES scorers (scorer_id) ON DELETE CASCADE,
 	CONSTRAINT fk_online_scoring_configs_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id)
 );
 CREATE TABLE "params" (
-	"key" VARCHAR(250) NOT NULL, 
-	value VARCHAR(8000) NOT NULL, 
-	run_uuid VARCHAR(32) NOT NULL, 
-	CONSTRAINT param_pk PRIMARY KEY ("key", run_uuid), 
+	"key" VARCHAR(250) NOT NULL,
+	value VARCHAR(8000) NOT NULL,
+	run_uuid VARCHAR(32) NOT NULL,
+	CONSTRAINT param_pk PRIMARY KEY ("key", run_uuid),
 	FOREIGN KEY(run_uuid) REFERENCES runs (run_uuid)
 );
 INSERT INTO "params" VALUES('learning_rate','0.0001','497afc74c49247d48b8caa21c1d2dcc4');
@@ -12941,27 +12941,27 @@ INSERT INTO "params" VALUES('form','soneto','938732a341364ca7880a2c5ac7dc792c');
 INSERT INTO "params" VALUES('n_themes','3','938732a341364ca7880a2c5ac7dc792c');
 INSERT INTO "params" VALUES('parent_run_id','938732a341364ca7880a2c5ac7dc792c','938732a341364ca7880a2c5ac7dc792c');
 CREATE TABLE "registered_model_aliases" (
-	alias VARCHAR(256) NOT NULL, 
-	version INTEGER NOT NULL, 
-	name VARCHAR(256) NOT NULL, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
-	CONSTRAINT registered_model_alias_pk PRIMARY KEY (workspace, name, alias), 
+	alias VARCHAR(256) NOT NULL,
+	version INTEGER NOT NULL,
+	name VARCHAR(256) NOT NULL,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
+	CONSTRAINT registered_model_alias_pk PRIMARY KEY (workspace, name, alias),
 	CONSTRAINT fk_registered_model_aliases_registered_models FOREIGN KEY(workspace, name) REFERENCES registered_models (workspace, name) ON DELETE CASCADE ON UPDATE CASCADE
 );
 CREATE TABLE "registered_model_tags" (
-	"key" VARCHAR(250) NOT NULL, 
-	value VARCHAR(5000), 
-	name VARCHAR(256) NOT NULL, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
-	CONSTRAINT registered_model_tag_pk PRIMARY KEY (workspace, "key", name), 
+	"key" VARCHAR(250) NOT NULL,
+	value VARCHAR(5000),
+	name VARCHAR(256) NOT NULL,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
+	CONSTRAINT registered_model_tag_pk PRIMARY KEY (workspace, "key", name),
 	CONSTRAINT fk_registered_model_tags_registered_models FOREIGN KEY(workspace, name) REFERENCES registered_models (workspace, name) ON UPDATE CASCADE
 );
 CREATE TABLE "registered_models" (
-	name VARCHAR(256) NOT NULL, 
-	creation_time BIGINT, 
-	last_updated_time BIGINT, 
-	description VARCHAR(5000), 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
+	name VARCHAR(256) NOT NULL,
+	creation_time BIGINT,
+	last_updated_time BIGINT,
+	description VARCHAR(5000),
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
 	CONSTRAINT registered_model_pk PRIMARY KEY (workspace, name)
 );
 INSERT INTO "registered_models" VALUES('poesia-lora-smoke-test-mlflow-pipeline',1785422474362,1785422474371,NULL,'default');
@@ -12973,60 +12973,60 @@ INSERT INTO "registered_models" VALUES('poesia-lora-v2-fixed',1788128234388,1788
 INSERT INTO "registered_models" VALUES('poesia-lora-3b',1788128266330,1788184674843,NULL,'default');
 INSERT INTO "registered_models" VALUES('poesia-lora-dpo-expanded',1788128294350,1788184761934,NULL,'default');
 CREATE TABLE review_queue_items (
-	queue_id VARCHAR(36) NOT NULL, 
-	item_type VARCHAR(16) NOT NULL, 
-	item_id VARCHAR(50) NOT NULL, 
-	status VARCHAR(16) NOT NULL, 
-	completed_by VARCHAR(250), 
-	completed_time_ms BIGINT, 
-	creation_time_ms BIGINT NOT NULL, 
-	last_update_time_ms BIGINT NOT NULL, 
-	CONSTRAINT review_queue_items_pk PRIMARY KEY (queue_id, item_id), 
+	queue_id VARCHAR(36) NOT NULL,
+	item_type VARCHAR(16) NOT NULL,
+	item_id VARCHAR(50) NOT NULL,
+	status VARCHAR(16) NOT NULL,
+	completed_by VARCHAR(250),
+	completed_time_ms BIGINT,
+	creation_time_ms BIGINT NOT NULL,
+	last_update_time_ms BIGINT NOT NULL,
+	CONSTRAINT review_queue_items_pk PRIMARY KEY (queue_id, item_id),
 	CONSTRAINT fk_review_queue_items_queue_id FOREIGN KEY(queue_id) REFERENCES review_queues (queue_id) ON DELETE CASCADE
 );
 CREATE TABLE review_queue_label_schemas (
-	queue_id VARCHAR(36) NOT NULL, 
-	schema_id VARCHAR(36) NOT NULL, 
-	CONSTRAINT review_queue_label_schemas_pk PRIMARY KEY (queue_id, schema_id), 
+	queue_id VARCHAR(36) NOT NULL,
+	schema_id VARCHAR(36) NOT NULL,
+	CONSTRAINT review_queue_label_schemas_pk PRIMARY KEY (queue_id, schema_id),
 	CONSTRAINT fk_review_queue_label_schemas_queue_id FOREIGN KEY(queue_id) REFERENCES review_queues (queue_id) ON DELETE CASCADE
 );
 CREATE TABLE review_queue_users (
-	queue_id VARCHAR(36) NOT NULL, 
-	user_id VARCHAR(250) NOT NULL, 
-	CONSTRAINT review_queue_users_pk PRIMARY KEY (queue_id, user_id), 
+	queue_id VARCHAR(36) NOT NULL,
+	user_id VARCHAR(250) NOT NULL,
+	CONSTRAINT review_queue_users_pk PRIMARY KEY (queue_id, user_id),
 	CONSTRAINT fk_review_queue_users_queue_id FOREIGN KEY(queue_id) REFERENCES review_queues (queue_id) ON DELETE CASCADE
 );
 CREATE TABLE review_queues (
-	queue_id VARCHAR(36) NOT NULL, 
-	experiment_id INTEGER NOT NULL, 
-	name VARCHAR(250) NOT NULL, 
-	queue_type VARCHAR(16) NOT NULL, 
-	created_by VARCHAR(255), 
-	creation_time_ms BIGINT NOT NULL, 
-	last_update_time_ms BIGINT NOT NULL, 
-	name_key VARCHAR(250) NOT NULL, 
-	CONSTRAINT review_queues_pk PRIMARY KEY (queue_id), 
-	CONSTRAINT fk_review_queues_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id) ON DELETE CASCADE, 
+	queue_id VARCHAR(36) NOT NULL,
+	experiment_id INTEGER NOT NULL,
+	name VARCHAR(250) NOT NULL,
+	queue_type VARCHAR(16) NOT NULL,
+	created_by VARCHAR(255),
+	creation_time_ms BIGINT NOT NULL,
+	last_update_time_ms BIGINT NOT NULL,
+	name_key VARCHAR(250) NOT NULL,
+	CONSTRAINT review_queues_pk PRIMARY KEY (queue_id),
+	CONSTRAINT fk_review_queues_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id) ON DELETE CASCADE,
 	CONSTRAINT uq_review_queues_experiment_name_key UNIQUE (experiment_id, name_key)
 );
 CREATE TABLE "runs" (
-	run_uuid VARCHAR(32) NOT NULL, 
-	name VARCHAR(250), 
-	source_type VARCHAR(20), 
-	source_name VARCHAR(500), 
-	entry_point_name VARCHAR(50), 
-	user_id VARCHAR(256), 
-	status VARCHAR(9), 
-	start_time BIGINT, 
-	end_time BIGINT, 
-	source_version VARCHAR(50), 
-	lifecycle_stage VARCHAR(20), 
-	artifact_uri VARCHAR(200), 
-	experiment_id INTEGER, deleted_time BIGINT, 
-	CONSTRAINT run_pk PRIMARY KEY (run_uuid), 
-	CONSTRAINT source_type CHECK (source_type IN ('NOTEBOOK', 'JOB', 'LOCAL', 'UNKNOWN', 'PROJECT')), 
-	CONSTRAINT runs_lifecycle_stage CHECK (lifecycle_stage IN ('active', 'deleted')), 
-	FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id), 
+	run_uuid VARCHAR(32) NOT NULL,
+	name VARCHAR(250),
+	source_type VARCHAR(20),
+	source_name VARCHAR(500),
+	entry_point_name VARCHAR(50),
+	user_id VARCHAR(256),
+	status VARCHAR(9),
+	start_time BIGINT,
+	end_time BIGINT,
+	source_version VARCHAR(50),
+	lifecycle_stage VARCHAR(20),
+	artifact_uri VARCHAR(200),
+	experiment_id INTEGER, deleted_time BIGINT,
+	CONSTRAINT run_pk PRIMARY KEY (run_uuid),
+	CONSTRAINT source_type CHECK (source_type IN ('NOTEBOOK', 'JOB', 'LOCAL', 'UNKNOWN', 'PROJECT')),
+	CONSTRAINT runs_lifecycle_stage CHECK (lifecycle_stage IN ('active', 'deleted')),
+	FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id),
 	CHECK (status IN ('SCHEDULED', 'FAILED', 'FINISHED', 'RUNNING', 'KILLED'))
 );
 INSERT INTO "runs" VALUES('1d88cc6deb1140de8822ae487c912aea','nosy-bear-250','LOCAL','','','angel','FINISHED',1785367796407,1785367796440,'','active','file:///home/angel/dev/poesia/mlruns/411436805938459790/1d88cc6deb1140de8822ae487c912aea/artifacts',411436805938459790,NULL);
@@ -13101,60 +13101,60 @@ INSERT INTO "runs" VALUES('149cff1744c4408ca5ce8601b19e6b2a','eval-final_adapter
 INSERT INTO "runs" VALUES('5da1573251c04fb4a8ef5e763adf0b49','eval-final_adapter','UNKNOWN','','','angel','FINISHED',1788297475693,1788301218819,'','active','/home/angel/dev/poesia/mlruns/poesia-evaluation/5da1573251c04fb4a8ef5e763adf0b49/artifacts',976141155803929349,NULL);
 INSERT INTO "runs" VALUES('938732a341364ca7880a2c5ac7dc792c','eval-final_adapter','UNKNOWN','','','angel','FINISHED',1788301226412,1788301901884,'','active','/home/angel/dev/poesia/mlruns/poesia-evaluation/938732a341364ca7880a2c5ac7dc792c/artifacts',976141155803929349,NULL);
 CREATE TABLE scorer_versions (
-	scorer_id VARCHAR(36) NOT NULL, 
-	scorer_version INTEGER NOT NULL, 
-	serialized_scorer TEXT NOT NULL, 
-	creation_time BIGINT, 
-	CONSTRAINT scorer_version_pk PRIMARY KEY (scorer_id, scorer_version), 
+	scorer_id VARCHAR(36) NOT NULL,
+	scorer_version INTEGER NOT NULL,
+	serialized_scorer TEXT NOT NULL,
+	creation_time BIGINT,
+	CONSTRAINT scorer_version_pk PRIMARY KEY (scorer_id, scorer_version),
 	CONSTRAINT fk_scorer_versions_scorer_id FOREIGN KEY(scorer_id) REFERENCES scorers (scorer_id) ON DELETE CASCADE
 );
 CREATE TABLE scorers (
-	experiment_id INTEGER NOT NULL, 
-	scorer_name VARCHAR(256) NOT NULL, 
-	scorer_id VARCHAR(36) NOT NULL, 
-	CONSTRAINT scorer_pk PRIMARY KEY (scorer_id), 
+	experiment_id INTEGER NOT NULL,
+	scorer_name VARCHAR(256) NOT NULL,
+	scorer_id VARCHAR(36) NOT NULL,
+	CONSTRAINT scorer_pk PRIMARY KEY (scorer_id),
 	CONSTRAINT fk_scorers_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id) ON DELETE CASCADE
 );
 CREATE TABLE "secrets" (
-	secret_id VARCHAR(36) NOT NULL, 
-	secret_name VARCHAR(255) NOT NULL, 
-	encrypted_value BLOB NOT NULL, 
-	wrapped_dek BLOB NOT NULL, 
-	kek_version INTEGER NOT NULL, 
-	masked_value VARCHAR(500) NOT NULL, 
-	provider VARCHAR(64), 
-	auth_config TEXT, 
-	description TEXT, 
-	created_by VARCHAR(255), 
-	created_at BIGINT NOT NULL, 
-	last_updated_by VARCHAR(255), 
-	last_updated_at BIGINT NOT NULL, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
-	CONSTRAINT secrets_pk PRIMARY KEY (secret_id), 
+	secret_id VARCHAR(36) NOT NULL,
+	secret_name VARCHAR(255) NOT NULL,
+	encrypted_value BLOB NOT NULL,
+	wrapped_dek BLOB NOT NULL,
+	kek_version INTEGER NOT NULL,
+	masked_value VARCHAR(500) NOT NULL,
+	provider VARCHAR(64),
+	auth_config TEXT,
+	description TEXT,
+	created_by VARCHAR(255),
+	created_at BIGINT NOT NULL,
+	last_updated_by VARCHAR(255),
+	last_updated_at BIGINT NOT NULL,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
+	CONSTRAINT secrets_pk PRIMARY KEY (secret_id),
 	CONSTRAINT uq_secrets_workspace_secret_name UNIQUE (workspace, secret_name)
 );
 CREATE TABLE span_metrics (
-	trace_id VARCHAR(50) NOT NULL, 
-	span_id VARCHAR(50) NOT NULL, 
-	"key" VARCHAR(250) NOT NULL, 
-	value FLOAT, 
-	CONSTRAINT span_metrics_pk PRIMARY KEY (trace_id, span_id, "key"), 
+	trace_id VARCHAR(50) NOT NULL,
+	span_id VARCHAR(50) NOT NULL,
+	"key" VARCHAR(250) NOT NULL,
+	value FLOAT,
+	CONSTRAINT span_metrics_pk PRIMARY KEY (trace_id, span_id, "key"),
 	CONSTRAINT fk_span_metrics_span FOREIGN KEY(trace_id, span_id) REFERENCES spans (trace_id, span_id) ON DELETE CASCADE
 );
 CREATE TABLE spans (
-	trace_id VARCHAR(50) NOT NULL, 
-	experiment_id INTEGER NOT NULL, 
-	span_id VARCHAR(50) NOT NULL, 
-	parent_span_id VARCHAR(50), 
-	name TEXT, 
-	type VARCHAR(500), 
-	status VARCHAR(50) NOT NULL, 
-	start_time_unix_nano BIGINT NOT NULL, 
-	end_time_unix_nano BIGINT, 
-	duration_ns BIGINT GENERATED ALWAYS AS (end_time_unix_nano - start_time_unix_nano) STORED, 
-	content TEXT NOT NULL, dimension_attributes JSON, 
-	CONSTRAINT spans_pk PRIMARY KEY (trace_id, span_id), 
-	CONSTRAINT fk_spans_trace_id FOREIGN KEY(trace_id) REFERENCES trace_info (request_id) ON DELETE CASCADE, 
+	trace_id VARCHAR(50) NOT NULL,
+	experiment_id INTEGER NOT NULL,
+	span_id VARCHAR(50) NOT NULL,
+	parent_span_id VARCHAR(50),
+	name TEXT,
+	type VARCHAR(500),
+	status VARCHAR(50) NOT NULL,
+	start_time_unix_nano BIGINT NOT NULL,
+	end_time_unix_nano BIGINT,
+	duration_ns BIGINT GENERATED ALWAYS AS (end_time_unix_nano - start_time_unix_nano) STORED,
+	content TEXT NOT NULL, dimension_attributes JSON,
+	CONSTRAINT spans_pk PRIMARY KEY (trace_id, span_id),
+	CONSTRAINT fk_spans_trace_id FOREIGN KEY(trace_id) REFERENCES trace_info (request_id) ON DELETE CASCADE,
 	CONSTRAINT fk_spans_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id)
 );
 INSERT INTO "spans" VALUES('tr-8d6df65ea300259233854d7a7f422ced',0,'47e6299100c2a292',NULL,'hosted_generate','LLM','OK',1785368997466437118,1785368997523828019,'{"trace_id": "jW32XqMAJZIzhU16f0Is7Q==", "span_id": "R+YpkQDCopI=", "parent_span_id": null, "name": "hosted_generate", "start_time_unix_nano": 1785368997466437118, "end_time_unix_nano": 1785368997523828019, "events": [], "status": {"code": "STATUS_CODE_OK", "message": ""}, "attributes": {"mlflow.traceRequestId": "\"tr-8d6df65ea300259233854d7a7f422ced\"", "mlflow.spanType": "\"LLM\"", "mlflow.spanFunctionName": "\"generate\"", "mlflow.spanInputs": "{\"prompt\": \"la luna\", \"n\": 3, \"temperature\": 0.9}", "mlflow.spanOutputs": "[\"luna en la noche\", \"brilla la luna\", \"luna de plata\"]", "mlflow.spanLogLevel": "20"}, "links": []}','null');
@@ -13173,10 +13173,10 @@ INSERT INTO "spans" VALUES('tr-3a8457b5e2e3e5a60e458f7799ea864a',976141155803929
 INSERT INTO "spans" VALUES('tr-e2b98909ae939a29b10862a5c21f433d',976141155803929342,'7327c957895946a5',NULL,'hosted_generate','LLM','OK',1785369494251591927,1785369494251977401,'{"trace_id": "4rmJCa6TmimxCGKlwh9DPQ==", "span_id": "cyfJV4lZRqU=", "parent_span_id": null, "name": "hosted_generate", "start_time_unix_nano": 1785369494251591927, "end_time_unix_nano": 1785369494251977401, "events": [], "status": {"code": "STATUS_CODE_OK", "message": ""}, "attributes": {"mlflow.traceRequestId": "\"tr-e2b98909ae939a29b10862a5c21f433d\"", "mlflow.spanType": "\"LLM\"", "mlflow.spanFunctionName": "\"generate\"", "mlflow.spanInputs": "{\"prompt\": \"You are writing a Spanish poem on the theme: luna.\\nPoem so far:\\n1. luna en la noche\\n2. en el jard\u00edn florece la luna de primavera\\n3. en el jard\u00edn florece la luna de primavera\\n4. bajo la luna brillante caminan las sombras\\n5. luna en la noche\\n6. brilla la luna\\n7. luna sobre el mar azul\\n8. la luna brilla en silencio\\n9. susurra la luna eterna\\n10. baila la luna callada\\n11. susurra la luna eterna\\n12. baila la luna callada\\n\\nWrite line 13. Exactly 11 syllables. End the line with a word that rhymes with \\\"eterna\\\" (same ending sound \u2014 use a DIFFERENT word, not \\\"eterna\\\" itself). Do NOT begin the line with the same word as any prior line.\\nOutput ONLY the single bare poetry line \u2014 no explanation, no preamble, no numbering, no quotes.\", \"n\": 8, \"temperature\": 0.9}", "mlflow.spanOutputs": "[\"luna sobre el mar azul\", \"la luna brilla en silencio\", \"luna de cristal y luz\", \"susurra la luna eterna\", \"baila la luna callada\", \"luna sobre el mar azul\", \"la luna brilla en silencio\", \"luna de cristal y luz\"]", "mlflow.spanLogLevel": "20"}, "links": []}','null');
 INSERT INTO "spans" VALUES('tr-5e0ae999031718027fcc3d27113a38cb',976141155803929342,'7c8e6ae0ab26f76f',NULL,'hosted_generate','LLM','OK',1785369494258929626,1785369494259338612,'{"trace_id": "XgrpmQMXGAJ/zD0nETo4yw==", "span_id": "fI5q4Ksm928=", "parent_span_id": null, "name": "hosted_generate", "start_time_unix_nano": 1785369494258929626, "end_time_unix_nano": 1785369494259338612, "events": [], "status": {"code": "STATUS_CODE_OK", "message": ""}, "attributes": {"mlflow.traceRequestId": "\"tr-5e0ae999031718027fcc3d27113a38cb\"", "mlflow.spanType": "\"LLM\"", "mlflow.spanFunctionName": "\"generate\"", "mlflow.spanInputs": "{\"prompt\": \"You are writing a Spanish poem on the theme: luna.\\nPoem so far:\\n1. luna en la noche\\n2. en el jard\u00edn florece la luna de primavera\\n3. en el jard\u00edn florece la luna de primavera\\n4. bajo la luna brillante caminan las sombras\\n5. luna en la noche\\n6. brilla la luna\\n7. luna sobre el mar azul\\n8. la luna brilla en silencio\\n9. susurra la luna eterna\\n10. baila la luna callada\\n11. susurra la luna eterna\\n12. baila la luna callada\\n13. susurra la luna eterna\\n\\nWrite line 14. Exactly 11 syllables. End the line with a word that rhymes with \\\"callada\\\" (same ending sound \u2014 use a DIFFERENT word, not \\\"callada\\\" itself). Word bank (pick one or find your own): morada, mirada, alborada, madrugada, jornada, nevada. Do NOT begin the line with the same word as any prior line.\\nOutput ONLY the single bare poetry line \u2014 no explanation, no preamble, no numbering, no quotes.\", \"n\": 8, \"temperature\": 0.9}", "mlflow.spanOutputs": "[\"luna sobre el mar azul\", \"la luna brilla en silencio\", \"luna de cristal y luz\", \"susurra la luna eterna\", \"baila la luna callada\", \"luna sobre el mar azul\", \"la luna brilla en silencio\", \"luna de cristal y luz\"]", "mlflow.spanLogLevel": "20"}, "links": []}','null');
 CREATE TABLE "tags" (
-	"key" VARCHAR(250) NOT NULL, 
-	value VARCHAR(8000), 
-	run_uuid VARCHAR(32) NOT NULL, 
-	CONSTRAINT tag_pk PRIMARY KEY ("key", run_uuid), 
+	"key" VARCHAR(250) NOT NULL,
+	value VARCHAR(8000),
+	run_uuid VARCHAR(32) NOT NULL,
+	CONSTRAINT tag_pk PRIMARY KEY ("key", run_uuid),
 	FOREIGN KEY(run_uuid) REFERENCES runs (run_uuid)
 );
 INSERT INTO "tags" VALUES('mlflow.source.name','-c','1d88cc6deb1140de8822ae487c912aea');
@@ -13722,12 +13722,12 @@ INSERT INTO "tags" VALUES('mlflow.runName','eval-final_adapter','938732a341364ca
 INSERT INTO "tags" VALUES('mlflow.parentRunId','938732a341364ca7880a2c5ac7dc792c','938732a341364ca7880a2c5ac7dc792c');
 INSERT INTO "tags" VALUES('eval_status','passed','938732a341364ca7880a2c5ac7dc792c');
 CREATE TABLE trace_info (
-	request_id VARCHAR(50) NOT NULL, 
-	experiment_id INTEGER NOT NULL, 
-	timestamp_ms BIGINT NOT NULL, 
-	execution_time_ms BIGINT, 
-	status VARCHAR(50) NOT NULL, client_request_id VARCHAR(50), request_preview VARCHAR(1000), response_preview VARCHAR(1000), db_payload_generation INTEGER DEFAULT '0' NOT NULL, 
-	CONSTRAINT trace_info_pk PRIMARY KEY (request_id), 
+	request_id VARCHAR(50) NOT NULL,
+	experiment_id INTEGER NOT NULL,
+	timestamp_ms BIGINT NOT NULL,
+	execution_time_ms BIGINT,
+	status VARCHAR(50) NOT NULL, client_request_id VARCHAR(50), request_preview VARCHAR(1000), response_preview VARCHAR(1000), db_payload_generation INTEGER DEFAULT '0' NOT NULL,
+	CONSTRAINT trace_info_pk PRIMARY KEY (request_id),
 	CONSTRAINT fk_trace_info_experiment_id FOREIGN KEY(experiment_id) REFERENCES experiments (experiment_id)
 );
 INSERT INTO "trace_info" VALUES('tr-8d6df65ea300259233854d7a7f422ced',0,1785368997466,57,'OK',NULL,'{"prompt": "la luna", "n": 3, "temperature": 0.9}','["luna en la noche", "brilla la luna", "luna de plata"]',2);
@@ -13746,17 +13746,17 @@ INSERT INTO "trace_info" VALUES('tr-3a8457b5e2e3e5a60e458f7799ea864a',9761411558
 INSERT INTO "trace_info" VALUES('tr-e2b98909ae939a29b10862a5c21f433d',976141155803929342,1785369494251,0,'OK',NULL,'{"prompt": "You are writing a Spanish poem on the theme: luna.\nPoem so far:\n1. luna en la noche\n2. en el jardín florece la luna de primavera\n3. en el jardín florece la luna de primavera\n4. bajo la luna brillante caminan las sombras\n5. luna en la noche\n6. brilla la luna\n7. luna sobre el mar azul\n8. la luna brilla en silencio\n9. susurra la luna eterna\n10. baila la luna callada\n11. susurra la luna eterna\n12. baila la luna callada\n\nWrite line 13. Exactly 11 syllables. End the line with a word that rhymes with \"eterna\" (same ending sound — use a DIFFERENT word, not \"eterna\" itself). Do NOT begin the line with the same word as any prior line.\nOutput ONLY the single bare poetry line — no explanation, no preamble, no numbering, no quotes.", "n": 8, "temperature": 0.9}','["luna sobre el mar azul", "la luna brilla en silencio", "luna de cristal y luz", "susurra la luna eterna", "baila la luna callada", "luna sobre el mar azul", "la luna brilla en silencio", "luna de cristal y luz"]',2);
 INSERT INTO "trace_info" VALUES('tr-5e0ae999031718027fcc3d27113a38cb',976141155803929342,1785369494258,0,'OK',NULL,'{"prompt": "You are writing a Spanish poem on the theme: luna.\nPoem so far:\n1. luna en la noche\n2. en el jardín florece la luna de primavera\n3. en el jardín florece la luna de primavera\n4. bajo la luna brillante caminan las sombras\n5. luna en la noche\n6. brilla la luna\n7. luna sobre el mar azul\n8. la luna brilla en silencio\n9. susurra la luna eterna\n10. baila la luna callada\n11. susurra la luna eterna\n12. baila la luna callada\n13. susurra la luna eterna\n\nWrite line 14. Exactly 11 syllables. End the line with a word that rhymes with \"callada\" (same ending sound — use a DIFFERENT word, not \"callada\" itself). Word bank (pick one or find your own): morada, mirada, alborada, madrugada, jornada, nevada. Do NOT begin the line with the same word as any prior line.\nOutput ONLY the single bare poetry line — no explanation, no preamble, no numbering, no quotes.", "n": 8, "temperature": 0.9}','["luna sobre el mar azul", "la luna brilla en silencio", "luna de cristal y luz", "susurra la luna eterna", "baila la luna callada", "luna sobre el mar azul", "la luna brilla en silencio", "luna de cristal y luz"]',2);
 CREATE TABLE trace_metrics (
-	request_id VARCHAR(50) NOT NULL, 
-	"key" VARCHAR(250) NOT NULL, 
-	value FLOAT, 
-	CONSTRAINT trace_metrics_pk PRIMARY KEY (request_id, "key"), 
+	request_id VARCHAR(50) NOT NULL,
+	"key" VARCHAR(250) NOT NULL,
+	value FLOAT,
+	CONSTRAINT trace_metrics_pk PRIMARY KEY (request_id, "key"),
 	CONSTRAINT fk_trace_metrics_request_id FOREIGN KEY(request_id) REFERENCES trace_info (request_id) ON DELETE CASCADE
 );
 CREATE TABLE "trace_request_metadata" (
-	"key" VARCHAR(250) NOT NULL, 
-	value VARCHAR(8000), 
-	request_id VARCHAR(50) NOT NULL, 
-	CONSTRAINT trace_request_metadata_pk PRIMARY KEY ("key", request_id), 
+	"key" VARCHAR(250) NOT NULL,
+	value VARCHAR(8000),
+	request_id VARCHAR(50) NOT NULL,
+	CONSTRAINT trace_request_metadata_pk PRIMARY KEY ("key", request_id),
 	CONSTRAINT fk_trace_request_metadata_request_id FOREIGN KEY(request_id) REFERENCES trace_info (request_id) ON DELETE CASCADE
 );
 INSERT INTO "trace_request_metadata" VALUES('mlflow.user','angel','tr-8d6df65ea300259233854d7a7f422ced');
@@ -13955,10 +13955,10 @@ INSERT INTO "trace_request_metadata" VALUES('mlflow.trace.sizeStats','{"total_si
 INSERT INTO "trace_request_metadata" VALUES('mlflow.trace.sizeBytes','4185','tr-5e0ae999031718027fcc3d27113a38cb');
 INSERT INTO "trace_request_metadata" VALUES('mlflow.trace.infoFinalized','true','tr-5e0ae999031718027fcc3d27113a38cb');
 CREATE TABLE "trace_tags" (
-	"key" VARCHAR(250) NOT NULL, 
-	value VARCHAR(8000), 
-	request_id VARCHAR(50) NOT NULL, 
-	CONSTRAINT trace_tag_pk PRIMARY KEY ("key", request_id), 
+	"key" VARCHAR(250) NOT NULL,
+	value VARCHAR(8000),
+	request_id VARCHAR(50) NOT NULL,
+	CONSTRAINT trace_tag_pk PRIMARY KEY ("key", request_id),
 	CONSTRAINT fk_trace_tags_request_id FOREIGN KEY(request_id) REFERENCES trace_info (request_id) ON DELETE CASCADE
 );
 INSERT INTO "trace_tags" VALUES('mlflow.artifactLocation','/home/angel/dev/poesia/mlruns/artifacts/0/traces/tr-8d6df65ea300259233854d7a7f422ced/artifacts','tr-8d6df65ea300259233854d7a7f422ced');
@@ -14007,29 +14007,29 @@ INSERT INTO "trace_tags" VALUES('mlflow.traceName','hosted_generate','tr-3a8457b
 INSERT INTO "trace_tags" VALUES('mlflow.traceName','hosted_generate','tr-e2b98909ae939a29b10862a5c21f433d');
 INSERT INTO "trace_tags" VALUES('mlflow.traceName','hosted_generate','tr-5e0ae999031718027fcc3d27113a38cb');
 CREATE TABLE webhook_events (
-	webhook_id VARCHAR(256) NOT NULL, 
-	entity VARCHAR(50) NOT NULL, 
-	action VARCHAR(50) NOT NULL, 
-	CONSTRAINT webhook_event_pk PRIMARY KEY (webhook_id, entity, action), 
+	webhook_id VARCHAR(256) NOT NULL,
+	entity VARCHAR(50) NOT NULL,
+	action VARCHAR(50) NOT NULL,
+	CONSTRAINT webhook_event_pk PRIMARY KEY (webhook_id, entity, action),
 	FOREIGN KEY(webhook_id) REFERENCES webhooks (webhook_id) ON DELETE cascade
 );
 CREATE TABLE "webhooks" (
-	webhook_id VARCHAR(256) NOT NULL, 
-	name VARCHAR(256) NOT NULL, 
-	description VARCHAR(1000), 
-	url VARCHAR(500) NOT NULL, 
-	status VARCHAR(20) DEFAULT 'ACTIVE' NOT NULL, 
-	secret VARCHAR(1000), 
-	creation_timestamp BIGINT, 
-	last_updated_timestamp BIGINT, 
-	deleted_timestamp BIGINT, 
-	workspace VARCHAR(63) DEFAULT 'default' NOT NULL, 
+	webhook_id VARCHAR(256) NOT NULL,
+	name VARCHAR(256) NOT NULL,
+	description VARCHAR(1000),
+	url VARCHAR(500) NOT NULL,
+	status VARCHAR(20) DEFAULT 'ACTIVE' NOT NULL,
+	secret VARCHAR(1000),
+	creation_timestamp BIGINT,
+	last_updated_timestamp BIGINT,
+	deleted_timestamp BIGINT,
+	workspace VARCHAR(63) DEFAULT 'default' NOT NULL,
 	CONSTRAINT webhook_pk PRIMARY KEY (webhook_id)
 );
 CREATE TABLE workspaces (
-	name VARCHAR(63) NOT NULL, 
-	description TEXT, 
-	default_artifact_root TEXT, trace_archival_location TEXT, trace_archival_retention VARCHAR(32), 
+	name VARCHAR(63) NOT NULL,
+	description TEXT,
+	default_artifact_root TEXT, trace_archival_location TEXT, trace_archival_retention VARCHAR(32),
 	CONSTRAINT workspaces_pk PRIMARY KEY (name)
 );
 INSERT INTO "workspaces" VALUES('default','Default workspace for legacy resources',NULL,NULL,NULL);
