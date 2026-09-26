@@ -59,7 +59,7 @@ activate_env() {
         }
         ok "conda env '${POESIA_CONDA_ENV}' activated"
     else
-        fail "Conda env '${POESIA_CONDA_ENV}' does not exist. Run: conda env create -f environment.yml"
+        fail "Conda env '${POESIA_CONDA_ENV}' does not exist. Run: scripts/env.sh create"
         return 1
     fi
 }
