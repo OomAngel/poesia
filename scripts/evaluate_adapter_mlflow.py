@@ -30,12 +30,14 @@ from poesia.phonology.spanish import SpanishPhonology
 
 
 def _make_llm_client(adapter_path):
-    """Pick LoRAClient (bitsandbytes 4-bit) when CUDA actually supports it,
-    else fall back to the GGUF/llama.cpp client (see llama_cpp.py) so
-    evaluation isn't hardcoded to CUDA-only hardware."""
-    from poesia.device import cuda_usable
+    """Pick LoRAClient (bitsandbytes 4-bit) when bitsandbytes actually runs on
+    the GPU, else fall back to the GGUF/llama.cpp client (see llama_cpp.py) so
+    evaluation isn't hardcoded to CUDA-only hardware. The check is
+    bnb_4bit_usable(), not cuda_usable(): on the laptop torch's cu126 build runs
+    on the GPU (sm_50) but bitsandbytes cannot."""
+    from poesia.device import bnb_4bit_usable
 
-    if cuda_usable():
+    if bnb_4bit_usable():
         return LoRAClient(adapter_path=adapter_path)
 
     import glob
