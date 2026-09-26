@@ -1,6 +1,28 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-09-08 (DVC adopted + model-artifact policy changed — see docs/INFRASTRUCTURE_DECISIONS.md §7)_
+_Last updated: 2026-09-26 (per-machine envs: desktop and laptop — see README.md "Machines")_
+
+---
+
+## What We Just Did (2026-09-26) — per-machine environments
+
+- **Two machines, both current:** desktop (RTX 3070, 8 GB, sm_86, tier `gpu-cuda13`)
+  trains; laptop (Quadro M1000M, 2 GB, sm_50, tier `gpu-cuda12`) runs the adapters
+  through llama.cpp and cannot train. Reverted the 2026-09-26 "this machine is now an
+  RTX 3070 / previous laptop" notes (e790776); 379942d's single cu128 index became
+  per-tier layers (its `-e .` and python-dotenv fixes stay).
+- **Env spec split:** `environment.yml` is the hardware-neutral base (+ mlflow 3.14.0,
+  peft, accelerate, which the scripts import but the old export lacked);
+  `requirements/{gpu-cuda13,gpu-cuda12,cpu}.txt` are the layers. `scripts/env.sh
+  create|update|check [--dry-run]` builds `poesia`; `scripts/build_llama_cpp.sh`
+  builds llama-cpp-python for the GPU into `poesia-gpu`. Dry-run resolved on the
+  desktop for all three tiers; no env created yet.
+- **Dispatch fix:** `poesia.device.bnb_4bit_usable()`; `LoRAClient` and
+  `evaluate_adapter_mlflow.py` now require a working bitsandbytes, because torch's
+  cu126 build runs on the laptop's sm_50 and `cuda_usable()` alone would have
+  routed evaluation away from llama.cpp there.
+- **Next:** the README "Verify on the laptop" checklist, then build both envs on
+  each machine.
 
 ---
 
@@ -146,7 +168,7 @@ MLflow run `005dad7e` "v2-fixed-format" **RUNNING** in experiment
 
 The training plan (as designed):
 - 38K line-by-line examples matching the inference prompt EXACTLY
-- 1 epoch ≈ 4,750 steps ≈ ~2h on an 8 GB GPU (RTX 2000 Ada then; RTX 3070 Ti now)
+- 1 epoch ≈ 4,750 steps ≈ ~2h on an 8 GB GPU (RTX 2000 Ada then; RTX 3070 now)
 - Adds title-generation examples (983 in full dataset)
 - Post-training pipeline auto-runs: evaluate → register → migrate to PG
 

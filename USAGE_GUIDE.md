@@ -20,7 +20,7 @@ pip install -e ".[nlp]"
 pip install -e ".[all]"
 ```
 
-> **Note:** This project uses a conda environment (`poesia`). Use `scripts/poesia_env.sh` for automatic env detection and activation, or `bash scripts/launch_training.sh local <config>` for training.
+> **Note:** This project uses a conda environment (`poesia`), built for the machine's hardware by `scripts/env.sh create` (desktop and laptop get different torch builds; the llama.cpp backend lives in `poesia-gpu`, from `scripts/build_llama_cpp.sh`). See README.md "Machines". Use `scripts/poesia_env.sh` for automatic env detection and activation, or `bash scripts/launch_training.sh local <config>` for training (desktop only).
 
 ---
 
@@ -368,6 +368,10 @@ bash scripts/launch_training.sh local --list-configs
 ### Environment setup
 
 ```bash
+# Create or update the env for this machine's hardware tier (README.md "Machines")
+scripts/env.sh create          # or: scripts/env.sh update; add --dry-run to preview
+scripts/env.sh check
+
 # Auto-detect and activate (sources conda + .env_mlflow)
 source scripts/poesia_env.sh --source
 

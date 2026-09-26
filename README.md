@@ -230,6 +230,71 @@ pip install -e ".[dev]"
 | `.[music]` · `.[recitation]` | ArmonIA score/TTS extras |
 | `.[all-lang]` | All language backends |
 
+### Machines
+
+The repository is worked on from two machines through Git. Each gets the best environment
+its hardware supports, built from a diagnosis of that machine (`scripts/hw_profile.sh`, a
+copy of `~/dev/workspace-governance/bin/hw-profile`; the workspace-wide reference is
+`~/dev/workspace-governance/MACHINES.md`).
+
+| | desktop | laptop |
+|---|---|---|
+| GPU | RTX 3070, 8 GB, compute capability 8.6 | Quadro M1000M, 2 GB, compute capability 5.0 |
+| Tier (`scripts/hw_profile.sh`) | `gpu-cuda13` | `gpu-cuda12` |
+| torch | 2.14.0+cu130 | 2.14.0+cu126 (the newest build with sm_50) |
+| Train adapters (QLoRA, DPO) | yes | no: 2 GB, and bitsandbytes needs compute capability ≥ 6.0 |
+| `--llm lora` (transformers + bitsandbytes 4-bit) | yes | no |
+| `--llm llama_cpp` (GGUF on the GPU) | yes: prebuilt CUDA 13.0 llama-cpp-python wheel (sm_86) | yes: llama-cpp-python compiled for sm_50 with a CUDA 12.x `nvcc`; generation and sampling were tuned here |
+| Adapter evaluation (`scripts/evaluate_adapter_mlflow.py`) | through `LoRAClient` | through llama.cpp (chosen automatically) |
+| Embeddings (sentence-transformers) | GPU | GPU (torch cu126 has sm_50) |
+
+Two conda envs, with the same names on both machines:
+
+- `poesia`: `environment.yml` (hardware-neutral base) plus `requirements/<tier>.txt`
+  (torch for the tier; on the desktop also bitsandbytes, trl and datasets for training).
+- `poesia-gpu`: the same plus llama-cpp-python built for this machine's GPU, for the
+  llama.cpp backend. It is kept apart because that build is tied to one GPU architecture.
+
+```bash
+scripts/env.sh create --dry-run     # plan + conda/pip resolution; changes nothing
+scripts/env.sh create               # or: update (same flags)
+scripts/env.sh check                # torch has sm_<arch> and runs on the GPU; bitsandbytes on the desktop
+scripts/build_llama_cpp.sh --dry-run
+scripts/build_llama_cpp.sh          # creates poesia-gpu if needed, installs llama.cpp for this GPU
+scripts/build_llama_cpp.sh --check  # imports, GPU offload, and a GGUF smoke test if models/ has one
+HW_PROFILE=gpu-cuda12 scripts/env.sh create --dry-run   # any tier's layer, from either machine
+```
+
+What the repository records about the laptop: evaluation and generation tuning through
+llama.cpp, no training. The llama.cpp backend was added for it (8c50e34); the draft prompt,
+token caps and `repeat_penalty` were tuned against the local GGUF (e697ac0, 10a9c9a); the
+benchmark and the adapter evaluations ran there (db9d065, d6c0446; MLflow runs
+2026-08-30 to 09-01). The adapters themselves were trained 2026-07-28 to 08-07
+(`mlops/adapter_registry.json`), before any of that.
+
+**Verify on the laptop, then record here:**
+
+- [ ] `scripts/hw_profile.sh` says `gpu-cuda12`, Quadro M1000M, compute capability 5.0;
+      note the driver version (it must stay on the 580 branch or older).
+- [ ] `nvcc --version` (or `/usr/local/cuda*/bin/nvcc`): which CUDA 12.x release built
+      the sm_50 llama.cpp? CUDA 13 cannot target sm_50.
+- [ ] `conda env list`: which env holds llama-cpp-python? The repository never names it;
+      `poesia-gpu` is assumed from `docs/TRAINING_RUNBOOK.md`'s history and the
+      "GPU-specific build env" of `src/poesia/generation/llama_cpp.py`. If it differs,
+      correct this section (or set `POESIA_LLAMA_ENV`).
+- [ ] In that env: `python -c "import llama_cpp; print(llama_cpp.__version__, llama_cpp.llama_supports_gpu_offload())"`.
+      If a rebuild of 0.3.35 fails on sm_50, pin `LLAMA_CPP_PYTHON_VERSION` to this version.
+- [ ] The llama.cpp checkout `scripts/convert_adapters_to_gguf.py` uses:
+      `~/.local/share/llama.cpp/build/bin/llama-quantize` present? `git -C ~/.local/share/llama.cpp log -1`.
+- [ ] GGUF files: `ls -la models/*/*-Q4_K_M.gguf`, and `dvc status -c` against the remote
+      on the laptop's D: drive (`LOCAL_ONLY.md`).
+- [ ] `scripts/build_llama_cpp.sh --check --env <that env>`: GGUF smoke test on the GPU
+      with every layer offloaded. Does the 3B Q4_K_M fit in 2 GB, or only the 1.5B ones?
+- [ ] Any fine-tuning of weights on the laptop? The repository records none (above). If
+      there was, find it (`mlruns/mlflow.db`, `models/*/` newer than 2026-08-07) and record it.
+- [ ] Then build the tiered envs: `scripts/env.sh create --dry-run`, `scripts/env.sh create`,
+      `scripts/build_llama_cpp.sh --dry-run`, `scripts/build_llama_cpp.sh`, both `--check`s.
+
 ---
 
 ## Quickstart
