@@ -76,6 +76,9 @@ nlp = [
 ]
 
 # LLM orchestration (local + API)
+# llama-cpp-python from PyPI builds a CPU-only wheel; for the GPU, use
+# scripts/build_llama_cpp.sh, which builds it for the machine's compute capability
+# into the poesia-gpu env (README.md "Machines").
 llm = [
     "transformers",
     "llama-cpp-python",

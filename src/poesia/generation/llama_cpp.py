@@ -1,11 +1,11 @@
-"""LlamaCppLoRAClient — GGUF/llama.cpp fallback for pre-Maxwell-era GPUs.
+"""LlamaCppLoRAClient — GGUF/llama.cpp fallback for GPUs below CC 6.0 (Maxwell and older).
 
 ``LoRAClient`` (see llm_client.py) loads the fine-tuned poetry adapter via
 transformers + bitsandbytes 4-bit quantization, which requires CUDA compute
-capability >= 6.0 (bitsandbytes' hard floor). GPUs below that — e.g. a
-Quadro M1000M (CC 5.0, Maxwell) — can't take that path at all: PyTorch's
-prebuilt wheels don't even ship sm_50 kernels anymore, so the model either
-refuses to load onto the GPU or silently falls back to (unusably slow) CPU.
+capability >= 6.0 (bitsandbytes' hard floor). GPUs below that — e.g. the
+laptop's Quadro M1000M (CC 5.0, Maxwell) — can't take that path at all:
+bitsandbytes ships no kernels for them, and PyTorch's newer CUDA wheels
+(cu128, cu130) no longer ship sm_50 kernels either (the cu126 builds still do).
 
 llama.cpp sidesteps this because it compiles its own CUDA kernels for
 whatever architecture you target at build time, independent of upstream
@@ -24,11 +24,15 @@ One-time setup to produce the GGUF file this client loads:
          pip install llama-cpp-python --no-binary llama-cpp-python
      Do this in an isolated env — the resulting wheel is pinned to one CUDA
      arch and has no relation to the main project's torch/bitsandbytes pins.
+     ``scripts/build_llama_cpp.sh`` does this per machine into the
+     ``poesia-gpu`` env: on the laptop (sm_50) a source build with a CUDA 12.x
+     nvcc (CUDA 13 cannot target sm_50); on the desktop (sm_86) the prebuilt
+     CUDA 13.0 wheel.
 
 If ``llama-cpp-python`` isn't importable (e.g. running from the main
-``poesia`` env rather than the GPU-specific build env), ``generate()``/
-``repair()`` raise ``LLMProviderError`` with the setup steps above rather
-than crashing on import.
+``poesia`` env rather than the GPU-specific build env ``poesia-gpu``),
+``generate()``/``repair()`` raise ``LLMProviderError`` with the setup steps
+above rather than crashing on import.
 """
 
 from __future__ import annotations
