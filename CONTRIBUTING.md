@@ -5,8 +5,9 @@ documents the standards for the author and any explicitly invited collaborator.
 
 ## Environment
 
-The project uses a conda environment named `poesia` (see `environment.yml`).
-For automatic detection and activation:
+The project uses a conda environment named `poesia`: `environment.yml` (hardware-neutral
+base) plus `requirements/<tier>.txt` for the machine's GPU, built by `scripts/env.sh create`
+(README.md "Machines"). For automatic detection and activation:
 
 ```bash
 source scripts/poesia_env.sh --source

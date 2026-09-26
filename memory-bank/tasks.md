@@ -2,7 +2,10 @@
 
 ## IN PROGRESS
 
-(nothing in progress)
+- [ ] **Per-machine envs** (2026-09-26) — specs and scripts committed, dry-run resolved on
+      the desktop for all tiers. Next: README.md "Machines" laptop checklist; then
+      `scripts/env.sh create` + `scripts/build_llama_cpp.sh` (and both `--check`s) on the
+      desktop and on the laptop.
 
 ## BACKLOG (priority order)
 
