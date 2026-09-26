@@ -37,7 +37,8 @@ def test_lora_client_batches_candidates() -> None:
     # but below the installed torch build's minimum compute capability (e.g.
     # Maxwell/Pascal on recent wheels), which crashes mid-generate with
     # `cudaErrorNoKernelImageForDevice` instead of skipping cleanly. See
-    # `poesia.device.cuda_usable` (also used by `LoRAClient._load()` itself).
+    # `poesia.device.cuda_usable` (`LoRAClient._load()` uses the stricter
+    # `bnb_4bit_usable`; this test injects a fake model, so torch CUDA is enough).
     if not cuda_usable():
         pytest.skip(
             "LoRA batching test needs a CUDA device the installed torch build "

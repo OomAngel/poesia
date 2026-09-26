@@ -966,18 +966,19 @@ class LoRAClient:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-        from poesia.device import cuda_usable
+        from poesia.device import bnb_4bit_usable
         from poesia.exceptions import LLMProviderError
 
-        # bitsandbytes 4-bit needs CUDA kernels the installed torch build
-        # actually ships (torch.cuda.is_available() alone doesn't guarantee
-        # that — see poesia.device.cuda_usable). Fail fast with a pointer to
-        # the llama.cpp fallback instead of a mid-generate CUDA crash.
-        if not cuda_usable():
+        # bitsandbytes 4-bit needs CUDA kernels that both the installed torch
+        # build and bitsandbytes itself ship for this GPU
+        # (torch.cuda.is_available() alone doesn't guarantee either — see
+        # poesia.device.bnb_4bit_usable). Fail fast with a pointer to the
+        # llama.cpp fallback instead of a mid-load or mid-generate failure.
+        if not bnb_4bit_usable():
             raise LLMProviderError(
-                "No usable CUDA device for bitsandbytes 4-bit inference (either no GPU, "
-                "or its compute capability is below what the installed torch build ships "
-                "kernels for — e.g. Maxwell/Pascal cards on recent torch wheels). "
+                "No usable CUDA device for bitsandbytes 4-bit inference (no GPU, "
+                "bitsandbytes not installed, or no torch/bitsandbytes kernels for this "
+                "GPU's compute capability — e.g. the Maxwell laptop, CC 5.0). "
                 "Use the llama.cpp fallback instead: --llm llama_cpp "
                 "(see poesia/generation/llama_cpp.py for setup).",
                 provider="lora",
