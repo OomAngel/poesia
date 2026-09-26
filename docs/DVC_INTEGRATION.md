@@ -45,7 +45,7 @@ they do today.
 - Verified: `dvc dag` resolves the correct chain, `dvc params diff`
   correctly reads the 6 tracked params out of the real YAML.
 
-## Gotcha: `dvc repro evaluate` is NOT safe to run bare on this machine
+## Gotcha: `dvc repro evaluate` is NOT safe to run bare (it retrains first)
 
 `evaluate@poetry-lora-v2` depends on `models/poetry-lora-v2`, which is the
 `train` stage's own `outs:` (not a standalone `.dvc` file) -- so it's a
