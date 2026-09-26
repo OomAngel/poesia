@@ -52,5 +52,5 @@ loss_fn: "ce"
 
 # Notes
 # - 1 epoch over 38K examples ≈ 4,750 steps at effective batch 8
-# - Estimated ~2h on RTX 2000 Ada
+# - Estimated ~2h on an 8 GB GPU
 # - Post-training pipeline auto-runs evaluation + registry + PG migration

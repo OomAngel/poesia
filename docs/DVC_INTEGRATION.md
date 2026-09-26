@@ -1,8 +1,8 @@
 # DVC integration — data-to-training lineage
 
 > **Status:** `evaluate` stage adopted and driven via `dvc repro` (2026-09-02) · `distill`/`train`
-> still skeleton-only — never run under DVC on this machine, since training doesn't happen on
-> this laptop (see `TRAINING_RUNBOOK.md`) · **Added:** 2026-08-10
+> still skeleton-only — never run under DVC on the laptop, where `evaluate` runs and which cannot
+> train (see `TRAINING_RUNBOOK.md`) · **Added:** 2026-08-10
 
 ## Why
 
@@ -53,8 +53,8 @@ stage dependency, not a data dependency. `train`'s `deps` (the training
 script) have since changed, so DVC considers `train` out of date. A bare
 `dvc repro evaluate` (or `dvc repro` with no target) walks the full
 upstream chain and would **retrain `poetry-lora-v2` first** -- i.e. kick
-off a real GPU training job -- which must never happen on this laptop
-(training only happens on the GPU workstation, see `TRAINING_RUNBOOK.md`).
+off a real GPU training job -- which must never happen on the laptop
+(training happens on the desktop, see `TRAINING_RUNBOOK.md`).
 Always reproduce each `evaluate@<adapter>` stage individually with
 `--single-item` (`-s`), which skips the recursive upstream check entirely:
 
@@ -92,4 +92,4 @@ upstream `train`) would run, without executing anything.
 - `distill` and `train` are still declared but not executed under DVC --
   running `train` for real, and deciding whether to fold `dvc repro` into
   the `poesia` CLI or `MLproject`, stays out of scope until it can be done
-  on training-capable hardware, not this laptop.
+  on training-capable hardware (the desktop), not the laptop.

@@ -1,23 +1,13 @@
 # PoesIA — Training Runbook
 
-> **Update (2026-09-26):** this machine is now an **RTX 3070** (8 GB, Ampere
-> sm_86), the same class as the workstation below, so the 1.5B/3B 4-bit QLoRA
-> configs should fit locally again (not yet re-run here). The Quadro M1000M
-> statements below describe the previous laptop; the 2026-08-31 state is kept
-> as history.
-
-> **Current state (2026-08-31):** there is no local or rented GPU available —
-> the RTX 3070 Ti / RTX 2000 Ada workstation referenced below is not currently
-> accessible. The dev laptop's Quadro M1000M (2 GB, Maxwell) has never been
-> able to train these models. Until a workstation or rented GPU is back in the
-> picture, use the [Online training](#online-training-no-local-gpu-needed)
-> section — see `company-intelligence/docs/FREE_COMPUTE_EXPLOITATION.md` for
-> the fuller, cross-repo writeup of free/cheap options this section summarizes.
->
-> This constraint is training-only. **Evaluating** already-trained adapters
-> works fine on this laptop via the GGUF/llama.cpp fallback (same GPU,
-> different backend) — see `docs/DVC_INTEGRATION.md` and
-> `docs/GENERATION_QUALITY_PLAN.md`.
+> **Machines** (full table and env commands: `README.md` "Machines"): the desktop
+> (RTX 3070, 8 GB, Ampere sm_86) trains; the laptop (Quadro M1000M, 2 GB, Maxwell sm_50)
+> cannot train. The laptop **evaluates and runs** already-trained adapters through a
+> llama.cpp build for sm_50 (GGUF backend) — see `docs/DVC_INTEGRATION.md` and
+> `docs/GENERATION_QUALITY_PLAN.md`. The 2026-08-31 version of this runbook recorded that
+> no training GPU was available; that is why the
+> [Online training](#online-training-no-local-gpu-needed) section exists (fuller cross-repo
+> writeup: `company-intelligence/docs/FREE_COMPUTE_EXPLOITATION.md`).
 
 ## TL;DR
 
@@ -25,7 +15,7 @@
   `models/` (table below). Don't retrain from scratch without a reason.
 - 4-bit QLoRA of the 1.5B and 3B base models needs a GPU with **≥ 8 GB VRAM**
   (see `docs/EXPERIMENTS_PLAN.md` §2). 2 GB is not enough.
-- On the GPU machine, reproduce any adapter with one command:
+- On the desktop, reproduce any adapter with one command:
 
   ```bash
   scripts/launch_training.sh local mlops/configs/<config>.yaml
@@ -38,17 +28,16 @@
 
 | Machine | GPU | VRAM | Can train? |
 |---|---|---|---|
-| This machine (as of 2026-09-26) | RTX 3070 (Ampere, sm_86) | 8 GB | ✅ expected (same class as the workstation; not yet re-run) |
-| Dev laptop (previous) | Quadro M1000M (Maxwell, sm_50) | 2 GB | ❌ no |
-| GPU workstation | RTX 3070 Ti (Ampere, sm_86) | 8 GB | ⚠️ not currently available (as of 2026-08-31) |
-| (previous) | RTX 2000 Ada | 8 GB | ⚠️ not currently available |
+| desktop | RTX 3070 (Ampere, sm_86) | 8 GB | ✅ yes — tier `gpu-cuda13`: torch 2.14.0+cu130 + bitsandbytes 0.50.2 (no adapter trained in its current WSL install yet, 2026-09-26) |
+| laptop | Quadro M1000M (Maxwell, sm_50) | 2 GB | ❌ no — 2 GB, and bitsandbytes' CUDA builds need compute capability ≥ 6.0 |
 
-Both workstation GPUs would support 1.5B & 3B, 4-bit QLoRA if/when available
-again. Until then, see [Online training](#online-training-no-local-gpu-needed).
+The existing adapters were trained on an 8 GB GPU, 2026-07-28 to 08-07
+(`mlops/adapter_registry.json`); 1.5B and 3B 4-bit QLoRA fit in 8 GB. Without the desktop, see
+[Online training](#online-training-no-local-gpu-needed).
 
 The `training` docker-compose service already requests the GPU
-(`driver: nvidia, capabilities: [gpu]`); the conda path uses the `poesia-gpu`
-environment.
+(`driver: nvidia, capabilities: [gpu]`); the conda path uses the `poesia` environment,
+which `scripts/env.sh create` builds with the training stack on the desktop.
 
 ## Existing adapters (`models/`)
 
@@ -64,19 +53,21 @@ environment.
 | `smoke-test-adapter` | `mlops/configs/train_smoke.yaml` | Qwen2.5-1.5B-Instruct |
 | `poetry-lora-3b` | (early 3B attempt, pre-config) | — |
 
-## How to train on a GPU workstation (when one is available)
+## How to train (desktop)
 
 ### 0. Prerequisites
 
-- NVIDIA driver + CUDA (the 3070 Ti needs a driver ≥ 525 for the cu121 wheels).
-- Either the `poesia-gpu` conda env (recommended) or Docker with the NVIDIA
-  runtime enabled.
+- A Windows NVIDIA driver that supports CUDA 13 for the cu130 wheels (the desktop's
+  617.14 supports up to 13.4). WSL uses the Windows driver; training needs no CUDA toolkit.
+- Either the `poesia` conda env built by `scripts/env.sh create` (recommended) or Docker
+  with the NVIDIA runtime enabled.
 
 ### 1. Conda (local GPU)
 
 ```bash
 cd poesia            # clone this repo first if not already present
-conda env create -f environment.yml -n poesia-gpu   # or reuse the existing env
+scripts/env.sh create     # or: scripts/env.sh update (tier gpu-cuda13 on the desktop)
+scripts/env.sh check      # must report bitsandbytes 4-bit ok
 source scripts/poesia_env.sh
 scripts/launch_training.sh local mlops/configs/train_qwen3b.yaml
 ```
@@ -106,8 +97,8 @@ scripts/launch_training.sh dpo    # uses mlops/configs/dpo_v1.yaml
 
 ## Online training (no local GPU needed)
 
-Since neither the dev laptop nor a local GPU workstation is currently
-available (2026-08-31), training has to run in the cloud. **Groq is
+When the desktop is not at hand (the laptop cannot train), training has to run in the
+cloud. **Groq is
 inference-only** — it cannot fine-tune — so use one of the following instead.
 Full cross-repo detail, dated sources, and a per-repo compute mapping live in
 `company-intelligence/docs/FREE_COMPUTE_EXPLOITATION.md`; this table is the

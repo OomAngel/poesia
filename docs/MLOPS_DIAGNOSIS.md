@@ -1,6 +1,6 @@
 # PoesIA MLOps — Diagnostic & Implementation Roadmap
 
-> **Where training runs:** the GPU workstation, not the dev laptop — see
+> **Where training runs:** the desktop (RTX 3070, 8 GB), not the laptop — see
 > [`TRAINING_RUNBOOK.md`](TRAINING_RUNBOOK.md) for the concrete commands.
 
 > **Status:** Active · **Last updated:** 2026-08-31 (Next Execution Steps reconciled against a month of subsequent work — see §4) · **Authority:** Canonical MLOps reference
@@ -142,7 +142,7 @@ All MLOps phases have been coded and most have been validated:
 
 - **DPO training finished and registered.** Run `20260731_023723`, config `mlops/configs/dpo_v1.yaml` → `poetry-lora-dpo-expanded` in `adapter_registry.json`. No training-time metrics were logged for this run (see registry notes); a comparison harness exists at `scripts/evaluate_dpo_result.py` but hasn't been run against it yet.
 - **Qwen2.5-3B training finished and registered.** Run `20260730_164422` → `poesia-lora-soneto-qwen3b` in the MLflow registry, adapter at `models/poetry-lora-qwen3b/final_adapter`. GGUF-converted; it's the only adapter with a working eval path today (see next bullet).
-- **Blocker found 2026-08-31, resolved 2026-09-01/02** (full detail in `GENERATION_QUALITY_PLAN.md`, not restated here): `evaluate_adapter_mlflow.py` was hardcoded to `LoRAClient` (needs CUDA sm_75+, this workstation's GPU is sm_5.0), so 8 of 9 registered adapters were unevaluated. Fixed with a CUDA/llama.cpp dispatch — all 8 non-empty adapters now evaluate on this laptop, and the run is wired into DVC's `evaluate` foreach stage (`DVC_INTEGRATION.md`).
+- **Blocker found 2026-08-31, resolved 2026-09-01/02** (full detail in `GENERATION_QUALITY_PLAN.md`, not restated here): `evaluate_adapter_mlflow.py` was hardcoded to `LoRAClient` (needs CUDA sm_75+ with the torch build installed then; the laptop's Quadro M1000M is sm_50), so 8 of 9 registered adapters were unevaluated. Fixed with a CUDA/llama.cpp dispatch — all 8 non-empty adapters now evaluate on the laptop, and the run is wired into DVC's `evaluate` foreach stage (`DVC_INTEGRATION.md`).
 
 ### 🎯 Next Execution Steps (priority order, reconciled 2026-09-02)
 
