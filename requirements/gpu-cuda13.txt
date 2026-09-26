@@ -1,0 +1,20 @@
+# Layer for tier gpu-cuda13 — the desktop (RTX 3070, 8 GB, compute capability 8.6, driver
+# with CUDA 13). scripts/env.sh resolves this together with environment.yml; see
+# README.md "Machines". Versions checked 2026-09-26.
+--extra-index-url https://download.pytorch.org/whl/cu130
+
+# torch 2.14.0 is the newest release on the cu130 index. cu130 rather than a CUDA 12.x
+# build because bitsandbytes ships CUDA 13.0 kernels that include sm_86 (below).
+# torchvision/torchaudio are not installed: nothing in this repository imports them, and
+# the newest torchaudio (2.11.0) pins torch 2.11.
+torch==2.14.0+cu130
+
+# Training stack (QLoRA, DPO): only this tier trains.
+# bitsandbytes 0.50.2 is the newest; its Linux wheel carries libbitsandbytes_cuda130.so
+# with SASS for sm_75, 80, 86, 89, 90, 100 and 120 (read from the wheel's fatbins and
+# matching huggingface.co/docs/bitsandbytes/main/en/installation). 4-bit NF4 needs
+# compute capability >= 6.0, which is why the laptop (5.0) has no bitsandbytes at all.
+bitsandbytes==0.50.2
+# trl and datasets: scripts/train_poetry_dpo.py and scripts/train_poetry_lora.py.
+datasets==5.0.1
+trl==1.14.0

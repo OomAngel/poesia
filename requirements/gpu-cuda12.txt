@@ -1,0 +1,16 @@
+# Layer for tier gpu-cuda12 — the laptop (Quadro M1000M, 2 GB, compute capability 5.0).
+# scripts/env.sh resolves this together with environment.yml; see README.md "Machines".
+# Versions checked 2026-09-26.
+--extra-index-url https://download.pytorch.org/whl/cu126
+
+# torch 2.14.0 is the newest release on the cu126 index, and cu126 is the newest CUDA
+# build that still includes sm_50: torch.cuda.get_arch_list() of 2.14.0+cu126 was measured
+# as sm_50 ... sm_90 (workspace-governance MACHINES.md, source 15); the cu128 and cu130
+# builds do not include sm_50. This makes poesia.device.cuda_usable() true on the laptop, so
+# sentence-transformers embeddings run on its GPU.
+# torchvision/torchaudio are not installed: nothing in this repository imports them.
+torch==2.14.0+cu126
+
+# No training stack and no bitsandbytes: bitsandbytes' Linux CUDA 12.x wheels start at
+# sm_60 (4-bit NF4 needs compute capability >= 6.0), and 2 GB cannot hold a QLoRA run.
+# The fine-tuned adapters run here through llama.cpp instead: scripts/build_llama_cpp.sh.

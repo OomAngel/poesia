@@ -1,0 +1,9 @@
+# Layer for tier cpu — no usable NVIDIA GPU. scripts/env.sh resolves this together with
+# environment.yml; see README.md "Machines". Versions checked 2026-09-26.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# torch 2.14.0 is the newest release; the +cpu build carries no CUDA runtime wheels.
+torch==2.14.0+cpu
+
+# No training stack and no bitsandbytes (LoRAClient needs a CUDA GPU). The adapters run
+# through llama.cpp's CPU build: scripts/build_llama_cpp.sh.
