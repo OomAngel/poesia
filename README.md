@@ -285,7 +285,9 @@ benchmark and the adapter evaluations ran there (db9d065, d6c0446; MLflow runs
 - [ ] In that env: `python -c "import llama_cpp; print(llama_cpp.__version__, llama_cpp.llama_supports_gpu_offload())"`.
       If a rebuild of 0.3.35 fails on sm_50, pin `LLAMA_CPP_PYTHON_VERSION` to this version.
 - [ ] The llama.cpp checkout `scripts/convert_adapters_to_gguf.py` uses:
-      `~/.local/share/llama.cpp/build/bin/llama-quantize` present? `git -C ~/.local/share/llama.cpp log -1`.
+      `scripts/setup_gguf_tools.sh --check`. If the laptop's checkout is at another commit,
+      note it before replacing it (`scripts/setup_gguf_tools.sh` pins the commit
+      llama-cpp-python 0.3.35 vendors; the desktop has it since 2026-09-27).
 - [ ] GGUF files: `ls -la models/*/*-Q4_K_M.gguf`, and `dvc status -c` against the remote
       on the laptop's D: drive (`LOCAL_ONLY.md`).
 - [ ] `scripts/build_llama_cpp.sh --check --env <that env>`: GGUF smoke test on the GPU
@@ -513,7 +515,7 @@ poesia write --theme "the weight of silence" --form haiku --language en \
 
 ```bash
 pip install -e ".[dev]"
-pytest                       # 511 tests; CI runs 435 (11 provider files ignored; 3 need the training stack)
+pytest                       # 515 tests, all passing on the desktop (2026-09-27); CI runs a subset (provider files ignored; some need the training stack)
 ruff check src/ mlops/       # lint (CI-enforced)
 ruff format --check src/ mlops/
 mypy src/ --ignore-missing-imports

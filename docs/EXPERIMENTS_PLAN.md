@@ -40,7 +40,7 @@ Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
 | **QLoRA r=32** (current) | `lora_r: 32` | Current baseline | Already done | — |
 | **QLoRA r=64** | `lora_r: 64` | More capacity for patterns | Edit one line | ★★ |
 | **LoRA all linear layers** | Add `gate_proj`, `up_proj`, `down_proj` | 2x more learnable params | Edit one line | ★★ |
-| **Unsloth** | Replace LoRA with Unsloth | **2x training speed** | Install unsloth, change 3 lines | ★★★★★ |
+| **Unsloth** | Replace LoRA with Unsloth | **2x training speed** | Blocked (2026-09-27): unsloth 2026.9.11 requires torch <2.13, transformers <=5.5, trl <=0.24, datasets <4.4; the env has 2.14, 5.14, 1.14, 5.0. Only a separate, older env could run it | ★★ (was ★★★★★) |
 | **DPO** (new script) | Use `scripts/train_poetry_dpo.py` | Directly optimises for our metrics | ✅ **Trained, registered & evaluated** (`poetry-lora-dpo-expanded`, avg_syll_dev 6.07) — underperforms CE distilled (0.90) | ★★★★★ |
 | **Multi-teacher distillation** | Ensemble Groq + Gemini outputs | More diverse training data | Run both APIs | ★★★ |
 | **Syllable-filtered data** | Use `sonetos_filtered_t2.jsonl` | Cleaner training signal | Change data path | ★★★ |

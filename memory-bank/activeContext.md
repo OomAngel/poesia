@@ -1,6 +1,26 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-09-26 (per-machine envs: desktop and laptop — see README.md "Machines")_
+_Last updated: 2026-09-27 (env gaps that failed silently; GGUF tools on the desktop)_
+
+---
+
+## What We Just Did (2026-09-27) — env gaps that failed silently
+
+- **Built and checked on the desktop:** `poesia` exists (the 2026-09-26 note below said
+  no env yet), `scripts/env.sh check` ok, 515/515 tests pass.
+- **Added, because without them the pipeline degraded quietly:** `outlines` 1.3.3 and
+  `optuna`/`optuna-integration` 5.0.0 (gpu-cuda13 layer: the automatic evaluation after
+  every training run, and the `hpo` entry point); `textstat`, `pysentimiento`,
+  `duckdb`, `dvc`, `sentencepiece` (base).
+- **NLTK data for g2p-en** now downloads into the env (`scripts/env.sh`); with an empty
+  HOME the English phonology tests pass (they failed 4/5 before on a fresh machine).
+- **GGUF tools:** `scripts/setup_gguf_tools.sh` checks out llama.cpp at the commit
+  llama-cpp-python 0.3.35 vendors and builds `llama-quantize`; a tiny Qwen2 model went
+  through convert → f16 → Q4_K_M on the desktop. Real adapters still need their data
+  and weights from the laptop's DVC remote.
+- **Fixed:** `scripts/poesia_env.sh` checked packages with the system python3.
+- **Next:** `poesia-gpu` on the desktop (prebuilt cu130 llama-cpp-python), the newer
+  Hugging Face stack (sentence-transformers 6 is a major version), the laptop checklist.
 
 ---
 
