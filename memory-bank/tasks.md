@@ -24,7 +24,7 @@
 - [ ] **Wire `PoetryModelWrapper`** into `mlflow models serve`
 - [ ] **Add titles to Machado poems** — extract from Gutenberg TOC
 - [ ] **Deduplicate corpus** across all files before next training (~13,049 poems, dedup pending — `CORPUS_SOURCES.md`)
-- [ ] **Try Unsloth** — install and test 2x faster training
+- [ ] **Try Unsloth** — install and test 2x faster training. Blocked 2026-09-27: unsloth 2026.9.11 caps torch <2.13, transformers <=5.5, trl <=0.24 (see docs/EXPERIMENTS_PLAN.md)
 - [ ] **Model Registry aliases** — promote `poetry-lora-distilled` "champion", `poetry-lora-qwen3b` "challenger"
 - [ ] **Phase 4E** — literary taxonomy auto-tagging
 - [ ] **WordNet Spanish** (omw-es:1.4) — retry when server is up
