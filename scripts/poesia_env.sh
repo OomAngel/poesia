@@ -106,15 +106,19 @@ check_gpu() {
 
 # ── Check Python deps ──────────────────────────────────────────────────
 check_python_deps() {
-    local missing=()
+    local missing=() py=(python3)
+    # With the `conda run` fallback, python3 is not the env's interpreter.
+    if [ -n "${POESIA_CONDA_RUN:-}" ]; then
+        read -r -a py <<< "$POESIA_CONDA_RUN python"
+    fi
     for pkg in mlflow torch transformers; do
-        if ! python3 -c "import $pkg" 2>/dev/null; then
+        if ! "${py[@]}" -c "import $pkg" >/dev/null 2>&1; then
             missing+=("$pkg")
         fi
     done
     if [ ${#missing[@]} -gt 0 ]; then
         warn "Missing Python packages: ${missing[*]}"
-        info "Run: pip install -e '.[spanish,english]'"
+        info "Run: scripts/env.sh update"
         return 1
     fi
     ok "Core Python packages available"
