@@ -30,6 +30,9 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BASE_SPEC="$PROJECT_ROOT/environment.yml"
 ENV_NAME="${POESIA_ENV_NAME:-poesia}"
 
+# NLTK data g2p-en needs (NLTK 3.10 names), downloaded into the env by create/update.
+NLTK_PACKAGES=(averaged_perceptron_tagger_eng averaged_perceptron_tagger cmudict)
+
 die() { echo "env.sh: $*" >&2; exit 1; }
 usage() { sed -n '5,7p' "${BASH_SOURCE[0]}" | sed 's/^#   //'; }
 
@@ -173,7 +176,8 @@ create_or_update() {
     echo "  1. ${conda_cmd[*]}"
     echo "     (environment.yml with '-r ${LAYER#"$PROJECT_ROOT"/}' added to its pip section)"
     echo "  2. conda env config vars set -n $ENV_NAME HW_TIER=$HW_TIER"
-    echo "  3. scripts/env.sh check --name $ENV_NAME"
+    echo "  3. NLTK data for g2p-en (${NLTK_PACKAGES[*]}) into <env>/nltk_data"
+    echo "  4. scripts/env.sh check --name $ENV_NAME"
 
     if [[ $dry_run -eq 1 ]]; then
         dry_run_resolve "$tmp"
@@ -192,6 +196,14 @@ create_or_update() {
     "${conda_cmd[@]}"
     conda env config vars set -n "$ENV_NAME" HW_TIER="$HW_TIER" >/dev/null
     echo "set HW_TIER=$HW_TIER on env '$ENV_NAME'"
+    # g2p-en auto-downloads only the old tagger name to ~/nltk_data; NLTK 3.10 needs
+    # averaged_perceptron_tagger_eng. Without it the English phonology fails on a fresh
+    # machine (4 tests). <env>/nltk_data is on NLTK's default search path.
+    conda run -n "$ENV_NAME" python -c 'import nltk, os, sys
+d = os.path.join(sys.prefix, "nltk_data")
+bad = [p for p in sys.argv[1:] if not nltk.download(p, download_dir=d, quiet=True)]
+sys.exit(f"NLTK download failed: {bad}" if bad else 0)' "${NLTK_PACKAGES[@]}"
+    echo "NLTK data (${NLTK_PACKAGES[*]}) in env '$ENV_NAME'"
     rm -rf "$tmp"
     trap - EXIT
     echo
@@ -251,6 +263,19 @@ if tier.startswith("gpu-"):
 elif torch.version.cuda:
     problems.append("cpu tier, but torch is a CUDA build")
 
+import nltk
+
+env_nltk = os.path.join(sys.prefix, "nltk_data")
+for res in ("taggers/averaged_perceptron_tagger_eng", "corpora/cmudict"):
+    try:  # look in the env only: ~/nltk_data may hold a copy another machine lacks
+        nltk.data.find(res, paths=[env_nltk])
+        print(f"NLTK {res}: in the env")
+    except LookupError:
+        problems.append(f"NLTK {res} not in {env_nltk} (run: scripts/env.sh update)")
+for mod in ("textstat", "pysentimiento", "duckdb", "dvc", "sentencepiece"):
+    if importlib.util.find_spec(mod) is None:
+        problems.append(f"{mod} missing (base spec)")
+
 has_bnb = importlib.util.find_spec("bitsandbytes") is not None
 if tier == "gpu-cuda13":
     from poesia.device import bnb_4bit_usable
@@ -259,7 +284,7 @@ if tier == "gpu-cuda13":
     print(f"bitsandbytes 4-bit quantize on the GPU: {'ok' if ok else 'FAILED'}")
     if not ok:
         problems.append("bitsandbytes 4-bit does not run (training and LoRAClient need it)")
-    for mod in ("peft", "trl", "datasets", "mlflow"):
+    for mod in ("peft", "trl", "datasets", "mlflow", "outlines", "optuna", "optuna_integration"):
         if importlib.util.find_spec(mod) is None:
             problems.append(f"{mod} missing (training stack)")
 else:
@@ -272,6 +297,10 @@ sys.exit(1 if problems else 0)
 PY
     POESIA_CHECK_TIER="$HW_TIER" POESIA_CHECK_ARCH="$HW_CUDA_ARCH" \
         conda run --no-capture-output -n "$ENV_NAME" python "$probe" || status=1
+    # Not part of the env, so informational: needed where adapters are converted to GGUF.
+    echo
+    echo "GGUF conversion tools (scripts/setup_gguf_tools.sh):"
+    "$SCRIPT_DIR/setup_gguf_tools.sh" --check | sed 's/^/  /' || echo "  not set up; run scripts/setup_gguf_tools.sh to convert adapters on this machine"
     return "$status"
 }
 

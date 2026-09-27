@@ -18,3 +18,14 @@ bitsandbytes==0.50.2
 # trl and datasets: scripts/train_poetry_dpo.py and scripts/train_poetry_lora.py.
 datasets==5.0.1
 trl==1.14.0
+
+# Evaluation and search that run after or around training (2026-09-27, newest):
+# outlines 1.3.3: OutlinesClient (src/poesia/generation/llm_client.py), the default
+# evaluation backend. train_poetry_lora.py runs it after every training run and only
+# prints a WARN if it is missing, so metrics never reached the adapter registry.
+# OutlinesClient loads the model in 4-bit (bitsandbytes), so it belongs to this tier.
+outlines==1.3.3
+# optuna + optuna-integration: scripts/hpo_search.py (MLproject entry point `hpo`)
+# imports optuna and optuna.integration.MLflowCallback at the top.
+optuna==5.0.0
+optuna-integration==5.0.0
