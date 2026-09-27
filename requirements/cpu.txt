@@ -3,7 +3,7 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # torch 2.14.0 is the newest release; the +cpu build carries no CUDA runtime wheels.
-torch==2.14.0+cpu
+torch==2.14.0+cu130
 
 # No training stack and no bitsandbytes (LoRAClient needs a CUDA GPU). The adapters run
 # through llama.cpp's CPU build: scripts/build_llama_cpp.sh.
