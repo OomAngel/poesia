@@ -576,6 +576,11 @@ GPU runner; none exists). **Blocked upstream** — Unsloth (caps torch < 2.13).
 
 **Pending / known missing:**
 - Build `poesia-gpu`; bump the Hugging Face stack (sentence-transformers 6 is a major).
+- GitHub CI red since at least 2026-09-27 (checked on `2503818`): the CPU test job
+  does not install mlflow, so `tests/test_mlflow_wiring.py` fails (438 others pass);
+  pre-commit's `no-plaintext-secrets` flags two placeholder URLs,
+  `.env_mlflow.example:12` (`mlflow:mlflow@localhost`) and `docs/CRONOLOGIA_CLOUD.md:62`
+  (`user:pass`) — not leaked secrets, but the hook has no allowance for them.
 - Training prerequisites absent here: model adapters (`models/` holds only `.dvc`
   pointers; ≈9.5 GB on the laptop), the DVC remote `/mnt/d/dvc-remotes/poesia` (does not
   exist on this PC; a network remote is proposed in `LOCAL_ONLY.md`), the training corpus
