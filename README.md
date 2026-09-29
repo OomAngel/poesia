@@ -547,6 +547,45 @@ wired end-to-end for online (DALL·E / SDXL) and offline (`procedural`
 deterministic art, no key needed) illustration, with the `image:` link
 persisted in the library frontmatter.
 
+### Status log — 2026-09-29 (desktop `AngelThuis`, gpu-cuda13)
+
+Covers 2026-09-25 … 29. Running tracker: `memory-bank/activeContext.md`.
+
+**Environment on this PC (checked 2026-09-29):** `poesia` conda env built by
+`scripts/env.sh` for gpu-cuda13: Python 3.13.14, torch 2.14.0+cu130, transformers
+5.14.1, peft 0.21.0, trl 1.14.0, bitsandbytes 0.50.2, accelerate 1.15.0, outlines 1.3.3,
+optuna 5.0.0, mlflow 3.14.0, dvc 3.67.1 — all as pinned. GGUF tools
+(`scripts/setup_gguf_tools.sh`): llama.cpp 4df29be + `llama-quantize` in
+`~/.local/share/llama.cpp`. **Missing:** the `poesia-gpu` env (llama-cpp-python 0.3.35
+cu130, `scripts/build_llama_cpp.sh`; its build was blocked by the permission check on
+2026-09-26).
+
+**Verified here:** 515/515 tests; `env.sh check` runs a CUDA op and a real NF4
+bitsandbytes quantize on the RTX 3070 (`7b93e16`); tiny Qwen2 → GGUF f16 → Q4_K_M
+(`c851128`); llama.cpp full GPU offload only in a scratch venv (`44ef203`).
+
+**GPU goals: in the env but never run on this PC** — QLoRA training of the 1.5B/3B
+configs, DPO, HPO, `--llm lora` with a real adapter. **Doc-only** — `--llm llama_cpp` on
+the GPU (needs `poesia-gpu`), the Qwen2.5-3B / Llama 3.2 3B / Gemma 2 2B experiments,
+local diffusers for GalerIA, the CI GPU training job (`train.yml` targets a self-hosted
+GPU runner; none exists). **Blocked upstream** — Unsloth (caps torch < 2.13).
+
+**Advanced (pushed):** per-tier env split (`379942d` … `a809103`), llama.cpp/GGUF tooling
+(`44ef203`, `c851128`), 4-bit device dispatch (`7b93e16`), tests and CI hygiene, docs
+(`f64fa77`).
+
+**Pending / known missing:**
+- Build `poesia-gpu`; bump the Hugging Face stack (sentence-transformers 6 is a major).
+- Training prerequisites absent here: model adapters (`models/` holds only `.dvc`
+  pointers; ≈9.5 GB on the laptop), the DVC remote `/mnt/d/dvc-remotes/poesia` (does not
+  exist on this PC; a network remote is proposed in `LOCAL_ONLY.md`), the training corpus
+  (restorable byte-identical from `git f8b2017^`), Qwen2.5-1.5B/3B weights (only the
+  1.5B tokenizer is cached). The first desktop run needs smaller batches.
+- Dedupe the corpus before training; Model Registry aliases (`memory-bank/tasks.md`).
+- Uncommitted, not from this log: `docs/LEMONADE_INTEGRATION.md` and a `memory-bank/tasks.md`
+  change (2026-09-28, "plan, not started").
+- Laptop: documentation only; the checklist under "Machines" is unchecked.
+
 ---
 
 ## License & sharing
