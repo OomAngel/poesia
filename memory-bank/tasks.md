@@ -9,6 +9,11 @@
 
 ## BACKLOG (priority order)
 
+- [ ] **Lemonade integration for the AMD Lemonade Developer Challenge** (2026-09-28) —
+      Lemonade as LLM provider, champion adapter served locally, GalerIA image backend,
+      poem read aloud. Plan and checklist: `docs/LEMONADE_INTEGRATION.md`. Time-sensitive:
+      laptops are given "until supplies are exhausted".
+
 > ⚠️ (2026-09-08) Adapter eval done — champion is `poetry-lora-distilled` (0.90).
 > The "fixed-format" v2-fixed (4.80) and multi-form v3 (9.29) underperform the
 > earlier distilled/v2/qwen3b; DPO (6.07) lost to plain CE. Full table in
