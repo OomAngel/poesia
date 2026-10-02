@@ -18,7 +18,7 @@ jobs:
     name: "Lint & Type Check"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: pip install -e ".[dev]"
@@ -30,7 +30,7 @@ jobs:
     name: "Tests (CPU-safe)"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: |
@@ -62,7 +62,7 @@ jobs:
     name: "Security Audit"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: pip install bandit safety
@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: |
