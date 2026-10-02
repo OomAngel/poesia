@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with: { python-version: "3.11" }
       - run: pip install -e ".[dev]"
       - run: ruff check src/ mlops/
@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with: { python-version: "3.11" }
       - run: |
           pip install -e ".[spanish,english,phonology-extra,nlp,dev]"
@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with: { python-version: "3.11" }
       - run: pip install bandit safety
       - run: bandit -r src/ -x tests,models,seeds,.git,mlruns --skip B101,B110,B112,B310,B311,B404,B603,B615
@@ -75,7 +75,7 @@ jobs:
     if: github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with: { python-version: "3.11" }
       - run: |
           pip install mlflow pandas
