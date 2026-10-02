@@ -3,7 +3,7 @@
 Checked 2026-09-23. `git clone` brings every tracked file. What is listed here exists only
 on the machine where it was made, deliberately. Before trusting this list, re-run
 `git status --ignored --short`. Claude Code chats and memory are covered by
-`~/dotfiles/claude/README.md`; the cross-repository picture is
+`claude/README.md` in the dotfiles repo (`~/dotfiles` on the laptop, `~/dev/dotfiles` on the desktop); the cross-repository picture is
 `workspace-governance/WORKSTATION_TRANSITION.md`.
 
 | Path | Size | Why it is not in git | On another machine |
@@ -53,3 +53,9 @@ command reproduces any adapter (`scripts/launch_training.sh local
 mlops/configs/<config>.yaml`), and the EXPERIMENTS_PLAN candidates ranked impractical become
 the next experiment. Do not run a bare `dvc repro`: it retrains `poetry-lora-v2` first
 (`docs/DVC_INTEGRATION.md`).
+
+## Still to do (verified 2026-10-02)
+
+- Same DVC decision as `orchard_twins`: storage is still only `/mnt/d/dvc-remotes/poesia`, in sync with the laptop cache (checked 2026-10-02). The adapters reach the desktop only via the drive or a network remote.
+- Calibrate the "better model" expectation: the desktop `AngelThuis` is an RTX 3070 with **8 GB** (`workspace-governance/machines/AngelThuis.json`), the same VRAM class that trained the existing adapters. It can retrain any of them locally, but it does not lift the 1.5B/3B 4-bit ceiling. Llama 3.1 8B and similar need ≥16 GB, i.e. a rented GPU (`docs/TRAINING_RUNBOOK.md` online-training section).
+- On each new machine, confirm the age key works: `sops -d secrets/<file>.sops.yaml >/dev/null && echo ok`. Not verifiable from the laptop.
