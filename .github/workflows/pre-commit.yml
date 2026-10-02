@@ -18,5 +18,22 @@ jobs:
           tar -xzf /tmp/gl.tgz -C /usr/local/bin gitleaks
           test -x /usr/local/bin/gitleaks  # fail loudly
           chmod +x /usr/local/bin/gitleaks
+      - name: Let pre-commit read the private hooks repo
+        env:
+          HOOKS_DEPLOY_KEY: ${{ secrets.HOOKS_DEPLOY_KEY }}
+        run: |
+          # pre-commit-hooks is private; a read-only deploy key reads it. See ci-infra docs/HOOKS_DEPLOY_KEY.md
+          umask 077
+          printf '%s\n' "$HOOKS_DEPLOY_KEY" > "$RUNNER_TEMP/hooks_deploy_key"
+          printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' > "$RUNNER_TEMP/hooks_known_hosts"
       - name: Run pre-commit (all files)
         run: pre-commit run --all-files
+        # Read the private hooks repo over SSH with the read-only deploy key.
+        env:
+          GIT_SSH_COMMAND: "ssh -i ${{ runner.temp }}/hooks_deploy_key -o IdentitiesOnly=yes -o UserKnownHostsFile=${{ runner.temp }}/hooks_known_hosts -o StrictHostKeyChecking=yes"
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "url.git@github.com:OomAngel/pre-commit-hooks.insteadOf"
+          GIT_CONFIG_VALUE_0: "https://github.com/OomAngel/pre-commit-hooks"
+      - name: Remove the hooks deploy key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/hooks_deploy_key" "$RUNNER_TEMP/hooks_known_hosts"
