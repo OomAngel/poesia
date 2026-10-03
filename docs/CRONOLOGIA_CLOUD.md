@@ -58,8 +58,8 @@ docker compose up -d
 ```bash
 # 1. Create free account at https://neon.tech
 # 2. Get connection string from dashboard
-# 3. Set env:
-export DATABASE_URL="postgresql://user:pass@ep-xxx.us-east-2.aws.neon.tech/mlflow?sslmode=require"
+# 3. Set env (fill {user}, {password} and {host} from the dashboard):
+export DATABASE_URL="postgresql://{user}:{password}@{host}/mlflow?sslmode=require"
 
 # 4. Start only the UI (DB lives in Neon)
 docker compose up -d cronologia-ui
