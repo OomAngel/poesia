@@ -1,0 +1,73 @@
+schema_version: '1.0'
+repo_id: poesia
+status: proposed
+surfaces:
+  - id: phonology-scansion
+    path: src/poesia/phonology
+    kind: code
+    work: Syllabification, stress and sinalefa scansion backends for Spanish, English and Dutch, with mixed-language line handling, built 2026.
+    disclosure: personal
+  - id: sound-analysis
+    path: src/poesia/eufonia
+    kind: code
+    work: Rhyme-scheme, assonance and consonance analysis over scanned poems, consuming the phonology layer's scan results.
+    disclosure: personal
+  - id: poem-scoring
+    path: src/poesia/evaluation
+    kind: code
+    work: Composite line and poem scorer combining metre, rhyme, theme, novelty and emotion metrics behind injected backends.
+    disclosure: personal
+  - id: constrained-generation
+    path: src/poesia/generation
+    kind: code
+    work: Generate, validate, rank and repair loop for verse, with an ordered LLM provider fallback chain across hosted and local backends including llama.cpp.
+    disclosure: personal
+  - id: poem-memory-graphrag
+    path: src/poesia/memoria
+    kind: code
+    work: Markdown poem library with an SQLite index, multilingual sentence embeddings and a typed Graph RAG retrieval layer.
+    disclosure: personal
+  - id: illustration-backends
+    path: src/poesia/galeria
+    kind: code
+    work: Poem-to-illustration pipeline with imagery extraction, style anchoring, a deterministic offline procedural renderer and hosted image-provider backends.
+    disclosure: personal
+  - id: lora-training-code
+    path: src/poesia/training
+    kind: code
+    work: Custom Hugging Face trainer with a composite loss that adds poetry-quality scorer feedback to cross-entropy, plus a model wrapper.
+    disclosure: personal
+  - id: mlops-pipeline
+    path: mlops
+    kind: experiment
+    work: Training pipeline orchestration, versioned LoRA and DPO run configurations, MLflow run comparison and an adapter registry.
+    disclosure: personal
+  - id: training-scripts
+    path: scripts
+    kind: experiment
+    work: LoRA and DPO fine-tuning scripts, corpus fetching and quality filtering, synthetic repair-pair generation, hyperparameter search, adapter evaluation and GGUF conversion.
+    disclosure: personal
+skill_areas:
+  - name: Spanish metre and sinalefa scansion
+    surfaces: [phonology-scansion, sound-analysis]
+  - name: Multilingual phonology processing
+    surfaces: [phonology-scansion]
+  - name: Constrained LLM generation with deterministic validation
+    surfaces: [constrained-generation, poem-scoring]
+  - name: LLM provider routing and fallback
+    surfaces: [constrained-generation]
+  - name: Composite quality scoring for generated text
+    surfaces: [poem-scoring]
+  - name: Graph RAG retrieval with sentence embeddings
+    surfaces: [poem-memory-graphrag]
+  - name: LoRA and DPO fine-tuning pipelines
+    surfaces: [lora-training-code, training-scripts, mlops-pipeline]
+  - name: MLflow experiment tracking
+    surfaces: [mlops-pipeline, training-scripts]
+  - name: GGUF adapter conversion for llama.cpp
+    surfaces: [training-scripts]
+  - name: Image-generation provider integration
+    surfaces: [illustration-backends]
+package_files:
+  - pyproject.toml
+  - environment.yml
