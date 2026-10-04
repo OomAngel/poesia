@@ -23,6 +23,11 @@ env/
 .coverage
 htmlcov/
 
+# Poetry corpus and datasets derived from it: never baked into an image (the corpus
+# holds copyrighted poems used only for personal training). Mount them at runtime.
+seeds/poetry_corpus/
+mlops/data/
+
 # Large artifacts (mounted at runtime)
 models/
 checkpoints/

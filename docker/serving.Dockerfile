@@ -3,21 +3,17 @@
 # Run:      docker run -p 8000:8000 -v $PWD/models:/app/models poesia-serve
 # ─────────────────────────────────────────────────────────────────────
 
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 RUN apt-get update && apt-get install -y git curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install core dependencies (no GPU libs needed for serving via MLflow)
-COPY requirements-lock.txt .
-RUN pip install --no-cache-dir -r requirements-lock.txt
-
-# Copy package
+# Package plus MLflow (the entrypoint). requirements-lock.txt was removed in 42045a0.
 COPY src/ src/
 COPY pyproject.toml .
-RUN pip install -e "."
+RUN pip install --no-cache-dir ".[mlops]"
 
 # Model registry URI (override with env var at runtime)
 ENV MLFLOW_TRACKING_URI="sqlite:///mlruns/mlflow.db"
