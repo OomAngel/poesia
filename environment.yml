@@ -67,6 +67,7 @@ dependencies:
       - cmudict==1.1.3
       - confection==1.3.3
       - coverage==7.15.2
+      - cryptography==50.0.2  # transitive; pinned 2026-10-04 (48.0.1 had PYSEC-2026-3552/3553/3554)
       - csvw==4.1.0
       - cymem==2.0.13
       - defusedxml==0.7.1
@@ -100,10 +101,12 @@ dependencies:
       - markdown-it-py==4.2.0
       - markupsafe==3.0.3
       - mdurl==0.1.2
-      # 3.14.0: its migration head (b7e4c1a90f23) is the schema recorded in
-      # mlops/mlflow_metadata_dump.sql, and docker/mlflow.Dockerfile serves the UI with
-      # v3.14.0; 3.15+ would need `mlflow db upgrade` on the tracking store.
-      - mlflow==3.14.0
+      # 3.16.1 (2026-10-04, was 3.14.0): fixes PYSEC-2026-3687, -3865 (AI Gateway SSRF,
+      # 3.13.0-3.15.2) and GHSA-gqvg-gmmx-x4hm. The laptop's tracking store and
+      # mlops/mlflow_metadata_dump.sql are still at the 3.14.0 schema (head b7e4c1a90f23):
+      # back up mlruns/mlflow.db, run `mlflow db upgrade sqlite:///mlruns/mlflow.db`, then
+      # regenerate the dump (LOCAL_ONLY.md "Still to do"). docker/mlflow.Dockerfile: v3.16.1.
+      - mlflow==3.16.1
       - more-itertools==11.1.0
       - mpmath==1.3.0
       - murmurhash==1.0.15

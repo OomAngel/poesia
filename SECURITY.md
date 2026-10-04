@@ -19,9 +19,12 @@ issue, report it privately to the author — do **not** open a public issue.
 
 ## Dependency hygiene
 
-- `ruff`, `mypy` and `bandit` gate CI (`.github/workflows/ci.yml`); `safety` runs
-  there but only reports. `.github/workflows/dependency-audit.yml` runs
-  `pip-audit`, and the pre-commit workflow runs the `no-plaintext-secrets` hook.
+- `ruff`, `mypy`, `bandit` and `pip-audit` gate CI (`.github/workflows/ci.yml`);
+  `pip-audit` checks the dependency set the tests install, with one documented
+  exception (nltk PYSEC-2026-3740). The deprecated `safety check` was removed on
+  2026-10-04: it never failed the build and audited the runner, not the project.
+  `.github/workflows/dependency-audit.yml` repeats the audit weekly, and the
+  pre-commit workflow runs the `no-plaintext-secrets` hook.
 - Heavy/optional dependencies are isolated behind `pip install -e ".[extra]"`
   extras (see `pyproject.toml`) and are lazy-imported at runtime.
 
