@@ -122,6 +122,24 @@ def _pop_resume_flag(argv: list[str]) -> bool:
     return False
 
 
+def _drop_overlong(dataset, max_length: int, split: str):
+    """Keep only examples whose whole prompt + completion + EOS fits in max_length tokens.
+
+    Truncating instead cuts from the right, which removes the completion and EOS: the
+    example then teaches the model to continue the prompt. Line examples carry every prior
+    line in the prompt, so long poems lose their later lines this way (measured
+    2026-10-04: 61-68% of non-sonnet examples at max_length 300; RETRAINING_PLAN §5).
+    Returns the kept dataset and the number dropped.
+    """
+    before = len(dataset)
+    kept = dataset.filter(lambda ex: len(ex["input_ids"]) <= max_length)
+    dropped = before - len(kept)
+    print(f"{split}: dropped {dropped} of {before} examples longer than {max_length} tokens")
+    if before and not len(kept):
+        raise ValueError(f"{split}: every example is longer than max_length={max_length}")
+    return kept, dropped
+
+
 def main():
     # ── Config ────────────────────────────────────────────────────────
     resume_from_checkpoint = _pop_resume_flag(sys.argv)
@@ -287,13 +305,19 @@ def main():
         eval_ds = load_jsonl(eval_path)
         print(f"Train: {len(train_ds)}, Eval: {len(eval_ds)}")
 
+        max_length = cfg.get("max_length", 300)
+
         def tokenize(ex):
-            tokens = tokenizer(ex["text"], truncation=True, max_length=cfg.get("max_length", 300))
+            tokens = tokenizer(ex["text"])  # no truncation: overlong examples are dropped below
             tokens["quality_weight"] = ex["quality_weight"]
             return tokens
 
         train_ds = train_ds.map(tokenize, remove_columns=["text"])
         eval_ds = eval_ds.map(tokenize, remove_columns=["text"])
+        train_ds, dropped_train = _drop_overlong(train_ds, max_length, "train")
+        eval_ds, dropped_eval = _drop_overlong(eval_ds, max_length, "eval")
+        mlflow.log_param("dropped_overlong_train", dropped_train)
+        mlflow.log_param("dropped_overlong_eval", dropped_eval)
 
         collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
