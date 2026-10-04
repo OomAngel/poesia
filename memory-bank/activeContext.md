@@ -32,7 +32,11 @@ _Last updated: 2026-10-04 (retraining plan: model ceiling on the RTX 3070, large
 - **Found:** line examples are cut at 300 tokens from the right, so from about line 19–20 of
   long poems the target line is lost (61–68% of non-sonnet examples; sonnets 1%). Fix options
   and the run-size formula (~2,600 usable tokens per poem): `RETRAINING_PLAN` §5.
-- **Next:** fix the truncation (§5 a or b), a DVC remote both machines reach (§7), then
+- **Fixed same day:** truncation, by dropping examples that don't fit (`_drop_overlong`, §5).
+  CI was red since 10-02 (no mlflow); now installs mlflow and the CPU training stack and
+  tests on Python 3.11 and 3.13: 442 passed, 0 skipped.
+- **Next:** smoke-test Qwen3-8B (peak VRAM, tokens/s), a private DVC remote both machines
+  reach (§7), then
   the stronger evaluation (English too), then the step-3 base-model comparison.
 
 ---
