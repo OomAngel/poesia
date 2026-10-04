@@ -217,6 +217,22 @@ One version everywhere (decided 2026-10-04): the conda env (`environment.yml`, 3
 both machines), CI, the Docker images, and the online-training fallbacks (Colab and Kaggle
 run 3.13 since September 2026). `pyproject.toml` enforces it with
 `requires-python = ">=3.13,<3.14"`. Move to 3.14 deliberately, in all of these at once.
+Workspace policy: `ci-infra/docs/ENVIRONMENT.md` "Version policy" (3.13 for GPU envs).
+
+Dependency impact, from resolving every extra on 3.11–3.14 (2026-10-04):
+
+- **Gained:** numpy 2.5, scipy 1.18, networkx 3.7 and contourpy 1.4 need ≥3.12. CI on 3.11
+  had been testing numpy 2.4 and scipy 1.17 against an env on 2.5 and 1.18.
+- **Planned extras that 3.13 affects** (none is imported yet; all are on the roadmap in
+  `docs/ARCHITECTURE.md`):
+  - `classical` (CLTK, Latin/Greek scansion): cltk 1.x has the scanners but requires
+    <3.13; cltk 2.x installs but has no scansion. Open: port cltk 1.5's MIT-licensed
+    `prosody/lat` or find another scanner.
+  - `recitation` (Coqui `TTS`): requires <3.12. The maintained fork `coqui-tts` 0.27.5
+    (same `TTS` import) and `piper-tts` 1.8.0 resolve on 3.13 with this env's pins.
+  - `music-ai` (`audiocraft`): pins torch 2.1 and av 11, so it installs on no current
+    stack, 3.11 included. MusicGen is available through `transformers` in this env.
+- 3.14 resolves the same as 3.13 for every extra.
 
 ```bash
 git clone <repo-url> poesia
