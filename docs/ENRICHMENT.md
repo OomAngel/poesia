@@ -75,7 +75,7 @@ The Graph RAG layer is your **personal context corpus**:
 | `similar_to` | Semantic similarity (cosine >= threshold) |
 | `inspired_by` | Poem . Influence relationship |
 | `explores` | Poem/fragment . Theme relationship |
-| `contains` | Poem . Seed (word/image used) |
+| `contains` | Poem . Fragment (part-of; `memoria/records.py` `RelationType`) |
 
 ### Retrieval Modes
 
@@ -176,6 +176,7 @@ class BriefBuilder:
     def __init__(
         self,
         embedding_client: EmbeddingClient | None = None,
+        retriever: GraphRAGRetriever | None = None,
         fragments: list[FragmentRecord] | None = None,
         influences: list[InfluenceRecord] | None = None,
     ) -> None: ...
@@ -184,7 +185,8 @@ class BriefBuilder:
     def build(self, form: str | FormSpec, theme: str,
               tone: list[str] | None = None, seeds: list[str] | None = None,
               level: Literal["minimal", "standard", "maximal"] = "standard",
-              language: str | None = None) -> GenerationBrief: ...
+              language: str | None = None,
+              movement: str | None = None, ...) -> GenerationBrief: ...
 
 @dataclass
 class GenerationBrief:
@@ -192,9 +194,13 @@ class GenerationBrief:
     fragments: list[tuple[FragmentRecord, float]]
     seeds_expanded: dict[str, SeedExpansion]
     rhyme_options: dict[str, list[str]]; exemplar_lines: list[str]
-    influences: list[InfluenceRecord]; level: str; created_at: datetime
+    influences: list[InfluenceRecord]; movement: str | None
+    graph_paths: list[tuple[str, float, GraphPath | None]]
+    level: str; created_at: datetime
     def to_prompt(self) -> str: ...
 ```
+
+Abridged; the source of truth is `src/poesia/generation/brief_builder.py`.
 
 ### Cost Savings Estimate
 
@@ -214,7 +220,7 @@ Front-loading context trades input tokens for fewer calls. Net savings: ~50-70%.
 Fragments are life moments, feelings, emotional states . raw material for grounding.
 
 ```yaml
-# ~/.poesia/fragments/2019-station-departure.md
+# seeds/angel_fragments/2019-station-departure.md
 ---
 id: "2019-station-departure"
 type: fragment
@@ -257,13 +263,15 @@ The existing PoemRecord gains optional linkage fields (influences, fragments_use
 
 ```
 ~/.poesia/
-.. poems/           # PoemRecord markdown files
-.. fragments/       # FragmentRecord markdown files
-.. seeds/           # SeedRecord markdown files
-.. influences/      # InfluenceRecord markdown files
+.. poems/           # PoemRecord markdown files (+ library.db SQLite index)
 .. graphrag.json    # NetworkX graph export
-.. library.db       # SQLite index (existing)
+
+<repo>/
+.. seeds/angel_fragments/   # FragmentRecord markdown files (memoria add-fragment copies here)
+.. data/influences.yaml     # InfluenceRecord source (memoria/influence_loader.py)
 ```
+
+Seeds are not persisted: `poesia memoria add-seed` expands and prints the word only.
 
 ### Expansion Sources
 
@@ -284,6 +292,8 @@ The existing PoemRecord gains optional linkage fields (influences, fragments_use
 
 ## Implementation Phases
 
+Phase status is owned by `docs/ROADMAP.md` (Phase 3A–3E); the list below is a copy.
+
 ### Phase 3A: Core Graph RAG .
 - [x] GraphRAGRetriever core (NetworkX, JSON persistence)
 - [x] retrieve() with cosine similarity scoring
@@ -301,7 +311,7 @@ The existing PoemRecord gains optional linkage fields (influences, fragments_use
 - [x] InfluenceRecord dataclass
 - [x] SeedExpander (WordNet + rhyme + semantic + Datamuse)
 - [x] 26 personal fragments in seeds/angel_fragments/
-- [x] Influence registry (24 poets) in docs/INFLUENCE_REGISTRY.md
+- [x] Influence registry (24 poets): data/influences.yaml (docs/INFLUENCE_REGISTRY.md is a readable copy)
 
 ### Phase 3D: Brief Assembly .
 - [x] BriefBuilder class

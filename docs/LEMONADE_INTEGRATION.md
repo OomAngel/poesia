@@ -33,16 +33,22 @@ Nothing below is implemented; treat each item as a proposal to verify before bui
      `base_url=http://<host>:13305/v1` — cleaner, and it shows up in `LLM_ROUTE` as
      `lemonade:<model>`.
    Candidate models from Lemonade's registry: Qwen3.5-4B / Qwen3-8B / Gemma-4 (verify
-   Spanish poetry quality against the current champion).
-2. **Serve the fine-tuned champion locally.** `poetry-lora-distilled` is the champion
-   adapter (`docs/ANALOGIA_PLAN.md`). If Lemonade can load a user-supplied GGUF (merged
+   Spanish poetry quality against PoesIA's own adapters).
+2. **Serve PoesIA's own fine-tuned adapter locally.** Serve the adapter from the 2026-10
+   retrain (`docs/RETRAINING_PLAN_2026-10.md`). The July adapters (`poetry-lora-distilled`,
+   `poetry-lora-qwen3b`) are within noise of each other (`docs/ANALOGIA_PLAN.md`) and sit
+   only on the laptop's DVC remote. If Lemonade can load a user-supplied GGUF (merged
    LoRA), PoesIA's own model runs through Lemonade — the strongest "built with Lemonade"
-   story. UNVERIFIED: Lemonade's support for custom GGUF checkpoints.
+   story. UNVERIFIED: Lemonade's support for custom GGUF checkpoints. A 9B adapter's GGUF
+   size matters here (`RETRAINING_PLAN_2026-10.md` §6 step 7).
 3. **GalerIA backend on Lemonade image generation** (SD-Turbo, SDXL, Flux-2-Klein,
    Z-Image via sd-cpp; `cuda`/`vulkan`/`cpu` backends) — a local, free, private option
    for `docs/IMAGE_GENERATION_PROVIDERS.md` §8.
 4. **Voice: read the poem aloud** with Lemonade text-to-speech (kokoro; Spanish voice
    availability UNVERIFIED) and optional dictation with Whisper for "bring what you carry".
+   Today's recitation backend in code is eSpeak NG (`EspeakRecitationBackend` in
+   `src/poesia/armonia/backends.py`); the `recitation` extra (`piper-tts`) is verified for
+   Spanish synthesis on Python 3.13 but not wired in yet.
 5. **One-endpoint "Omni" mode** (e.g. LMX-Omni-5.5B-Lite = Qwen3.5-4B + SD-Turbo +
    Whisper-Tiny + kokoro) so the whole instrument runs from one local server.
 6. **Short benchmark note**: poem quality and latency per backend (Lemonade `cuda` on the

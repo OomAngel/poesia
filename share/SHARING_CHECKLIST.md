@@ -1,6 +1,6 @@
 # Sharing PoesIA with one contact — checklist
 
-> Goal: deliver the repo **privately, cleanly, and with no secrets** — no 1.3 GB
+> Goal: deliver the repo **cleanly and with no secrets** — no 1.3 GB
 > of build artifacts, no `.env_mlflow`, no API keys.
 
 ## Step 1 — Build the share bundle
@@ -9,7 +9,8 @@
 bash scripts/package_share.sh
 ```
 
-Produces `dist/poesia-share-YYYYMMDD.tar.gz` (**~13 MB**, tracked files only).
+Produces `dist/poesia-share-YYYYMMDD.tar.gz` (**~1.3 MB** on 2026-10-04, tracked files
+only; the corpus is in DVC, not git).
 The script verifies no secret file (`.env_mlflow`, `.key`, …) sneaks in and
 aborts if one does.
 
@@ -24,17 +25,17 @@ WITH_BUNDLE=1 bash scripts/package_share.sh
 
 | Channel | Fits your case? | Notes |
 |---|---|---|
-| **Email attachment** | ✅ (13 MB < 25 MB limit) | Simplest — matches "a single email" |
+| **Email attachment** | ✅ (≈1.3 MB < 25 MB limit) | Simplest — matches "a single email" |
 | **Drive / Dropbox link** | ✅ | If your mail provider is stricter |
 | **git bundle** (`WITH_BUNDLE=1`) | ✅ | Recipient: `git clone poesia-share-*.bundle` — full history |
-| **Private GitHub repo + invite** | ⚠️ only if you decide to | Requires your explicit instruction (AGENTS.md forbids pushing without it). If chosen: create the repo as **Private**, invite the contact as collaborator, never make it public |
+| **GitHub link** | ✅ | The repository is public: `git clone https://github.com/OomAngel/poesia.git` (no corpus, no model weights) |
 
 ## Step 3 — Pre-send checks
 
 - [x] `git status` clean
 - [x] No real `.env_mlflow` inside the bundle (script verifies; only
       `.env_mlflow.example` placeholders are tracked)
-- [x] `mlruns/`, `models/`, `mlops/data/` excluded (already gitignored)
+- [x] `mlruns/`, `models/`, `mlops/data/`, the corpus excluded (gitignored or DVC-tracked)
 - [x] Email drafts filled (`share/EMAIL_01_COVER.md`, `share/EMAIL_02_SETUP_TOUR.md`) —
       only the recipient's `[name]` / `[contact's email]` remain
 - [ ] Choose English or Spanish body (both are provided)
@@ -47,19 +48,19 @@ WITH_BUNDLE=1 bash scripts/package_share.sh
 ```bash
 tar -xzf poesia-share-20260804.tar.gz
 cd poesia
-python -m venv .venv && source .venv/bin/activate
+python3.13 -m venv .venv && source .venv/bin/activate   # requires Python 3.13
 pip install -e ".[dev]"
-pytest                # optional sanity check (410 tests)
+pytest                # optional sanity check (519 pass in the full conda env, 2026-10-04)
 poesia --help
 poesia write --theme "luna" --form soneto --language es   # offline, no keys
 ```
 
 ## Rules of the road
 
-- The repo must stay private — never publish it or push it to a public remote.
+- The repository is public on GitHub. The poetry corpus is never in it (DVC only) and must
+  never be shared.
 - The contact may share the *poems they write with PoesIA*, but the original fragments
   in `seeds/` remain © the author (see `NOTICE`) and are not to be copied or
   redistributed.
-- `share/` contains your private email drafts — they ship inside the tarball,
-  which is fine (they're addressed to the recipient), but exclude them from the
-  bundle if you'd rather not.
+- `share/` contains your email drafts — they ship inside the tarball and are also
+  public in the GitHub repository (they're addressed to the recipient).

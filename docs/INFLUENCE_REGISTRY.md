@@ -1,6 +1,9 @@
 # Influence Registry
 
-_Angel's poetic influences. Minimal profiles now; richer profiles in Phase 4._
+> **Source of truth:** `data/influences.yaml`, loaded by `memoria/influence_loader.py`.
+> This file is a readable copy; edit the YAML first and keep this in step.
+
+_Angel's poetic influences: movement, tone, forms and exemplars (parsed since Phase 4B)._
 
 ## Spanish / Latin American
 
@@ -131,4 +134,5 @@ _Angel's poetic influences. Minimal profiles now; richer profiles in Phase 4._
 
 ---
 
-_Minimal profiles. Richer profiles (what resonates, anti-patterns, techniques) in Phase 4._
+_Minimal profiles. `InfluenceRecord` has `resonance_notes` and `anti_patterns` fields
+(Phase 4B), but no profile fills them yet._

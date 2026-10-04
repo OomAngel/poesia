@@ -1,8 +1,9 @@
 # PoesIA RAG, GraphRAG, and LLM Engineering Hardening Plan
 
 Doc class: canonical implementation authority for RAG/LLM work  
-Status: active  
-Last updated: 2026-07-28 (P0–P5 complete — all hardening phases done)  
+Status: complete (2026-07-28); historical record. The acceptance criteria and definition
+of done below still apply to new RAG/LLM work.  
+Last updated: 2026-07-28 (P0–P5 complete — all hardening phases done); status line 2026-10-04  
 Scope: `memoria/`, embedding-backed evaluation, retrieval-informed generation,
 hosted LLM integration, and their CLI paths
 
@@ -13,13 +14,15 @@ evidence.
 
 ---
 
-## Current state
+## State at completion (2026-07-28)
 
-**P0–P5 are complete.** 410 tests passing.
+**P0–P5 are complete.** 410 tests passing at the time (2026-10-04: 519 local, 446 in CI).
 
 ### What is implemented and verified
 
-- Provider-neutral `LLMClient` protocol; Gemini, OpenAI, and Groq backends.
+- Provider-neutral `LLMClient` protocol; Gemini, OpenAI, and Groq backends (later:
+  Ollama, Cloudflare, llama_cpp, LoRA, Outlines, MLflow, router; see
+  `generation/registry.py`).
 - Deterministic generate → validate → score → rank → repair loop.
 - `RhymeTracker`: per-line commitment with Datamuse/CMUdict/offline word bank.
 - Directive prompts: syllable target, rhyme word bank, anti-repetition per line.
@@ -53,7 +56,8 @@ evidence.
 - OllamaClient: local/offline LLM backend (gemma2:2b default, configurable).
 - Privacy confirmation before personal context reaches a hosted provider.
 - Provider/run lineage in saved poem frontmatter (provider, n_candidates, temperature, latency_ms, total_tokens).
-- Structured exception hierarchy: ``PoesiaError`` base with 10 subtypes.
+- Structured exception hierarchy: ``PoesiaError`` base with 14 subtypes (`exceptions.py`,
+  2026-10-04).
 - ``LLMUsage`` dataclass with token and latency tracking.
 - 410 tests passing.
 
@@ -118,7 +122,7 @@ E5 query/passage prefix fixed across all callers.
 2. ✅ Provider/run lineage stored alongside every saved poem:
    PoemProvenance extended with provider, n_candidates, temperature, latency_ms.
    All fields written to markdown frontmatter on --save.
-3. ✅ Structured failure types: ``PoesiaError`` hierarchy (10 types), dual-inheritance
+3. ✅ Structured failure types: ``PoesiaError`` hierarchy (10 types then, 14 now), dual-inheritance
    for legacy compatibility, ``LLMProviderError`` with structured attributes,
    ``LLMUsage`` dataclass with token/count/latency tracking from provider responses.
 4. ✅ (Deferred) Monitoring when a deployed instance exists — not needed for local-only use.

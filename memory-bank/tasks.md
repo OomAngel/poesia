@@ -2,50 +2,93 @@
 
 ## IN PROGRESS
 
-- [ ] **Per-machine envs** (2026-09-26) — specs and scripts committed, dry-run resolved on
-      the desktop for all tiers. Next: README.md "Machines" laptop checklist; then
-      `scripts/env.sh create` + `scripts/build_llama_cpp.sh` (and both `--check`s) on the
-      desktop and on the laptop.
+- [ ] **Retrain: bigger base model and expanded corpus** (decided 2026-10-04). Plan and
+      step order: `docs/RETRAINING_PLAN_2026-10.md` §6; current order in
+      `activeContext.md` "Current focus". Done: corpus build and dedup (`corpus_master`,
+      85,027 poems, mainly English), truncation fix (`_drop_overlong`). Next, in order:
+  - [ ] "Best" memory layout in `scripts/train_poetry_lora.py` (NF4 `lm_head` via an empty
+        bitsandbytes skip list, embedding on CPU), then the Qwen3-8B smoke test (~50 steps;
+        peak memory, tokens/s). Qwen3.5-9B after `flash-linear-attention` +
+        `causal-conv1d` are in the env.
+  - [ ] Stronger evaluation: ≥5 themes, seeded, >1 sample per theme, English themes and an
+        English metre target, scorer checked against `eval_gold/adso_gold_100.jsonl`.
+  - [ ] Per-line rhyme-key score in `scripts/evaluate_adapter_mlflow.py`
+        (`GENERATION_QUALITY_PLAN.md` next action 8b; not implemented).
+  - [ ] Rebuild the July `distilled` baseline on the desktop (old adapters are laptop-only).
+  - [ ] Base-model comparison on the distilled recipe (§6 step 3).
+  - [ ] First sized corpus run (`build_fixed_dataset.py --max-poems N`, sized by §5).
+  - [ ] After the retrain: Model Registry aliases for the new champion/challenger.
+- [ ] **Per-machine envs** (2026-09-26) — desktop `poesia` built and checked (Python
+      3.13.14 after the 2026-10-04 switch). Remaining: `poesia-gpu` on the desktop
+      (`scripts/build_llama_cpp.sh`; not created yet); on the laptop, recreate `poesia` on
+      3.13 (`scripts/env.sh create`), build `poesia-gpu`, run both `--check`s and tick
+      README "Machines" → "Verify on the laptop".
 
 ## BACKLOG (priority order)
 
 - [ ] **Lemonade integration for the AMD Lemonade Developer Challenge** (2026-09-28) —
-      Lemonade as LLM provider, champion adapter served locally, GalerIA image backend,
+      Lemonade as LLM provider, PoesIA's own adapter served locally, GalerIA image backend,
       poem read aloud. Plan and checklist: `docs/LEMONADE_INTEGRATION.md`. Time-sensitive:
       laptops are given "until supplies are exhausted".
-- [ ] **Retrain: bigger base model and expanded corpus** (decided 2026-10-04). Plan and
-      step order: `docs/RETRAINING_PLAN_2026-10.md` §6. Corpus rebuilt and enlarged on the desktop
-      2026-10-04: `corpus_master`, 85,027 poems, mainly English; old adapters still laptop-only (needed as baseline). Steps: data onto the desktop →
-      dedup and corpus build → stronger evaluation (≥5 themes, seeded, rhyme-key) → new base
-      on the distilled recipe → smoke-test Qwen3-8B / Qwen3.5-9B (peak memory, tokens/s) →
-      corpus effect → scale. Open: Qwen3-8B smoke test, a private DVC remote both machines reach (the GitHub repo is public).
-- [ ] **Docker images** (2026-10-04): enable Docker Desktop's WSL integration and build both
-      images once (never built since the 3.13 switch); align `training.Dockerfile` with the
-      gpu-cuda13 tier (CUDA 12.4 base and unpinned libs vs the env's cu130 pins). `train.yml`
-      needs a self-hosted GPU runner that doesn't exist.
-
-> ⚠️ (2026-09-08) Adapter eval done — champion is `poetry-lora-distilled` (0.90).
-> The "fixed-format" v2-fixed (4.80) and multi-form v3 (9.29) underperform the
-> earlier distilled/v2/qwen3b; DPO (6.07) lost to plain CE. Full table in
-> `docs/ANALOGIA_PLAN.md`.
-
-- [x] **Evaluate v2-fixed adapter** — DONE (2026-09-08): avg_syll_dev 4.80, line_acc 1.00 — not the champion.
-- [x] **Compare adapters** — DONE (2026-09-08): champion `poetry-lora-distilled` (0.90); see `ANALOGIA_PLAN.md`.
-- [x] **Run experiment grid (CE vs Composite vs DPO)** — effectively DONE: CE (distilled 0.90) beats DPO (6.07); `composite` never trained (dead).
-- [ ] **Test poem generation with v2-fixed** — write a soneto, verify no instruction-echo (v2-fixed is mid-pack, 4.80).
-- [ ] **Docker compose end-to-end** — postgres + mlflow-ui stack is UP (test training service)
+- [ ] **Private DVC remote both machines reach** (`RETRAINING_PLAN_2026-10.md` §7) — the
+      new corpus is cached on the desktop only and the July adapters on the laptop's D:
+      drive only. The GitHub repo is public, so the remote must be private.
+- [ ] **Docker images and compose stack** (2026-10-04): enable Docker Desktop's WSL
+      integration (off; the compose stack is down), build both images once (never built
+      since the 3.13 switch), then test the compose stack end to end (postgres + mlflow-ui +
+      training service). Align `training.Dockerfile` with the gpu-cuda13 tier (CUDA 12.4 base
+      and unpinned libs vs the env's cu130 pins). `train.yml` needs a self-hosted GPU runner
+      that doesn't exist.
+- [ ] **`classical` extra: scansion on Python 3.13** — cltk resolves to 2.x, which has no
+      scansion module; port the cltk 1.x scanners (MIT) or drop the extra.
+- [ ] **career-assets ADR 0007 note** — it quotes poesia's old "8B won't fit 8 GB" claim,
+      corrected 2026-10-04 (`RETRAINING_PLAN_2026-10.md` §3). Pending Angel.
 - [ ] **Run HPO search** — Optuna hyperparameter search
-- [ ] **Run Qwen2.5-3B training _with fixed format_** — 3B already trained (`poetry-lora-qwen3b`, 1.13, 2nd-best); only the "fixed-format" 3B variant is still open.
 - [ ] **Wire `PoetryModelWrapper`** into `mlflow models serve`
 - [ ] **Add titles to Machado poems** — extract from Gutenberg TOC
-- [ ] **Deduplicate corpus** across all files before next training (~13,049 poems, dedup pending — `CORPUS_SOURCES.md`)
+- [ ] **GalerIA: more image backends** — Gemini free tier (quality, needs a key), AI Horde
+      (async polling); real DALL·E/SDXL smoke test with a paid key
+      (`docs/IMAGE_GENERATION_PROVIDERS.md`)
 - [ ] **Try Unsloth** — install and test 2x faster training. Blocked 2026-09-27: unsloth 2026.9.11 caps torch <2.13, transformers <=5.5, trl <=0.24 (see docs/EXPERIMENTS_PLAN.md)
-- [ ] **Model Registry aliases** — promote `poetry-lora-distilled` "champion", `poetry-lora-qwen3b` "challenger"
 - [ ] **Phase 4E** — literary taxonomy auto-tagging
 - [ ] **WordNet Spanish** (omw-es:1.4) — retry when server is up
 - [ ] **Snapshot tests** — CLI + generation pipeline
 
 ## DONE
+
+### 2026-10-04 (retraining plan, corpus, Python 3.13)
+- [x] **Retrain decided** (Angel): larger corpus, larger base model; plan
+      `docs/RETRAINING_PLAN_2026-10.md`; `scripts/estimate_qlora_vram.py` estimates a
+      ~9B ceiling on the RTX 3070 (unmeasured)
+- [x] **Corpus build and dedup** — `scripts/build_corpus.py` → `corpus_master/poems.jsonl`:
+      85,027 poems (49,128 en, 35,899 es; 9,405 sonnets), dedup by full text + first line,
+      ADSO gold removed (was 12,340 unique; the old "~13,049" counted duplicates). New
+      sources via `scripts/ingest_external_corpora.py`; `dvc add`-ed (desktop cache only)
+- [x] **Truncation fix** — `train_poetry_lora.py` drops examples longer than `max_length`
+      (`_drop_overlong`) instead of cutting them; counts logged to MLflow
+- [x] **One Python version: 3.13** — pyproject `>=3.13,<3.14`, CI, deploy, pre-commit, both
+      Dockerfiles, Colab pins (`90f6c32`, `4fdbfb4`, `fd53708`)
+- [x] **CI green** — installs mlflow + the CPU training stack; 446 tests on 3.13, 0 skipped
+      (`56b8167`, `90f6c32`); local suite 519 pass
+- [x] **networkx 3.6.1 → 3.7** (`0789824`)
+- [x] **Extras installable on 3.13** (`75f3e6b`): `recitation` = piper-tts (Spanish verified),
+      `music-ai` = MusicGen through transformers + scipy
+- [x] **Closed as superseded by the retrain decision:** "Test poem generation with
+      v2-fixed" (v2-fixed is mid-pack, 4.80); "Run Qwen2.5-3B training with fixed format";
+      "Model Registry aliases for distilled/qwen3b" (their order is within noise; alias
+      the retrained adapters instead, see IN PROGRESS)
+
+### 2026-09-08 (adapter evaluation)
+
+> ⚠️ (2026-09-08) Adapter eval done — champion is `poetry-lora-distilled` (0.90).
+> The "fixed-format" v2-fixed (4.80) and multi-form v3 (9.29) underperform the
+> earlier distilled/v2/qwen3b; DPO (6.07) lost to plain CE. Full table in
+> `docs/ANALOGIA_PLAN.md`. *(2026-10-04: distilled vs qwen3b is within noise —
+> `RETRAINING_PLAN_2026-10.md` §4.)*
+
+- [x] **Evaluate v2-fixed adapter** — DONE (2026-09-08): avg_syll_dev 4.80, line_acc 1.00 — not the champion.
+- [x] **Compare adapters** — DONE (2026-09-08): champion `poetry-lora-distilled` (0.90); see `ANALOGIA_PLAN.md`.
+- [x] **Run experiment grid (CE vs Composite vs DPO)** — effectively DONE: CE (distilled 0.90) beats DPO (6.07); `composite` never trained (dead).
 
 ### 2026-09-08 (v2-fixed retraining completed)
 - [x] **v2-fixed retraining** (relaunched 2026-08-06) — completed and
@@ -147,11 +190,11 @@
 - [x] Pushed README pass to 7 repos: cielch, hidrive, hiops, microscopy, optics,
       orchard_twins, pcb-tools (as-is, incl. their unpushed commits)
 - [x] research-tools push blocked by its own pre-push `xenon` complexity gate
-      (fails on user's WIP kg code — 6 functions); my README commit `9f45e89`
-      stays local (main ahead 7)
-- [x] **Recovered user WIP**: failed pre-push had reformatted 13 files + trapped
-      15 WIP files in `~/.cache/pre-commit/patch1785845800-534766`; restored via
-      `git restore .` + `git apply` (verified non-trivial diffs back)
+      (fails on user's WIP kg code — 6 functions); my README commit stays local
+- [x] **Recovered user WIP**: failed pre-push had reformatted files + trapped
+      the WIP in a pre-commit stash patch; restored via `git restore .` +
+      `git apply` (verified non-trivial diffs back) *(patch path and commit state
+      removed 2026-10-04: another repo's private state; this repo is public)*
 - [x] Audit doc + memory-bank record the outcome
 
 ### 2026-08-04: README badge/status pass — local commits prepared (8 repos)
@@ -160,8 +203,8 @@
 - [x] Dated Status sections added (cielch, hidrive, hiops, optics, pcb-tools,
       research-tools); orchard_twins badge/hook/honesty fixes committed
 - [x] luminose-ip-archive untouched (P15 purpose-fit) — by design
-- [x] Push state mapped (hiops +13, research-tools +6, cielch +4, optics +1
-      unpushed; hiops may trigger Cloudflare workflows); **push awaiting user
+- [x] Push state mapped (hiops, research-tools, cielch, optics carried unpushed
+      commits; hiops may trigger its deploy workflows); **push awaiting user
       decision**
 - [x] Cloned hidrive-image-index (was missing locally)
 
@@ -246,8 +289,9 @@
       doc determinism corrected 4→2, Cloudflare 3.70 → **3.50** (now #4);
       (3) native 1024×1024 PNG in ~10s
 - [x] 14 new tests; suite 456 → **470 passing**; ruff + mypy clean
-- [ ] (next) proper Workers AI API token for daily use (not wrangler OAuth);
-      Gemini free tier (quality); AI Horde (async polling)
+- [x] (next) proper Workers AI API token for daily use (not wrangler OAuth) —
+      done 2026-08-03 (dedicated token, below); Gemini free tier (quality) and AI
+      Horde (async polling) → moved to BACKLOG "GalerIA: more image backends"
 
 ### 2026-08-03: Free image-gen research + Pollinations backend (live-tested)
 - [x] **`docs/IMAGE_GENERATION_PROVIDERS.md`** — 8-criterion weighted ranking of
@@ -261,7 +305,8 @@
       ⇒ byte-identical images (service-level determinism)
 - [x] `auto` stays offline-first (procedural); pollinations explicit
 - [x] Suite 447 → **456 tests passing**, ruff + mypy clean
-- [ ] (next) Cloudflare Workers AI backend (reliability); Gemini free tier (quality)
+- [x] (next) Cloudflare Workers AI backend (reliability) — done 2026-08-03 (above);
+      Gemini free tier (quality) → moved to BACKLOG
 
 ### 2026-08-03: mypy gate green — 54 type errors fixed
 - [x] Root cause: numpy 2.5 PEP 695 stubs vs `python_version="3.11"` hard-aborted
@@ -272,7 +317,8 @@
       typing, lazy-import attrs typed `Any` (llm_client/seed_expander/model_wrapper/
       poetry_trainer), dead duplicated `raise` removed, GalerIA typing
 - [x] Verified: `mypy src/` Success, ruff check+format clean, full suite exit 0 (447)
-- [ ] (next) free image-gen provider research → implement a `pollinations` backend
+- [x] (next) free image-gen provider research → implement a `pollinations` backend —
+      done 2026-08-03 (above)
 
 ### 2026-08-03: GalerIA offline procedural backend + README showcase
 - [x] **ProceduralImageBackend** (`--backend procedural`): deterministic offline
@@ -287,8 +333,9 @@
       (`docs/examples/auca_el_peso_del_saber.png`), 9 badges, feature headings
       (valid anchors), procedural walkthrough; test count → 447
 - [x] Suite: **447 tests passing** (exit 0), ruff clean on src/ mlops/
-- [ ] (next) real DALL·E/SDXL smoke test with a key; wire retrieval into GalerIA
-      style anchoring (still in BACKLOG)
+- [x] (next) real DALL·E/SDXL smoke test with a key → moved to BACKLOG "GalerIA:
+      more image backends"; wire retrieval into GalerIA style anchoring — done
+      2026-08-04 (`--style-from-retrieval`, above)
 
 ### 2026-08-03: GalerIA wired end-to-end + pro-grade README
 - [x] `poesia galeria illustrate`: one image per stanza, `--backend auto|stub|openai|replicate`,
@@ -299,7 +346,9 @@
 - [x] README rewritten pro-grade (features, quickstart, GalerIA walkthrough, extras, license)
 - [x] Share tarball regenerated: `dist/poesia-share-20260803.tar.gz` (13M, secret-scan clean)
 - [x] Suite: 431 tests passing (commits 256c7b1, e52c297)
-- [ ] (next) persist `image:` in library frontmatter; real DALL·E/SDXL smoke test with key
+- [x] (next) persist `image:` in library frontmatter — done 2026-08-03
+      (`Library.attach_image()`, above); real DALL·E/SDXL smoke test with key → moved
+      to BACKLOG
 
 ### 2026-08-03: Unstick — lint pass committed, suite green
 - [x] Completed & committed the in-flight lint pass (37 files): ruff format on `src/ mlops/`,
@@ -309,7 +358,8 @@
       (aligned with P5.3 structured-exception migration): `test(hosted-llm)` commit
 - [x] Dutch phonology tests skip gracefully when pyphen unavailable: `test(phonology)` commit
 - [x] Full suite green at HEAD — 416 tests, exit 0 (commits 84fed6b, 5c4c423, 02bb8c9)
-- [ ] (next) relaunch v2-fixed retraining once PostgreSQL/MLflow is back up
+- [x] (next) relaunch v2-fixed retraining once PostgreSQL/MLflow is back up —
+      relaunched 2026-08-06, completed 2026-09-08 (above)
 
 ### 2026-08-03: Private-share pack (README, license, emails)
 - [x] LICENSE (MIT) + NOTICE reserving rights on `seeds/` creative content
@@ -318,9 +368,8 @@
 - [x] pyproject license field → MIT
 - [x] `share/` email drafts (cover + setup tour, EN/ES) + sharing checklist
 - [x] `scripts/package_share.sh` — verified 13 MB tarball, secret-scan safe
-- [ ] (Angel decision) pick license variant + delivery channel (email tarball vs private GitHub)
-
-## DONE
+- [x] (Angel decision) pick license variant + delivery channel (email tarball vs private GitHub)
+      — resolved: MIT + NOTICE kept; the repo is on GitHub (`OomAngel/poesia`, public)
 
 ### 2026-08-01: Retraining + Corpus + Sonetos
 - [x] DPO finished: loss=0.008, acc=1.0, 5/5 epochs
@@ -334,8 +383,6 @@
 - [x] Sonetos written & saved: "El peso del saber", "El umbral", Radicle ×6 versions (ES+EN)
 - [x] Model Registry re-linked to migrated runs (3 models verified)
 - [x] Library: 13 poems
-
-## DONE
 
 ### 2026-07-30 Session: Gap-Fixing Sprint (7 issues)
 - [x] **GPU memory leak** — killed stale `sci-pipeline` uvicorn (PID 44333), freed 3.3GB

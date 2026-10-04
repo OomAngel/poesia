@@ -110,8 +110,8 @@ anything is shared.
 
 ### 6. cielch-color-research — 19/56 (34%)
 
-**Strengths.** Clear evidence-boundary statement (P7 = 3, P15 = 4): *"not a
-grant to publish datasets, generated figures, or unpublished conclusions"* —
+**Strengths.** Clear evidence-boundary statement (P7 = 3, P15 = 4): it says
+its committed artifacts are private context, not a grant to publish —
 exemplary private posture. Layout table + caution.
 
 **Gaps.** Private evidence repo: showcase/badges are *not* the goal. The only
@@ -136,8 +136,8 @@ effort-to-value ratio for a full rewrite.
 ### 9. luminose-ip-archive — 10/56 (18%) — purpose-fit 4/4
 
 **Do not change the presentation.** The README is *correct* for its job:
-first line says "Never to be published, shared, or made portfolio material",
-explains why it exists, and states the policy. P15 = 4. The only suggestion:
+its first line says it is not to be published or used as portfolio material,
+it explains why it exists, and it states the policy. P15 = 4. The only suggestion:
 make sure **no other repo links to it** as a reference.
 
 ---
@@ -148,37 +148,25 @@ make sure **no other repo links to it** as a reference.
    (see [Audit changelog](#audit-changelog)).
 2. ✅ **Descriptions set** on `orchard_twins` + `research-tools` (2026-08-04).
 3. ⚠️ **License "fix" retracted.** `microscopy-instrument-workbench`'s
-   `NOASSERTION` is **deliberate** — its `LICENSE` says "UNLICENSED — PRIVATE
-   PERSONAL REPOSITORY · All rights reserved" and explicitly defers any
-   open-source decision. Do **not** replace it; that would be a legal grant on a
+   `NOASSERTION` is **deliberate** — its `LICENSE` reserves all rights and
+   defers any open-source decision. Do **not** replace it; that would be a legal grant on a
    private workbench. `luminose-ip-archive` intentionally has none. Both are
    correct P15 posture.
 4. ✅ **CI + license badges added** (2026-08-04, local commits) — cielch,
    hidrive, hiops, microscopy, optics, pcb-tools, research-tools; badge rows use
    the PoesIA grammar.
 5. ✅ **Dated Status sections (P13) added** (2026-08-04) — hiops, pcb-tools,
-   research-tools, cielch, optics, hidrive; orchard_twins status + self-score
-   refreshed to measured facts. *(7/8 pushed; research-tools blocked by its own
-   xenon gate — see [Audit changelog](#audit-changelog).)*
-
-4. ✅ **CI badges added** (2026-08-04) — cielch, hidrive, hiops, microscopy,
-   optics, pcb-tools, research-tools (quality/ci/tests workflow each, verified).
-   Badge rows use the PoesIA grammar (license `-yellow`, `-blue` facts).
-5. ✅ **Dated Status sections (P13) added** (2026-08-04) — hiops, pcb-tools,
    research-tools, cielch, optics, hidrive; orchard_twins' status refreshed to
-   honest "Active (2026-08) · v0.5.0 · CUDA 12.9 rebuild" (was a stale 2025-01-20
-   "Production-Ready") and its subjective "Architecture Quality 8.3/10" replaced
-   with measured facts (182 tests · 47% coverage · CI 1m45s). All prepared as
-   local commits; **pushes pending user confirmation** (4 repos carry unpushed
-   local work: hiops +13, research-tools +6, cielch +4, optics +1).
+   an honest dated line (was a stale "Production-Ready") and its subjective
+   "Architecture Quality 8.3/10" replaced with measured facts.
 
 ## Audit changelog
 
 | Date | Change |
 |---|---|
-| 2026-08-04 | **Metadata pass applied (Alternative A).** Descriptions set on `orchard_twins` + `research-tools`; 5–6 topics added to all 9 repos via `gh repo edit`. License step **dropped** after inspection: `microscopy`'s `NOASSERTION` is deliberate (UNLICENSED private-workbench text), not a defect. CI-badge and Status-section steps deferred. |
+| 2026-08-04 | **Metadata pass applied (Alternative A).** Descriptions set on `orchard_twins` + `research-tools`; 5–6 topics added to all 9 repos via `gh repo edit`. License step **dropped** after inspection: `microscopy`'s `NOASSERTION` is deliberate (an all-rights-reserved private license), not a defect. CI-badge and Status-section steps deferred. |
 | 2026-08-04 | **README pass prepared (local commits).** CI + license badges (7 repos), dated Status sections (6 repos), orchard_twins badge/hook/honesty fixes. `luminose-ip-archive` untouched (P15 purpose-fit). |
-| 2026-08-04 | **Pushed 7/8** (user-approved, as-is): cielch, hidrive, hiops, microscopy, optics, orchard_twins, pcb-tools. **`research-tools` NOT pushed** — its own pre-push quality gate (`xenon` complexity) fails on the user's WIP knowledge-graph code (6 functions in `kg_build.py`, `kg_enrich_all.py`, `reference_graph_enricher.py`, `graph_api/main.py`). The failed push's pre-commit run also reformatted 13 files and trapped the user's WIP in a stash patch; **WIP fully restored** (15 files, from `~/.cache/pre-commit/patch1785845800-534766`), hook formatting reverted. research-tools remains local: `main` ahead 7 (incl. my README commit `9f45e89`). |
+| 2026-08-04 | **Pushed 7/8** (user-approved, as-is): cielch, hidrive, hiops, microscopy, optics, orchard_twins, pcb-tools. `research-tools` was not pushed: its own pre-push quality gate failed on work in progress there. |
 
 ## Priority matrix (impact × effort)
 

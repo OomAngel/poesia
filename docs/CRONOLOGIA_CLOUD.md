@@ -37,17 +37,22 @@ The PostgreSQL DB is a fast query cache, never the single source of truth.
 
 ---
 
-## Tier 1: Local Docker (current — zero cloud, zero cost)
+## Tier 1: Local Docker (zero cloud, zero cost)
 
 ```bash
 cd cronologia
 docker compose up -d
 ```
 
+`cronologia/docker-compose.yml` is a standalone variant; the canonical local stack is
+`docker compose -f docker/docker-compose.yml up -d postgres mlflow-ui`
+(`docs/INFRASTRUCTURE_DECISIONS.md`). Docker images have not been rebuilt since the
+Python 3.13 switch.
+
 - **DB:** Local PostgreSQL container
 - **UI:** http://localhost:5000
-- **Backup:** `experiments.jsonl` (git-committable) + optional `pg_dump`
-- **Limits:** Only runs when Docker is up. Laptop must be on.
+- **Backup:** `mlops/mlflow_metadata_dump.sql` (in git) + optional `pg_dump`
+- **Limits:** Only runs when Docker is up on the machine that hosts it.
 
 ---
 
@@ -80,7 +85,7 @@ services:
 
 **Pros:** Database is always available. Data survives laptop loss.
 **Cons:** Neon free tier suspends after 5min idle (wakes on query).
-**Backup:** `pg_dump` weekly → store alongside `experiments.jsonl`.
+**Backup:** `pg_dump` weekly → store alongside `mlops/mlflow_metadata_dump.sql`.
 
 ---
 
@@ -104,7 +109,7 @@ Deploy MLflow server on [Railway](https://railway.app) or [Fly.io](https://fly.i
 ```
 
 ```dockerfile
-# Dockerfile.mlflow
+# sketch; the repo's MLflow image is docker/mlflow.Dockerfile
 FROM ghcr.io/mlflow/mlflow:v3.14.0
 CMD mlflow server \
   --backend-store-uri ${DATABASE_URL} \
@@ -119,7 +124,7 @@ CMD mlflow server \
 
 | Tier | Monthly | Uptime | Setup time |
 |------|---------|--------|------------|
-| Local Docker | **$0** | Laptop only | 5 min |
+| Local Docker | **$0** | Host machine only | 5 min |
 | Docker + Neon | **$0** | DB always up | 15 min |
 | Railway | ~**$5** | Full cloud | 30 min |
 | Fly.io | **$0** | Full cloud (limited RAM) | 30 min |
@@ -130,7 +135,7 @@ CMD mlflow server \
 
 ```
 Local Docker ──► Docker + Neon ──► Railway/Fly.io
-    (now)        (5 min change)     (30 min deploy)
+  (Tier 1)       (5 min change)     (30 min deploy)
 ```
 
 Each step is a forward-compatible change to the same `docker-compose.yml`.

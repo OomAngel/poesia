@@ -86,8 +86,8 @@ smoke run in §6 step 4.
   fit. Second, the "best" layout needs a code change in `scripts/train_poetry_lora.py` (an
   empty bitsandbytes skip list and the embedding placed on CPU).
 - **Largest with no new dependencies: Qwen3-8B.** Standard transformer, 0.4 GB more headroom.
-- **Spanish specialist: Salamandra-7B.** Worth one run because the target is Spanish metre.
-  Weaker as a general model.
+- **Spanish specialist: Salamandra-7B.** Worth one run for the Spanish share of the corpus
+  (~42%) and Spanish metre; training is mainly English (§7). Weaker as a general model.
 - **Fair comparison at the current size: Qwen3.5-2B or Qwen3-4B-2507.** These separate "newer
   base model" from "bigger model".
 
@@ -99,10 +99,10 @@ The environment already supports these architectures: transformers 5.14.1 includ
 
 | Fact | Source |
 |---|---|
-| **2026-10-04: master corpus of 85,027 poems (49,128 English, 35,899 Spanish, 9,405 sonnets)**, deduplicated, ADSO gold removed (`scripts/build_corpus.py`). Before: 12,340 unique. Added: POSTDATA (22,291 es), public-domain English (33,234), Poetry Foundation (12,322), DISCO v5 and Golden-Age corpora (5,034), Gutenberg (533) | `CORPUS_SOURCES.md` |
-| Deduplication across files is still pending, and "the next training run should use the dedup'd build" | `CORPUS_SOURCES.md`, `memory-bank/tasks.md` |
-| **The 2026-08-31 expansion isn't wired into any training config.** Every config names specific curated files (`sonetos_*`, `master_train*`, `multiform_train`), not a glob | `CORPUS_SOURCES.md` "Known limitations" |
-| `scripts/build_fixed_dataset.py` globs all of `training_data_structured/*.jsonl`. That glob produced the 38K-example `v2-fixed` dataset on 2026-08-01, *before* the 08-31 expansion | the script, `memory-bank/activeContext.md` |
+| **2026-10-04: master corpus of 85,027 poems (49,128 English, 35,899 Spanish, 9,405 sonnets)**, deduplicated, ADSO gold removed (`scripts/build_corpus.py`). Before: 12,340 unique. Added (counts before cross-source dedup, so they sum to 85,754): POSTDATA (22,291 es), public-domain English (33,234), Poetry Foundation (12,322), DISCO v5 and Golden-Age corpora (5,034), Gutenberg (533) | `CORPUS_SOURCES.md` |
+| Deduplication across files is done in `corpus_master` (full text + first line; 19,227 copies dropped). The per-source files still contain the duplicates | `CORPUS_SOURCES.md` "Known limitations" |
+| **The training path to the new corpus:** `scripts/build_fixed_dataset.py` reads `corpus_master/poems.jsonl` (it falls back to globbing `training_data_structured/*.jsonl` only when the master corpus is missing) and writes `mlops/data/train_fixed.jsonl`, the file `train_v2_fixed.yaml` trains on. The other configs still name specific curated files (`sonetos_*`, `master_train*`, `multiform_train`) | the script, `mlops/configs/` |
+| History (2026-08-01): the old glob over `training_data_structured/*.jsonl` produced the 38K-example `v2-fixed` dataset, *before* the 08-31 expansion | `memory-bank/activeContext.md` |
 | The champion `poetry-lora-distilled` trained on `training_data_distilled/`: 57,862 bytes, about 100 Groq-distilled sonnets (`dvc.yaml`: `distill_sonetos.py --count 100`) | `dvc.lock` |
 | **The corpus was rebuilt on the desktop 2026-10-04** from git history (`f8b2017^`) and the fetch scripts, without the DVC remote (`CORPUS_SOURCES.md` "Rebuilding the corpus"). **The adapters are still only on the laptop's D: drive** (`models/` is 36 KB here). | checked 2026-10-04 |
 | Copyrighted modern poets (Paz, Sabines, Neruda, the Poetry Foundation set) are in by Angel's decision: training a personal model, poems never shared | 2026-10-04 |
@@ -117,7 +117,8 @@ Training on more, broader data has lost twice so far:
 Both lost to `distilled`, which trained on about 100 clean sonnets (0.90 and 1.29). Neither
 loss is a clean test of corpus size. `v2-fixed` also changed the prompt format, and
 `multiform` changed the task. Still, nothing yet shows that more raw poetry improves the
-metric, which rewards exact hendecasyllables. Human-written verse has irregular metre, and
+metric, which today rewards exact Spanish hendecasyllables (an English metre target is part of
+§6 step 2). Human-written verse has irregular metre, and
 the auto-split Gutenberg files contain some table-of-contents and dedication noise.
 
 Retraining therefore treats corpus size as a hypothesis to test, not an assumed win. §6
@@ -145,9 +146,9 @@ poems            = time budget × throughput ÷ (tokens per poem × epochs)
 **Tokens per poem**, measured 2026-10-04 with the Qwen3.5 tokenizer, `max_length` 300, on
 random samples from `corpus_master` (scratchpad scripts; rerun on corpus or model change):
 
-| Sample | Line examples per poem | Survive the 300-token cut | Usable tokens per poem |
+| Sample | Line examples per poem | Fit in 300 tokens (kept) | Usable tokens per poem |
 |---|---|---|---|
-| Sonnets (200) | 14.5 | 99% (line 14 cut in 10% of sonnets) | ~2,600 |
+| Sonnets (200) | 14.5 | 99% (line 14 dropped in 10% of sonnets) | ~2,600 |
 | Spanish, all forms (250) | 49.2 | 32% | ~2,700 |
 | English (250) | 38.7 | 39% | ~2,550 |
 
@@ -161,9 +162,9 @@ Fewer poems over more epochs is how the July runs worked (10 epochs on ≤ 500 s
 this corpus, more poems at 1–3 epochs uses its breadth better.
 
 **Bug the size depends on:** each line's prompt lists every previous line, and training
-truncates `prompt + completion + EOS` at 300 tokens from the right
-(`train_poetry_lora.py`). From about line 19–20 of a long poem the target line and EOS are cut
-off, so the example teaches the model to continue the prompt. That's 61–68% of examples
+truncated `prompt + completion + EOS` at 300 tokens from the right (`train_poetry_lora.py`,
+before commit `923434e`). From about line 19–20 of a long poem the target line and EOS were
+cut off, so the example taught the model to continue the prompt. That's 61–68% of examples
 outside sonnets. **Fixed 2026-10-04 with option (a):** `train_poetry_lora.py` tokenizes without
 truncation and drops any example longer than `max_length` (`_drop_overlong`; the counts are
 logged as the MLflow params `dropped_overlong_train` and `dropped_overlong_eval`). On 150
@@ -187,7 +188,8 @@ Each step changes one thing, so its effect can be read off.
    examples (2.4× `v2-fixed`), and a random sample keeps the ~58% English mix. Size it with
    §5. Optional still: filter for
    metre with `scripts/filter_exact_syllables.py`. It takes `--language es|en`, so run it once
-   per language on split files. Don't use `quality_filter.py` on the full corpus: it applies
+   per language on split files. Its `--target` defaults to 11 (hendecasyllable); pass
+   `--target 10` for English pentameter. Don't use `quality_filter.py` on the full corpus: it applies
    Spanish phonology with no language guard (`CORPUS_SOURCES.md`). Record `corpus_master/manifest.json`'s sha256 and the
    `--max-poems`/`--seed` used in the adapter registry.
 2. **Strengthen the evaluation before trusting any new score.** Use at least 5 themes (the
@@ -197,10 +199,12 @@ Each step changes one thing, so its effect can be read off.
    Training is now mainly English, so the evaluation needs English themes and an English
    metre target too, not only Spanish hendecasyllables.
 3. **Separate base model from data.** Run the champion recipe (`train_distilled.yaml`, same
-   100 sonnets) on Qwen3.5-2B or Qwen3-4B-2507, with only `base_model` changed. Compare it
+   100 sonnets) on Qwen3.5-2B or Qwen3-4B-2507, with only the config's `model:` key changed. Compare it
    with `distilled` under the step-2 evaluation.
-4. **Smoke-test the largest model.** Run Qwen3-8B, then Qwen3.5-9B once its two kernels are
-   installed, for about 50 steps using the best layout. Record
+4. **Smoke-test the largest model.** Prerequisite: implement the best layout in
+   `scripts/train_poetry_lora.py` (§3 "Picks": empty bitsandbytes skip list so `lm_head` is
+   NF4, embedding placed on CPU); as of 2026-10-04 the script has neither. Then run Qwen3-8B,
+   then Qwen3.5-9B once its two kernels are installed, for about 50 steps. Record
    `torch.cuda.max_memory_allocated()` and tokens/s. This confirms or refutes §3.
 5. **Measure the corpus effect.** Keep the winning base from step 3 and train on (a) the
    distilled set and (b) the step-1 corpus, then the distilled set. Only (b) beating (a)

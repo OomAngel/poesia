@@ -3,6 +3,12 @@
 > **Status:** `evaluate` stage adopted and driven via `dvc repro` (2026-09-02) · `distill`/`train`
 > still skeleton-only — never run under DVC on the laptop, where `evaluate` runs and which cannot
 > train (see `TRAINING_RUNBOOK.md`) · **Added:** 2026-08-10
+>
+> **Status 2026-10-04:** the poetry corpus is DVC-tracked too (never in git since `f8b2017`);
+> `corpus_master` was `dvc add`ed on the desktop and is cached there only, not pushed. The
+> only remote is on the laptop's D: drive, which the desktop can't reach; a remote both
+> machines reach is open (`RETRAINING_PLAN_2026-10.md` §7). The desktop now trains, but the
+> 2026-10 retraining runs outside DVC (see the gotcha below).
 
 ## Why
 
@@ -10,9 +16,9 @@
 complete MLOps stack among this repo's siblings, covering training-to-
 deployment: autologging, model registry, serving. It does not cover
 data-to-training: the `distill -> train -> eval` chain (`MLproject`'s
-`pipeline` entry point) always re-runs every stage, and growing training
-datasets under `seeds/poetry_corpus/` sit in plain git with no dependency-
-aware versioning.
+`pipeline` entry point) always re-runs every stage, and (before `f8b2017`)
+growing training datasets under `seeds/poetry_corpus/` sat in plain git
+with no dependency-aware versioning.
 
 The split, confirmed against real-world documented practice (DVC + MLflow
 is a named combination, not an invented one -- see e.g. AWS's
@@ -44,6 +50,12 @@ they do today.
   identical numbers to MLflow (see `GENERATION_QUALITY_PLAN.md`).
 - Verified: `dvc dag` resolves the correct chain, `dvc params diff`
   correctly reads the 6 tracked params out of the real YAML.
+- The corpus is data-tracked (never in git since `f8b2017`; the GitHub repo
+  is public): `.dvc` pointers under `seeds/poetry_corpus/` for
+  `corpus_master`, `training_data_structured`, `external`, `eval_gold`,
+  `sonetos_curated`, `training_data` and `repair_examples`. `corpus_master`
+  was `dvc add`ed 2026-10-04 on the desktop; its cache is on the desktop
+  only, not pushed to any remote.
 
 ## Gotcha: `dvc repro evaluate` is NOT safe to run bare (it retrains first)
 
@@ -55,6 +67,11 @@ script) have since changed, so DVC considers `train` out of date. A bare
 upstream chain and would **retrain `poetry-lora-v2` first** -- i.e. kick
 off a real GPU training job -- which must never happen on the laptop
 (training happens on the desktop, see `TRAINING_RUNBOOK.md`).
+The `train` stage is still the July recipe (`train_v1.yaml` on
+`sonetos_train.jsonl` → `poetry-lora-v2`), not the 2026-10 retraining
+(`build_fixed_dataset.py --max-poems` on `corpus_master`, then
+`train_poetry_lora.py`; `RETRAINING_PLAN_2026-10.md`), which runs outside
+DVC — so a bare `dvc repro` is wrong on the desktop too.
 Always reproduce each `evaluate@<adapter>` stage individually with
 `--single-item` (`-s`), which skips the recursive upstream check entirely:
 
@@ -77,19 +94,22 @@ upstream `train`) would run, without executing anything.
   quantized GGUF (`*-Q4_K_M.gguf`); the regenerable intermediates
   (`merged/` full-model safetensors and `*-f16.gguf`) are excluded via
   `.dvcignore`. `poetry-lora-qwen3b` was re-tracked under this rule,
-  shrinking it from ~20.7 GB to ~2.1 GB.
+  shrinking it from ~20.7 GB to ~2.1 GB. As of 2026-10-04 this is still the
+  only remote: the July adapters' data exists only there (the desktop's
+  `models/` holds `.dvc` pointers), and the desktop can't reach it.
 - Regenerable intermediates (`merged/` full-model safetensors, `*-f16.gguf`)
   are rebuilt from `final_adapter/` + the base model by
   `scripts/convert_adapters_to_gguf.py`.
 - MLflow results are **not** in the Docker Postgres backend (that DB only
   holds MLflow's own demo traces). They live in the local SQLite/FileStore
-  at `mlruns/` — metadata in `mlruns/mlflow.db` (71 runs, 8 registered
-  models), artifacts in `mlruns/<experiment_id>/<run_id>/`. A point-in-time
+  at `mlruns/` on the laptop — metadata in `mlruns/mlflow.db` (71 runs, 8
+  registered models; the desktop has no `mlflow.db`), artifacts in `mlruns/<experiment_id>/<run_id>/`. A point-in-time
   SQL dump is committed at `mlops/mlflow_metadata_dump.sql`; regenerate it
   with a SQLite dump of `mlruns/mlflow.db` (e.g. `sqlite3 mlruns/mlflow.db
   .dump` or Python's `sqlite3.Connection.iterdump()`). To also back up
   artifacts, archive `mlruns/` itself.
-- `distill` and `train` are still declared but not executed under DVC --
-  running `train` for real, and deciding whether to fold `dvc repro` into
-  the `poesia` CLI or `MLproject`, stays out of scope until it can be done
-  on training-capable hardware (the desktop), not the laptop.
+- `distill` and `train` are still declared but not executed under DVC.
+  The desktop can train since 2026-10; wiring `train` to `corpus_master`
+  (and deciding whether to fold `dvc repro` into the `poesia` CLI or
+  `MLproject`) is open, not scheduled — the retraining plan runs training
+  outside DVC for now.

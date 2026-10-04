@@ -27,7 +27,7 @@
 - [x] `EspeakRecitationBackend` for TTS
 - [x] `SpanishPhonology.rhyme_key` & `classify_stanza`
 
-## Phase 3 — Graph RAG + Pre-Generation Enrichment (current)
+## Phase 3 — Graph RAG + Pre-Generation Enrichment ✅
 
 ### 3A: Core Graph RAG ✅
 - [x] Storage backend decision: NetworkX (JSON persistence)
@@ -45,7 +45,8 @@
 - [x] `InfluenceRecord` — poets/works that resonate
 - [x] `SeedExpander` — WordNet + rhyme + semantic + Datamuse expansion
 - [x] First 10 personal fragments in `seeds/angel_fragments/` (now 26)
-- [x] Influence registry (24 poets) in `docs/INFLUENCE_REGISTRY.md`
+- [x] Influence registry (24 poets): now `data/influences.yaml`, loaded by
+      `memoria/influence_loader.py`; `docs/INFLUENCE_REGISTRY.md` is a readable copy
 - [x] Ingestion CLI: `poesia memoria add-fragment|add-seed|add-influence|list-fragments|list-influences`
 
 ### 3D: Pre-Generation Enrichment ✅ (see `docs/ENRICHMENT.md`)
@@ -74,7 +75,7 @@ Your inputs → PoesIA enriches → LLM (one dense call) → PoesIA validates �
 ```
 
 PoesIA front-loads context to minimize LLM calls and keep your voice central.
-See `ENRICHMENT_ARCHITECTURE.md` for the full design.
+See `docs/ENRICHMENT.md` for the full design.
 
 ## Phase 4 — Polish & Real Generation ✅
 
@@ -82,7 +83,7 @@ See `ENRICHMENT_ARCHITECTURE.md` for the full design.
 - [x] Wire `HostedLLMClient` to actual Gemini/OpenAI APIs
 - [x] CLI `--llm gemini|openai|stub|auto` option
 - [x] Environment variable config for API keys (GEMINI_API_KEY, OPENAI_API_KEY)
-- [ ] End-to-end poem generation test (requires API key)
+- [x] End-to-end poem generation test (requires API key): live run confirmed in 5A
 
 ### 4B: Richer Influence Profiles ✅
 - [x] `InfluenceRecord` already has movement, era, tone, forms, exemplars, resonance_notes
@@ -100,10 +101,11 @@ See `ENRICHMENT_ARCHITECTURE.md` for the full design.
 - [x] Auto-compute embeddings for records missing from embeddings dict
 - [x] Semantic edges rebuilt automatically
 
-### 4E: Literary Taxonomy Integration (deferred)
-- [ ] Auto-tag influences by movement from taxonomy
-- [ ] Retrieval by movement/era
-- [ ] Brief includes movement context
+### 4E: Literary Taxonomy Integration (partly done)
+- [ ] Auto-tag influences by movement from taxonomy (no code reads `docs/LITERARY_TAXONOMY.md`)
+- [x] Retrieval by movement/era: `influence_loader.get_influences_by_movement` /
+      `get_influences_by_era`; `BriefBuilder.build(movement=)`; CLI `--movement`
+- [x] Brief includes movement context (influence lines carry the movement tag)
 
 ## Phase 5 — Generation Quality + P0/P1 Hardening ✅ (2026-07-27)
 
@@ -177,20 +179,23 @@ See `ENRICHMENT_ARCHITECTURE.md` for the full design.
 
 - 500 structured sonetos, LoRA r=16, 10 epochs, loss=2.69
 - Line count: 100% (14/14), Syllable deviation: 1.1 (56% improvement over v1)
-- Adapter: `models/poetry-lora-v2/final_adapter/`
+- Adapter: `models/poetry-lora-v2/final_adapter/` (path no longer present; `models/`
+  now holds `poetry-lora-v2-fixed.dvc`)
 - Run ID: `20260728_231807`
 
-### Proposed retraining (v3: multi-form)
+### Retraining v3: multi-form (trained)
 
 See `mlops/configs/train_multiform.yaml` — r=32, 12 epochs, 1,246 poems across 5 forms.
+Trained: `models/poetry-lora-multiform.dvc`, listed in `mlops/adapter_registry.json`.
+Next round: `docs/RETRAINING_PLAN_2026-10.md`.
 
-### Key techniques still to explore
+### Techniques (status checked 2026-10-04)
 
-| Technique | What it does |
-|---|---|
-| **DSPy prompt optimization** | Algorithmically searches for optimal prompt format |
-| **RL / DPO with scorer as reward** | Train to maximize metre+rhyme score, not next-token loss |
-| **Grammar-constrained decoding** | Constrain token generation at inference (Outlines) |
-| **Knowledge distillation** | Use Groq to generate perfect sonetos, train 1.5B to imitate |
-| **Unsloth** | 2x faster training, 50% less memory |
-| **Synthetic data augmentation** | Generate variations with theme swaps, syllable errors |
+| Technique | What it does | Status |
+|---|---|---|
+| **DSPy prompt optimization** | Algorithmically searches for optimal prompt format | Not tried |
+| **RL / DPO with scorer as reward** | Train to maximize metre+rhyme score, not next-token loss | Done: `scripts/train_poetry_dpo.py`, `dpo_v1.yaml` → `poetry-lora-dpo-expanded` |
+| **Grammar-constrained decoding** | Constrain token generation at inference (Outlines) | Done: `OutlinesClient` (`--llm outlines`) |
+| **Knowledge distillation** | Use Groq to generate perfect sonetos, train 1.5B to imitate | Done: `scripts/distill_sonetos.py` → `poetry-lora-distilled` |
+| **Unsloth** | 2x faster training, 50% less memory | Blocked by version pins |
+| **Synthetic data augmentation** | Generate variations with theme swaps, syllable errors | Data done (`generate_synthetic_repair_pairs.py`, `train_repair.yaml`); no repair adapter trained |

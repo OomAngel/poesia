@@ -1,6 +1,8 @@
 # Literary Taxonomy
 
-_Reference document for movements, eras, and schools. Implementation deferred to Phase 4._
+_Reference document for movements, eras, and schools. No code reads it. Movement
+filtering uses the `movement` field in `data/influences.yaml`; auto-tagging from this
+taxonomy (ROADMAP 4E) is open._
 
 ## Spanish-Language Movements
 

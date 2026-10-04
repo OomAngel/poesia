@@ -16,7 +16,8 @@
   voice of classic poets (Dickinson, Whitman, Poe, …). The human is the
   author; the AI holds options. `[known]`
 - Sunset experiment — the POSITIONING finding still holds: *no validation,
-  no teaching-*why*, no aftercare, no library.* `[verified]` (POSITIONING §5)
+  no teaching-*why*, no aftercare, no library.* `[known]` (POSITIONING §5;
+  not re-verified verbatim, see §8 and POSITIONING §9)
 - **UX lesson for PoesIA:** the human-writes-first interaction is proven
   viable; its failure was *aftercare* — nothing taught, nothing kept.
   PoesIA's teaching voice + memoria are exactly the missing layers.
@@ -44,7 +45,7 @@
   - **Verb-first feature names** (`Write`, `Rewrite`, `Expand`) — each tool
     is a *gesture the human performs*, not a model the human invokes. PoesIA
     should name flows as verbs/experiences, not internals
-    ("scan", "workshop", "keep" — not "generate candidates").
+    ("scan", "workshop", "keep" via `--save` — not "generate candidates").
   - **The human stays in a rich editing surface** — a document canvas, not a
     prompt box. PoesIA's interactive selector is the right instinct; the
     canvas is worth considering as it grows.
@@ -104,7 +105,7 @@ Synthesized from the above, mapped to the four movements:
 2. **The human's hands stay on the work.** (Verse by Verse) — human-writes-
    first is the default; machine output is *option*, never *finished work*.
 3. **Name the gesture, not the mechanism.** (Sudowrite) — verbs and felt
-   experiences (`scan`, `workshop`, `keep`), never "candidate generator"
+   experiences (`scan`, `workshop`, keep via `--save`), never "candidate generator"
    or "scoring mode".
 4. **The interface disappears behind the imagination.** (NovelAI) — no raw
    scores, no backend telemetry in the default path (implemented:

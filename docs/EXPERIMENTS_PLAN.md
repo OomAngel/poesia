@@ -1,5 +1,10 @@
 # Experiment Plan — Training Techniques & Model Comparison
 
+> **Status (2026-10-04):** partly superseded. Current base-model candidates and the order of
+> work are in `docs/RETRAINING_PLAN_2026-10.md` (§3, §6); trained adapters are listed in
+> `mlops/adapter_registry.json`; current hyperparameters are in `mlops/configs/*.yaml`. The
+> technique ideas in §3 (r=64, all linear layers, multi-teacher, filtered data) are still open.
+
 ---
 
 ## 1. MLflow Features (full)
@@ -7,9 +12,9 @@
 | Feature | What it does | Why for PoesIA | Status |
 |---------|-------------|----------------|--------|
 | **Tracking** | Log params, metrics, artifacts per run | Already wired — loss curves, adapter zips | ✅ |
-| **Model Registry** | Tag adapters as "staging" -> "production" | Auto-select best adapter for `--llm lora` | ❌ Not wired |
+| **Model Registry** | Tag adapters as "staging" -> "production" | Auto-select best adapter for `--llm lora` | 🟡 Registration wired (`registered_model_name` in `train_poetry_lora.py`); no automatic production selection |
 | **MLflow Evaluate** | Built-in eval for text models | Run `mlflow.evaluate()` with our scorer for per-adapter reports | ❌ Not wired |
-| **MLflow Recipes** | Full pipeline: distill -> train -> eval -> register | One `mlflow run` does everything end-to-end | ❌ Not wired |
+| **MLflow Recipes** | Full pipeline: distill -> train -> eval -> register | One `mlflow run` does everything end-to-end | ❌ Not available: removed in MLflow 3 (the env has 3.14.0). The `pipeline` entry point in `MLproject` chains distill -> train |
 | **Parallel experiments** | Train multiple configs simultaneously | Compare r=16 vs r=32 vs r=64 in one session | ❌ Not tried |
 | **Webhook alerts** | Notify when training ends | Terminal bell / Slack message when done | ❌ Not needed |
 
@@ -34,7 +39,7 @@ list, with per-model memory computed from tensor shapes, is in
 `docs/RETRAINING_PLAN_2026-10.md` §3: up to ~9B is estimated to fit on the RTX 3070 (unmeasured).
 
 **Correction 2026-07-30:** "Ruli-3B" was listed as a candidate but the model ID does not resolve on HuggingFace. Replaced with Qwen2.5-3B in practice; config at `mlops/configs/train_qwen3b.yaml`.
-Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
+Swapping a base model is one change to a config's `model:` key and a rerun.
 
 ---
 
@@ -61,19 +66,22 @@ Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
    `ANALOGIA_PLAN.md` "Current adapter comparison".
 
 2. Unsloth + r=64 (tests if faster training + more params helps) — not started
-   → pip install unsloth; edit train_multiform.yaml (lora_r: 64)
+   → Unsloth is blocked by version pins (§3); r=64 can be tested without it
+     on the champion recipe (train_distilled.yaml, lora_r: 64)
 
 3. ✅ Qwen2.5-3B + current config — trained and registered
    (`poesia-lora-soneto-qwen3b`), GGUF-converted. "Ruli-3B" never existed on
    HuggingFace (see §2 correction above); this was its replacement.
 
-4. MLflow Recipes (automate the whole pipeline) — not started
-   → mlflow run . -- entry-point train
+4. MLflow Recipes (automate the whole pipeline) — not possible: Recipes was
+   removed in MLflow 3; the closest existing path is
+   → mlflow run . -e pipeline   (see TRAINING_RUNBOOK.md: `mlflow run` needs
+     the docker_env image, not built as of 2026-10-04)
 
 5. MLflow Model Registry (auto-select best adapter) — registry itself is
    populated (9 adapters), but nothing tags/selects a "production" adapter
    automatically yet
-   → Tag best run as "production" → LORAdAPTER_PATH reads from registry
+   → Tag best run as "production" → LORA_ADAPTER_PATH reads from registry
 ```
 
 ---
@@ -84,6 +92,6 @@ Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
 |-----------|------------------|
 | DPO | Can we directly optimise for syllable accuracy? |
 | Unsloth | Does 2x faster training let us iterate faster? |
-| Ruli-3B | Does a Spanish-native model write better poetry? |
+| Ruli-3B (never existed; the Spanish-pretrained candidate is now Salamandra-7B, `RETRAINING_PLAN_2026-10.md` §3) | Does a Spanish-native model write better poetry? |
 | r=64 | Does more LoRA capacity improve metre learning? |
 | MLflow Pipeline | Can we go from "raw data" to "deployed adapter" in one command? |

@@ -1,7 +1,8 @@
 # Contributing to PoesIA
 
-PoesIA is a personal, private repository shared by invitation. This guide
-documents the standards for the author and any explicitly invited collaborator.
+PoesIA is a personal project in a public GitHub repository
+([OomAngel/poesia](https://github.com/OomAngel/poesia)). This guide documents the
+standards for the author and any collaborator.
 
 ## Environment
 
@@ -29,24 +30,22 @@ source scripts/poesia_env.sh --source
 Before committing, from the repository root:
 
 ```bash
-pytest                          # must pass (400+ tests)
+pytest                          # must pass (519 locally, 2026-10-04)
 ruff check src/ mlops/
+ruff format --check src/ mlops/
 mypy src/ --ignore-missing-imports
 ```
 
+CI (`.github/workflows/ci.yml`) runs the same checks plus bandit, and a separate
+pre-commit workflow.
+
 ## Architecture & seam discipline
 
-- `phonology/` is pure and deterministic — no LLM or network calls.
-- `evaluation/` scoring functions are pure or self-contained.
-- Feature modules (`eufonia`, `galeria`, `memoria`, `armonia`) depend on
-  abstract `Protocol` backends (`LLMClient`, `ImageBackend`, `ScoreBackend`),
-  never on vendor SDKs directly.
-- Heavy ML/audio/image libraries must be lazy-imported behind try-except blocks
-  with actionable `RuntimeError` messages pointing to `pip install -e ".[extra]"`.
+The layering and lazy-import rules are in `AGENTS.md` §3.
 
 ## Sharing rules
 
-- Do not push to any remote or publish any part of this repository without the
-  author's explicit instruction.
+- Push only when the author asks. Never commit poems or corpus data (they are
+  DVC-tracked only) and never bake them into Docker images.
 - Original creative content in `seeds/angel_fragments/` and `seeds/library/` is
   NOT under the MIT license — see `NOTICE`. Do not copy or redistribute it.
