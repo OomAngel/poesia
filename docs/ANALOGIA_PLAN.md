@@ -32,6 +32,11 @@ better; line-count accuracy is 1.00 for every adapter.
 **Champion: `poetry-lora-distilled` (0.90).** Challenger: `poetry-lora-qwen3b`
 (1.13).
 
+Caveat (2026-10-04): the 2026-09-01 run of the same 3 unseeded themes put them in the
+opposite order (`qwen3b` 1.00, `distilled` 1.29; `GENERATION_QUALITY_PLAN.md`). The order of
+the top two is within noise. Only the large gaps (≤ 1.3 against ≥ 4.8) hold at this sample
+size. See `docs/RETRAINING_PLAN_2026-10.md` §4.
+
 Surprises worth investigating: the "fixed-format" retraining (v2-fixed, 4.80)
 and the multi-form v3 (multiform, 9.29) are *worse* than the earlier
 distilled/v2/qwen3b adapters, and DPO (6.07) underperforms plain CE — the

@@ -11,6 +11,7 @@ on the machine where it was made, deliberately. Before trusting this list, re-ru
 | `models/*` (LoRA adapters) | ≈9.5 GB | Model weights, DVC-tracked; remote in sync on 2026-09-23 (laptop). | `dvc pull` — the remote is `/mnt/d/dvc-remotes/poesia`, on the laptop's D: drive; the desktop has no such folder (checked 2026-09-26). |
 | `seeds/poetry_corpus/training_data*`, `repair_examples`, `sonetos_curated` | ≈42 MB | DVC-tracked corpus. | `dvc pull`. |
 | `mlruns/`, `mlops/data/`, `dist/`, `galeria/`, `data/insights/*.parquet`, `screenshots/` | ≈1 GB | Generated: MLflow runs, derived datasets (`scripts/build_fixed_dataset.py`), builds. | Regenerated; MLflow history does not come back. |
+| `seeds/poetry_corpus/external/`, `eval_gold/` | ≈235 MB | Downloaded research corpora and the ADSO gold set (2026-10-04). Gitignored, not yet in DVC. | Re-download per `docs/CORPUS_SOURCES.md`. |
 | `.env`, `.env_mlflow` | small | Secrets. Encrypted copy is tracked in `secrets/` | `sops -d --output-type dotenv secrets/poesia.env.sops.yaml` — one file holds both; split `DATABASE_URL`/MLflow lines into `.env_mlflow`. Needs the age key; see below. |
 | `.claude/` | small | Per-machine Claude Code permission settings. | Recreated as you approve tools. |
 
@@ -57,5 +58,6 @@ the next experiment. Do not run a bare `dvc repro`: it retrains `poetry-lora-v2`
 ## Still to do (verified 2026-10-02)
 
 - Same DVC decision as `orchard_twins`: storage is still only `/mnt/d/dvc-remotes/poesia`, in sync with the laptop cache (checked 2026-10-02). The adapters reach the desktop only via the drive or a network remote.
-- Calibrate the "better model" expectation: the desktop `AngelThuis` is an RTX 3070 with **8 GB** (`workspace-governance/machines/AngelThuis.json`), the same VRAM class that trained the existing adapters. It can retrain any of them locally, but it does not lift the 1.5B/3B 4-bit ceiling. Llama 3.1 8B and similar need ≥16 GB, i.e. a rented GPU (`docs/TRAINING_RUNBOOK.md` online-training section).
+- Calibrate the "better model" expectation: the desktop `AngelThuis` is an RTX 3070 with **8 GB** (`workspace-governance/machines/AngelThuis.json`), the same VRAM class that trained the existing adapters. It can retrain any of them locally. Corrected 2026-10-04: "needs ≥16 GB for 8B" holds only for the default QLoRA layout (embedding and `lm_head` in bf16). With `lm_head` in NF4 and the embedding in CPU RAM, models up to ~9B (Qwen3.5-9B, Qwen3-8B) are estimated to fit in about 6 GB. This is unmeasured until the smoke run in `docs/RETRAINING_PLAN_2026-10.md` §6 step 4. Rerun the estimate with `scripts/estimate_qlora_vram.py`.
+- 2026-10-04 desktop: the corpus was rebuilt without the remote (`docs/CORPUS_SOURCES.md` "Rebuilding the corpus"); `dvc add` updated the pointers, but the new data is cached only on the desktop: the laptop's remote doesn't have it. The adapters are still laptop-only (`models/` is 36 KB).
 - On each new machine, confirm the age key works: `sops -d secrets/<file>.sops.yaml >/dev/null && echo ok`. Not verifiable from the laptop.

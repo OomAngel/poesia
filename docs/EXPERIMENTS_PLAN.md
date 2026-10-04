@@ -28,6 +28,11 @@
 
 **Recommendation:** Try **Qwen2.5-3B** (direct upgrade, same family) or **Llama 3.2 3B** (stronger multilingual) first.
 
+**Superseded 2026-10-04:** this table predates Qwen3, Qwen3.5 and Gemma 4, and its "won't
+fit 8GB" assumes the default layout (embedding and `lm_head` in bf16). The current candidate
+list, with per-model memory computed from tensor shapes, is in
+`docs/RETRAINING_PLAN_2026-10.md` §3: up to ~9B is estimated to fit on the RTX 3070 (unmeasured).
+
 **Correction 2026-07-30:** "Ruli-3B" was listed as a candidate but the model ID does not resolve on HuggingFace. Replaced with Qwen2.5-3B in practice; config at `mlops/configs/train_qwen3b.yaml`.
 Swap cost: one config change (`model: "Ruli-3B"`) and rerun.
 

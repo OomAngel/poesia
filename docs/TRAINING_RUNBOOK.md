@@ -32,7 +32,9 @@
 | laptop | Quadro M1000M (Maxwell, sm_50) | 2 GB | ❌ no — 2 GB, and bitsandbytes' CUDA builds need compute capability ≥ 6.0 |
 
 The existing adapters were trained on an 8 GB GPU, 2026-07-28 to 08-07
-(`mlops/adapter_registry.json`); 1.5B and 3B 4-bit QLoRA fit in 8 GB. Without the desktop, see
+(`mlops/adapter_registry.json`); 1.5B and 3B 4-bit QLoRA fit in 8 GB. Larger bases, up to
+~9B, are estimated to fit with a different weight layout; see
+`docs/RETRAINING_PLAN_2026-10.md` (the retraining plan, 2026-10). Without the desktop, see
 [Online training](#online-training-no-local-gpu-needed).
 
 The `training` docker-compose service already requests the GPU
