@@ -1,6 +1,39 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-09-27 (env gaps that failed silently; GGUF tools on the desktop)_
+_Last updated: 2026-10-04 (retraining plan: model ceiling on the RTX 3070, larger corpus)_
+
+---
+
+## What We Just Did (2026-10-04) — retraining plan
+
+- **Decision (Angel):** retrain, with the expanded corpus and a larger base model. This
+  settles `GENERATION_QUALITY_PLAN.md` gap #9.
+- **Plan:** `docs/RETRAINING_PLAN_2026-10.md`. It covers which base models fit on the RTX 3070,
+  the state of the corpus, the evidence so far, the order of work, and Angel's open decisions.
+- **Model ceiling:** `scripts/estimate_qlora_vram.py` (new) reads safetensors headers from
+  Hugging Face. With `lm_head` in NF4 and the embedding in CPU RAM, it estimates that up to
+  ~9B fits (Qwen3.5-9B about 5.8 GB, Qwen3-8B about 5.4 GB), and nothing at 12B or above.
+  Unmeasured. Corrected the "8B needs ≥16 GB" claim in `LOCAL_ONLY.md` and
+  `EXPERIMENTS_PLAN.md` §2.
+- **Evidence caveat:** the top two adapters swapped order between the 09-01 and 09-08
+  evaluations (3 unseeded themes), so `distilled` vs `qwen3b` is within noise. Note added to
+  `ANALOGIA_PLAN.md`.
+- **Blocker:** the desktop has no corpus and no adapters (only `.dvc` pointers). The DVC
+  remote is on the laptop's D: drive.
+- **Corpus rebuilt on the desktop and enlarged (same day):** restored from git (`f8b2017^`;
+  three folders match the DVC hashes exactly), re-fetched the 08-31 Gutenberg round, added
+  4 Gutenberg books plus DISCO v5 and two Golden-Age corpora via the new
+  `scripts/ingest_external_corpora.py`, then (Angel: Spanish and English, mainly English;
+  copyrighted poems in, never shared) POSTDATA and two English sets. New
+  `scripts/build_corpus.py` writes `corpus_master/` (85,027 poems: 49,128 en, 35,899 es;
+  dedup across files, ADSO gold removed), and `build_fixed_dataset.py` reads it. ADSO gold
+  (100 sonnets) lives in `eval_gold/`. All data gitignored and `dvc add`-ed (desktop cache
+  only; 23,000 files unchanged).
+- **Found:** line examples are cut at 300 tokens from the right, so from about line 19–20 of
+  long poems the target line is lost (61–68% of non-sonnet examples; sonnets 1%). Fix options
+  and the run-size formula (~2,600 usable tokens per poem): `RETRAINING_PLAN` §5.
+- **Next:** fix the truncation (§5 a or b), a DVC remote both machines reach (§7), then
+  the stronger evaluation (English too), then the step-3 base-model comparison.
 
 ---
 
