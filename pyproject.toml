@@ -7,7 +7,7 @@ name = "poesia"
 version = "0.1.0"
 description = "A hybrid poetry-writing engine: LLM generation validated by deterministic phonology/prosody, later extended with Graph RAG."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13,<3.14"  # one version everywhere; see README "Python version"
 license = { text = "MIT" }
 authors = [{ name = "Angel" }]
 
@@ -23,9 +23,9 @@ dependencies = [
 [project.optional-dependencies]
 # Spanish phonology / scansion.
 # NOTE: rantanplan is intentionally NOT here — it pins spacy==2.2.4 (2019),
-# which has no Python 3.11 wheel and breaks CI installs. silabeador + fonemas
-# cover Spanish scansion; install rantanplan manually if you specifically want
-# it (needs a Python <3.11 environment).
+# which has no wheel for Python 3.11 or newer, so it can't install on this project's 3.13.
+# silabeador + fonemas cover Spanish scansion; rantanplan would need a separate
+# Python <3.11 environment.
 spanish = [
     "silabeador",
 ]
@@ -152,7 +152,7 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 extend-exclude = ["scripts/vulture_whitelist.py"]
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "S"]
@@ -238,20 +238,9 @@ ignore = []
 output = "text"
 
 [tool.mypy]
-# NOTE: set to 3.12 because numpy>=2.5 ships type stubs using PEP 695
-# `type` statements (Python 3.12 syntax). mypy's python_version only gates
-# which syntax is *allowed* in checked code — the package still supports
-# Python 3.11 at runtime (requires-python = ">=3.11").
-python_version = "3.12"
+python_version = "3.13"
 ignore_missing_imports = true
 disallow_untyped_defs = false
-
-[[tool.mypy.overrides]]
-# numpy stubs currently use 3.12+ syntax which mypy (targeting 3.11) cannot
-# parse; treat numpy as untyped rather than failing the whole run.
-module = ["numpy", "numpy.*"]
-follow_imports = "skip"
-ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
