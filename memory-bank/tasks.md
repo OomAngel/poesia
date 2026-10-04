@@ -13,6 +13,12 @@
       Lemonade as LLM provider, champion adapter served locally, GalerIA image backend,
       poem read aloud. Plan and checklist: `docs/LEMONADE_INTEGRATION.md`. Time-sensitive:
       laptops are given "until supplies are exhausted".
+- [ ] **Retrain: bigger base model and expanded corpus** (decided 2026-10-04). Plan and
+      step order: `docs/RETRAINING_PLAN_2026-10.md` §6. Corpus rebuilt and enlarged on the desktop
+      2026-10-04: `corpus_master`, 85,027 poems, mainly English; old adapters still laptop-only (needed as baseline). Steps: data onto the desktop →
+      dedup and corpus build → stronger evaluation (≥5 themes, seeded, rhyme-key) → new base
+      on the distilled recipe → smoke-test Qwen3-8B / Qwen3.5-9B (peak memory, tokens/s) →
+      corpus effect → scale. Open: the 300-token truncation fix (plan §5), a DVC remote both machines reach.
 
 > ⚠️ (2026-09-08) Adapter eval done — champion is `poetry-lora-distilled` (0.90).
 > The "fixed-format" v2-fixed (4.80) and multi-form v3 (9.29) underperform the
