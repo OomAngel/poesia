@@ -28,6 +28,7 @@ from collections import Counter
 
 POESIA_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STRUCTURED_DIR = os.path.join(POESIA_ROOT, "seeds", "poetry_corpus", "training_data_structured")
+MASTER_CORPUS = os.path.join(POESIA_ROOT, "seeds", "poetry_corpus", "corpus_master", "poems.jsonl")
 
 LANG_NAMES = {"es": "Spanish", "en": "English", "nl": "Dutch"}
 SONETO_RHYME = "ABBA ABBA CDC DCD"
@@ -151,7 +152,17 @@ def poem_to_examples(record: dict, poem_id: str) -> list[dict]:
 
 
 def load_all_poems() -> list[dict]:
-    """Load and dedup all structured poems."""
+    """Load the deduplicated master corpus (scripts/build_corpus.py), which also excludes
+    the evaluation gold set. Falls back to globbing the structured files, exact-copy
+    dedup only, when the master corpus has not been built."""
+    if os.path.exists(MASTER_CORPUS):
+        poems = []
+        for line in open(MASTER_CORPUS, encoding="utf-8"):
+            d = json.loads(line)
+            d["source"] = d.get("source_file", d.get("source", ""))
+            poems.append(d)
+        return poems
+    print(f"  [warn] {MASTER_CORPUS} not found; run scripts/build_corpus.py", file=sys.stderr)
     seen = set()
     poems = []
     files = sorted(glob.glob(os.path.join(STRUCTURED_DIR, "*.jsonl")))
