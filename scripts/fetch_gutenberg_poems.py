@@ -135,6 +135,44 @@ MANIFEST: list[BookSpec] = [
         section_start="LIBRO PRIMERO",  # skips editor bio/vocabulary front matter
     ),
     BookSpec(64058, "María Goyri (comp.)", "gutenberg_goyri_fabulas_cuentos", "es", "Goyri"),
+    # 2026-10-04 round: the remaining original Spanish verse in the Gutenberg
+    # catalogue (pg_catalog.csv, language es, poetry subjects); the other
+    # untaken entries are prose or translations.
+    BookSpec(
+        47650,
+        "Rubén Darío",
+        "gutenberg_dario_prosas_profanas",
+        "es",
+        "PROSAS PROFANAS",
+        section_start="ERA UN AIRE SUAVE...",  # skips the "Palabras liminares" prose preface
+        section_end="ÍNDICE",
+    ),
+    BookSpec(
+        51711,
+        "Rubén Darío",
+        "gutenberg_dario_canto_errante",
+        "es",
+        "CANTO ERRANTE",
+        section_start="EL CANTO ERRANTE",  # first unindented one; skips the "Dilucidaciones" essay
+        section_end="INDICE",
+    ),
+    BookSpec(
+        63378,
+        "Luis G. Urbina",
+        "gutenberg_urbina_corazon_juglar",
+        "es",
+        "Urbina",
+        section_start="         LAMINA ANTIGUA",  # skips the dedication
+        section_end="INDICE",
+    ),
+    BookSpec(
+        16201,
+        "Various (comp. Eduardo Martín de la Cámara)",
+        "gutenberg_parnaso_filipino",
+        "es",
+        "Parnaso Filipino",
+        section_end="FIN",  # the prose prologue is dropped by the prose filter
+    ),
     # --- English ---
     BookSpec(12242, "Emily Dickinson", "gutenberg_dickinson_poems", "en", "Dickinson"),
     BookSpec(1057, "Oscar Wilde", "gutenberg_wilde_poems", "en", "Wilde"),
