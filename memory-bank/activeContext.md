@@ -52,6 +52,17 @@ and Document authority brought current)_
   `music-ai` = MusicGen through transformers + scipy (audiocraft pins torch 2.1). Still
   open: `classical` resolves to cltk 2.x, which has no scansion. README records the
   dependency impact (`459ab1c`).
+- **Code bugs and security (same day, later):** `mlflow run` was broken outright (MLflow 3
+  refuses a project with both `docker_env` and `conda_env`); `MLproject` now has no env field
+  (run with `--env-manager local` in the `poesia` env). `add-influence` now saves to
+  `data/influences.yaml`; CLI messages fixed; gallery telemetry moved off MLflow's removed file
+  store; Docker training command no longer passes the script twice; compose mounts
+  `mlops/data`. **Security:** pip-audit and safety found mlflow 3.14.0 (4 advisories incl. an
+  AI Gateway SSRF) and cryptography 48.0.1 (3); both CI checks were blind (`safety check ||
+  true` audited the runner; the weekly pip-audit installed only `-e .`). Now mlflow 3.16.1 and
+  cryptography 50.0.2 everywhere, pip-audit gates CI on the installed set (one documented nltk
+  exception). **Laptop:** migrate `mlruns/mlflow.db` to 3.16.1 with a backup first
+  (`LOCAL_ONLY.md` "Still to do"). Tests: 522 local, 449 in the CI replica.
 - **Next:** see [Current focus](#current-focus).
 
 ---
@@ -128,7 +139,8 @@ and Document authority brought current)_
 - The re-entry checklist below still says "PostgreSQL — NOT sqlite anymore"; that
   remains true for the **canonical** backend. The sqlite reference in commit `3161f39`
   is only the code-level *fallback* default, not a switch away from PostgreSQL.
-- ⚠️ This memory-bank is stale: it was last updated 2026-08-06, but the branch has
+- *(Superseded 2026-10-04: the memory-bank is current again; this note describes 2026-08-31.)*
+  ⚠️ This memory-bank is stale: it was last updated 2026-08-06, but the branch has
   advanced well beyond it (DVC/MLOps/analytics work through 2026-08-31). Treat older
   sections as historical; verify against `git log` before acting.
 

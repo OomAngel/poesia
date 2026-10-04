@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# package_share.sh — build a clean, sendable PoesIA snapshot for private sharing
+# package_share.sh — build a clean, sendable PoesIA snapshot (the repo is public; this is for offline sharing)
 #
 # Produces:
-#   dist/poesia-share-YYYYMMDD.tar.gz     (~13 MB, tracked files only)
+#   dist/poesia-share-YYYYMMDD.tar.gz     (~1.3 MB, tracked files only; the corpus is DVC, not git)
 #   dist/poesia-share-YYYYMMDD.bundle     (full git history, only if WITH_BUNDLE=1)
 #
 # Safety: aborts if any secret file (.env_mlflow, *.key, …) is found in the

@@ -155,10 +155,29 @@ See `docs/ENRICHMENT.md` for the full design.
 - [x] Dense-only vs graph-enhanced comparison via `retrieve_with_paths()`
 - [x] P2 evidence gate: `test_dense_vs_graph_retrieval_differ()`
 
+## MLOps track (Phases 1–11, numbered separately in `docs/MLOPS_DIAGNOSIS.md`)
+
+- [x] Phase 7 — HPO with Optuna: `scripts/hpo_search.py` exists; no recorded search run
+- [x] Phase 8 — containers: `docker/*.Dockerfile` and compose exist; not rebuilt since the
+  Python 3.13 switch (training image still on a CUDA 12.4 base with unpinned libraries)
+- [x] Phase 9 — GitHub Actions: `ci.yml`, `pre-commit.yml`, `dependency-audit.yml`,
+  `deploy.yml`, `train.yml`; CI green on 3.13; `train.yml` has no self-hosted GPU runner
+
+## Retraining (2026-10) — open
+
+Plan and status: `docs/RETRAINING_PLAN_2026-10.md`.
+
+- [x] Master corpus (`scripts/build_corpus.py`, 85,027 poems) and dropping overlong
+  examples instead of truncating them
+- [ ] Qwen3-8B smoke test (needs the reduced-memory layout in `train_poetry_lora.py`)
+- [ ] Stronger evaluation (English target, per-line rhyme score, seeds), then the first
+  desktop training run
+
 ## Explicit non-goals for now
 
 - No web frontend until concrete need emerges — Python-only
-- No C++ code — `llama.cpp`, eSpeak NG, OpenFst only if scale demands
+- No C++ code in this repo — `llama.cpp` (via llama-cpp-python, GGUF) and eSpeak NG are
+  used as external bindings/binaries; OpenFst only if scale demands
 - No neo4j — NetworkX + JSON sufficient for personal corpus size
 
 ---

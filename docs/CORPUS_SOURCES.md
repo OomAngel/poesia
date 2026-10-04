@@ -284,8 +284,16 @@ curl -sL https://www.gutenberg.org/cache/epub/{ID}/pg{ID}.txt -o /tmp/gutenberg_
   (`score_training_data.py`, `filter_exact_syllables.py`, etc.) require an
   explicit `--input` path with no default, so any exposure to English data
   would be a visible, deliberate choice rather than silent contamination.
+  **Superseded 2026-10-04:** training now reads `corpus_master/poems.jsonl` through
+  `scripts/build_fixed_dataset.py`, so the bilingual data is wired in; the per-file configs
+  in `mlops/configs/` are the July runs.
 
 ## License & provenance
 
-All Gutenberg texts are public domain. Wikisource texts are public domain in Spain.
+Licences differ by source; the Licence columns above are authoritative. Gutenberg texts
+are public domain; Wikisource texts are public domain in Spain; DISCO is CC BY 4.0; both
+Golden-Age corpora and ADSO are CC BY-NC 4.0; POSTDATA `poesias` states no licence; the
+Poetry Foundation scrape is mostly copyrighted (the dataset itself is AGPL-3.0). Decision
+(2026-10-04): copyrighted poems are used for personal training only, are never shared,
+and live only in DVC, never in git or images.
 Original provenance per record preserved in the `source` and `author` JSONL fields.

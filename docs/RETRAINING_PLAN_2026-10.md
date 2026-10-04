@@ -10,7 +10,7 @@
 
 The existing adapters were trained on an RTX 2000 Ada (8 GB, 2026-07-28 to 08-07). Retraining
 now happens on the desktop RTX 3070. That raises two questions: which base models can that
-GPU train, and does the expanded corpus (~13,049 poems) improve on the current adapters?
+GPU train, and does the master corpus (85,027 poems, ~58% English; §4) improve on the current adapters?
 
 ## 2. Hardware: same memory, more speed
 

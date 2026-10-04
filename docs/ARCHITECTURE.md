@@ -49,8 +49,8 @@ It must never call an LLM — it is the deterministic "ground truth" layer.
 9. **`training/`** is an ML-only module (not importable in a bare
    `pip install -e .` environment by design — its torch/transformers imports
    are try-guarded). It depends on `phonology/` for validating generated
-   lines during training. Only `scripts/train_poetry_lora.py` imports it, and
-   lazily.
+   lines during training. Two scripts import it: `scripts/train_poetry_lora.py`
+   (lazily) and `scripts/register_adapters.py` (`PoetryModelWrapper`, at module level).
 10. **`config/`** depends on `forms/` (validating `FormSpec` choices) and is
     consumed by `cli.py`.
 
@@ -109,10 +109,10 @@ an API key) to import the package and run its tests.
 ### Phonology / prosody
 
 | Package | Language | Role | Assessment |
-|---|---|---|---|---|
-| `rantanplan` | ES | metric scansion, ~45 stanza types | Primary Spanish backend |
-| `silabeador` | ES | syllabification + stress | Good fallback |
-| `fonemas` | ES | phonological transcription | Needed for rhyme validation |
+|---|---|---|---|
+| `rantanplan` | ES | metric scansion, ~45 stanza types | Not installable on Python 3.13 (pins spacy 2.2.4); `phonology/spanish.py` only tries a lazy import |
+| `silabeador` | ES | syllabification + stress | Installed by the `spanish` extra |
+| `fonemas` | ES | phonological transcription | Used for rhyme validation; pinned in `environment.yml` |
 | `pronouncing` + `cmudict` | EN | rhyme, phonemes, stress | Simplest English combo |
 | `prosodic` | EN (+ FI) | full metrical parsing, feet | Foot-level scansion |
 | `phonemizer` | multi | phoneme via eSpeak NG | Best multilingual layer |
