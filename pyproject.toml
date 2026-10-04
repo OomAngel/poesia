@@ -115,11 +115,20 @@ music = [
 ]
 
 music-ai = [
-    "audiocraft",
+    # MusicGen through transformers (MusicgenForConditionalGeneration), not audiocraft:
+    # audiocraft pins torch==2.1.0 and av==11.0.0 and installs on no current stack.
+    # torch comes from the env's tier (requirements/<tier>.txt), as for the llm extra.
+    "transformers",
+    "scipy",  # scipy.io.wavfile to write the generated audio
 ]
 
 recitation = [
-    "TTS",
+    # piper-tts: local ONNX TTS, no torch/transformers dependency; verified 2026-10-04 on
+    # Python 3.13 with this env's pins (Spanish voice es_ES-davefx-medium). Coqui TTS can't
+    # be used here yet: the original TTS package requires Python <3.12, and its maintained
+    # fork coqui-tts 0.27.5 fails to import with transformers 5 (upstream issue #558, fix
+    # in PR #592, unreleased as of 2026-10-04).
+    "piper-tts",
 ]
 
 mlops = [

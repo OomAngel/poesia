@@ -228,10 +228,13 @@ Dependency impact, from resolving every extra on 3.11–3.14 (2026-10-04):
   - `classical` (CLTK, Latin/Greek scansion): cltk 1.x has the scanners but requires
     <3.13; cltk 2.x installs but has no scansion. Open: port cltk 1.5's MIT-licensed
     `prosody/lat` or find another scanner.
-  - `recitation` (Coqui `TTS`): requires <3.12. The maintained fork `coqui-tts` 0.27.5
-    (same `TTS` import) and `piper-tts` 1.8.0 resolve on 3.13 with this env's pins.
-  - `music-ai` (`audiocraft`): pins torch 2.1 and av 11, so it installs on no current
-    stack, 3.11 included. MusicGen is available through `transformers` in this env.
+  - `recitation`: now `piper-tts` 1.8.0, which synthesizes Spanish on 3.13 in this stack.
+    Coqui `TTS` requires <3.12, and its fork `coqui-tts` 0.27.5 resolves but fails to
+    import with transformers 5 (upstream issue #558; fix PR #592 unreleased). Revisit
+    when coqui-tts ships that fix.
+  - `music-ai`: now MusicGen through `transformers` (+ `scipy` to write WAV), verified on
+    3.13 with Hugging Face's tiny MusicGen test checkpoint. `audiocraft` pins torch 2.1 and
+    av 11, so it installs on no current stack, 3.11 included.
 - 3.14 resolves the same as 3.13 for every extra.
 
 ```bash
