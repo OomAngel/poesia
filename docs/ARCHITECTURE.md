@@ -38,7 +38,7 @@ It must never call an LLM — it is the deterministic "ground truth" layer.
 7. **`armonia/`** depends on `phonology/` (for `Stress`/stress patterns via
    `prosody_to_rhythm.py`). Its own backend Protocols (`ScoreBackend`,
    `AudioSynthBackend`, `RecitationBackend`) keep `music21`/`pyfluidsynth`/
-   `audiocraft` imports contained to `armonia/backends.py`.
+   MusicGen (`transformers`)/`piper` imports contained to `armonia/backends.py`.
 8. **`memoria/`** is self-contained: embeddings, GraphRAG and record types
    live here and are imported by `evaluation/`, `generation/` and `galeria/`
    through narrow, typed seams. `networkx` and `sentence-transformers` stay
@@ -156,9 +156,9 @@ an API key) to import the package and run its tests.
 | `music21` | symbolic | stress pattern to rhythm, MusicXML/MIDI |
 | `pretty_midi` / `mido` | symbolic | raw MIDI manipulation |
 | `pyfluidsynth` + .sf2 | audio | render MIDI to audio |
-| `audiocraft` | AI generation | local text to music |
-| `piper` | TTS | fast local TTS |
-| Coqui `TTS` | TTS | local TTS (heavier) |
+| MusicGen via `transformers` | AI generation | local text to music (`audiocraft` pins torch 2.1; not installable) |
+| `piper-tts` | TTS | fast local TTS; the `recitation` extra (works on 3.13) |
+| Coqui `coqui-tts` | TTS | local TTS (heavier); blocked until it supports transformers 5 (upstream #558) |
 
 ### Graph RAG storage
 
