@@ -1,7 +1,7 @@
 """Embedding client for semantic similarity in MemorIA Graph RAG.
 
 Provides a Protocol for embedding backends and a concrete implementation
-using sentence-transformers with multilingual-e5-base.
+using sentence-transformers with multilingual-e5-small (DEFAULT_MODEL).
 
 Lazy-imports sentence-transformers — requires `pip install -e ".[nlp]"`.
 """
@@ -102,7 +102,7 @@ class StubEmbeddingClient:
 class SentenceTransformerClient:
     """Embedding client using sentence-transformers.
 
-    Default model: intfloat/multilingual-e5-base
+    Default model: intfloat/multilingual-e5-small
     - Supports 100+ languages including ES, EN, ZH, NL
     - 768-dimensional embeddings
     - ~560MB download on first use
@@ -191,7 +191,7 @@ def get_embedding_client(
     """Factory function to get an embedding client.
 
     Args:
-        model_name: Model name for SentenceTransformerClient (default: e5-base).
+        model_name: Model name for SentenceTransformerClient (default: e5-small).
         use_stub: If True, return StubEmbeddingClient for testing.
 
     Returns:
