@@ -19,6 +19,10 @@
       dedup and corpus build → stronger evaluation (≥5 themes, seeded, rhyme-key) → new base
       on the distilled recipe → smoke-test Qwen3-8B / Qwen3.5-9B (peak memory, tokens/s) →
       corpus effect → scale. Open: Qwen3-8B smoke test, a private DVC remote both machines reach (the GitHub repo is public).
+- [ ] **Docker images** (2026-10-04): enable Docker Desktop's WSL integration and build both
+      images once (never built since the 3.13 switch); align `training.Dockerfile` with the
+      gpu-cuda13 tier (CUDA 12.4 base and unpinned libs vs the env's cu130 pins). `train.yml`
+      needs a self-hosted GPU runner that doesn't exist.
 
 > ⚠️ (2026-09-08) Adapter eval done — champion is `poetry-lora-distilled` (0.90).
 > The "fixed-format" v2-fixed (4.80) and multi-form v3 (9.29) underperform the

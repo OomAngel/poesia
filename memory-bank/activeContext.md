@@ -35,6 +35,12 @@ _Last updated: 2026-10-04 (retraining plan: model ceiling on the RTX 3070, large
 - **Fixed same day:** truncation, by dropping examples that don't fit (`_drop_overlong`, §5).
   CI was red since 10-02 (no mlflow); now installs mlflow and the CPU training stack and
   tests on Python 3.11 and 3.13: 442 passed, 0 skipped.
+- **One Python version: 3.13** (Angel, 2026-10-04): `requires-python >=3.13,<3.14`; CI,
+  deploy, pre-commit, both Dockerfiles and the README moved off 3.11/3.12. Checked: Colab
+  and Kaggle run 3.13, the llama-cpp CUDA wheel is py3-none, all compiled deps ship cp313,
+  3.11 install is refused. Serving image was broken (deleted requirements-lock.txt), now
+  installs `.[mlops]`; `.dockerignore` keeps the corpus and `mlops/data/` out of images.
+  Colab notebook pins aligned to the env. Images not built: Docker has no WSL integration.
 - **Next:** smoke-test Qwen3-8B (peak VRAM, tokens/s), a private DVC remote both machines
   reach (§7), then
   the stronger evaluation (English too), then the step-3 base-model comparison.
