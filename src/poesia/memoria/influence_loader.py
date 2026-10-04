@@ -150,3 +150,64 @@ def get_influences_by_era(era_query: str) -> list[InfluenceRecord]:
 def clear_cache() -> None:
     """Clear the cached influences (for testing)."""
     load_influences.cache_clear()
+
+
+def _default_yaml_path() -> Path:
+    return Path(__file__).parent.parent.parent.parent / "data" / "influences.yaml"
+
+
+def add_influence(record: InfluenceRecord, yaml_path: Path | None = None) -> Path:
+    """Append an influence to data/influences.yaml, inside its language section.
+
+    The entry is inserted as text at the end of the section, in the file's own style, so
+    comments and every existing entry stay byte-identical (a YAML round-trip would
+    reformat the whole file). Raises ValueError for an unknown language or a duplicate id.
+    """
+    path = yaml_path or _default_yaml_path()
+    lang_to_section = {lang: section for section, lang in _SECTION_LANG_MAP.items()}
+    section = lang_to_section.get(record.language)
+    if section is None:
+        raise ValueError(
+            f"unknown language {record.language!r}; expected one of {sorted(lang_to_section)}"
+        )
+
+    text = path.read_text(encoding="utf-8")
+    data = yaml.safe_load(text) or {}
+    existing = {entry.get("id") for entries in data.values() if entries for entry in entries}
+    if record.id in existing:
+        raise ValueError(f"influence {record.id!r} already exists in {path}")
+
+    def quote(value: str) -> str:
+        return (
+            yaml.safe_dump(value, allow_unicode=True, default_style=None)
+            .strip()
+            .removesuffix("...")
+            .strip()
+        )
+
+    block = [f"  - id: {quote(record.id)}", f"    name: {quote(record.name)}"]
+    if record.tone:
+        block.append(f"    tone: [{', '.join(quote(t) for t in record.tone)}]")
+    entry = "\n".join(block) + "\n"
+
+    lines = text.splitlines(keepends=True)
+    if lines and not lines[-1].endswith("\n"):
+        lines[-1] += "\n"
+    header = next((i for i, line in enumerate(lines) if line.rstrip() == f"{section}:"), None)
+    if header is None:
+        new_text = "".join(lines) + f"\n{section}:\n{entry}"
+    else:
+        # The section ends at the next line starting in column 0 (another key or a
+        # top-level comment); insert before any blank lines that precede it.
+        end = next(
+            (i for i in range(header + 1, len(lines)) if lines[i][:1] not in (" ", "\n")),
+            len(lines),
+        )
+        while end > header + 1 and not lines[end - 1].strip():
+            end -= 1
+        new_text = "".join(lines[:end] + ["\n", entry] + lines[end:])
+
+    yaml.safe_load(new_text)  # never write a file the loader can't read
+    path.write_text(new_text, encoding="utf-8")
+    clear_cache()
+    return path

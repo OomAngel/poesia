@@ -119,3 +119,62 @@ class TestGetInfluencesByEra:
         ids_earlier = {i.id for i in earlier}
         assert "gustavo_adolfo_becquer" in ids_earlier  # 1836-1870
         assert "manuel_acuna" in ids_earlier  # 1849-1873
+
+
+class TestAddInfluence:
+    """add_influence writes into data/influences.yaml without disturbing existing text."""
+
+    @staticmethod
+    def _copy(tmp_path):
+        import shutil
+        from pathlib import Path
+
+        src = Path(__file__).resolve().parents[1] / "data" / "influences.yaml"
+        dst = tmp_path / "influences.yaml"
+        shutil.copy(src, dst)
+        return dst
+
+    def test_appends_into_the_language_section_and_loads_back(self, tmp_path) -> None:
+        from poesia.memoria.influence_loader import add_influence, clear_cache, load_influences
+        from poesia.memoria.records import InfluenceRecord
+
+        path = self._copy(tmp_path)
+        add_influence(
+            InfluenceRecord(
+                id="mary_oliver", name="Mary Oliver", language="en", tone=["attentive", "wild"]
+            ),
+            yaml_path=path,
+        )
+        clear_cache()
+        loaded = {i.id: i for i in load_influences(path)}
+        assert loaded["mary_oliver"].language == "en"
+        assert loaded["mary_oliver"].tone == ["attentive", "wild"]
+        assert len(loaded) == 25
+
+    def test_existing_lines_are_kept_in_order(self, tmp_path) -> None:
+        from poesia.memoria.influence_loader import add_influence
+        from poesia.memoria.records import InfluenceRecord
+
+        path = self._copy(tmp_path)
+        before = path.read_text(encoding="utf-8").splitlines()
+        add_influence(
+            InfluenceRecord(id="x_poet", name="X Poet", language="es", tone=["calm"]),
+            yaml_path=path,
+        )
+        after = iter(path.read_text(encoding="utf-8").splitlines())
+        assert all(line in after for line in before)  # every original line, same order
+
+    def test_duplicate_and_unknown_language_are_refused(self, tmp_path) -> None:
+        from poesia.memoria.influence_loader import add_influence
+        from poesia.memoria.records import InfluenceRecord
+
+        path = self._copy(tmp_path)
+        with pytest.raises(ValueError, match="already exists"):
+            add_influence(
+                InfluenceRecord(id="antonio_machado", name="Antonio Machado", language="es"),
+                yaml_path=path,
+            )
+        with pytest.raises(ValueError, match="unknown language"):
+            add_influence(
+                InfluenceRecord(id="li_bai", name="Li Bai", language="zh"), yaml_path=path
+            )

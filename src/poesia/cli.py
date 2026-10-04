@@ -1167,7 +1167,7 @@ def _retrieve_style_texts(
         if retriever.node_count() == 0:
             rprint(
                 "[dim]Style-from-retrieval skipped: no retrieval index "
-                "(build one with `poesia memoria ingest`).[/dim]"
+                "(build one with `poesia memoria ingest-all`).[/dim]"
             )
             return []
         client = get_embedding_client()
@@ -1509,13 +1509,11 @@ def _log_illustration_mlflow(
     try:
         import os
 
-        # Best-effort telemetry: allow the legacy local file store so the log
-        # works even before PostgreSQL/MLflow is provisioned, and keep the CLI
-        # output clean (no maintenance-mode banner).
-        os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
+        # Best-effort telemetry into the same local store the training scripts use
+        # (MLflow 3 dropped the file:// store; see docs/INFRASTRUCTURE_DECISIONS.md §7).
         import mlflow
 
-        mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "file:./mlruns"))
+        mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "sqlite:///mlruns/mlflow.db"))
 
         with mlflow.start_run(run_name=f"galeria-{from_library or 'manual'}", nested=True):
             mlflow.log_text("\n\n".join(prompts), "image_prompts.txt")
@@ -1913,7 +1911,7 @@ def memoria_add_seed(
     word: str = typer.Argument(..., help="The seed word to expand."),
     language: str = typer.Option("es", help="Language code: 'es' or 'en'."),
 ) -> None:
-    """Add a seed word and expand it with rhymes, synonyms, etc."""
+    """Expand a seed word with rhymes and synonyms (shown only; seeds are not saved)."""
     from poesia.memoria.embeddings import StubEmbeddingClient
     from poesia.memoria.seed_expander import SeedExpander
 
@@ -1936,15 +1934,21 @@ def memoria_add_influence(
     tone: str = typer.Option(..., help="Comma-separated tone descriptors."),
     language: str = typer.Option("es", help="Language code: 'es' or 'en'."),
 ) -> None:
-    """Add a poetic influence to the memoria."""
+    """Add a poetic influence to data/influences.yaml (the source the loader reads)."""
+    from poesia.memoria.influence_loader import add_influence
     from poesia.memoria.records import InfluenceRecord
 
     tone_list = [t.strip() for t in tone.split(",") if t.strip()]
     influence = InfluenceRecord(
         id=name.lower().replace(" ", "_"), name=name, language=language, tone=tone_list
     )
+    try:
+        path = add_influence(influence)
+    except ValueError as exc:
+        rprint(f"[red]✗[/red] {exc}")
+        raise typer.Exit(code=1) from exc
     rprint(f"[green]✓[/green] Added influence '{influence.name}' — tone: {', '.join(tone_list)}")
-    rprint("[dim]  (To persist, add to docs/INFLUENCE_REGISTRY.md)[/dim]")
+    rprint(f"[dim]  Saved to {path}[/dim]")
 
 
 @memoria_app.command("list-fragments")
@@ -1976,7 +1980,7 @@ def memoria_list_fragments() -> None:
 
 @memoria_app.command("list-influences")
 def memoria_list_influences() -> None:
-    """List all influences from docs/INFLUENCE_REGISTRY.md."""
+    """List all influences from data/influences.yaml."""
     influences = _load_influences()
     if not influences:
         rprint("[dim]No influences found.[/dim]")
