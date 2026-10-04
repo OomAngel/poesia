@@ -29,7 +29,7 @@
   this session: *"Es Devlin invites you to take part in a collective poem —
   woven at the intersection of AI and human collaboration."* `[verified]`
 - It is **installation art, not an instrument**: the human gives one word,
-  the machine holds the pen. `[verified]` (POSITIONING §5)
+  the machine holds the pen. `[known]` (POSITIONING §5; not re-verified verbatim)
 - **UX lesson for PoesIA:** the *invitation framing* matters — a person is
   invited into collaboration, not asked to run a generator. But the power
   balance is the anti-pattern for PoesIA: one word is not authorship.

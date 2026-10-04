@@ -32,8 +32,9 @@
 └──────────────────────────────────────────────────────────────┘
 ```
 
-**Key design:** Your `experiments.jsonl` is always the independent backup.
-The PostgreSQL DB is a fast query cache, never the single source of truth.
+**Key design (corrected 2026-10-04):** `experiments.jsonl` no longer exists. Run history
+lives in the SQLite store `mlruns/mlflow.db`, with `mlops/mlflow_metadata_dump.sql` as its
+backup; `docs/INFRASTRUCTURE_DECISIONS.md` decides which stack is canonical.
 
 ---
 
@@ -99,7 +100,7 @@ Deploy MLflow server on [Railway](https://railway.app) or [Fly.io](https://fly.i
 # railway.json (one-click deploy)
 {
   "build": {
-    "dockerfile": "Dockerfile.mlflow"
+    "dockerfile": "docker/mlflow.Dockerfile"
   },
   "services": [{
     "name": "cronologia-ui",

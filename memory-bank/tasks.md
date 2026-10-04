@@ -56,6 +56,14 @@
 
 ## DONE
 
+### 2026-10-04 (later): code bugs and dependency security
+- [x] `MLproject` loads again (one env field rule of MLflow 3); `monitor` entry template fixed
+- [x] `memoria add-influence` persists to `data/influences.yaml` (+3 tests); CLI command/file names fixed
+- [x] Gallery telemetry on `sqlite:///mlruns/mlflow.db`; Docker training command + `mlops/data` mount fixed
+- [x] mlflow 3.14.0 → 3.16.1, cryptography 48.0.1 → 50.0.2; pip-audit gates CI on the real set; `safety` removed
+- [x] Extras: `spanish` gains `fonemas`; `graphrag` drops `neo4j` (ROADMAP non-goal)
+- [ ] Laptop: back up and `mlflow db upgrade` the 3.14 tracking store, regenerate the SQL dump
+
 ### 2026-10-04 (retraining plan, corpus, Python 3.13)
 - [x] **Retrain decided** (Angel): larger corpus, larger base model; plan
       `docs/RETRAINING_PLAN_2026-10.md`; `scripts/estimate_qlora_vram.py` estimates a

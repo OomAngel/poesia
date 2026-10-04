@@ -181,7 +181,7 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 
 ### Phonology — the deterministic spine
 
-- Spanish sinalefa-aware syllable counting; 45 stanza types; English CMUdict scansion; Dutch pyphen
+- Spanish sinalefa-aware syllable counting; registered forms soneto, romance, haiku (es) and Shakespearean sonnet, haiku (en); English CMUdict scansion; Dutch pyphen
 - Lazy, pluggable backends — no network, no LLM, pure algorithms
 
 ### GalerIA — illustration
@@ -205,7 +205,7 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 - MLOps: MLflow single source of truth, model registry, evaluation, monitoring, Docker
   files (images not rebuilt since the Python 3.13 switch), CI/CD (`train.yml` needs a
   self-hosted GPU runner that does not exist yet)
-- CI enforces ruff, mypy and bandit (safety runs but only reports), and runs the test suite with hosted-LLM and hosted-image tests excluded so a run needs no API keys and no GPU; the training stack is installed as a CPU build
+- CI enforces ruff, mypy, bandit and pip-audit on the installed dependencies, and runs the test suite with hosted-LLM and hosted-image tests excluded so a run needs no API keys and no GPU; the training stack is installed as a CPU build
 
 ---
 
@@ -262,7 +262,7 @@ scripts/env.sh create          # conda env for this machine's GPU tier ("Machine
 | `.[graphrag]` | Graph RAG retrieval (NetworkX, Neo4j) |
 | `.[music]` | ArmonIA symbolic score and MIDI (`music21`, `pretty_midi`, `mido`, `pyfluidsynth`) |
 | `.[mlops]` | MLflow (`mlflow==3.14.0`, same pin as `environment.yml`) |
-| `.[dev]` | pytest, ruff, mypy, bandit, safety |
+| `.[dev]` | pytest, ruff, mypy, bandit |
 | `.[all-lang]` | All language backends |
 | `.[recitation]` | **Planned, not yet imported by code:** `piper-tts`. Recitation at runtime uses eSpeak NG |
 | `.[music-ai]` | **Planned, not yet imported by code:** MusicGen through `transformers` (+ `scipy`) |
