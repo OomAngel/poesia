@@ -164,13 +164,13 @@ this corpus, more poems at 1–3 epochs uses its breadth better.
 truncates `prompt + completion + EOS` at 300 tokens from the right
 (`train_poetry_lora.py`). From about line 19–20 of a long poem the target line and EOS are cut
 off, so the example teaches the model to continue the prompt. That's 61–68% of examples
-outside sonnets. Fix before training on this corpus, in one of two ways:
-
-- **(a) Drop examples that don't fit.** Training-only; inference is unchanged. Use the
-  "usable" column above.
-- **(b) Keep only the last few previous lines in the prompt.** This must change
-  `candidate_generator.py`'s inference prompt too, since the builder matches it exactly.
-  It keeps long poems' later lines.
+outside sonnets. **Fixed 2026-10-04 with option (a):** `train_poetry_lora.py` tokenizes without
+truncation and drops any example longer than `max_length` (`_drop_overlong`; the counts are
+logged as the MLflow params `dropped_overlong_train` and `dropped_overlong_eval`). On 150
+random corpus poems it dropped exactly the 2,369 of 4,583 examples (52%) the old code cut,
+and all 2,214 kept examples end in EOS. Option (b), keeping only the last few previous lines
+in both the builder and `candidate_generator.py`, would recover long poems' later lines; it
+isn't done.
 
 ## 6. Order of work
 
@@ -185,7 +185,7 @@ Each step changes one thing, so its effect can be read off.
    `build_fixed_dataset.py` now reads it). The full corpus gives millions of line examples
    and runs out of RAM, so **size every run with `--max-poems`**. 2,000 poems give 90,236
    examples (2.4× `v2-fixed`), and a random sample keeps the ~58% English mix. Size it with
-   §5, after fixing the truncation bug there. Optional still: filter for
+   §5. Optional still: filter for
    metre with `scripts/filter_exact_syllables.py`. It takes `--language es|en`, so run it once
    per language on split files. Don't use `quality_filter.py` on the full corpus: it applies
    Spanish phonology with no language guard (`CORPUS_SOURCES.md`). Record `corpus_master/manifest.json`'s sha256 and the

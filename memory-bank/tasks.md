@@ -18,7 +18,7 @@
       2026-10-04: `corpus_master`, 85,027 poems, mainly English; old adapters still laptop-only (needed as baseline). Steps: data onto the desktop →
       dedup and corpus build → stronger evaluation (≥5 themes, seeded, rhyme-key) → new base
       on the distilled recipe → smoke-test Qwen3-8B / Qwen3.5-9B (peak memory, tokens/s) →
-      corpus effect → scale. Open: the 300-token truncation fix (plan §5), a DVC remote both machines reach.
+      corpus effect → scale. Open: Qwen3-8B smoke test, a private DVC remote both machines reach (the GitHub repo is public).
 
 > ⚠️ (2026-09-08) Adapter eval done — champion is `poetry-lora-distilled` (0.90).
 > The "fixed-format" v2-fixed (4.80) and multi-form v3 (9.29) underperform the
