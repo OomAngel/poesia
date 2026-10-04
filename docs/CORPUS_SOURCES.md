@@ -1,15 +1,19 @@
 # PoesIA Corpus — Sources & Provenance
 
-> **Status:** Active · **Last updated:** 2026-08-31
+> **Status:** Active · **Last updated:** 2026-10-04
 
 ## Overview
 
 The poetry corpus lives in `seeds/poetry_corpus/`. Structured training data is in
-`training_data_structured/` (JSONL with `prompt`/`completion` + metadata).
+`training_data_structured/` (JSONL with `prompt`/`completion` + metadata). It is versioned
+with **DVC, never git** (since commit `f8b2017`). Every folder below is gitignored.
 
-**Total unique poems: ~13,049** (across 55+ structured files; dedup pending).
-**Language split: ~9,300 Spanish, ~3,742 English** (English added 2026-08-31 — the
-corpus was 100% Spanish before this).
+**Training reads one file:** `corpus_master/poems.jsonl`, built by `scripts/build_corpus.py`
+(dedup across all files, ADSO gold removed, fragments dropped; counts and sha256 in
+`corpus_master/manifest.json`). **2026-10-04: 85,027 poems, 49,128 English and 35,899
+Spanish, 9,405 sonnets.** Before 2026-10-04: 12,340 unique (the "~13,049" figure counted
+duplicates). Language and copyright decisions (Angel, 2026-10-04): Spanish and English,
+mainly English; copyrighted poems are used for training and never shared.
 
 ## Sources
 
@@ -111,6 +115,113 @@ tolerance. See `scripts/fetch_gutenberg_poems.py`'s manifest comment for detail.
 **Mexican poets in corpus: 601 poems** across 15 authors (Nervo 142, López Velarde 139,
 Sor Juana 76, Gutiérrez Nájera 52, Acuña 67, Sabines 38, Paz 32, Díaz Mirón 12, Urbina 9...)
 
+### Ingested before 2026-08-30 but never listed here
+
+Read from each record's `source` field on 2026-10-04 (git history before `f8b2017`). How
+these were obtained isn't recorded.
+
+| `source` | Poems | Where it sits | Probable origin |
+|---|---|---|---|
+| `disco` | 4,229 (`sonetos_curated`), 4,060 (`sonetos_more`), 3,924 (`master_sonetos`) | the same sonnets in several files | DISCO, an earlier release than v5.0 (CC BY 4.0) |
+| `spanish_poetry` | 818 | `sonetos_curated` | probably Hugging Face `andreamorgar/spanish_poetry` (GPL-3.0); unverified |
+| `clasicos` | 5,245 (`poems_more`), 857 (`master_sonetos`) | | unknown |
+
+### Gutenberg — 2026-10-04 round (`scripts/fetch_gutenberg_poems.py`)
+
+The rest of the original Spanish verse in Gutenberg's catalogue (`pg_catalog.csv`,
+language `es`, poetry subjects: 66 books, 29 already taken; the remainder are prose or
+translations).
+
+| Book ID | Work | Author(s) | Poems | Source tag |
+|---|---|---|---|---|
+| 47650 | Prosas profanas | Rubén Darío | 96 | gutenberg_dario_prosas_profanas |
+| 51711 | El canto errante | Rubén Darío | 50 | gutenberg_dario_canto_errante |
+| 63378 | El corazón juglar | Luis G. Urbina | 45 | gutenberg_urbina_corazon_juglar |
+| 16201 | Parnaso filipino | Various (comp. Martín de la Cámara) | 342 | gutenberg_parnaso_filipino |
+
+Spot-checked: one `[imagen:` artifact and a few titles that are really dates (Darío), the
+same noise level as earlier rounds. Several *Parnaso filipino* poets died after 1945, so
+treat that book like Paz and Sabines below.
+
+### Annotated research corpora (2026-10-04, `scripts/ingest_external_corpora.py`)
+
+Raw downloads sit in `seeds/poetry_corpus/external/` (235 MB, gitignored). The script
+skips any poem already present (by full text or first line), so "new" counts are net.
+
+| Corpus | Download | Licence | Read | New | Output |
+|---|---|---|---|---|---|
+| DISCO v5.0: 4,530 sonnets, 15th–20th c., 1,216 authors | `codeload.github.com/pruizf/disco/zip/refs/tags/v5.0` | CC BY 4.0 | 4,536 | 239 | `disco_v5.jsonl` (with `period`, `author_death`) |
+| Corpus de Sonetos del Siglo de Oro (Navarro-Colorado): canonical Golden-Age authors, stress pattern per line | `codeload.github.com/bncolorado/CorpusSonetosSigloDeOro/zip/refs/heads/master` | annotation CC BY-NC 4.0; texts under Biblioteca Virtual Miguel de Cervantes terms | 4,978 (excluding the 100 gold sonnets) | 4,355 | `sonetos_siglo_de_oro.jsonl` (with `metre`) |
+| Corpus General de Poesía Lírica Castellana del Siglo de Oro: 475 poems, stress per line | `codeload.github.com/bncolorado/CorpusGeneralPoesiaLiricaCastellanaDelSigloDeOro/zip/refs/heads/master` | CC BY-NC 4.0 | 475 | 440 | `lirica_siglo_de_oro.jsonl` (with `metre`) |
+
+Both Golden-Age corpora keep the original spelling ("inuierno", "neuada"). Decide whether
+that belongs in training for modern output. The `metre` field (`+`/`-` stress per syllable)
+is gold-standard scansion, not yet used by any script.
+
+### Evaluation gold set: ADSO (not training data)
+
+`seeds/poetry_corpus/eval_gold/adso_gold_100.jsonl`: 100 Golden-Age sonnets with
+hand-checked scansion (ADSO, CC BY-NC 4.0, from
+`github.com/linhd-postdata/adsoScansionSystem/releases/download/1.0.0/ADSO_gold_standard_100poems.zip`).
+It's the reference for testing the syllable/stress scorer. They're excluded from
+`sonetos_siglo_de_oro.jsonl`, **but 11 of them (first-line match; 1 exact) are already in
+older corpus files**. The corpus build must drop those before ADSO is used to evaluate a
+trained adapter.
+
+### Large tables from Hugging Face (2026-10-04, `scripts/ingest_external_corpora.py`)
+
+Copyrighted modern poets are included by decision: the poems are for training a personal
+model and are never shared.
+
+| Dataset (Hugging Face) | Language | Licence | Read | New | Output |
+|---|---|---|---|---|---|
+| `linhd-postdata/poesias` (POSTDATA; 859 authors incl. Neruda, Fuertes, Aleixandre, Benedetti, Pizarnik, Bolaño, Paz, Borges) | es | none stated | 25,274 | 22,291 | `postdata_poesias.jsonl` (with `century`) |
+| `DanFosing/public-domain-poetry` | en | CC0 | 38,499 | 33,234 | `pd_poetry_en.jsonl` |
+| `suayptalha/Poetry-Foundation-Poems` (modern, mostly copyrighted) | en | AGPL-3.0 on the dataset | 13,854 | 12,322 | `poetry_foundation_en.jsonl` |
+
+Downloads: `huggingface.co/datasets/<id>/resolve/main/<file>`, with files
+`poesias_train.csv` and `poesias_eval.csv`; `poems.json`; `PoetryFoundationData.csv`. The
+Poetry Foundation scrape puts a blank line after every line and uses U+2028; the reader
+collapses both.
+
+### Other datasets seen, not taken
+
+Gongocorpus (CC BY-NC-ND: no derivatives, so not for training). Hugging Face
+`alvp/poesias_es`, `carafelix/poesias`, `segoedu/poesias` (10K–100K each, no provenance or
+licence). `biglam/gutenberg-poetry-corpus` (3M lines with no poem boundaries). PoetryDB
+(about 3K classic English poems, mostly already in `pd_poetry_en`).
+
+## Rebuilding the corpus without the DVC remote
+
+The only DVC remote is on the laptop's D: drive. On another machine (done on the desktop
+2026-10-04):
+
+```bash
+# 1. Everything that was in git before the DVC migration (exact):
+for f in $(git ls-tree -r --name-only f8b2017^ -- seeds/poetry_corpus/{sonetos_curated,training_data,training_data_distilled,training_data_structured}); do
+  mkdir -p "$(dirname "$f")"; git show "f8b2017^:$f" > "$f"; done
+# 2. The 2026-08-31 and 2026-10-04 Gutenberg rounds:
+python scripts/fetch_gutenberg_poems.py
+# 3. Repair pairs (mkdir first; the script doesn't create it):
+mkdir -p seeds/poetry_corpus/repair_examples
+python scripts/generate_synthetic_repair_pairs.py && python scripts/format_repair_examples.py
+# 4. External corpora: download per the table above into external/, then
+python scripts/ingest_external_corpora.py
+```
+
+Checked against the `.dvc` hashes with a directory-hash script (DVC's `.dir` md5):
+`sonetos_curated`, `training_data` and `training_data_distilled` match exactly.
+`training_data_structured` (68 files, as of 08-31) matched file count and per-book poem
+counts but was 16 bytes off, so it's equivalent, not identical. `repair_examples` came out
+at 1,825 pairs against the recorded 1,846. **The adapters (`models/*`) can't be rebuilt
+this way; they exist only on the laptop's remote.**
+
+**Versioned 2026-10-04 on the desktop:** `dvc add` on `sonetos_curated`, `training_data`,
+`training_data_structured`, `repair_examples`, `eval_gold`, `corpus_master` and `external`.
+All 23,000 files were byte-identical before and after; the first two pointers didn't change
+(exact match). **The new data is in the desktop's DVC cache only.** The laptop's remote
+(`/mnt/d/dvc-remotes/poesia`) doesn't have it until there's a remote both machines reach.
+
 ## Re-fetch / extension commands
 
 ```bash
@@ -125,7 +236,7 @@ curl -sL https://www.gutenberg.org/cache/epub/{ID}/pg{ID}.txt -o /tmp/gutenberg_
 
 - Machado titles not extracted (740/743 are "Poema") — recover from Gutenberg TOC
 - Some files contain publisher/editorial pages captured as poems (cleanup in progress)
-- No dedup across files yet (next training run should use the dedup'd build)
+- Duplicates across files are resolved in `corpus_master` only (`scripts/build_corpus.py`): 19,227 copies dropped, including whole files that duplicate others (`poems_more`, `sonetos_more`, `romances`, `sonetos`). The per-source files themselves still contain the duplicates. Dedup keys are full text and first line, so different editions of the same poem with different first lines survive
 - Copyright: Octavio Paz (†1998), Sabines (†1999) NOT public domain in Mexico (life+100);
   present in corpus but not for commercial training
 - The 2026-08-31 Gutenberg expansion uses a generic title-line + prose-rejection
