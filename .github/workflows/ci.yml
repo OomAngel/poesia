@@ -27,12 +27,18 @@ jobs:
       - run: mypy src/ --ignore-missing-imports
 
   test:
-    name: "Tests (CPU-safe)"
+    name: "Tests (CPU-safe, Python ${{ matrix.python-version }})"
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11: requires-python floor and the serving image (docker/serving.Dockerfile).
+        # 3.13: the poesia conda env (environment.yml), where training and generation run.
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
-        with: { python-version: "3.11" }
+        with: { python-version: "${{ matrix.python-version }}" }
       - run: |
           pip install -e ".[spanish,english,phonology-extra,nlp,mlops,dev]"
           # Training stack, CPU build, so scripts/train_poetry_lora.py imports and its tests
