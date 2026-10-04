@@ -57,6 +57,11 @@ larger corpus and a larger base model was decided on 2026-10-04:
 
 ## Still to do (verified 2026-10-02)
 
+- **Laptop, MLflow 3.14.0 → 3.16.1 (security fixes, 2026-10-04):** after updating the
+  laptop env, back up the store first (`cp mlruns/mlflow.db mlruns/mlflow.db.3.14.bak`),
+  then `mlflow db upgrade sqlite:///mlruns/mlflow.db`, check the run count is unchanged
+  (71), and regenerate `mlops/mlflow_metadata_dump.sql` from the upgraded store.
+
 - Same DVC decision as `orchard_twins`: storage is still only `/mnt/d/dvc-remotes/poesia`. It was in sync with the laptop cache on 2026-10-02, but lacks the corpus the desktop added on 2026-10-04 (below). The adapters reach the desktop only via the drive or a network remote.
 - Calibrate the "better model" expectation: the desktop `AngelThuis` is an RTX 3070 with **8 GB** (`workspace-governance/machines/AngelThuis.json`), the same VRAM class that trained the existing adapters. It can retrain any of them locally. Corrected 2026-10-04: "needs ≥16 GB for 8B" holds only for the default QLoRA layout (embedding and `lm_head` in bf16). With `lm_head` in NF4 and the embedding in CPU RAM, models up to ~9B (Qwen3.5-9B, Qwen3-8B) are estimated to fit in about 6 GB. This is unmeasured until the smoke run in `docs/RETRAINING_PLAN_2026-10.md` §6 step 4. Rerun the estimate with `scripts/estimate_qlora_vram.py`.
 - 2026-10-04 desktop: the corpus was rebuilt without the remote (`docs/CORPUS_SOURCES.md` "Rebuilding the corpus"); `dvc add` updated the pointers, but the new data is cached only on the desktop: the laptop's remote doesn't have it. The adapters are still laptop-only (`models/` is 36 KB).
