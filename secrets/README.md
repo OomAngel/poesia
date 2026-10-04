@@ -18,7 +18,9 @@ sops secrets/poesia.env.sops.yaml
 For headless runs, decrypt into the gitignored repo-root `.env`:
 
 ```bash
-sops -d secrets/poesia.env.sops.yaml > .env
+sops -d --output-type dotenv secrets/poesia.env.sops.yaml > .env
 ```
 
-The age key is the machine key at `~/.config/sops/age/keys.txt` (back it up).
+The age key at `~/.config/sops/age/keys.txt` is the same key for every repository; a
+recovery key is the second recipient. How to get it onto a new machine: `LOCAL_ONLY.md`
+"Secrets on another machine".

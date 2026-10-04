@@ -7,7 +7,7 @@
 ## 1. Project Identity & Scope
 
 * **PoesIA**: A personal hybrid poetry-writing engine combining deterministic phonology/prosody validation with LLM semantic generation, extended into sound analysis (`eufonia`), illustration (`galeria`), collection library (`memoria`), and music score/recitation (`armonia`).
-* **Repo State**: Personal local-only repository. **Never configure or push to a remote (GitHub/GitLab) unless explicitly instructed by the user.**
+* **Repo State**: Public GitHub repository (`OomAngel/poesia`). **Push only when the author asks. Never commit poems or corpus data (DVC only) and never bake them into Docker images.**
 
 ### Active RAG/LLM Development Authority
 
@@ -29,7 +29,7 @@ skeleton, and do not delete source/deployable model artifacts (`final_adapter/`,
 intermediates (`models/*/merged/`, `models/*/*-f16.gguf`) are excluded from
 tracking and may be deleted/regenerated via `scripts/convert_adapters_to_gguf.py`
 (see `docs/INFRASTRUCTURE_DECISIONS.md` §7). System of record: **DVC** = model
-weights, **Git** = provenance/results, **`mlruns/`** = local disposable cache.
+weights and the poetry corpus (since `f8b2017`), **Git** = provenance/results, **`mlruns/`** = local disposable cache.
 PoesIA is a single-user CLI today with a long-term web/Android product intent;
 infrastructure work is a staged transition, not an all-at-once build or teardown.
 

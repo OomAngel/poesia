@@ -1,6 +1,7 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-10-04 (retraining plan: model ceiling on the RTX 3070, larger corpus)_
+_Last updated: 2026-10-04 (retraining plan, Python 3.13; re-entry checklist, Current focus
+and Document authority brought current)_
 
 ---
 
@@ -18,8 +19,10 @@ _Last updated: 2026-10-04 (retraining plan: model ceiling on the RTX 3070, large
 - **Evidence caveat:** the top two adapters swapped order between the 09-01 and 09-08
   evaluations (3 unseeded themes), so `distilled` vs `qwen3b` is within noise. Note added to
   `ANALOGIA_PLAN.md`.
-- **Blocker:** the desktop has no corpus and no adapters (only `.dvc` pointers). The DVC
-  remote is on the laptop's D: drive.
+- **Blocker:** the desktop has no adapters (`models/` holds only `.dvc` pointers); the July
+  adapters are only on the laptop's DVC remote (`/mnt/d/dvc-remotes/poesia`, its D: drive).
+  The corpus was rebuilt on the desktop the same day (next bullet), and its DVC cache exists
+  on the desktop only: the laptop's remote lacks it.
 - **Corpus rebuilt on the desktop and enlarged (same day):** restored from git (`f8b2017^`;
   three folders match the DVC hashes exactly), re-fetched the 08-31 Gutenberg round, added
   4 Gutenberg books plus DISCO v5 and two Golden-Age corpora via the new
@@ -33,17 +36,23 @@ _Last updated: 2026-10-04 (retraining plan: model ceiling on the RTX 3070, large
   long poems the target line is lost (61–68% of non-sonnet examples; sonnets 1%). Fix options
   and the run-size formula (~2,600 usable tokens per poem): `RETRAINING_PLAN` §5.
 - **Fixed same day:** truncation, by dropping examples that don't fit (`_drop_overlong`, §5).
-  CI was red since 10-02 (no mlflow); now installs mlflow and the CPU training stack and
-  tests on Python 3.11 and 3.13: 442 passed, 0 skipped.
+  CI was red since 10-02 (no mlflow); it now installs mlflow and the CPU training stack.
+  After the 3.13 switch below, CI runs one test job on Python 3.13: 446 passed, 0 skipped
+  (`90f6c32`; hosted-provider and hosted-image test files excluded). Local full suite: 519
+  pass.
 - **One Python version: 3.13** (Angel, 2026-10-04): `requires-python >=3.13,<3.14`; CI,
   deploy, pre-commit, both Dockerfiles and the README moved off 3.11/3.12. Checked: Colab
   and Kaggle run 3.13, the llama-cpp CUDA wheel is py3-none, all compiled deps ship cp313,
   3.11 install is refused. Serving image was broken (deleted requirements-lock.txt), now
   installs `.[mlops]`; `.dockerignore` keeps the corpus and `mlops/data/` out of images.
   Colab notebook pins aligned to the env. Images not built: Docker has no WSL integration.
-- **Next:** smoke-test Qwen3-8B (peak VRAM, tokens/s), a private DVC remote both machines
-  reach (§7), then
-  the stronger evaluation (English too), then the step-3 base-model comparison.
+- **After the switch (same day):** networkx 3.6.1 → 3.7 (`0789824`). Extras made installable
+  on 3.13 (`75f3e6b`): `recitation` = `piper-tts` (Spanish synthesis verified; Coqui TTS
+  needs <3.12 and the `coqui-tts` fork fails with transformers 5, upstream #558);
+  `music-ai` = MusicGen through transformers + scipy (audiocraft pins torch 2.1). Still
+  open: `classical` resolves to cltk 2.x, which has no scansion. README records the
+  dependency impact (`459ab1c`).
+- **Next:** see [Current focus](#current-focus).
 
 ---
 
@@ -127,10 +136,17 @@ _Last updated: 2026-10-04 (retraining plan: model ceiling on the RTX 3070, large
 
 ## Re-entry checklist
 
-```bash
-cd /home/angel/dev/poesia
+Checked 2026-10-04 on the desktop (`AngelThuis`, RTX 3070). Read
+`docs/RETRAINING_PLAN_2026-10.md` before any training or data work.
 
-# Quality gates (all must be green):
+```bash
+cd ~/dev/poesia
+
+# Environment (conda env `poesia`, Python 3.13 on both machines):
+scripts/env.sh check
+
+# Tests and quality gates (all must be green):
+pytest                       # 519 pass locally; CI runs 446 on 3.13, 0 skipped
 mypy src/ --ignore-missing-imports
 ruff check src/ mlops/
 ruff format --check src/ mlops/
@@ -141,28 +157,56 @@ poesia galeria illustrate seeds/library/20260731_030227_142539_el_peso_del_saber
 
 # Live free-online illustration (no key; ~1 img/15s anonymous, ~10s each):
 poesia galeria illustrate poem.txt --backend pollinations --output auca.png
-
-# Regenerate the README showcase example (deterministic, no key needed):
-poesia galeria illustrate seeds/library/20260731_030227_142539_el_peso_del_saber__ingenuidad.md \
-  --backend procedural --output docs/examples/auca_el_peso_del_saber.png
-
-# MLflow sanity — the actual 71 runs / 8 registered models are in the LOCAL
-# SQLite store `mlruns/mlflow.db` (NOT the docker Postgres, which only holds
-# MLflow's demo traces). See docs/INFRASTRUCTURE_DECISIONS.md §7.
-source scripts/poesia_env.sh --source 2>/dev/null
-/home/angel/miniconda3/envs/poesia/bin/python -c "
-import sqlite3
-c = sqlite3.connect('mlruns/mlflow.db')
-for eid, name in c.execute('SELECT experiment_id, name FROM experiments'):
-    n = c.execute('SELECT count(*) FROM runs WHERE experiment_id=?', (eid,)).fetchone()[0]
-    print(f'{name:30s} {n} runs')" 2>/dev/null
-
-# MLflow UI (docker): http://localhost:5000  (docker Postgres: mlflow:mlflow@localhost:5432/mlflow)
-# docker is UP: native `docker` on PATH. If the stack is down:
-#   docker compose -f docker/docker-compose.yml up -d postgres mlflow-ui
 ```
 
+- **DVC:** the only remote (`local_d_drive` → `/mnt/d/dvc-remotes/poesia`) is on the
+  laptop's D: drive. The rebuilt corpus (`seeds/poetry_corpus/corpus_master/`, 85,027
+  poems) is cached on the desktop only, and the July adapters exist only on the laptop's
+  remote (desktop `models/` = `.dvc` pointers). Never run a bare `dvc repro`: it retrains
+  `poetry-lora-v2` first (`docs/DVC_INTEGRATION.md`).
+- **Public repo:** `OomAngel/poesia` is public. Poems are never committed or baked into
+  images (`.dockerignore` excludes `seeds/poetry_corpus/` and `mlops/data/`).
+- **MLflow:** the history (71 runs / 8 registered models) is in `mlruns/mlflow.db`, which
+  exists only on the laptop; the desktop has none. The docker Postgres holds only demo
+  traces (`docs/INFRASTRUCTURE_DECISIONS.md` §7).
+- **Docker:** Docker Desktop's WSL integration is off, so `docker` is unusable from WSL and
+  the compose stack (`docker/docker-compose.yml`) is down. Images have not been built since
+  the 3.13 switch.
+
 ## Current focus
+
+_Set 2026-10-04. Retraining with a larger corpus and a larger base model; order and reasons
+in `docs/RETRAINING_PLAN_2026-10.md` §6. Each step changes one thing._
+
+1. **Qwen3-8B smoke test on the desktop (§6 step 4).** First the code change for the
+   "best" layout in `scripts/train_poetry_lora.py` (`lm_head` in NF4 via an empty
+   bitsandbytes skip list, embedding on CPU; not implemented yet, the script uses
+   `device_map="auto"`). Then about 50 steps; record `torch.cuda.max_memory_allocated()` and
+   tokens/s. Qwen3.5-9B only after `flash-linear-attention` and `causal-conv1d` are in the
+   env. The ~9B ceiling from `scripts/estimate_qlora_vram.py` is unmeasured until then.
+2. **Stronger evaluation before trusting any new score (§6 step 2).** At least 5 themes,
+   seeded, more than one sample per theme; English themes and an English metre target, not
+   only Spanish hendecasyllables; a per-line rhyme-key score (`GENERATION_QUALITY_PLAN.md`
+   next action 8b, not implemented yet); check the syllable scorer against
+   `seeds/poetry_corpus/eval_gold/adso_gold_100.jsonl` (hand scansion).
+3. **Rebuild the July baseline on the desktop.** The old adapters are only on the laptop's
+   remote; rerun the `distilled` recipe (`mlops/configs/train_distilled.yaml`) here so the
+   comparison has a baseline from this machine.
+4. **Base-model comparison (§6 step 3).** Same recipe, only `base_model` changed (Qwen3.5-2B
+   or Qwen3-4B-2507), scored with the step-2 evaluation.
+5. **First sized corpus run (§6 step 5).** `scripts/build_fixed_dataset.py --max-poems N`
+   sized by §5 (~2,600 usable tokens per poem; the full corpus runs out of RAM). Over-long
+   examples are dropped, not truncated (`_drop_overlong`).
+
+**Side items:** a private DVC remote both machines reach (§7; the repo is public); build the
+Docker images once Docker Desktop's WSL integration is on, and align `training.Dockerfile`
+(CUDA 12.4 base, unpinned libs) with the cu130 env; port the cltk 1.x scansion (MIT) for the
+`classical` extra, since cltk 2.x on 3.13 has none; a note in career-assets ADR 0007 that
+poesia's "8B won't fit 8 GB" claim was corrected (pending Angel).
+
+---
+
+## Earlier focus (2026-08-03 … 2026-08-06, history)
 
 **NEW (2026-08-06): Test-suite thinning done** — per the test-pyramid
 principle (avoid test duplication, test behavior not implementation):
@@ -335,25 +379,19 @@ The training plan (as designed):
 1. **"You pick" → researched the research-tools push blocker** (v2-fixed retraining
    is infra-blocked: PG/MLflow still down, docker WSL-integration
    disabled — verified `docker` unusable, GPU free).
-2. **Full xenon diagnosis** (sci-pipeline env): 6 blocks over threshold
-   (`--max-absolute C`): `kg_enrich_all.py:773 enrich_all` (F, 234 lines),
-   `kg_enrich_all.py:207 _parse_biblio` (E), `kg_build.py:678 build_kg` (F, 177
-   lines), `kg_build.py:167 _parse_biblio_xml` (E), `reference_graph_enricher.py:645
-   enrich_reference_graph` (D, 128 lines), `graph_api/main.py:390 api_search` (D,
-   63 lines).
-3. **Situation changed mid-diagnosis**: user added 2 new commits
-   (`bc68bc6 docs(kg) upgrade truth baseline`, `ddc0cb7 feat(kg) governed contract
-   kernel spike`) + active WIP (`tools/kg/store.py`, `tests/tools/kg/test_store.py`)
-   — the KG pipeline is being actively restructured. → **paused the refactor**
-   (removed my scratch worktree/branch; repo left untouched).
-4. research-tools now `ahead 9` on main; my README commit (`9f45e89`) still
-   unpushed; push will keep failing until the 6 functions pass xenon.
+2. **Full xenon diagnosis** (sci-pipeline env): 6 functions in research-tools'
+   knowledge-graph code over threshold (`--max-absolute C`). *(File and function
+   names removed 2026-10-04: another repo's private state; this repo is public.)*
+3. **Situation changed mid-diagnosis**: new commits and active work in progress
+   landed there — the KG pipeline is being actively restructured. → **paused the
+   refactor** (removed my scratch worktree/branch; repo left untouched).
+4. The research-tools README commit was still unpushed; the push will keep failing
+   until the 6 functions pass xenon.
 5. **Decision (agreed with user): restructure first, then clean up.** The KG
-   layer is being actively rebuilt (SQLite store just landed, commits up to
-   `af685d4`, main ahead 11). Park the xenon refactor until the restructuring
-   settles; then do ONE behavior-preserving pass over the 6 functions (verify
-   `xenon ≤ C` + repo tests) and push. README commit `9f45e89` stays on main
-   until then. Stale pre-commit stash patches verified redundant + deleted.
+   layer is being actively rebuilt. Park the xenon refactor until the
+   restructuring settles; then do ONE behavior-preserving pass over the 6
+   functions (verify `xenon ≤ C` + repo tests) and push. The README commit stays
+   local until then. Stale pre-commit stash patches verified redundant + deleted.
 
 ## What We Just Did (2026-08-04 — GalerIA style anchoring from retrieval)
 
@@ -400,14 +438,13 @@ The training plan (as designed):
    microscopy, optics, orchard_twins, pcb-tools — all `main` updates landed
    (incl. their unpushed work).
 2. **`research-tools` push BLOCKED by its own pre-push gate**: `xenon`
-   complexity check fails on the user's WIP knowledge-graph code (6 functions in
-   `kg_build.py`, `kg_enrich_all.py`, `reference_graph_enricher.py`,
-   `graph_api/main.py`). Not my README change.
-3. **Recovery**: the failed pre-push run had (a) reformatted 13 files and (b)
-   trapped the user's WIP (15 files) in a pre-commit stash patch
-   (`~/.cache/pre-commit/patch1785845800-534766`). Restored: `git restore .` +
-   `git apply <patch>` → user's WIP fully back (13 modified + 21 untracked);
-   hook formatting reverted. HEAD = `9f45e89` (my README commit), `main` ahead 7.
+   complexity check fails on the user's WIP knowledge-graph code (6 functions).
+   Not my README change.
+3. **Recovery**: the failed pre-push run had (a) reformatted files and (b)
+   trapped the user's WIP in a pre-commit stash patch. Restored with
+   `git restore .` + `git apply <patch>` → user's WIP fully back; hook formatting
+   reverted. *(Patch path, file names and commit state removed 2026-10-04: another
+   repo's private state; this repo is public.)*
 4. research-tools CI badge/status commit is **prepared locally, unpushed** —
    needs their kg code to pass xenon (or a decision).
 
@@ -422,9 +459,9 @@ The training plan (as designed):
      self-score with measured facts (182 tests · 47% cov · CI 1m45s), status →
      Active (2026-08) · CUDA 12.9 rebuild.
 2. **luminose-ip-archive deliberately untouched** (P15 purpose-fit).
-3. **Push state discovered**: hidrive/pcb-tools/microscopy push clean; hiops
-   (+13), research-tools (+6), cielch (+4), optics (+1) carry unpushed local
-   commits — hiops push may trigger Cloudflare Pages/Worker workflows.
+3. **Push state discovered**: hidrive/pcb-tools/microscopy push clean; hiops,
+   research-tools, cielch and optics carry unpushed local commits — hiops push
+   may trigger its deploy workflows.
    Awaiting user's push decision.
 4. Notes: hidrive-image-index was NOT cloned locally — cloned to
    `~/dev/hidrive-image-index`. orchard_twins README is CRLF.
@@ -436,12 +473,12 @@ The training plan (as designed):
 2. **Topics added to all 9 repos** — 5–6 domain-relevant each (lidar/cuda for
    orchard_twins, bom/hardware for hiops, pcb/kicad for pcb-tools, etc.).
 3. **License step dropped after inspection** — `microscopy`'s `NOASSERTION` is
-   *deliberate*: its LICENSE is "UNLICENSED — PRIVATE PERSONAL REPOSITORY · All
-   rights reserved" with an explicit deferral of any open-source decision.
+   *deliberate*: its LICENSE reserves all rights and defers any open-source
+   decision.
    Replacing it would be a legal grant — corrected in the audit doc (this
    retracts the earlier audit flag).
 4. All 9 repos already cloned locally at `~/dev/<name>` (remote
-   `git@github-personal:OomAngel/<name>.git`), each with a real `LICENSE` + CI.
+   `OomAngel/<name>` on GitHub), each with a real `LICENSE` + CI.
    Deferred: CI badges + Status sections (README edits, not metadata).
 5. Audit doc updated: quick wins marked ✅/⚠️/⏳ + Audit changelog row.
 
@@ -527,14 +564,15 @@ The training plan (as designed):
    with the full text — a "cover" illustration. Pipeline validates the mode.
 2. 4 new tests (pipeline single-panel/validation + CLI); suite 473 → **477**;
    ruff/mypy clean. README walkthrough added.
-3. **Secret hygiene for the share**: the Cloudflare account ID was redacted to
-   `065c2ed7…` in the tracked memory-bank (identifiers shouldn't travel in the
-   share bundle); the API token lives only in the gitignored `.env`.
+3. **Secret hygiene for the share**: the Cloudflare account ID was redacted
+   in the tracked memory-bank (identifiers shouldn't travel in the share
+   bundle; the remaining prefix was removed 2026-10-04, repo now public); the
+   API token lives only in the gitignored `.env`.
 
 ## What We Just Did (2026-08-03 — Cloudflare dedicated token, live end-to-end)
 
 1. **Configured the dedicated token**: `CLOUDFLARE_ACCOUNT_ID`
-   (account `065c2ed7…`) + the new Workers AI API token written
+   + the new Workers AI API token written
    to the gitignored `.env`; verified the CLI auto-loads both at startup.
 2. **Live test passed**: direct `CloudflareImageBackend` call → 2.2 MB
    1024×1024 PNG in 10.8 s; full `poesia galeria illustrate … --backend
@@ -737,6 +775,11 @@ Add a `title` field to training data. Train or prompt:
 3. Add title to training data → evaluate title quality
 4. Run DPO on corrected data
 5. Evaluate: poem quality (subjective) + metre accuracy + title relevance
+
+### Gap-fixing sprint (2026-07-30) — issues 5–7 (rows 1–4 were never recorded here; see tasks.md DONE 2026-07-30)
+
+| # | Issue | Fix |
+|---|-------|-----|
 | 5 | **Adapter registry incomplete** — 3 legacy entries missing `mlflow_run_id` and `mlflow_model_name` | Imported into `legacy-training-imports` experiment, registry now has 5/5 entries with full provenance |
 | 6 | **Docker build broken** (requirements-lock.txt has host absolute paths + Python 3.13 pins) | Removed `-e /home/angel/dev/poesia` from lock file, rewrote Dockerfile to skip lock file and install from pyproject.toml directly |
 | 7 | **DPO script broken** (trl v1.9.2 renamed `tokenizer` → `processing_class`) | Fixed `DPOTrainer(tokenizer=...)` → `processing_class=tokenizer` |
@@ -917,8 +960,11 @@ Removed duplicate `git_hash` and `run_id` computation (was happening twice in th
 
 | Command | What | Time |
 |---------|------|------|
-| `python scripts/train_poetry_lora.py mlops/configs/train_ruli.yaml` | Ruli-3B (Spanish-native) training | ~2h |
+| `python scripts/train_poetry_lora.py mlops/configs/train_ruli.yaml` | Ruli-3B (Spanish-native) training — *config never committed; not in `mlops/configs/` (checked 2026-10-04)* | ~2h |
 | `python scripts/train_poetry_lora.py mlops/configs/train_composite.yaml` | Composite loss on 500 scored sonetos | ~2h |
+| `python scripts/train_poetry_dpo.py mlops/configs/dpo_v1.yaml` | DPO preference learning | ~1h |
+| `python scripts/run_experiment_grid.py --grid loss_compare` | Compare CE vs Composite vs DPO | ~5h |
+
 ## What We Just Did (2026-08-06: Docs consistency pass — test counts + machine-author framing)
 
 Closed the last open item of the behavioral-layer reframe (POSITIONING §8 guardrail):
@@ -939,13 +985,15 @@ Closed the last open item of the behavioral-layer reframe (POSITIONING §8 guard
 3. **Reframe marked DONE in tasks.md.**
 
 ## Document authority
-| `python scripts/train_poetry_dpo.py mlops/configs/dpo_v1.yaml` | DPO preference learning | ~1h |
-| `python scripts/run_experiment_grid.py --grid loss_compare` | Compare CE vs Composite vs DPO | ~5h |
-
-## Document authority
 
 | What | Where |
 |------|-------|
+| **Retraining plan (2026-10): model ceiling, corpus, run size, order of work** | **`docs/RETRAINING_PLAN_2026-10.md`** |
+| Corpus sources, ingest and rebuild | `docs/CORPUS_SOURCES.md` |
+| Infrastructure and data decisions (DO-NOT list) | `docs/INFRASTRUCTURE_DECISIONS.md` |
+| DVC pipeline and remotes | `docs/DVC_INTEGRATION.md` |
+| Training how-to | `docs/TRAINING_RUNBOOK.md` |
+| Lemonade integration plan (AMD challenge) | `docs/LEMONADE_INTEGRATION.md` |
 | VerifIA pattern + benchmarks | `docs/ARQUITECTURA.md` |
 | Experiment plan (models, techniques, loss) | `docs/EXPERIMENTS_PLAN.md` |
 | Cloud migration guide | `docs/CRONOLOGIA_CLOUD.md` |
@@ -956,7 +1004,7 @@ Closed the last open item of the behavioral-layer reframe (POSITIONING §8 guard
 | Kanban | `memory-bank/tasks.md` |
 | Architecture + package survey | `docs/ARCHITECTURE.md` |
 | Pre-generation enrichment | `docs/ENRICHMENT.md` |
-| CronologIA deployment | `cronologia/docker-compose.yml` + `.env.example` |
-| Retraining history | `docs/ROADMAP.md` (Retraining section) |
+| CronologIA deployment | `cronologia/docker-compose.yml` + root `.env.example` |
+| Retraining history (July–September runs) | `docs/ROADMAP.md` ("Retraining history & approach"); current plan above |
 | **MLOps diagnosis & implementation plan** | **`docs/MLOPS_DIAGNOSIS.md`** |
 | **Human position + landscape research** | **`docs/POSITIONING.md`** |

@@ -3,7 +3,12 @@
 > **Where training runs:** the desktop (RTX 3070, 8 GB), not the laptop — see
 > [`TRAINING_RUNBOOK.md`](TRAINING_RUNBOOK.md) for the concrete commands.
 
-> **Status:** Active · **Last updated:** 2026-08-31 (Next Execution Steps reconciled against a month of subsequent work — see §4) · **Authority:** Canonical MLOps reference
+> **Status (2026-10-04):** history of the 2026-07-30 diagnosis and its 11 phases. Current
+> work: `docs/RETRAINING_PLAN_2026-10.md` (order of work, base models); trained adapters:
+> `mlops/adapter_registry.json`; training values: `mlops/configs/*.yaml`. CI is green on
+> GitHub (446 tests, Python 3.13); Docker images have not been rebuilt since the 3.13 switch.
+>
+> **Previous status:** Active · **Last updated:** 2026-08-31 (Next Execution Steps reconciled against a month of subsequent work — see §4) · **Authority:** Canonical MLOps reference
 >
 > This document records the comprehensive MLOps diagnosis performed 2026-07-30,
 > the 11-phase implementation plan derived from it, and the model/technique
@@ -30,10 +35,10 @@
 |---|-----|--------|------------|
 | 6 | **No MLflow autologging** | `mlflow.transformers.autolog()` not used. | ✅ **Phase 2**: `mlflow.transformers.autolog()` added to training script. |
 | 7 | **Data versioning fragile** | SHA256 hashes exist but not in MLflow. | ✅ **Phase 5**: `mlflow.log_input()` called in training script. |
-| 8 | **No CI/CD pipeline** | No `.github/` directory. | ✅ **Phase 9**: 3 GitHub Actions workflows created (ci, train, deploy). Need GitHub repo + secrets to activate. |
+| 8 | **No CI/CD pipeline** | No `.github/` directory. | ✅ **Phase 9**: 3 GitHub Actions workflows created (ci, train, deploy). 2026-10-04: CI is green on GitHub (446 tests, 3.13); `train.yml` needs a self-hosted GPU runner that does not exist. |
 | 9 | **No HPO infrastructure** | `run_experiment_grid.py` only, no Optuna. | ✅ **Phase 7**: `scripts/hpo_search.py` with Optuna. |
 | 10 | **No serving standardization** | LoRA adapters loaded via hardcoded paths. | ✅ **Phase 6**: `PoetryModelWrapper` as `mlflow.pyfunc.PythonModel`. New `MLflowModelClient` CLI backend (`--llm mlflow`). |
-| 11 | **Not containerized** | No Dockerfile for training/serving. | ✅ **Phase 8**: `docker/training.Dockerfile`, `docker/serving.Dockerfile`, `docker/docker-compose.yml`. Image built: `poesia/training:latest` (4.39GB). |
+| 11 | **Not containerized** | No Dockerfile for training/serving. | ✅ **Phase 8**: `docker/training.Dockerfile`, `docker/serving.Dockerfile`, `docker/docker-compose.yml`. Image built: `poesia/training:latest` (4.39GB) in 2026-07; not rebuilt since the Python 3.13 switch (2026-10-04). |
 | 12 | **No environment locking** | `environment.yml` incomplete. `requirements-lock.txt` has host-specific paths. | ✅ Resolved: `environment.yml` is a full conda-lock style export (Python 3.13 + torch + mlflow + all pip deps). `requirements-lock.txt` removed (stale, host-specific). Dockerfile installs from pyproject.toml. |
 | 13 | **No monitoring/drift detection** | No quality degradation detection. | ✅ **Phase 10**: `scripts/monitor_health.py` with threshold breach + statistical drift. Schedule only activates on GitHub. |
 | 14 | **Generation traces not linked to models** | MLflow Traces disconnected from adapters. | 🟡 Unchanged. Traces logged but not linked to model registry. |
@@ -80,13 +85,19 @@ Ordered by impact/dependency — each phase unblocks the next.
 
 | Model | Use | Status |
 |-------|-----|--------|
-| `Qwen/Qwen2.5-1.5B-Instruct` | Fine-tuned (4 adapters) + Outlines inference | ✅ **Default, proven** |
+| `Qwen/Qwen2.5-1.5B-Instruct` | Fine-tuned (7 of the 9 adapters in `adapter_registry.json`) + Outlines inference | ✅ Base of the July adapters; retraining moves to a larger base (`RETRAINING_PLAN_2026-10.md` §3) |
 | `gemini-2.5-flash` | Hosted generation backend | ✅ **Works** |
 | `gpt-4o-mini` | Hosted generation backend | ✅ **Works** |
 | Groq default (mixtral/llama3) | Hosted generation + distillation | ✅ **Works** |
 | `gemma2:2b` | Local inference via Ollama | ✅ **Works** |
 
-### 3.2 LLM Models — Documented "To Try" (never used)
+### 3.2 LLM Models — To Try
+
+Current base-model candidates, with per-model memory computed from tensor shapes, are in
+`docs/RETRAINING_PLAN_2026-10.md` §3 (up to ~9B estimated to fit on the 8 GB RTX 3070,
+unmeasured). Qwen2.5-3B has since been trained (`poetry-lora-qwen3b`, §4 below).
+
+#### History (2026-09-02)
 
 | Model | Priority | Barrier |
 |-------|----------|---------|
@@ -117,8 +128,8 @@ Ordered by impact/dependency — each phase unblocks the next.
 
 | Technique | Config/Status | Why Not Done |
 |-----------|--------------|-------------|
-| **DPO** | `train_poetry_dpo.py` + `dpo_v1.yaml` exist | Never executed |
-| **Unsloth** | Not installed | Not prioritized yet |
+| **DPO** | `train_poetry_dpo.py` + `dpo_v1.yaml` exist | Trained since: `poetry-lora-dpo-expanded` (run `20260731_023723`, §4) |
+| **Unsloth** | Not installed | Blocked by version pins (`EXPERIMENTS_PLAN.md` §3) |
 | **LoRA r=64** | One-line config change | Not prioritized yet |
 | **LoRA all linear layers** | Add gate_proj, up_proj, down_proj | Not tested |
 | **Multi-teacher distillation** | Ensemble Groq + Gemini outputs | Not implemented |
@@ -134,8 +145,8 @@ Ordered by impact/dependency — each phase unblocks the next.
 
 All MLOps phases have been coded and most have been validated:
 - **Phases 1-7, 11**: Code-complete AND validated (training runs executed, MLflow DB verified)
-- **Phase 8**: Docker image built (`poesia/training:latest`, 4.39GB)
-- **Phase 9**: GitHub Actions workflows exist — need GitHub repo + secrets to activate
+- **Phase 8**: Docker image built (`poesia/training:latest`, 4.39GB); not rebuilt since the Python 3.13 switch (2026-10-04)
+- **Phase 9**: GitHub Actions workflows exist; CI green on GitHub (2026-10-04); `train.yml` has no self-hosted GPU runner
 - **Phase 10**: `monitor_health.py` exists — schedule only activates on GitHub
 
 ### ✅ Completed since last update
@@ -144,7 +155,13 @@ All MLOps phases have been coded and most have been validated:
 - **Qwen2.5-3B training finished and registered.** Run `20260730_164422` → `poesia-lora-soneto-qwen3b` in the MLflow registry, adapter at `models/poetry-lora-qwen3b/final_adapter`. GGUF-converted; it's the only adapter with a working eval path today (see next bullet).
 - **Blocker found 2026-08-31, resolved 2026-09-01/02** (full detail in `GENERATION_QUALITY_PLAN.md`, not restated here): `evaluate_adapter_mlflow.py` was hardcoded to `LoRAClient` (needs CUDA sm_75+ with the torch build installed then; the laptop's Quadro M1000M is sm_50), so 8 of 9 registered adapters were unevaluated. Fixed with a CUDA/llama.cpp dispatch — all 8 non-empty adapters now evaluate on the laptop, and the run is wired into DVC's `evaluate` foreach stage (`DVC_INTEGRATION.md`).
 
-### 🎯 Next Execution Steps (priority order, reconciled 2026-09-02)
+### 🎯 Next Execution Steps
+
+Superseded 2026-10-04 by `docs/RETRAINING_PLAN_2026-10.md` §6: the rhyme-key score (item 3
+below) is part of its step 2, the DPO-vs-CE comparison and the experiment grid (items 1–2)
+fold into steps 2–3, and Unsloth (item 7) is blocked by version pins (`EXPERIMENTS_PLAN.md` §3).
+
+#### History (2026-09-02)
 
 1. **Evaluate DPO adapter against a CE baseline specifically** — `poetry-lora-dpo-expanded` now has syllable-deviation metrics from the general eval sweep, but the dedicated DPO-vs-CE comparison harness (`scripts/evaluate_dpo_result.py`) still hasn't been run.
 2. **Run experiment grid** — CE vs Composite vs DPO comparison; no longer blocked by adapter evaluation (that's fixed), just not yet executed. Note `poetry-lora-composite`'s `.dvc`-tracked artifact is empty (no real weights), so it's excluded until re-trained.
@@ -172,6 +189,10 @@ All MLOps phases have been coded and most have been validated:
 | **Adapter registry** | `adapter_registry.json` + MLflow model versions provides two layers of artifact tracking (file-system path + MLflow registry). |
 
 ### 5.2 Gaps visible from outside (beyond the internal 17)
+
+> **Status 2026-10-04:** #1 resolved (`models/` and the corpus are DVC-tracked, not in git);
+> #2 resolved (`environment.yml` has no `prefix:`); #5 resolved (`.pre-commit-config.yaml`
+> and a `pre-commit.yml` workflow exist); #4 still open (no self-hosted GPU runner exists).
 
 These are observations an external reviewer would notice that aren't captured in the internal Phase 1-11 gaps:
 

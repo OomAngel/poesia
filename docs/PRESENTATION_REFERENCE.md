@@ -79,17 +79,20 @@ instead of a mechanism; "an AI tool for X" with no differentiation.
 **What.** The core claim stated crisply, backed by numbers — and the numbers kept
 honest and reproducible.
 
-**PoesIA exemplar:**
+**PoesIA exemplar:** since 2026-09-18 (`ca3f5fc`) the README states the design
+argument instead of numbers, because its earlier "~4% → ~73% validity" figures had
+no experiment, methodology or results file behind them:
 ```markdown
-Pure LLM generation produces formally valid poetry less than ~4% of the time.
-Wrapping the same generation in deterministic phonological verification raises
-validity to ~73%. The exact numbers differ per language; the architectural lesson
-does not: **never trust an LLM to count syllables**.
+The reason the craft layer is deterministic and not learned: a language model
+predicts what a metrically correct line *looks like*; it does not count. Scansion,
+sinalefa and stress placement are decidable, so PoesIA decides them in code and
+lets the model propose only what code can then check.
 ```
 
-**Check.** (a) At least one quantitative claim if the project has any measurable
-behaviour. (b) Numbers are reproducible or linked to where they were measured.
-(c) Caveats ("exact numbers differ per language") travel with the claim.
+**Check.** (a) At least one quantitative claim if the project has a measured
+result; otherwise a stated argument, not an invented number. (b) Numbers are
+reproducible or linked to where they were measured. (c) Caveats travel with the
+claim.
 
 **Anti-patterns.** All-caps "×10 faster" with no baseline; stale counts that drift
 from CI; percentages with no methodology.
@@ -99,25 +102,24 @@ from CI; percentages with no methodology.
 status, version/language, license, and feature facts — each anchoring to a
 section.
 
-**PoesIA exemplar:**
+**PoesIA exemplar** (four badges since `ca3f5fc`, which dropped the test-count
+and feature-count badges):
 ```markdown
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-410%20passing-brightgreen)](#development)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](#status)
-[![LLM backends](https://img.shields.io/badge/LLM%20backends-8%2B-blueviolet)](#core-generation)
-[![Image backends](https://img.shields.io/badge/image%20backends-6-orange)](#galeria--illustration)
-[![Languages](https://img.shields.io/badge/languages-es%20%7C%20en%20%7C%20nl-green)](#language-support)
-[![Retrieval](https://img.shields.io/badge/retrieval-Graph%20RAG-purple)](#memoria)
-[![MLOps](https://img.shields.io/badge/MLOps-MLflow-important)](#tooling)
+[![Languages](https://img.shields.io/badge/languages-es%20%7C%20en%20(nl%20scan--only)-green)](#language-support)
 ```
 
 **Check.** (a) Same provider (`shields.io`) and same `label-value-color` grammar
 throughout. (b) Semantic colour: green = passing/active; blue = stable facts;
 orange/violet/purple = feature facets. (c) Every badge links somewhere useful
-(section anchor, LICENSE, docs). (d) **Test counts match CI exactly.** (e) ≤10
-badges — beyond that, read like noise.
+(section anchor, LICENSE, docs). (d) Any count on a badge matches CI exactly, or
+is left off. (e) Keep only badges a reader acts on — beyond a handful they read
+like noise.
 
+**Anti-patterns.** Vanity counts (tests, backends) that drift from CI; mixed
+badge providers or styles; badges that link nowhere.
 
 ### Tier B — Proof of life
 
@@ -268,18 +270,19 @@ them. Test counts are stated here, and they must match CI.
 **PoesIA exemplar:**
 ```bash
 pip install -e ".[dev]"
-pytest                       # 410 tests
+pytest                       # 519 pass on the desktop (2026-10-04); CI runs 446 on 3.13, 0 skipped (hosted-provider and hosted-image test files excluded)
 ruff check src/ mlops/       # lint (CI-enforced)
 ruff format --check src/ mlops/
 mypy src/ --ignore-missing-imports
 ```
-> 410 passing tests; ruff, mypy, bandit, safety enforced in CI
 
-**Check.** (a) Commands are runnable in the documented env. (b) The stated test
-count equals the CI badge on [P4](#p4-badge-stack). (c) CI status is either
-shown or linked.
+**Check.** (a) Commands are runnable in the documented env. (b) A stated test
+count is dated and matches CI, or explains why a local run differs from CI.
+(c) CI status is either shown or linked.
 
 **Anti-patterns.** Test counts from three months ago; "pytest" without the env;
+a local count presented as the CI count.
+
 ### Tier D — Trust & governance
 
 #### P13 · Status (honest, dated)
@@ -287,13 +290,14 @@ shown or linked.
 failed. Future readers (and future-you) read this first.
 
 **PoesIA exemplar:**
-> Core engine complete; Phases 0–5 + P0–P5 hardening done, **410 tests passing**
-> (2026-08). Fine-tuning and DPO pipelines operational (MLflow-tracked); GalerIA
-> wired end-to-end …
+> Core engine complete; Phases 0–5 and P0–P5 hardening done (2026-08). Fine-tuning
+> and DPO pipelines operational (MLflow-tracked); GalerIA wired end-to-end …
+
+followed by a dated status log that separates goals run from doc-only goals and
+lists what is pending.
 
 **Check.** (a) The status carries a date. (b) Completed and in-progress are
-separate. (c) It is *honest* — early repos say "early" (`microscopy-instrument-workbench`
-does this well).
+separate. (c) It is *honest* — early repos say "early".
 
 **Anti-patterns.** "Production-ready v0.5.0" with no evidence; no date; status
 contradicting the Development section.
@@ -332,16 +336,10 @@ repos must say *their* truth: what they are, why they exist privately, and what
 must never leave. This is a legitimate — and sometimes *the only* — correct
 posture.
 
-**PoesIA-adjacent exemplar (`luminose-ip-archive`):**
-```markdown
-**Personal archive. Never to be published, shared, or made portfolio material.**
-...
-- Never publish this repo or its contents.
-- Never use any file here as portfolio/interview material.
-```
-And `cielch-color-research`: *"The committed image/result artifacts are private
-context … not a grant to publish datasets, generated figures, or unpublished
-conclusions."*
+**Exemplar (described, not quoted).** A private evidence repo whose first lines
+state that it is not to be published or used as portfolio material, followed by a
+short policy list saying what must never leave it and which artifacts are private
+context rather than a grant to publish.
 
 **Check.** (a) The first screen says what the repo is *for* (including "never
 publish"). (b) The boundary between shareable tooling and private evidence is
@@ -349,6 +347,9 @@ explicit. (c) No showcase/badges are bolted onto an evidence repo to make it
 "look public-ready".
 
 ---
+
+*(There is no §2. Sections keep their original numbers so existing links to
+`#3-…` through `#8-…` anchors still resolve.)*
 
 ## 3. README anatomy (recommended order)
 
@@ -508,3 +509,4 @@ This document is meant to grow. Rules for extending it:
 | Date | Change |
 |---|---|
 | 2026-08-04 | Initial standard: P1–P15 in four tiers; rubric; template; enrichment protocol. |
+| 2026-10-04 | P3/P4/P12/P13 exemplars refreshed from the current README (no unsourced validity figures, four badges, Python 3.13, dated test counts); P4 and P12 anti-patterns completed; P15 exemplar described instead of quoting private repos; note on the missing §2. |

@@ -170,7 +170,7 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 - **Reflection is first-class**: `--save` keeps what you meant or felt beside
   the poem (prompted, or `--reflection`)
 - Constrained generation loop: candidate lines → validate → score → rank → LLM repair
-- 8+ LLM backends behind one `Protocol` — `stub`, `groq`, `gemini`, `openai`, `ollama`, `lora`, `outlines`, `mlflow`
+- 10 LLM backends behind one `Protocol` — `stub`, `groq`, `gemini`, `openai`, `cloudflare`, `ollama`, `lora`, `llama_cpp`, `outlines`, `mlflow`; the default `route` tries groq → openai → ollama → stub, and `auto` picks the first hosted key (Gemini → Groq → OpenAI)
 - Grammar-constrained decoding via Outlines; LoRA/QLoRA fine-tuning (Qwen2.5) with MLflow tracking
 - Directive prompts: syllable targets, rhyme word banks, anti-repetition
 - Interactive line selection, alternative ranking, privacy guardrails for hosted providers
@@ -202,8 +202,10 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 
 ### Tooling
 
-- MLOps: MLflow single source of truth, model registry, evaluation, monitoring, Docker, CI/CD
-- CI enforces ruff, mypy, bandit and safety, and runs the test suite with hosted-LLM, image and GPU tests excluded so a run needs no API keys and no GPU
+- MLOps: MLflow single source of truth, model registry, evaluation, monitoring, Docker
+  files (images not rebuilt since the Python 3.13 switch), CI/CD (`train.yml` needs a
+  self-hosted GPU runner that does not exist yet)
+- CI enforces ruff, mypy and bandit (safety runs but only reports), and runs the test suite with hosted-LLM and hosted-image tests excluded so a run needs no API keys and no GPU; the training stack is installed as a CPU build
 
 ---
 
@@ -238,23 +240,33 @@ Dependency impact, from resolving every extra on 3.11–3.14 (2026-10-04):
 - 3.14 resolves the same as 3.13 for every extra.
 
 ```bash
-git clone <repo-url> poesia
+git clone https://github.com/OomAngel/poesia.git
 cd poesia
-pip install -e ".[dev]"
+scripts/env.sh create          # conda env for this machine's GPU tier ("Machines" below)
+# without conda, on Python 3.13: pip install -e ".[dev]"
 ```
 
 ### Optional extras
 
 | Extra | What it enables |
 |---|---|
-| `.[spanish]` | Spanish phonology (`silabeador`, `fonemas`) |
-| `.[english]` | English phonology (`pronouncing`, CMUdict, `prosodic`) |
-| `.[nlp]` | Semantic scoring (sentence-transformers) + imagery extraction (spaCy) |
-| `.[llm]` | Hosted LLM SDKs |
+| `.[spanish]` | Spanish phonology (`silabeador`; `fonemas` comes from `environment.yml`) |
+| `.[english]` | English phonology (`pronouncing`, CMUdict, `prosodic`, `g2p_en`) |
+| `.[phonology-multi]` | Multilingual phonology (`phonemizer`, `epitran`) |
+| `.[phonology-extra]` | Lightweight phonology backends (`gruut`, `g2p_en`, `pyphen`) |
+| `.[lexical-extra]` | Rhyme/word discovery via the Datamuse API |
+| `.[nlp]` | Semantic scoring (sentence-transformers) + imagery extraction (spaCy), `wn`, `wordfreq` |
+| `.[llm]` | Local LLM stack: transformers, llama-cpp-python (CPU wheel; GPU build via `scripts/build_llama_cpp.sh`), guidance, outlines. Hosted backends need no SDK |
 | `.[illustration]` | Image generation SDKs + Pillow + WeasyPrint (PDF export) |
+| `.[illustration-local]` | Local image generation (`diffusers`) |
 | `.[graphrag]` | Graph RAG retrieval (NetworkX, Neo4j) |
-| `.[music]` · `.[recitation]` | ArmonIA score/TTS extras |
+| `.[music]` | ArmonIA symbolic score and MIDI (`music21`, `pretty_midi`, `mido`, `pyfluidsynth`) |
+| `.[mlops]` | MLflow (`mlflow==3.14.0`, same pin as `environment.yml`) |
+| `.[dev]` | pytest, ruff, mypy, bandit, safety |
 | `.[all-lang]` | All language backends |
+| `.[recitation]` | **Planned, not yet imported by code:** `piper-tts`. Recitation at runtime uses eSpeak NG |
+| `.[music-ai]` | **Planned, not yet imported by code:** MusicGen through `transformers` (+ `scipy`) |
+| `.[classical]` | **Planned, not yet imported by code:** `cltk`; on 3.13 that is cltk 2.x, which has no scansion |
 
 ### Machines
 
@@ -268,13 +280,14 @@ copy of `~/dev/workspace-governance/bin/hw-profile`; the workspace-wide referenc
 | GPU | RTX 3070, 8 GB, compute capability 8.6 | Quadro M1000M, 2 GB, compute capability 5.0 |
 | Tier (`scripts/hw_profile.sh`) | `gpu-cuda13` | `gpu-cuda12` |
 | torch | 2.14.0+cu130 | 2.14.0+cu126 (the newest build with sm_50) |
-| Train adapters (QLoRA, DPO) | yes | no: 2 GB, and bitsandbytes needs compute capability ≥ 6.0 |
-| `--llm lora` (transformers + bitsandbytes 4-bit) | yes | no |
-| `--llm llama_cpp` (GGUF on the GPU) | yes: prebuilt CUDA 13.0 llama-cpp-python wheel (sm_86) | yes: llama-cpp-python compiled for sm_50 with a CUDA 12.x `nvcc`; generation and sampling were tuned here |
+| Train adapters (QLoRA, DPO) | yes (no training run on it yet) | no: 2 GB, and bitsandbytes needs compute capability ≥ 6.0 |
+| `--llm lora` (transformers + bitsandbytes 4-bit) | yes (the adapters are not on the desktop yet) | no |
+| `--llm llama_cpp` (GGUF on the GPU) | yes: prebuilt CUDA 13.0 llama-cpp-python wheel (sm_86); `poesia-gpu` not built here yet | yes: llama-cpp-python compiled for sm_50 with a CUDA 12.x `nvcc`; generation and sampling were tuned here |
 | Adapter evaluation (`scripts/evaluate_adapter_mlflow.py`) | through `LoRAClient` | through llama.cpp (chosen automatically) |
 | Embeddings (sentence-transformers) | GPU | GPU (torch cu126 has sm_50) |
 
-Two conda envs, with the same names on both machines:
+Two conda envs, with the same names on both machines (on the desktop only `poesia` exists
+so far; `poesia-gpu` is not built yet):
 
 - `poesia`: `environment.yml` (hardware-neutral base) plus `requirements/<tier>.txt`
   (torch for the tier; on the desktop also bitsandbytes, trl and datasets for training).
@@ -380,7 +393,7 @@ captioned with its verses. PoesIA automates the whole chain:
 poem lines ──▶ split into stanzas
     ──▶ extract imagery (nouns, phrases, sensory modalities)
     ──▶ build image prompt (theme + imagery + style)
-    ──▶ generate one image per stanza  (procedural | stub | openai | replicate)
+    ──▶ generate one image per stanza  (procedural | pollinations | cloudflare | stub | openai | replicate)
     ──▶ compose an illustrated sheet   (PNG grid, or WeasyPrint PDF)
 ```
 
@@ -458,7 +471,7 @@ poesia galeria illustrate soneto.txt --style-from-retrieval
 # Style from retrieval: musical rhythm, echoing space, vivid color, luna, agua
 ```
 
-Requires a retrieval index (`poesia memoria ingest` + the `.[nlp]` extra).
+Requires a retrieval index (`poesia memoria ingest-all` + the `.[nlp]` extra).
 Without one, the flag degrades gracefully — it prints a note and illustrates
 with the base style.
 
@@ -495,14 +508,14 @@ only through abstract `Protocol` backends — no vendor SDK leaks into core logi
 
 | Language | Phonology stack | Forms |
 |---|---|---|
-| Spanish | `silabeador`, `fonemas`, `phonemizer` | 45 stanza types, soneto, romance… |
-| English | `pronouncing` + CMUdict, `prosodic`, `phonemizer` | iambic pentameter, sonnets, haiku, free verse |
+| Spanish | `silabeador`, `fonemas`, `phonemizer` | soneto, romance, haiku |
+| English | `pronouncing` + CMUdict, `prosodic`, `phonemizer` | Shakespearean sonnet (iambic pentameter), haiku |
 | Dutch | `pyphen` | none registered yet — `write`/`workshop` will reject `--language nl`; `scan --language nl` works standalone for syllable/stress checking |
 
 `prosodic` is listed above as aspirational: it's declared as an optional
 dependency and referenced in comments, but not currently installed or wired
-into any code path (see [Development](#development) for the dependency
-groups that *are* actually wired in).
+into any code path (see [Optional extras](#optional-extras) for the dependency
+groups and which of them are still only planned).
 
 ### Macaronic word insertion
 
@@ -541,7 +554,7 @@ poesia write --theme "the weight of silence" --form haiku --language en \
 
 ```bash
 pip install -e ".[dev]"
-pytest                       # 515 tests, all passing on the desktop (2026-09-27); CI runs a subset (provider files ignored; some need the training stack)
+pytest                       # 519 pass on the desktop (2026-10-04); CI runs 446 on 3.13, 0 skipped (hosted-provider and hosted-image test files excluded)
 ruff check src/ mlops/       # lint (CI-enforced)
 ruff format --check src/ mlops/
 mypy src/ --ignore-missing-imports
@@ -560,9 +573,12 @@ Model weights (`final_adapter/` + `*-Q4_K_M.gguf`) are versioned with DVC
 ([`POSITIONING.md`](docs/POSITIONING.md)), the comparative
 [UX reference](docs/UX_REFERENCE.md), architecture, package survey, roadmap,
 experiment plan, RAG/LLM hardening plan, corpus sources, MLOps diagnosis,
+[training runbook](docs/TRAINING_RUNBOOK.md),
+[retraining plan](docs/RETRAINING_PLAN_2026-10.md),
 [presentation reference](docs/PRESENTATION_REFERENCE.md) + repo
 [README audit](docs/REPO_README_AUDIT.md). Full CLI reference
-in [`USAGE_GUIDE.md`](USAGE_GUIDE.md).
+in [`USAGE_GUIDE.md`](USAGE_GUIDE.md); what a clone lacks (DVC data, secrets) in
+[`LOCAL_ONLY.md`](LOCAL_ONLY.md).
 
 ---
 
@@ -572,6 +588,20 @@ Core engine complete; Phases 0–5 and P0–P5 hardening done (2026-08). Fine-tu
 wired end-to-end for online (DALL·E / SDXL) and offline (`procedural`
 deterministic art, no key needed) illustration, with the `image:` link
 persisted in the library frontmatter.
+
+### Status — 2026-10-04 (desktop `AngelThuis`)
+
+- **Python 3.13 everywhere** (decided 2026-10-04): conda env, `pyproject.toml`, CI, the
+  Dockerfiles, Colab and Kaggle (see [Python version](#python-version)).
+- **CI green:** 446 tests on 3.13, 0 skipped (CI installs mlflow and a CPU training stack);
+  519 pass locally.
+- **Corpus:** `seeds/poetry_corpus/corpus_master/poems.jsonl` (`scripts/build_corpus.py`):
+  85,027 poems (49,128 English, 35,899 Spanish), DVC-tracked. The new data is cached on the
+  desktop only; the one DVC remote (the laptop's D: drive) does not have it
+  ([`LOCAL_ONLY.md`](LOCAL_ONLY.md)).
+- **Retraining decided:** larger corpus, larger base model —
+  [`docs/RETRAINING_PLAN_2026-10.md`](docs/RETRAINING_PLAN_2026-10.md). Next: the Qwen3-8B
+  smoke test on the RTX 3070.
 
 ### Status log — 2026-09-29 (desktop `AngelThuis`, gpu-cuda13)
 
@@ -624,10 +654,12 @@ GPU runner; none exists). **Blocked upstream** — Unsloth (caps torch < 2.13).
 - **Software** — MIT, see [`LICENSE`](LICENSE).
 - **Original creative content** (`seeds/angel_fragments/`, `seeds/library/`) —
   © the author, **not** covered by the MIT license. See [`NOTICE`](NOTICE).
-- **Corpus texts** (`seeds/poetry_corpus/`) — public domain (Project Gutenberg,
-  es.wikisource.org); provenance in [`docs/CORPUS_SOURCES.md`](docs/CORPUS_SOURCES.md).
+- **Corpus texts** (`seeds/poetry_corpus/`) — DVC-tracked, never in git. They include
+  copyrighted sources, used for personal training only and never redistributed;
+  provenance in [`docs/CORPUS_SOURCES.md`](docs/CORPUS_SOURCES.md).
 
 Contribution standards: [`CONTRIBUTING.md`](CONTRIBUTING.md) ·
 Security: [`SECURITY.md`](SECURITY.md) · History: [`CHANGELOG.md`](CHANGELOG.md)
 
-**Author:** Angel — shared by invitation; contact details are provided personally.
+**Author:** Angel — public repository at
+[github.com/OomAngel/poesia](https://github.com/OomAngel/poesia).

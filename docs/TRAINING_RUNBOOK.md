@@ -11,10 +11,13 @@
 
 ## TL;DR
 
-- Training **has already been done** — the LoRA adapters are checked into
-  `models/` (table below). Don't retrain from scratch without a reason.
-- 4-bit QLoRA of the 1.5B and 3B base models needs a GPU with **≥ 8 GB VRAM**
-  (see `docs/EXPERIMENTS_PLAN.md` §2). 2 GB is not enough.
+- The July adapters (table below) are DVC-tracked, not in git. Their data is only on the
+  laptop's DVC remote (`/mnt/d/dvc-remotes/poesia`); the desktop's `models/` holds only the
+  `.dvc` pointers. **Retraining was decided 2026-10-04** (larger corpus, larger base model):
+  `docs/RETRAINING_PLAN_2026-10.md` and [Retraining (2026-10)](#retraining-2026-10) below.
+- 4-bit QLoRA of the 1.5B and 3B base models needs a GPU with **≥ 8 GB VRAM**; larger bases
+  up to ~9B are estimated to fit on 8 GB with a different layout (unmeasured, see
+  `docs/RETRAINING_PLAN_2026-10.md` §3). 2 GB is not enough.
 - On the desktop, reproduce any adapter with one command:
 
   ```bash
@@ -53,7 +56,11 @@ which `scripts/env.sh create` builds with the training stack on the desktop.
 | `poetry-lora-distilled` | `mlops/configs/train_distilled.yaml` | Qwen2.5-1.5B-Instruct |
 | `poetry-lora-multiform` | `mlops/configs/train_multiform.yaml` | Qwen2.5-1.5B-Instruct |
 | `smoke-test-adapter` | `mlops/configs/train_smoke.yaml` | Qwen2.5-1.5B-Instruct |
-| `poetry-lora-3b` | (early 3B attempt, pre-config) | — |
+| `poetry-lora-3b` | (early attempt, pre-config) | Qwen2.5-1.5B-Instruct (per `mlops/adapter_registry.json`, despite the name) |
+
+Reproducing `poetry-lora-v2-fixed` no longer gives the same data: its config reads
+`mlops/data/train_fixed.jsonl`, which `scripts/build_fixed_dataset.py` now builds from
+`corpus_master` (2026-10-04), not from the July structured files.
 
 ## How to train (desktop)
 
@@ -91,11 +98,34 @@ mlflow run . -e dpo
 mlflow run . -e hpo -P n_trials=20
 ```
 
+**Not working as of 2026-10-04:** `MLproject` declares `docker_env` (image
+`poesia-train:latest`) as well as `conda_env`, and MLflow uses `docker_env` whenever it is
+present, so the "conda fallback" never applies. That image is not built (the compose service
+builds `poesia/training`, and no image has been rebuilt since the Python 3.13 switch). Use
+`scripts/launch_training.sh local …` until `MLproject` is fixed.
+
 ### 4. DPO
 
 ```bash
 scripts/launch_training.sh dpo    # uses mlops/configs/dpo_v1.yaml
 ```
+
+### Retraining (2026-10)
+
+The plan, order of work and run sizing are in `docs/RETRAINING_PLAN_2026-10.md` (§5–6).
+Mechanically, a run is two steps:
+
+```bash
+# 1. Build line-by-line examples from a random sample of corpus_master
+#    (the full corpus runs out of RAM; size N by token budget, RETRAINING_PLAN §5)
+python scripts/build_fixed_dataset.py --max-poems N --seed S   # → mlops/data/train_fixed.jsonl
+# 2. Train on it (train_v2_fixed.yaml reads that file; change `model:` for another base)
+scripts/launch_training.sh local mlops/configs/train_v2_fixed.yaml
+```
+
+`scripts/train_poetry_lora.py` drops examples longer than `max_length` instead of truncating
+them; the counts are logged to MLflow as `dropped_overlong_train` / `dropped_overlong_eval`.
+Record `corpus_master/manifest.json`'s sha256 and the `--max-poems`/`--seed` used.
 
 ## Online training (no local GPU needed)
 
@@ -108,11 +138,11 @@ poesia-specific summary of it.
 
 | Option | What it is | Cost / limits |
 |---|---|---|
-| **Google Colab** (primary free option) | T4, 16 GB — fine for 1.5B QLoRA; 3B in 4-bit is tight | free; ~12h session cap, ~90min idle timeout |
+| **Google Colab** (primary free option) | T4, 16 GB — fits 1.5B–4B QLoRA (3B trained on 8 GB); ~9B only with the best layout (estimated, `docs/RETRAINING_PLAN_2026-10.md` §3) | free; ~12h session cap, ~90min idle timeout |
 | Kaggle | Notebook GPU, similar shape to Colab | free; 30h/week GPU quota |
 | Lightning AI Studio | Free monthly GPU credits | free tier, amount unverified |
 | Cloud GPU rental (RunPod / Lambda / Vast.ai) | Rent an A100/4090/3090 by the hour, clone the repo, run `scripts/launch_training.sh local …` or `docker` there | ~$0.3–2/hr; a Qwen2.5-1.5B/3B QLoRA run is a few hours |
-| Hosted fine-tuning (Together AI / Fireworks / HF AutoTrain) | Upload `seeds/poetry_corpus/`, they fine-tune a base model, download the adapter into `models/` | pay-per-job |
+| Hosted fine-tuning (Together AI / Fireworks / HF AutoTrain) | Upload a **public-domain subset** of `seeds/poetry_corpus/` (never the copyrighted poems, which are for personal training only), they fine-tune a base model, download the adapter into `models/` | pay-per-job |
 | GCP / AWS burst credits | $300 (GCP) / equivalent (AWS) new-account credit, or always-free micro instances | 90-day burst, or free but CPU-only (no GPU) |
 | HF Spaces / ZeroGPU | Shared Blackwell-class hardware | **inference/demo only — cannot run training jobs**; 5min/day free quota |
 | Oracle Cloud Always Free | Ampere A1 Flex (~2 OCPU/12GB RAM) + 2× AMD micro | **no GPU** — CPU-only; useful for hosting/orchestration, not training |
@@ -120,10 +150,10 @@ poesia-specific summary of it.
 On a GPU-backed remote machine (Colab, Kaggle, rented instance) the command is
 identical to the local path: `scripts/launch_training.sh local
 mlops/configs/<config>.yaml`. Output adapters land in `models/` and need to be
-copied back to the dev machine. On Colab specifically, MLflow's local-Postgres
-backend isn't reachable from the notebook — route `mlflow` at a SQLite file on
-mounted Drive for the run, then import/merge it into the real tracking store
-afterward rather than trying to point Colab at a local Postgres server.
+copied back to the dev machine. On Colab specifically, the local tracking store
+(SQLite `mlruns/mlflow.db`, see `docs/INFRASTRUCTURE_DECISIONS.md` §7) isn't
+reachable from the notebook — route `mlflow` at a SQLite file on mounted Drive
+for the run, then import/merge it into the local store afterward.
 
 **Surviving a Colab disconnect:** `output_dir` must point at a path on
 mounted Drive (not the ephemeral local disk), since `TrainingArguments`
@@ -141,7 +171,8 @@ nothing past the last checkpoint. Re-run with
 
 ## Related
 
-- `docs/EXPERIMENTS_PLAN.md` — base-model & technique matrix.
-- `docs/MLOPS_DIAGNOSIS.md` — phase status and next execution steps.
+- `docs/RETRAINING_PLAN_2026-10.md` — current base-model candidates and order of work.
+- `docs/EXPERIMENTS_PLAN.md` — technique ideas (its model table is superseded).
+- `docs/MLOPS_DIAGNOSIS.md` — MLOps phase history (2026-07/09).
 - `scripts/launch_training.sh` — the unified launcher (local/docker/dpo).
 - `MLproject` — `mlflow run` entry points.

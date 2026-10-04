@@ -30,10 +30,10 @@ pattern.
 
 | Layer | Trust model | Technology | Swap cost |
 |-------|------------|------------|-----------|
-| **Phonology** (phonology/) | Deterministic — never calls LLM | rantanplan, silabeador, pronouncing | One-file change |
-| **Scorer** (evaluation/) | Composable — Protocol | sentence-transformers, pysentimiento, textstat | Protocol implementation |
-| **Generator** (generation/) | Untrusted — candidates only | Groq, Gemini, Ollama, LoRA, Outlines | Registry lookup |
-| **Enrichment** (brief_builder/) | Structured — dataclass | E5 embeddings, WordNet, Datamuse | Builder config |
+| **Phonology** (phonology/) | Deterministic — never calls LLM | silabeador, fonemas, pronouncing (rantanplan does not install on 3.13) | One-file change |
+| **Scorer** (evaluation/) | Composable — Protocol | sentence-transformers (optional theme/novelty in `scorer.py`); `evaluation/emotion_lexicon.py` (NRC lexicon), pysentimiento and textstat are used only by data-prep scripts (`distill_sonetos.py`, `score_training_data.py`) | Protocol implementation |
+| **Generator** (generation/) | Untrusted — candidates only | Registry (`generation/registry.py`): Groq, Gemini, OpenAI, Ollama, Cloudflare, llama.cpp, LoRA, Outlines, MLflow, router | Registry lookup |
+| **Enrichment** (generation/brief_builder.py) | Structured — dataclass | E5 embeddings, WordNet, Datamuse | Builder config |
 | **CLI** (cli.py) | Thin — delegates to config | Typer, Rich | Form -> WriteConfig |
 
 ---
@@ -48,6 +48,8 @@ pattern.
 | **Safety/guardrails** | ★★★★★ Built-in: phonology rejects | ★ Neutral | ★ Neutral | ★★ Guardrails separate | ★ Neutral |
 | **Cold start** | ★★★★★ `import poesia` instant | ★★★★ | ★★★★ | ★★★ Heavy imports | ★★★★ |
 | **Adding a backend** | ★★★★★ `@register_llm(name)` | ★★★★ New adapter | ★★★ New stage | ★★★ New chain link | ★★★★★ New module |
+| **Adding a metric** | ★★★★★ New ScorerProtocol impl | ★★★ New port | ★★ New pipeline stage | ★★★ New callback | ★★★★ New plugin |
+| **Docker/MLflow** | ★★★ Optional, not required | ★★★ | ★★★ | ★★ Required | ★★★ |
 
 ## 4. VerifIA vs Industry Patterns
 
@@ -75,15 +77,17 @@ Rules for structure, LLM for creativity. The best of both worlds.
 
 ## 5. Quantitative Comparison
 
-| Metric | VerifIA (v2) | LLM-only | Rule-based |
+| Metric | VerifIA | LLM-only | Rule-based |
 |--------|:------------:|:---------:|:----------:|
-| Syllable deviation | **1.1** | ~3-5 | 0.0 |
-| Line count accuracy | **100%** | ~60% | 100% |
 | Forms supported | **5 + variable** | Unlimited (wrong) | Unlimited (rigid) |
 | Rhyme detection | **phonology.rhyme_key()** | None | Perfect |
-| Emotional range | **pysentimiento (6 emotions)** | None | None |
-| Imagery density | **spaCy noun extraction** | None | None |
 | Time to add new form | **~10 lines (FormSpec)** | Days prompt engineering | Hours |
+
+Rows removed 2026-10-04 because nothing measured them for this pattern. "Syllable deviation
+1.1" and "line count 100%" were the v2 LoRA adapter's results (`docs/ROADMAP.md`,
+"Second run"), not results of the verification loop. The LLM-only figures (~3-5, ~60%)
+had no source. Emotion (pysentimiento) and imagery (spaCy) scoring run in data-prep
+scripts, not in `evaluation/scorer.py`.
 
 ---
 
@@ -91,8 +95,8 @@ Rules for structure, LLM for creativity. The best of both worlds.
 
 ```
                 PoesIA (core generation)
-  EufonIA | GalerIA | MemorIA | ArmonIA | ImagIA (planned)
-  (sound) | (image) | (RAG)   | (music) | (imagery eval)
+  EufonIA | GalerIA | MemorIA | ArmonIA | ImagIA
+  (sound) | (image) | (RAG)   | (music) | (imagery: galeria/imagery.py, not a scorer)
   ---------------------------------------------------------
                  VerifIA (phonology + scorer)
   ---------------------------------------------------------
@@ -110,7 +114,4 @@ Rules for structure, LLM for creativity. The best of both worlds.
 | No LLM-as-judge | Don't ask Groq to rate itself | Manual review |
 | No streaming | Line-by-line blocks UI | Not needed for CLI |
 | Single language | Python only | Fine for personal |
-| No CI/CD | No automated pipeline | Manual train loop |
-
-| **Adding a metric** | ★★★★★ New ScorerProtocol impl | ★★★ New port | ★★ New pipeline stage | ★★★ New callback | ★★★★ New plugin |
-| **Docker/MLflow** | ★★★ Optional, not required | ★★★ | ★★★ | ★★ Required | ★★★ |
+| Training not automated | CI (`.github/workflows/ci.yml`) runs the tests on 3.13; `train.yml` needs a self-hosted GPU runner that does not exist | Manual train loop |

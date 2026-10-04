@@ -40,7 +40,8 @@ size. See `docs/RETRAINING_PLAN_2026-10.md` §4.
 Surprises worth investigating: the "fixed-format" retraining (v2-fixed, 4.80)
 and the multi-form v3 (multiform, 9.29) are *worse* than the earlier
 distilled/v2/qwen3b adapters, and DPO (6.07) underperforms plain CE — the
-"fixed format" hypothesis in `TRAINING_RUNBOOK.md` did not pan out.
+"fixed format" hypothesis (the `scripts/build_fixed_dataset.py` docstring and the
+`mlops/configs/train_v2_fixed.yaml` header) did not pan out.
 
 Note: these MLflow `avg_syllable_deviation` values differ from the legacy
 `eval_syllable_deviation` in `mlops/adapter_registry.json` (pre-MLflow manual
@@ -51,7 +52,7 @@ eval); treat the MLflow values as the current methodology.
 ## Planned Features
 
 ### Phase 1: A/B Testing (MVP — partially done in mlops/ab_compare.py)
-- [ ] Move `ab_compare.py` into `src/poesia/analogia/`
+- [ ] Move `ab_compare.py` into `src/poesia/analogia/` (package to create)
 - [ ] Run two adapters on the same 5 themes
 - [ ] Compare syllable deviation, line accuracy, rhyme accuracy
 - [ ] Declare a winner with evidence table
@@ -60,13 +61,16 @@ eval); treat the MLflow values as the current methodology.
 - [ ] Run dense-only and graph-enhanced retrieval on the same query
 - [ ] Compare which fragments are found by each method
 - [ ] Measure overlap ratio, diversity gain
-- [ ] Currently partially in `test_dense_vs_graph_retrieval_differ()`
+- [ ] Currently partially covered by `test_graph_retrieval_returns_results()`
+  (`tests/test_p4_retrieval_relevance.py`; the older `test_dense_vs_graph_retrieval_differ()`
+  was removed in `76f5c84`)
 
 ### Phase 3: Time-series adapter evolution
 - [ ] Chart syllable deviation across all adapter runs
 - [ ] Chart line accuracy growth over time
 - [ ] Identify which training decisions produced the biggest improvements
-- [ ] Feed from `experiments.jsonl` + `mlflow`
+- [ ] Feed from MLflow (`mlops/experiments.py`, `mlruns/mlflow.db`) + `mlops/adapter_registry.json`
+  (the legacy `experiments.jsonl` was removed 2026-08-01)
 
 ### Phase 4: Memory Mining (core AnalogIA feature)
 - [ ] Given a theme or emotion ("soledad", "melancolía"), find fragments from *every* source (angel_fragments, library poems, influences, training data)
@@ -85,7 +89,7 @@ eval); treat the MLflow values as the current methodology.
 
 | Source | What it contains | How AnalogIA uses it |
 |--------|-----------------|---------------------|
-| `mlops/runs/experiments.jsonl` | All training runs | Time-series adapter evolution |
+| MLflow (`mlruns/mlflow.db`, queried via `mlops/experiments.py`) | All training runs (replaces the removed `mlops/runs/experiments.jsonl`) | Time-series adapter evolution |
 | `mlops/adapter_registry.json` | Adapter metadata | A/B test selection |
 | `~/.poesia/poems/` | All saved poems | Stylistic fingerprinting |
 | `seeds/angel_fragments/` | Personal fragments | Memory mining |
@@ -93,7 +97,7 @@ eval); treat the MLflow values as the current methodology.
 
 ---
 
-## CLI
+## CLI (planned — no `poesia analogia` command exists yet)
 
 ```bash
 # Compare two adapters

@@ -2,10 +2,12 @@
 
 This directory previously contained `experiments.jsonl` and per-run `.json` files
 as the custom experiment database. As of Phase 1 consolidation, **all experiment
-tracking now goes exclusively to MLflow** (PostgreSQL backend since 2026-08-01).
+tracking now goes exclusively to MLflow**. The run history lives in the local SQLite
+store `mlruns/mlflow.db`; the docker PostgreSQL, the canonical backend, holds only
+MLflow's demo traces (`docs/INFRASTRUCTURE_DECISIONS.md` §7).
 
-The legacy files were removed on 2026-08-01 — their data was migrated to MLflow
-(SQLite → PostgreSQL). This README remains as the deprecation notice.
+The legacy files were removed on 2026-08-01 — their data was migrated to MLflow.
+This README remains as the deprecation notice.
 
 Use instead:
 

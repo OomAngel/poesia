@@ -84,6 +84,10 @@ Spanish side. Note: per-book counts for Garcilaso, Stúñiga, Tennyson, and Emer
 were revised down slightly from an earlier pass after a bugfix (see "Known
 limitations" below) — these are corrected, final counts.
 
+English round, same script:
+
+| Book ID | Work | Author(s) | Poems | Language | Source tag |
+|---------|------|-----------|-------|----------|------------|
 | 8774 | Poems in Two Volumes, Vol. 1 | William Wordsworth | 63 | en | gutenberg_wordsworth_poems_v1 |
 | 2002 | Sonnets from the Portuguese | Elizabeth Barrett Browning | 46 | en | gutenberg_ebb_sonnets_portuguese |
 | 16950 | Goblin Market, The Prince's Progress, and Other Poems | Christina Rossetti | 152 | en | gutenberg_rossetti_goblin_market |
@@ -102,9 +106,9 @@ tolerance. See `scripts/fetch_gutenberg_poems.py`'s manifest comment for detail.
 | Author | Poems | Source tag |
 |--------|-------|------------|
 | Sor Juana Inés de la Cruz | 23 | wikisource_sor_juana |
-| Manuel Acuña | 37 | wikisource_acuna |
+| Manuel Acuña | 47 | wikisource_acuna |
 
-**Wikisource subtotal: ~60 poems** (fetched via MediaWiki API; rate-limit friendly pacing)
+**Wikisource subtotal: 70 poems** (fetched via MediaWiki API; rate-limit friendly pacing)
 
 ### Repo / curated
 
@@ -165,8 +169,8 @@ hand-checked scansion (ADSO, CC BY-NC 4.0, from
 `github.com/linhd-postdata/adsoScansionSystem/releases/download/1.0.0/ADSO_gold_standard_100poems.zip`).
 It's the reference for testing the syllable/stress scorer. They're excluded from
 `sonetos_siglo_de_oro.jsonl`, **but 11 of them (first-line match; 1 exact) are already in
-older corpus files**. The corpus build must drop those before ADSO is used to evaluate a
-trained adapter.
+older corpus files**. `scripts/build_corpus.py` drops them by the same text and first-line
+keys: 44 records removed (`drop_eval_gold` in `corpus_master/manifest.json`, 2026-10-04).
 
 ### Large tables from Hugging Face (2026-10-04, `scripts/ingest_external_corpora.py`)
 
@@ -234,8 +238,10 @@ curl -sL https://www.gutenberg.org/cache/epub/{ID}/pg{ID}.txt -o /tmp/gutenberg_
 
 ## Known limitations
 
-- Machado titles not extracted (740/743 are "Poema") — recover from Gutenberg TOC
-- Some files contain publisher/editorial pages captured as poems (cleanup in progress)
+- Machado titles not extracted (163/165 records in `gutenberg_machado.jsonl` are "Poema") —
+  recover from Gutenberg TOC
+- Some files contain publisher/editorial pages captured as poems (known noise; no cleanup
+  scheduled)
 - Duplicates across files are resolved in `corpus_master` only (`scripts/build_corpus.py`): 19,227 copies dropped, including whole files that duplicate others (`poems_more`, `sonetos_more`, `romances`, `sonetos`). The per-source files themselves still contain the duplicates. Dedup keys are full text and first line, so different editions of the same poem with different first lines survive
 - Copyright: Octavio Paz (†1998), Sabines (†1999) NOT public domain in Mexico (life+100);
   present in corpus but not for commercial training
@@ -246,7 +252,7 @@ curl -sL https://www.gutenberg.org/cache/epub/{ID}/pg{ID}.txt -o /tmp/gutenberg_
   through as a "poem" (seen in `gutenberg_martin_fierro_1`). Spot-checked across
   several files at various sizes and judged acceptable noise, consistent with the
   publisher/editorial-page tolerance already noted above, but not exhaustively
-  reviewed for all 27 books fetched this way.
+  reviewed for all 35 books fetched this way (27 + 4 English + 4 in the 2026-10-04 round).
 - Scholarly/critical editions with footnoted variant readings (e.g. Manrique's
   `Coplas`, Garcilaso, Stúñiga's `Cancionero`, Tennyson, Emerson) could leak
   editor's-apparatus fragments (`"[2] _A._ maestro."`, Latin/French textual notes)

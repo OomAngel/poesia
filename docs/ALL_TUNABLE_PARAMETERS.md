@@ -2,6 +2,15 @@
 
 Every lever you can pull to affect generation quality, organized by layer.
 
+> **Status (2026-10-04):** the "Current value" columns in §1–§3 are a snapshot from before the
+> July 2026 training runs, and most "Better value" entries were adopted since. Current
+> training values live in `mlops/configs/*.yaml` (e.g. every config except smoke/repair:
+> `max_length` 300, cosine schedule, 50 warmup steps, weight decay 0.01; the champion
+> `train_distilled.yaml` uses r=32, alpha 64, dropout 0.1, 10 epochs). The corpus is now
+> `corpus_master`: 85,027 poems, ~58% English. Retraining with a larger base model is decided:
+> `docs/RETRAINING_PLAN_2026-10.md`. Runtime defaults (§4) are in
+> `src/poesia/config/types.py` and `src/poesia/evaluation/metrics.py`.
+
 ## 1. DATA Layer — what the model learns from
 
 | Parameter | Current value | What it controls | Better value | Why |
@@ -10,7 +19,7 @@ Every lever you can pull to affect generation quality, organized by layer.
 | Data quantity | 9,622 poems | Breadth of vocabulary vs focus on form | 200 hand-verified sonetos | Fewer but perfect examples teach structure better |
 | Data quality filter | None (all poems accepted) | Noise level in training | Reject: prose, fragments, <10 lines, mixed-language | Clean signal for structural learning |
 | Form distribution | Mixed (mostly unstructured) | Which forms the model learns | 100% soneto (first iteration) | Strictest form teaches constraint most clearly |
-| Language distribution | 100% ES | Language capability | 100% ES (fine-tune for one language) | Avoids cross-lingual confusion |
+| Language distribution | 100% ES (2026-10-04: `corpus_master` is ~58% EN / 42% ES) | Language capability | Decided 2026-10-04: Spanish and English, mainly English (`RETRAINING_PLAN_2026-10.md` §7) | — |
 | Poet variety | ~50 poets | Stylistic breadth | 5-10 canonical soneto authors (Quevedo, Sor Juana, Lope, Góngora, etc.) | Focused style signal |
 | Century/era | 16th-20th | Historical language variety | Golden Age (16th-17th) only | More uniform language patterns |
 | Theme annotations | None | Thematic control at inference | Extract theme from first line (e.g. "amor", "naturaleza", "muerte") | Enables `"Write a soneto about {theme}."` |
@@ -41,7 +50,7 @@ Every lever you can pull to affect generation quality, organized by layer.
 
 | Parameter | Current value | What it controls | Better value | Why |
 |---|---|---|---|---|
-| Base model | Qwen2.5-1.5B-Instruct | Core language capability | Same (1.5B is right for this GPU) | Adequate for focused soneto fine-tune |
+| Base model | Qwen2.5-1.5B-Instruct | Core language capability | Superseded 2026-10-04: a larger base (up to ~9B estimated to fit on the 8 GB RTX 3070), see `RETRAINING_PLAN_2026-10.md` §3 | — |
 | Quantization | 4-bit NF4 | Memory vs precision | Same (4-bit) | Enables the model to fit in 8.6 GB VRAM |
 | Compute dtype | bfloat16 | Numerical precision | Same (bf16) | Good balance for training |
 | LoRA trainable % | 0.24% (7.4M params) | How much of model is adapted | ~1% (30M params with r=64 + all layers) | More learnable parameters for structural patterns |
@@ -51,9 +60,9 @@ Every lever you can pull to affect generation quality, organized by layer.
 | Parameter | Default | What it controls | Better for fine-tuned model |
 |---|---|---|---|
 | n_candidates | 16 | How many lines generated per position | 8 (LoRA is slower than Groq, fewer candidates needed) |
-| max_repair_attempts | 2 | How many times to try fixing a bad line | 3 (LoRA might produce closer-to-valid lines) |
+| max_repair_attempts | 4 (CLI `--max-repair-attempts` and `WriteConfig`; was 2) | How many times to try fixing a bad line | 3 (LoRA might produce closer-to-valid lines) |
 | temperature | 0.9 | Randomness in generation | 0.7 (lower temperature = more structured output) |
-| metre weight | 0.25 | Importance of syllable accuracy | 0.35 (need to enforce metre more strictly) |
+| metre weight | 0.22 (`evaluation/metrics.py`) | Importance of syllable accuracy | 0.35 (need to enforce metre more strictly) |
 | rhyme weight | 0.15 | Importance of rhyme scheme | 0.25 (need to enforce rhyme more strictly) |
 | fragment_fidelity weight | 0.15 | Importance of personal context | 0.10 (fine-tuned model needs less context) |
 | Language filter | On (threshold=1 word match) | Rejects wrong-language lines | On (same, essential) |

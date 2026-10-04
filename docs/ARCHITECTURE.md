@@ -37,8 +37,11 @@ It must never call an LLM — it is the deterministic "ground truth" layer.
    outside `galeria/`.
 7. **`armonia/`** depends on `phonology/` (for `Stress`/stress patterns via
    `prosody_to_rhythm.py`). Its own backend Protocols (`ScoreBackend`,
-   `AudioSynthBackend`, `RecitationBackend`) keep `music21`/`pyfluidsynth`/
-   MusicGen (`transformers`)/`piper` imports contained to `armonia/backends.py`.
+   `AudioSynthBackend`, `RecitationBackend`) are implemented by two classes:
+   `MidiScoreBackend` (writes MIDI bytes in pure Python, no `music21`) and
+   `EspeakRecitationBackend` (runs the `espeak-ng` binary). No `AudioSynthBackend`
+   exists yet. A future `music21`/`pyfluidsynth`/MusicGen (`transformers`)/`piper`
+   backend belongs in `armonia/backends.py`.
 8. **`memoria/`** is self-contained: embeddings, GraphRAG and record types
    live here and are imported by `evaluation/`, `generation/` and `galeria/`
    through narrow, typed seams. `networkx` and `sentence-transformers` stay
@@ -92,7 +95,7 @@ line at a time, for `FormSpec.total_lines` iterations.
 
 ## Why this is not over-engineered for "just a personal poetry tool"
 
-The five-module (-IA family) split isn't speculative scope creep — each
+The four-module (-IA family) split isn't speculative scope creep — each
 module maps to something the user explicitly asked for during scoping
 (sound analysis, illustration, collections, music), and each stays
 importable/testable independently because of the Protocol seam discipline
@@ -117,7 +120,7 @@ an API key) to import the package and run its tests.
 | `gruut` | multi | G2P without eSpeak binary | Lighter fallback |
 | `g2p_en` | EN | neural G2P backoff | CMUdict OOV words |
 | `pyphen` | multi | hyphenation | Cheap syllable count check |
-| `CLTK` | Latin/Greek | classical metrical scansion | LLM-validity study reference |
+| `CLTK` | Latin/Greek | classical metrical scansion | The `classical` extra resolves to cltk 2.x on 3.13, which has no scansion; porting the cltk 1.x scanners is open |
 
 ### Linguistic / semantic
 
@@ -128,7 +131,7 @@ an API key) to import the package and run its tests.
 | `wn` / NLTK WordNet | semantic relations |
 | `wordfreq` | lexical-frequency prior |
 | `python-datamuse` | interactive rhyme/near-rhyme discovery |
-| `markovify` | Markov-chain baseline sanity check |
+| `markovify` | Dropped from `lexical-extra`: no integration point in the evaluator/rhyme pipeline |
 
 ### LLM generation / constrained decoding
 
@@ -138,16 +141,15 @@ an API key) to import the package and run its tests.
 | `llama-cpp-python` | C++ inference, GBNF grammars |
 | `guidance` / `outlines` | constrained generation (regex/schema) |
 
+The backends the CLI can select (`--llm`) are registered in `generation/registry.py`:
+`stub`, `groq`, `gemini`, `openai`, `auto`, `route`, `ollama`, `lora`, `llama_cpp`,
+`outlines`, `mlflow`, `cloudflare`.
+
 ### Illustration (GalerIA)
 
-| Package | Role |
-|---|---|
-| `openai` | DALL-E / gpt-image API |
-| `replicate` | hosted SDXL + specialized models |
-| `diffusers` | local SDXL |
-| `Pillow` | raster compositing, text stamping |
-| `svgwrite` / `drawsvg` | vector illustration |
-| `weasyprint` | HTML/CSS to PDF |
+Image backends and providers (hosted, Pollinations, Cloudflare, procedural, local) are
+documented in `docs/IMAGE_GENERATION_PROVIDERS.md`; the `illustration` and
+`illustration-local` extras in `pyproject.toml` list the packages.
 
 ### Music (ArmonIA)
 
@@ -159,10 +161,14 @@ an API key) to import the package and run its tests.
 | MusicGen via `transformers` | AI generation | local text to music (`audiocraft` pins torch 2.1; not installable) |
 | `piper-tts` | TTS | fast local TTS; the `recitation` extra (works on 3.13) |
 | Coqui `coqui-tts` | TTS | local TTS (heavier); blocked until it supports transformers 5 (upstream #558) |
+| eSpeak NG (system binary) | TTS | the recitation backend implemented in code (`EspeakRecitationBackend`) |
+
+Implemented in code today: `MidiScoreBackend` (pure-Python MIDI) and
+`EspeakRecitationBackend`. The Python packages above are extras; no backend uses them yet.
 
 ### Graph RAG storage
 
 | Option | Tradeoff |
 |---|---|
 | `networkx` (in-memory) | Zero infra, fast, does not scale past personal corpus |
-| `neo4j` | Real graph DB, adds infra dependency |
+| `neo4j` | Real graph DB, adds infra dependency. Rejected: NetworkX + JSON chosen (`docs/ROADMAP.md` Phase 3A and non-goals) |

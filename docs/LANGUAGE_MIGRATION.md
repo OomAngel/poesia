@@ -4,7 +4,8 @@ Recorded 2026-08-14 — federation/engine review (see `ci-infra/docs/FEDERATION.
 
 ## Candidate: phonology + prosody/rhyme engine → Rust crate
 
-- **What**: `src/poesia/phonology/` (base/dutch/english/spanish/multilingual),
+- **What**: `src/poesia/phonology/` (base/dutch/english/spanish/multilingual; plus
+  macaronic, added 2026-08-30 after this note),
   `src/poesia/armonia/prosody_to_rhythm.py`, `src/poesia/generation/rhyme_tracker.py`.
 - **Why**: pure deterministic algorithm, zero ML — the cleanest native extraction in the
   estate. A `poesia-phonology` crate is exhaustively testable and shareable.

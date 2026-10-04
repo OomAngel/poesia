@@ -16,8 +16,8 @@ pip install -e .
 # With semantic scoring (embeddings for theme/novelty)
 pip install -e ".[nlp]"
 
-# Full installation (includes image/music backends)
-pip install -e ".[all]"
+# More backends: add the extras you need (full list: README.md "Optional extras")
+pip install -e ".[all-lang,llm,illustration,music]"
 ```
 
 > **Note:** This project uses a conda environment (`poesia`), built for the machine's hardware by `scripts/env.sh create` (desktop and laptop get different torch builds; the llama.cpp backend lives in `poesia-gpu`, from `scripts/build_llama_cpp.sh`). See README.md "Machines". Use `scripts/poesia_env.sh` for automatic env detection and activation, or `bash scripts/launch_training.sh local <config>` for training (desktop only).
@@ -127,9 +127,12 @@ poesia write --theme "<theme>" --form <form> [OPTIONS]
 |--------|-------------|---------|  
 | `--theme TEXT` | Thematic anchor (REQUIRED) | - |
 | `--form NAME` | Poetic form: haiku, soneto, romance, sonnet_shakespearean | `soneto` |
-| `--language CODE` | Language: es, en, nl | `es` |
-| `--llm BACKEND` | LLM backend: stub, groq, gemini, openai, ollama, outlines, lora, cloudflare, auto | `stub` |
+| `--language CODE` | Language: es, en (`nl` has no forms yet; use `scan --language nl`) | `es` |
+| `--llm BACKEND` | LLM backend: route, stub, groq, gemini, openai, cloudflare, ollama, outlines, lora, llama_cpp, mlflow, auto | `route` (groq → openai → ollama → stub) |
+| `--n-candidates N` | Candidate lines per position | `16` |
+| `--max-repair-attempts N` | Repair attempts per line before accepting the best try | `4` |
 | `--brief` | Use BriefBuilder for rich context (fragments, seeds, influences) | off |
+| `--semantic` | Semantic theme/novelty scoring without personal context (needs sentence-transformers) | off |
 | `--brief-level LEVEL` | Verbosity: minimal, standard, maximal | `standard` |
 | `--tone TONES` | Comma-separated tone descriptors (e.g., "melancholic,tender") | - |
 | `--seeds SEEDS` | Comma-separated seed words for expansion | - |
@@ -143,6 +146,13 @@ poesia write --theme "<theme>" --form <form> [OPTIONS]
 | `--yes` | Skip privacy confirmation (when using personal context) | off |
 | `--lines N` | Override total line count for variable-length forms (e.g., romance) | auto |
 | `--movement MOVEMENT` | Filter influences by literary movement (e.g., "Romanticism", "Generacion del 98") | - |
+| `--tags TAGS` | Comma-separated tags for the saved poem | - |
+| `--guest-lang CODE` / `--guest-words WORDS` | Macaronic insertion: guest-language word(s) dropped mid-line (both required) | off |
+| `--illustrate` / `--image-backend NAME` | Auca sheet for the poem; backends auto, stub, procedural, pollinations, cloudflare, openai, replicate | off / `auto` |
+| `--draft` / `--repair-llm BACKEND` | Draft the whole poem in one pass, then repair metre/rhyme (repair backend defaults to `--llm`) | off |
+| `--polish` | Rewrite stiff lines for naturalness (extra LLM calls) | off |
+| `--log-repairs` | Append each repair attempt to `seeds/poetry_corpus/repair_examples/repair_log.jsonl` | off |
+| `--verbose` | Show internal details (LLM backend, scoring mode) | off |
 
 ---
 
@@ -154,8 +164,6 @@ poesia write --theme "<theme>" --form <form> [OPTIONS]
 | `soneto` | 14 | 11 | es | ✅ |
 | `romance` | variable | 8 | es | ⚠️ Needs `--lines` param |
 | `sonnet_shakespearean` | 14 | 10 | en | ✅ |
-
-See `FORM_TESTING_RESULTS.md` for detailed form verification history.
 
 ---
 
@@ -275,12 +283,13 @@ Retrieved 5 fragments for brief:
 | Gemini | `--llm gemini` | `GEMINI_API_KEY` | Google's Gemini API |
 | OpenAI | `--llm openai` | `OPENAI_API_KEY` | OpenAI API |
 | Ollama | `--llm ollama` | `ollama serve` running | Local, offline, gemma2:2b default |
-| Outlines | `--llm outlines` | None | Qwen 1.5B + regex constraints, local |
+| Outlines | `--llm outlines` | None | Qwen 1.5B + regex constraints, local; auto-detects adapter |
 | LoRA | `--llm lora` | Trained adapter | Auto-detects best adapter + base model (1.5B or 3B) |
+| llama.cpp | `--llm llama_cpp` | GGUF adapter + `poesia-gpu` env (`scripts/build_llama_cpp.sh`) | Local GGUF on the GPU; the laptop's path |
 | MLflow | `--llm mlflow` | `MLFLOW_MODEL_URI` env | Loads registered model via `PoetryModelWrapper.predict()` |
 | Cloudflare | `--llm cloudflare` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` | Workers AI llama-3.3-70b via the OpenAI-compatible endpoint |
-| Outlines | `--llm outlines` | None | Qwen + regex constraints, auto-detects adapter |
 | Auto | `--llm auto` | Any available | Priority: Gemini → Groq → OpenAI |
+| Route (default) | `--llm route` | Any available | Tries groq → openai → ollama → stub |
 
 ---
 
@@ -344,49 +353,16 @@ grep -A 50 "Alternative Candidates" debug.txt
 
 ---
 
-For more details, see README.md and LIBRARY_WORKFLOW_TEST.md.
+For more details, see README.md and `test_library_workflow.py` (repo root).
 
 ---
 
 ## Training (MLOps)
 
-PoesIA uses MLflow for experiment tracking, model registry, and serving. All training runs log to `mlruns/mlflow.db` (SQLite).
-
-### Launcher (recommended)
-
-```bash
-# Auto-activates conda env, sources .env_mlflow, validates GPU
-bash scripts/launch_training.sh local mlops/configs/train_qwen3b.yaml
-bash scripts/launch_training.sh local mlops/configs/train_smoke.yaml --dry-run
-bash scripts/launch_training.sh docker mlops/configs/train_qwen3b.yaml
-bash scripts/launch_training.sh dpo    # DPO preference learning
-
-# List available configs
-bash scripts/launch_training.sh local --list-configs
-```
-
-### Environment setup
-
-```bash
-# Create or update the env for this machine's hardware tier (README.md "Machines")
-scripts/env.sh create          # or: scripts/env.sh update; add --dry-run to preview
-scripts/env.sh check
-
-# Auto-detect and activate (sources conda + .env_mlflow)
-source scripts/poesia_env.sh --source
-
-# Or manually:
-conda activate poesia
-export MLFLOW_TRACKING_URI="sqlite:///mlruns/mlflow.db"
-```
-
-### Manual training
-
-```bash
-python scripts/train_poetry_lora.py mlops/configs/train_v1.yaml       # 500 sonetos, r=16
-python scripts/train_poetry_lora.py mlops/configs/train_qwen3b.yaml   # Qwen2.5-3B
-python scripts/train_poetry_dpo.py mlops/configs/dpo_v1.yaml          # DPO learning
-```
+PoesIA uses MLflow for experiment tracking, model registry, and serving. Without
+`.env_mlflow`, runs log to `mlruns/mlflow.db` (SQLite). How to train (env setup,
+launcher, configs, Docker): `docs/TRAINING_RUNBOOK.md`; the current retraining plan:
+`docs/RETRAINING_PLAN_2026-10.md`.
 
 ### MLflow UI
 
@@ -405,11 +381,4 @@ mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db
 python mlops/experiments.py list
 python mlops/experiments.py best --metric eval_line_count_accuracy
 python mlops/list_runs.py
-```
-
-### Docker (for reproducible training)
-
-```bash
-docker compose -f docker/docker-compose.yml build training
-docker compose -f docker/docker-compose.yml run training python scripts/train_poetry_lora.py mlops/configs/train_qwen3b.yaml
 ```

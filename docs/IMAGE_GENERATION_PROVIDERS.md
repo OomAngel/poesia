@@ -1,6 +1,11 @@
 # Free & Low-Cost Image-Generation APIs — Evaluation for GalerIA
 
 > **Status**: research pass + live probes, 2026-08-03.
+> **Implemented (checked 2026-10-04)**: `pollinations` and `cloudflare` online,
+> `openai`/`replicate` with a paid key, and the offline `procedural` default.
+> Gemini, AI Horde and local diffusers are **not** implemented; a local option
+> through Lemonade image generation is proposed in
+> [`LEMONADE_INTEGRATION.md`](LEMONADE_INTEGRATION.md) item 3.
 > **Purpose**: choose online backends for GalerIA (auca sheets: one image per
 > stanza) without paying for image generation.
 > **Method**: documented sources (vendor docs, fetched 2026-08-03) **and** live
@@ -283,8 +288,12 @@ service is a moving target — pin nothing, degrade gracefully.
      (`& 0x7FFFFFFF`) — the live 500 caught exactly this: Sana rejects
      seeds > 2^31-1; a mocked test could not
    - graceful `RuntimeError` → CLI catches it and suggests `--backend procedural`
-   - `--backend auto` stays **offline-first** (`procedural`): `auto` must never
-     make an unsolicited network call; `pollinations` is an explicit choice
+   - `--backend auto` uses the first configured hosted provider, else
+     `procedural` (`get_image_backend` in `src/poesia/galeria/pipeline.py`):
+     `OPENAI_API_KEY`/`REPLICATE_API_TOKEN` → OpenAI/Replicate, else
+     `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` → Cloudflare. The CLI
+     auto-loads `.env`, so a machine with those keys makes network calls under
+     `auto`. `auto` never picks `pollinations`; that is always an explicit choice
    - **verified**: 2-stanza auca sheet composed live (1.3 MB PNG); same
      prompt+seed ⇒ byte-identical images (service-level determinism)
 2. **Re-verify at adoption** (free tiers move): Cloudflare daily quota + exact
@@ -310,7 +319,7 @@ service is a moving target — pin nothing, degrade gracefully.
 - **AI Horde anonymous specifics**: exact anonymous kudos/parallel-job caps not
   verified against swagger this pass; see `https://aihorde.net/api/v2/swagger`.
 - **Cloudflare live verification**: ✅ done 2026-08-03. First with the machine's
-  cached wrangler OAuth token (scopes include `ai:write`; account `065c2ed7…`),
+  cached wrangler OAuth token (scopes include `ai:write`),
   then with a **dedicated Workers AI API token** stored in the gitignored
   `.env` (auto-loaded by the CLI) — identical behaviour. Findings: REST endpoint
   returns **raw PNG bytes** (not the base64 JSON the binding schema implies) and
