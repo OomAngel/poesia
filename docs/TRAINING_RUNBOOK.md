@@ -86,8 +86,8 @@ scripts/launch_training.sh local mlops/configs/train_qwen3b.yaml
 ```bash
 scripts/launch_training.sh docker mlops/configs/train_qwen3b.yaml
 # equivalent, raw:
-docker compose -f docker/docker-compose.yml run training \
-  python scripts/train_poetry_lora.py mlops/configs/train_qwen3b.yaml
+docker compose -f docker/docker-compose.yml run training mlops/configs/train_qwen3b.yaml
+# (the image ENTRYPOINT already runs scripts/train_poetry_lora.py; pass only the config)
 ```
 
 ### 3. MLflow

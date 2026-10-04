@@ -172,7 +172,7 @@ run_docker() {
     docker compose \
         -f "$PROJECT_ROOT/docker/docker-compose.yml" \
         run --rm training \
-        python scripts/train_poetry_lora.py "$config_path"
+        "${config_path#$PROJECT_ROOT/}"  # the image ENTRYPOINT is train_poetry_lora.py; pass the repo-relative config only
 
     local exit_code=$?
     if [ $exit_code -eq 0 ]; then

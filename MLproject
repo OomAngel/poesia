@@ -3,23 +3,17 @@ name: PoesIA-Training
 # ═══════════════════════════════════════════════════════════════════════
 # MLproject — entry points for mlflow run
 #
-# Updated 2026-07-30: reflects Docker environment, new configs, and
-# the full MLflow pipeline (autologging, registry, data versioning).
+# Runs in the current environment: activate the `poesia` conda env first
+# (scripts/env.sh builds it per machine, torch included), then:
+#     mlflow run . --env-manager local -e train -P config=mlops/configs/train_v1.yaml
+#     mlflow run . --env-manager local -e train-qwen3b
+#     mlflow run . --env-manager local -e monitor -P dry_run=--dry-run
 #
-# Usage:
-#     mlflow run . -e train -P config=mlops/configs/train_v1.yaml
-#     mlflow run . -e train-qwen3b
-#     mlflow run . -e train-docker
+# No environment field on purpose (2026-10-04): MLflow 3 refuses a project that
+# declares both docker_env and conda_env, and environment.yml alone lacks torch
+# (it comes from requirements/<tier>.txt). For Docker, use
+#   docker compose -f docker/docker-compose.yml run training <config>
 # ═══════════════════════════════════════════════════════════════════════
-
-# Docker is preferred over conda for reproducibility.
-# To use Docker: ensure docker/buildkit is available, then run:
-#   docker compose -f docker/docker-compose.yml run training
-docker_env:
-  image: "poesia-train:latest"
-
-# Conda fallback (used when Docker is not available)
-conda_env: environment.yml
 
 entry_points:
   train:
@@ -58,8 +52,8 @@ entry_points:
 
   monitor:
     parameters:
-      dry_run: {type: int, default: 0}
-    command: python scripts/monitor_health.py {"--dry-run" if dry_run else ""}
+      dry_run: {type: str, default: ""}  # pass -P dry_run=--dry-run
+    command: python scripts/monitor_health.py {dry_run}
 
   distill:
     parameters:
