@@ -1,6 +1,6 @@
 outs:
-- md5: ac100207ad8597c9f40d11164e338d01.dir
-  size: 993522
+- md5: e5ffa0444df5712bed1bf444913c1b9e.dir
+  size: 983331
   nfiles: 2
   hash: md5
   path: repair_examples
