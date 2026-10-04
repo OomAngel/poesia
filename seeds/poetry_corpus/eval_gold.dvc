@@ -1,0 +1,6 @@
+outs:
+- md5: 9dfc53c06a3677c878422e1ab92c9db1.dir
+  size: 105561
+  nfiles: 1
+  hash: md5
+  path: eval_gold

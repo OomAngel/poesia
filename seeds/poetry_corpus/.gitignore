@@ -3,3 +3,6 @@
 /training_data_structured
 /training_data_distilled
 /repair_examples
+/external
+/eval_gold
+/corpus_master
