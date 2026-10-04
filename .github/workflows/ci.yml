@@ -20,25 +20,19 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
-        with: { python-version: "3.11" }
+        with: { python-version: "3.13" }
       - run: pip install -e ".[dev]"
       - run: ruff check src/ mlops/
       - run: ruff format --check src/ mlops/
       - run: mypy src/ --ignore-missing-imports
 
   test:
-    name: "Tests (CPU-safe, Python ${{ matrix.python-version }})"
+    name: "Tests (CPU-safe)"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # 3.11: requires-python floor and the serving image (docker/serving.Dockerfile).
-        # 3.13: the poesia conda env (environment.yml), where training and generation run.
-        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
-        with: { python-version: "${{ matrix.python-version }}" }
+        with: { python-version: "3.13" }
       - run: |
           pip install -e ".[spanish,english,phonology-extra,nlp,mlops,dev]"
           # Training stack, CPU build, so scripts/train_poetry_lora.py imports and its tests
@@ -75,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
-        with: { python-version: "3.11" }
+        with: { python-version: "3.13" }
       - run: pip install bandit safety
       - run: bandit -r src/ -x tests,models,seeds,.git,mlruns --skip B101,B110,B112,B310,B311,B404,B603,B615
       - run: safety check --full-report || true
@@ -87,7 +81,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
-        with: { python-version: "3.11" }
+        with: { python-version: "3.13" }
       - run: |
           pip install mlflow pandas
           pip install -e ".[spanish]"

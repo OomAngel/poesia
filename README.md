@@ -3,7 +3,7 @@
 > *poesía* — Spanish for "poetry" — already contains **IA** (*Inteligencia Artificial*).
 > Nothing invented; just noticed.
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org/)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](#status)
 [![Languages](https://img.shields.io/badge/languages-es%20%7C%20en%20(nl%20scan--only)-green)](#language-support)
@@ -209,7 +209,14 @@ EufonIA judges how words *sound*; ArmonIA turns the poem into *music*. Neighbour
 
 ## Installation
 
-Requires **Python 3.11+**.
+Requires **Python 3.13**.
+
+### Python version
+
+One version everywhere (decided 2026-10-04): the conda env (`environment.yml`, 3.13.14 on
+both machines), CI, the Docker images, and the online-training fallbacks (Colab and Kaggle
+run 3.13 since September 2026). `pyproject.toml` enforces it with
+`requires-python = ">=3.13,<3.14"`. Move to 3.14 deliberately, in all of these at once.
 
 ```bash
 git clone <repo-url> poesia

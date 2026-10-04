@@ -204,7 +204,7 @@ pip install -e ".[dev]"
 
 **Check.** (a) One canonical path with zero optional ceremony. (b) An extras table
 with *effect*, not just package names. (c) Minimum supported version stated
-("Requires Python 3.11+").
+("Requires Python 3.13").
 
 ### Tier C — Structure & clarity
 
