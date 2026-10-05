@@ -1,0 +1,6 @@
+outs:
+- md5: 6f1cdf8328ddf90c15dbfe8948944dbf.dir
+  size: 400701981
+  nfiles: 20
+  hash: md5
+  path: compare-qwen3-4b-distilled

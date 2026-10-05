@@ -156,6 +156,34 @@
       "gguf_f16": "models/poetry-lora-v2-fixed/v2-fixed-poetry-f16.gguf",
       "gguf_q4_k_m": "models/poetry-lora-v2-fixed/v2-fixed-poetry-Q4_K_M.gguf",
       "merged": "models/poetry-lora-v2-fixed/merged"
+    },
+    {
+      "id": "20261005_131139",
+      "mlflow_run_id": "561355a58249464ab604de610eb7af2c",
+      "mlflow_model_name": "poesia-lora-retrain-2026-10",
+      "created": "2026-10-05T13:14:23.809805",
+      "config": "mlops/configs/baseline_distilled_2026_10.yaml",
+      "data_sha256": "dbe5fc3915eb5518fe0accdcdbdf51d837205aca97400483f44ab6d3bf0e03be",
+      "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "lora_r": 32,
+      "train_loss": 1.4081455230712892,
+      "adapter_path": "models/baseline-distilled-2026-10/final_adapter",
+      "notes": "",
+      "mlflow_model_version": 1
+    },
+    {
+      "id": "20261005_131502",
+      "mlflow_run_id": "2287c8802f29488ebec15c8e654ec9e2",
+      "mlflow_model_name": "poesia-lora-retrain-2026-10",
+      "created": "2026-10-05T13:20:45.257846",
+      "config": "mlops/configs/compare_qwen3_4b_distilled.yaml",
+      "data_sha256": "dbe5fc3915eb5518fe0accdcdbdf51d837205aca97400483f44ab6d3bf0e03be",
+      "base_model": "Qwen/Qwen3-4B-Instruct-2507",
+      "lora_r": 32,
+      "train_loss": 1.0823299407958984,
+      "adapter_path": "models/compare-qwen3-4b-distilled/final_adapter",
+      "notes": "",
+      "mlflow_model_version": 2
     }
   ],
   "description": "Registry of all trained LoRA adapters. Each entry records the adapter path, config used, data hash, and evaluation metrics. Updated manually or via training script.",
