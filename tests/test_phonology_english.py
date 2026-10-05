@@ -67,3 +67,18 @@ def test_scan_line_counts_syllables_through_fallback(
     result = english_phonology.scan_line("flibbertigibbet")
     assert result.is_valid is True
     assert result.metrical_syllable_count > 1
+
+
+def test_rhyme_key_skips_trailing_emoji_and_symbols() -> None:
+    from poesia.phonology.english import EnglishPhonology
+
+    p = EnglishPhonology()
+    assert p.rhyme_key("Beneath the moon 😊😊😊") == p.rhyme_key("Beneath the moon")
+    assert p.rhyme_key("Beneath the moon --") == p.rhyme_key("Beneath the moon")
+
+
+def test_rhyme_key_of_a_line_without_words_is_empty_not_an_error() -> None:
+    from poesia.phonology.english import EnglishPhonology
+
+    key = EnglishPhonology().rhyme_key("😊😊 ...")
+    assert key.consonant == "" and key.assonant == ""

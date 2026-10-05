@@ -46,7 +46,10 @@ def rhyme_accuracy(lines: Sequence[str], scheme: str, phonology: _Phonology) -> 
     for line, letter in zip(lines, scheme.replace(" ", ""), strict=False):
         if not letter.isalpha():
             continue
-        key = phonology.rhyme_key(line).consonant
+        try:
+            key = phonology.rhyme_key(line).consonant
+        except Exception:  # an unscorable line rhymes with nothing
+            key = ""
         if letter not in first_of_group:
             first_of_group[letter] = key
             continue
@@ -59,10 +62,17 @@ def score_poem(lines: Sequence[str], form: _Form, phonology: _Phonology) -> dict
     """Line count, syllable deviation, metre pass rate and rhyme accuracy for one poem."""
     lines = [line for line in lines if line.strip()]
     targets = [form.syllables_for_line(i) for i in range(len(lines))]
-    counts = [phonology.scan_line(line).metrical_syllable_count for line in lines]
-    devs = [abs(c - t) for c, t in zip(counts, targets, strict=True)]
+    counts: list[int | None] = []
+    for line in lines:
+        try:
+            counts.append(phonology.scan_line(line).metrical_syllable_count)
+        except Exception:  # never let one bad line end a multi-hour evaluation
+            counts.append(None)
+    # An unscorable line counts as a metre failure, off by the whole target.
+    devs = [abs(c - t) if c is not None else t for c, t in zip(counts, targets, strict=True)]
     return {
         "line_count": len(lines),
+        "unscorable_lines": sum(c is None for c in counts),
         "line_count_ok": len(lines) == form.total_lines,
         "syllable_abs_dev": sum(devs) / len(devs) if devs else None,
         "metre_pass_rate": sum(d == 0 for d in devs) / len(devs) if devs else None,
