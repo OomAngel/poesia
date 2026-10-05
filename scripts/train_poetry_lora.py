@@ -140,6 +140,15 @@ def _drop_overlong(dataset, max_length: int, split: str):
     return kept, dropped
 
 
+def _device_map(cfg: dict, bnb_kwargs: dict):
+    """Placement for the 4-bit model per ``memory_layout`` (see poesia.device.four_bit_placement)."""
+    from poesia.device import four_bit_placement
+
+    extra, device_map = four_bit_placement(cfg.get("memory_layout", "default"))
+    bnb_kwargs.update(extra)
+    return device_map
+
+
 def main():
     # ── Config ────────────────────────────────────────────────────────
     resume_from_checkpoint = _pop_resume_flag(sys.argv)
@@ -260,21 +269,40 @@ def main():
         print(f"Free VRAM: {torch.cuda.mem_get_info()[0] / 1e9:.1f}GB")
         print(f"Loading {model_name} in 4-bit...")
 
-        bnb = BitsAndBytesConfig(
+        bnb_kwargs = dict(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
             bnb_4bit_compute_dtype=torch.bfloat16,
         )
+        device_map = _device_map(cfg, bnb_kwargs)
+        mlflow.log_param("memory_layout", cfg.get("memory_layout", "default"))
+        bnb = BitsAndBytesConfig(**bnb_kwargs)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         tokenizer.pad_token = tokenizer.eos_token
 
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
             quantization_config=bnb,
-            device_map="auto",
+            device_map=device_map,
             torch_dtype=torch.bfloat16,
         )
-        model = prepare_model_for_kbit_training(model)
+        if cfg.get("memory_layout", "default") == "low_vram":
+            # No prepare_model_for_kbit_training: it upcasts every non-quantized weight
+            # (embedding, norms) to fp32, which alone costs ~2.5 GB on an 8B model.
+            from poesia.device import offload_input_embeddings
+
+            offload_input_embeddings(model)
+            # accelerate.prepare_model only skips model.to(device) for a 4-bit model that
+            # has an hf_device_map; device_map={"": 0} leaves none, so it would move the
+            # embedding back to the GPU. Record the single-GPU placement explicitly.
+            model.hf_device_map = {"": 0}
+            torch.cuda.empty_cache()
+            model.gradient_checkpointing_enable(
+                gradient_checkpointing_kwargs={"use_reentrant": False}
+            )
+            model.enable_input_require_grads()
+        else:
+            model = prepare_model_for_kbit_training(model)
         print(f"Model loaded. {model.num_parameters() / 1e9:.1f}B params")
         print(f"VRAM after load: {torch.cuda.mem_get_info()[0] / 1e9:.1f}GB free")
 
@@ -328,6 +356,8 @@ def main():
             per_device_eval_batch_size=cfg.get("batch_size", 8),
             gradient_accumulation_steps=cfg.get("gradient_accumulation", 2),
             num_train_epochs=cfg.get("epochs", 10),
+            max_steps=cfg.get("max_steps", -1),  # > 0 overrides epochs (smoke runs)
+            include_num_input_tokens_seen=True,  # for tokens/s (RETRAINING_PLAN §5)
             learning_rate=cfg.get("learning_rate", 2e-4),
             fp16=True,
             logging_steps=cfg.get("logging_steps", 10),
@@ -374,6 +404,21 @@ def main():
         print(f"Starting training... (resume_from_checkpoint={resume_from_checkpoint})")
         train_result = trainer.train(resume_from_checkpoint=resume_from_checkpoint or None)
 
+        # ── Measured cost: peak VRAM and throughput (sizes later runs) ──
+        peak_alloc = torch.cuda.max_memory_allocated() / 1e9
+        peak_reserved = torch.cuda.max_memory_reserved() / 1e9
+        tokens_seen = int(getattr(trainer.state, "num_input_tokens_seen", 0) or 0)
+        runtime = float(train_result.metrics.get("train_runtime") or 0.0)
+        tokens_per_second = tokens_seen / runtime if runtime else 0.0
+        mlflow.log_metric("peak_vram_allocated_gb", round(peak_alloc, 2))
+        mlflow.log_metric("peak_vram_reserved_gb", round(peak_reserved, 2))
+        mlflow.log_metric("tokens_seen", tokens_seen)
+        mlflow.log_metric("tokens_per_second", round(tokens_per_second, 1))
+        print(
+            f"Peak VRAM: {peak_alloc:.2f} GB allocated, {peak_reserved:.2f} GB reserved; "
+            f"{tokens_seen} tokens in {runtime:.0f}s = {tokens_per_second:.0f} tokens/s"
+        )
+
         # ── Log final metrics to MLflow ──────────────────────────────
         final_loss = None
         for entry in reversed(trainer.state.log_history):
@@ -417,7 +462,10 @@ def main():
 
         # Phase 3: Log the model as an MLflow pyfunc model and register it
         model_registry_name = f"poesia-lora-{experiment_name}"
+        register = cfg.get("register", True)  # smoke runs set false: no registry entries
         try:
+            if not register:
+                raise RuntimeError("register: false in config")
             import pandas as pd
             from mlflow.models import infer_signature
 
@@ -446,92 +494,98 @@ def main():
         except Exception as mr_err:
             print(f"  [WARN] Model Registry registration failed (non-blocking): {mr_err}")
 
-        # Local adapter registry (kept for backward compatibility)
-        registry_path = "mlops/adapter_registry.json"
-        with open(registry_path) as f:
-            registry = json.load(f)
-        registry_entry = {
-            "id": run_id,
-            "mlflow_run_id": mlflow_run_id,
-            "mlflow_model_name": model_registry_name,
-            "created": datetime.datetime.now().isoformat(),
-            "config": config_path,
-            "data_sha256": data_manifest["sha256"],
-            "base_model": model_name,
-            "lora_r": cfg.get("lora_r", 16),
-            "train_loss": final_loss,
-            "adapter_path": adapter_path,
-            "notes": "",
-        }
-        try:
-            from mlflow.tracking import MlflowClient
-
-            registry_entry["mlflow_model_version"] = (
-                MlflowClient(_resolve_tracking_uri())
-                .get_latest_versions(model_registry_name)[0]
-                .version
-            )
-        except Exception:
-            pass
-        registry["adapters"].append(registry_entry)
-        with open(registry_path, "w") as f:
-            json.dump(registry, f, indent=2, ensure_ascii=False)
-        print(f"Registered in {registry_path}")
-
-        # ── Auto-evaluate ────────────────────────────────────────────
-        print("\n=== Auto-evaluating adapter ===")
-        try:
-            sys.path.insert(0, "mlops")
-            from evaluate_adapter import evaluate as eval_adapter
-
-            eval_results = eval_adapter(adapter_path)
-            summary = eval_results["summary"]
-
-            mlflow.log_metric("eval_syllable_deviation", summary["avg_syllable_deviation"])
-            mlflow.log_metric("eval_line_count_accuracy", summary["line_count_accuracy"])
-            mlflow.log_metric("eval_avg_line_count", summary["avg_line_count"])
-
-            for theme, tr in eval_results.get("themes", {}).items():
-                mlflow.log_metric(f"{theme}_line_count", tr["lines"])
-                mlflow.log_metric(f"{theme}_syllable_deviation", tr["avg_syllable_deviation"])
-
-            # Log eval artifact
-            eval_artifact_path = os.path.join(output_dir, "eval_results.json")
-            with open(eval_artifact_path, "w") as f:
-                json.dump(eval_results, f, indent=2, ensure_ascii=False)
-            mlflow.log_artifact(eval_artifact_path)
-
-            # Update adapter registry with eval metrics
+        if register:
+            # Local adapter registry (kept for backward compatibility)
+            registry_path = "mlops/adapter_registry.json"
             with open(registry_path) as f:
                 registry = json.load(f)
-            for entry in registry["adapters"]:
-                if entry["id"] == run_id:
-                    entry["eval_syllable_deviation"] = summary["avg_syllable_deviation"]
-                    entry["eval_line_count_accuracy"] = summary["line_count_accuracy"]
-                    break
+            registry_entry = {
+                "id": run_id,
+                "mlflow_run_id": mlflow_run_id,
+                "mlflow_model_name": model_registry_name,
+                "created": datetime.datetime.now().isoformat(),
+                "config": config_path,
+                "data_sha256": data_manifest["sha256"],
+                "base_model": model_name,
+                "lora_r": cfg.get("lora_r", 16),
+                "train_loss": final_loss,
+                "adapter_path": adapter_path,
+                "notes": "",
+            }
+            try:
+                from mlflow.tracking import MlflowClient
+
+                registry_entry["mlflow_model_version"] = (
+                    MlflowClient(_resolve_tracking_uri())
+                    .get_latest_versions(model_registry_name)[0]
+                    .version
+                )
+            except Exception:
+                pass
+            registry["adapters"].append(registry_entry)
             with open(registry_path, "w") as f:
                 json.dump(registry, f, indent=2, ensure_ascii=False)
+            print(f"Registered in {registry_path}")
 
-            print(f"  Line count accuracy: {summary['line_count_accuracy']:.1%}")
-            print(f"  Avg syllable deviation: {summary['avg_syllable_deviation']:.2f} per line")
-        except Exception as eval_err:
-            print(f"  [WARN] Evaluation failed (will not block training): {eval_err}")
+        else:
+            print(f"Not registered (register: false); adapter at {adapter_path}")
 
-        # ── Test ─────────────────────────────────────────────────────
-        print("\n=== Testing ===")
-        try:
-            prompt = "Write a Spanish poem about the sea.\n"
-            inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
-            with torch.no_grad():
-                out = model.generate(**inputs, max_new_tokens=100, temperature=0.8)
-            generated_text = tokenizer.decode(out[0])
-            print(generated_text)
-            test_path = os.path.join(output_dir, "test_generation.txt")
-            with open(test_path, "w") as f:
-                f.write(generated_text)
-            mlflow.log_artifact(test_path)
-        except Exception as test_err:
-            print(f"  [WARN] Test generation failed: {test_err}")
+        if cfg.get("auto_evaluate", True) and register:
+            # ── Auto-evaluate ────────────────────────────────────────────
+            print("\n=== Auto-evaluating adapter ===")
+            try:
+                sys.path.insert(0, "mlops")
+                from evaluate_adapter import evaluate as eval_adapter
+
+                eval_results = eval_adapter(adapter_path)
+                summary = eval_results["summary"]
+
+                mlflow.log_metric("eval_syllable_deviation", summary["avg_syllable_deviation"])
+                mlflow.log_metric("eval_line_count_accuracy", summary["line_count_accuracy"])
+                mlflow.log_metric("eval_avg_line_count", summary["avg_line_count"])
+
+                for theme, tr in eval_results.get("themes", {}).items():
+                    mlflow.log_metric(f"{theme}_line_count", tr["lines"])
+                    mlflow.log_metric(f"{theme}_syllable_deviation", tr["avg_syllable_deviation"])
+
+                # Log eval artifact
+                eval_artifact_path = os.path.join(output_dir, "eval_results.json")
+                with open(eval_artifact_path, "w") as f:
+                    json.dump(eval_results, f, indent=2, ensure_ascii=False)
+                mlflow.log_artifact(eval_artifact_path)
+
+                # Update adapter registry with eval metrics
+                with open(registry_path) as f:
+                    registry = json.load(f)
+                for entry in registry["adapters"]:
+                    if entry["id"] == run_id:
+                        entry["eval_syllable_deviation"] = summary["avg_syllable_deviation"]
+                        entry["eval_line_count_accuracy"] = summary["line_count_accuracy"]
+                        break
+                with open(registry_path, "w") as f:
+                    json.dump(registry, f, indent=2, ensure_ascii=False)
+
+                print(f"  Line count accuracy: {summary['line_count_accuracy']:.1%}")
+                print(f"  Avg syllable deviation: {summary['avg_syllable_deviation']:.2f} per line")
+            except Exception as eval_err:
+                print(f"  [WARN] Evaluation failed (will not block training): {eval_err}")
+
+        if cfg.get("test_generation", True):
+            # ── Test ─────────────────────────────────────────────────────
+            print("\n=== Testing ===")
+            try:
+                prompt = "Write a Spanish poem about the sea.\n"
+                inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
+                with torch.no_grad():
+                    out = model.generate(**inputs, max_new_tokens=100, temperature=0.8)
+                generated_text = tokenizer.decode(out[0])
+                print(generated_text)
+                test_path = os.path.join(output_dir, "test_generation.txt")
+                with open(test_path, "w") as f:
+                    f.write(generated_text)
+                mlflow.log_artifact(test_path)
+            except Exception as test_err:
+                print(f"  [WARN] Test generation failed: {test_err}")
 
     # ── mlflow.start_run() context ends here ─────────────────────────
     print(f"\n✅ Training complete. MLflow run: {mlflow_run_id}")
