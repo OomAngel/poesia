@@ -1,0 +1,6 @@
+outs:
+- md5: 1c06d9755373f04199549f94cbe21053.dir
+  size: 162600536
+  nfiles: 20
+  hash: md5
+  path: baseline-distilled-2026-10

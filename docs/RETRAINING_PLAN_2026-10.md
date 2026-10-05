@@ -190,9 +190,20 @@ random samples from `corpus_master` (scratchpad scripts; rerun on corpus or mode
 **Planning figure: ~2,600 usable tokens per poem.** The full corpus is about 220M usable
 tokens per epoch, or about 780M if truncated examples are counted.
 
-**Throughput, measured 2026-10-05:** Qwen3-8B with `low_vram` runs about 140 tokens/s on
-the 3070, so a 2,000-poem epoch (~5.2M usable tokens) takes about 10 hours. The base-model
-comparison run measures Qwen3-4B. Before the measurement, this section read: As an illustration only: at 1,000 tokens/s, a 10-hour
+**Throughput, measured 2026-10-05 on the 3070:**
+
+| Run | Model, layout | Tokens/s | Peak VRAM (allocated / reserved) | 2,000-poem epoch (~5.2M tokens) |
+|---|---|---|---|---|
+| smoke | Qwen3-8B, low_vram, batch 1×8 | ~140 (steady) | 7.32 / 7.51 GB | ~10 h |
+| comparison | Qwen3-4B-2507, default, batch 4×4 | 422 | 6.77 / 10.43 GB | ~3.4 h |
+| baseline | Qwen2.5-1.5B, default, batch 8×2 | 1,138 | 5.88 / 13.16 GB | ~1.3 h |
+
+**Reserved above 8 GB means spill into system RAM.** Under Windows/WSL the NVIDIA driver can
+fall back to shared system memory when VRAM runs out ("CUDA sysmem fallback"), so a run that
+"fits" may be partly running from much slower memory. The 8B smoke stayed inside 8 GB; the
+batch-4 and batch-8 runs did not. For long runs, size batches so reserved stays under ~7.5 GB.
+
+Before the measurement, this section read: As an illustration only: at 1,000 tokens/s, a 10-hour
 overnight budget is 36M tokens, so about 13,800 poems for one epoch or 4,600 for three.
 Fewer poems over more epochs is how the July runs worked (10 epochs on ≤ 500 sonnets). On
 this corpus, more poems at 1–3 epochs uses its breadth better.
