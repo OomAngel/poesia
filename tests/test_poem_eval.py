@@ -69,3 +69,24 @@ def test_aggregate_skips_missing_values() -> None:
     )
     assert agg["line_count_accuracy"] == 0.5 and agg["syllable_abs_dev"] == 2.0
     assert agg["rhyme_accuracy"] == 1.0
+
+
+class RaisingPhonology(FakePhonology):
+    def scan_line(self, line: str) -> _Scan:
+        if "BAD" in line:
+            raise ValueError("cannot scan")
+        return super().scan_line(line)
+
+    def rhyme_key(self, line: str) -> _Key:
+        if "BAD" in line:
+            raise ValueError("no pronunciation")
+        return super().rhyme_key(line)
+
+
+def test_an_unscorable_line_fails_instead_of_crashing() -> None:
+    form = get_form("soneto", "es")
+    lines = [" ".join(["w"] * 11)] * 13 + ["BAD"]
+    s = score_poem(lines, form, RaisingPhonology())
+    assert s["unscorable_lines"] == 1
+    assert s["metre_pass_rate"] == 13 / 14
+    assert s["syllable_abs_dev"] == 11 / 14

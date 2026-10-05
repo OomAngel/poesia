@@ -131,7 +131,13 @@ class EnglishPhonology:
         words = [w.strip(".,;:!?\"'()") for w in line.split()]
         if not words:
             raise ValueError("Cannot extract rhyme key from an empty line.")
-        last_word = words[-1]
+        # The rhyme word is the last token with a letter in it: a trailing emoji or
+        # symbol run (seen in generated lines, e.g. "the moon 😊😊😊") has no
+        # pronunciation and used to raise here. No word at all means no rhyme.
+        lettered = [w for w in words if any(ch.isalpha() for ch in w)]
+        if not lettered:
+            return RhymeKey(consonant="", assonant="")
+        last_word = lettered[-1]
         pronouncing = self._ensure_pronouncing()
         phones = pronouncing.phones_for_word(last_word.lower())
         phone_str = phones[0] if phones else self._fallback_phones(last_word)
