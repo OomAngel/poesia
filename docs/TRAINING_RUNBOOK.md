@@ -172,7 +172,7 @@ nothing past the last checkpoint. Re-run with
 ## Related
 
 - `docs/RETRAINING_PLAN_2026-10.md` — current base-model candidates and order of work.
-- `docs/EXPERIMENTS_PLAN.md` — technique ideas (its model table is superseded).
+- `docs/archive/EXPERIMENTS_PLAN.md` — technique ideas (its model table is superseded).
 - `docs/MLOPS_DIAGNOSIS.md` — MLOps phase history (2026-07/09).
 - `scripts/launch_training.sh` — the unified launcher (local/docker/dpo).
 - `MLproject` — `mlflow run` entry points.

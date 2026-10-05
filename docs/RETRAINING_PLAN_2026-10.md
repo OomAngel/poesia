@@ -71,14 +71,33 @@ is far too slow for training. Llama 3.1 8B is gated, so the script couldn't read
 
 ### What this corrects
 
-`LOCAL_ONLY.md` and `EXPERIMENTS_PLAN.md` §2 said 8B-class models "won't fit 8 GB" and need
+`LOCAL_ONLY.md` and `docs/archive/EXPERIMENTS_PLAN.md` §2 said 8B-class models "won't fit 8 GB" and need
 ≥ 16 GB. That holds for the **default** layout, the only one the July runs used. With the
 **best** layout, the estimate says models up to ~9B fit. Both claims stay unproven until the
 smoke run in §6 step 4.
 
+### Measured 2026-10-05: Qwen3-8B fits, barely
+
+Smoke run (`mlops/configs/smoke_qwen3_8b.yaml`, 40 steps, batch 1 × 8 accumulation,
+`max_length` 300, LoRA r=16 on attention, `memory_layout: low_vram`): **peak 7.32 GB
+allocated, 7.51 GB reserved**, with 7.4 GB free when it started (GPU-heavy apps closed).
+Loss 3.60 → 2.03. Steady-state throughput about **140 tokens/s** (111 averaged with warm-up).
+
+The table's "+train" column assumed 1.5 GB of training overhead; the real overhead is about
+3.4 GB (activations under checkpointing plus fp32 logits over the 151,936-token vocabulary).
+So **Qwen3-8B is the practical ceiling**, not 9B: Qwen3.5-9B (≈4.3 GB of weights, a
+248k vocabulary) would need a shorter `max_length` or Unsloth to fit.
+
+How `low_vram` is implemented (`poesia.device`): lm_head quantized to NF4, whole model on
+GPU 0, then the input embedding moved to CPU RAM with two hooks, and no
+`prepare_model_for_kbit_training` (its fp32 upcast alone costs ~2.5 GB on 8B). Two traps
+found on the way: accelerate's own CPU placement copies the weights to the GPU every step
+(and failed under WSL), and a single-GPU device map leaves no `hf_device_map`, so
+`accelerate.prepare` moves the embedding back; the script records `hf_device_map = {"": 0}`.
+
 ### Picks
 
-- **Largest that fits: Qwen3.5-9B.** It's the newest and most downloaded dense model in the
+- **Largest that fits: Qwen3-8B** (measured above). Earlier pick, superseded: Qwen3.5-9B. It's the newest and most downloaded dense model in the
   range that fits, and from the same family as the current adapters. Two catches. First, 24
   of its 32 layers use linear attention, which needs the `flash-linear-attention` and
   `causal-conv1d` packages (both missing from the `poesia` env on 2026-10-04). Without them
@@ -93,7 +112,7 @@ smoke run in §6 step 4.
 
 The environment already supports these architectures: transformers 5.14.1 includes `qwen3`,
 `qwen3_5` and `gemma4`. Unsloth would add headroom, but it's still blocked by version pins
-(`EXPERIMENTS_PLAN.md` §3).
+(`docs/archive/EXPERIMENTS_PLAN.md` §3).
 
 ## 4. The larger corpus
 
@@ -132,6 +151,22 @@ ranking of the top two flipped between runs: 2026-09-01 had `qwen3b` 1.00 and `d
 supported. Their order is within noise. The large gaps (≤ 1.3 against ≥ 4.8) are real at
 this sample size. Differences under about 0.5 are not.
 
+**The measuring tool is itself noisy (measured 2026-10-05).** `scripts/check_scansion_vs_adso.py`
+compares the Spanish syllable counter with the ADSO gold standard (100 hand-scanned
+Golden-Age sonnets, 1,404 lines): exact agreement on 59.3% of lines, off by one on 33.9%,
+off by two or more on 6.8%. Mean absolute error 0.48 syllables, biased low (−0.34; it
+undercounts, e.g. "tú, a quien los ojos dieron la bebida" counted 10, gold 11). The old
+metric, |mean − 11|, also let long and short lines cancel. So a July "syllable deviation" of
+0.90 sits close to the counter's own error. The rebuilt evaluation reports per-line
+deviation and metre pass rate; read both against this floor, and re-run the check after any
+phonology change.
+
+**The champion's training data is malformed.** All 50 sonnets in
+`training_data_distilled/sonetos.jsonl` (`poetry-lora-distilled`) separate verses with the
+two characters `\n`, not newlines, so each poem trained as one long line. The baseline
+rebuild (`mlops/configs/baseline_distilled_2026_10.yaml`) keeps this unchanged so it
+reproduces the July recipe; a cleaned version is a separate experiment.
+
 ## 5. Run size and training time
 
 A run's size is the number of poems passed to `build_fixed_dataset.py --max-poems`. A random
@@ -155,8 +190,9 @@ random samples from `corpus_master` (scratchpad scripts; rerun on corpus or mode
 **Planning figure: ~2,600 usable tokens per poem.** The full corpus is about 220M usable
 tokens per epoch, or about 780M if truncated examples are counted.
 
-**Throughput is the unknown.** No tokens/s figure exists for any candidate model on the 3070;
-the smoke run in §6 step 4 measures it. As an illustration only: at 1,000 tokens/s, a 10-hour
+**Throughput, measured 2026-10-05:** Qwen3-8B with `low_vram` runs about 140 tokens/s on
+the 3070, so a 2,000-poem epoch (~5.2M usable tokens) takes about 10 hours. The base-model
+comparison run measures Qwen3-4B. Before the measurement, this section read: As an illustration only: at 1,000 tokens/s, a 10-hour
 overnight budget is 36M tokens, so about 13,800 poems for one epoch or 4,600 for three.
 Fewer poems over more epochs is how the July runs worked (10 epochs on ≤ 500 sonnets). On
 this corpus, more poems at 1–3 epochs uses its breadth better.
@@ -232,3 +268,18 @@ Still open:
   isn't the bottleneck, so put effort into data and repair rather than model size.
 - Step 5(b) doesn't beat 5(a): the larger corpus hurts or doesn't help for this metric, so keep
   it for retrieval and style (`memoria`) and stop using it for fine-tuning.
+
+## 9. Later experiments
+
+Moved from `docs/archive/EXPERIMENTS_PLAN.md` §3 on 2026-10-05, when that plan was archived
+(`docs/archive/EXPERIMENTS_PLAN.md`). Each changes one thing against the baseline
+from §6.
+
+| Experiment | Change | Status |
+|---|---|---|
+| LoRA rank 64 | `lora_r: 64` | Open. Try on `train_distilled.yaml` first. |
+| LoRA on all linear layers | add `gate_proj`, `up_proj`, `down_proj` to `lora_target_modules` | Open. Roughly doubles trainable parameters; recheck peak VRAM. |
+| Multi-teacher distillation | distill with two hosted models instead of one | Open. Needs both API keys. |
+| Syllable-filtered data | train only on lines that pass `filter_exact_syllables.py` | Open. Note the counter's own error (`check_scansion_vs_adso.py`). |
+| Unsloth | replace the PEFT loop | Blocked: unsloth 2026.9.11 needs torch <2.13 and transformers ≤5.5. |
+| DPO | `scripts/train_poetry_dpo.py` | Done in July: lost to plain cross-entropy (6.07 vs 0.90, 3 themes). |

@@ -45,7 +45,7 @@ from the same config produces a comparable adapter, not the identical one.
 
 **Where the adapters were trained, and where they run.** They were trained on an 8 GB RTX 2000 Ada,
 a machine no longer in use (2026-07-28 to 08-07, `mlops/adapter_registry.json`), which is what capped the base models
-at Qwen2.5-1.5B/3B with 4-bit QLoRA — `docs/EXPERIMENTS_PLAN.md` marks Llama 3.1 8B "won't
+at Qwen2.5-1.5B/3B with 4-bit QLoRA — `docs/archive/EXPERIMENTS_PLAN.md` marks Llama 3.1 8B "won't
 fit 8 GB". Of the two machines (`README.md` "Machines"), the desktop (RTX 3070, 8 GB, sm_86)
 is the one that trains; the laptop (Quadro M1000M, 2 GB, Maxwell sm_50) cannot train and
 runs the adapters through a llama.cpp build for sm_50, which is where they were evaluated

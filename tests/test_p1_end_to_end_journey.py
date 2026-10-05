@@ -1,6 +1,6 @@
 """P1 Integration test: Complete end-to-end RAG generation journey.
 
-Tests the full pipeline from RAG_LLM_ENGINEERING_HARDENING_PLAN.md P1.
+Tests the full pipeline from docs/archive/RAG_LLM_ENGINEERING_HARDENING_PLAN.md P1.
 """
 
 from __future__ import annotations
