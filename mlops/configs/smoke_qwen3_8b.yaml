@@ -1,0 +1,35 @@
+# Smoke test for the 2026-10 retraining (docs/RETRAINING_PLAN_2026-10.md §6 step 4):
+# does Qwen3-8B fit the RTX 3070 (8 GB) with the low_vram layout, and how many tokens/s?
+# Reads the measured peak VRAM and tokens/s from the run (also logged to MLflow).
+# Data: python scripts/build_fixed_dataset.py --max-poems 300 --seed 7 \
+#           --output mlops/data/smoke_8b.jsonl   (writes smoke_8b.eval.jsonl too)
+experiment: "smoke-retrain-2026-10"
+run_name: "smoke-qwen3-8b-low-vram"
+tags: ["smoke", "retrain-2026-10", "low-vram"]
+
+model: "Qwen/Qwen3-8B"
+quantization: "4bit"
+memory_layout: "low_vram"  # NF4 lm_head + embedding in CPU RAM
+train_data: "mlops/data/smoke_8b.jsonl"
+eval_data: "mlops/data/smoke_8b.eval.jsonl"
+max_length: 300
+
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+batch_size: 1
+gradient_accumulation: 8
+max_steps: 40          # overrides epochs
+epochs: 1
+learning_rate: 0.0002
+logging_steps: 5
+eval_steps: 1000       # no evaluation inside a smoke run
+save_steps: 1000       # no checkpoints
+
+register: false        # no MLflow registry / adapter_registry.json entry
+auto_evaluate: false
+test_generation: false
+
+output_dir: "models/smoke-qwen3-8b"

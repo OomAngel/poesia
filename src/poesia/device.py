@@ -61,3 +61,43 @@ def bnb_4bit_usable() -> bool:
     except Exception:
         return False
     return True
+
+
+MEMORY_LAYOUTS = ("default", "low_vram")
+
+
+def four_bit_placement(layout: str = "default") -> tuple[dict, str | dict]:
+    """Extra BitsAndBytesConfig kwargs and the ``device_map`` for a 4-bit model.
+
+    ``default``: bitsandbytes' own behaviour (lm_head stays bf16), ``device_map="auto"``.
+    ``low_vram`` (docs/RETRAINING_PLAN_2026-10.md §3): lm_head is quantized too (empty skip
+    list) and the whole model loads on GPU 0. Training additionally moves the input
+    embedding to CPU RAM with ``offload_input_embeddings`` after loading. (accelerate's own
+    CPU placement treats such modules as offloaded and copies their weights to the GPU on
+    every forward, which failed under WSL with "CUDA driver error: device not ready".)
+    """
+    if layout == "default":
+        return {}, "auto"
+    if layout != "low_vram":
+        raise ValueError(f"memory_layout must be one of {MEMORY_LAYOUTS}, not {layout!r}")
+    return {"llm_int8_skip_modules": []}, {"": 0}
+
+
+def offload_input_embeddings(model, compute_device: str = "cuda"):
+    """Keep the (frozen) input embedding in CPU RAM; run everything else on ``compute_device``.
+
+    Token ids are moved to the CPU before the lookup and the embeddings back to
+    ``compute_device`` after it, so no weight is copied per step. Frees the embedding's
+    VRAM (about 1.2 GB in bf16 for Qwen3-8B). Returns the model.
+    """
+    emb = model.get_input_embeddings()
+    out_emb = getattr(model, "get_output_embeddings", lambda: None)()
+    if out_emb is not None and out_emb.weight is emb.weight:
+        raise ValueError(
+            "input and output embeddings are tied (e.g. Qwen3-4B): moving the embedding would "
+            "move lm_head too; use memory_layout 'default' for this model"
+        )
+    emb.to("cpu")
+    emb.register_forward_pre_hook(lambda _m, args: tuple(a.to("cpu") for a in args))
+    emb.register_forward_hook(lambda _m, _args, out: out.to(compute_device))
+    return model

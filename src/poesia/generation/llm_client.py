@@ -883,6 +883,16 @@ class OutlinesClient:
         return candidates[0].strip().strip("'\"") if candidates and candidates[0] else line
 
 
+def _adapter_base(adapter_path: str) -> str | None:
+    """Base model recorded by PEFT in ``adapter_config.json``, if any."""
+    cfg_path = os.path.join(adapter_path, "adapter_config.json")
+    try:
+        with open(cfg_path, encoding="utf-8") as f:
+            return json.load(f).get("base_model_name_or_path") or None
+    except (OSError, ValueError):
+        return None
+
+
 class LoRAClient:
     """Fine-tuned poetry model via QLoRA adapter.
 
@@ -917,8 +927,11 @@ class LoRAClient:
         self.provider = "lora"
         self.model = base_model or self._DEFAULT_BASE
 
-        # Resolve adapter path: env var > explicit arg > known paths
-        if adapter_path is None:
+        # Resolve adapter path: env var > explicit arg > known paths. An explicit base_model
+        # with no adapter means "base model only" (evaluation baselines): no discovery.
+        if adapter_path is None and base_model is not None:
+            print(f"[LoRA] Base model only: {self.model}")
+        elif adapter_path is None:
             env_path = os.environ.get("LORA_ADAPTER_PATH")
             if env_path and os.path.exists(env_path):
                 adapter_path = env_path
@@ -943,8 +956,13 @@ class LoRAClient:
         else:
             if not os.path.exists(adapter_path):
                 print(f"[LoRA] Adapter path {adapter_path} not found. Using base model only.")
-            # If explicit adapter_path given but no base_model, infer from known list
-            if base_model is None:
+            # If explicit adapter_path given but no base_model: PEFT records the base in
+            # adapter_config.json; fall back to the known list for old adapters.
+            recorded_base = _adapter_base(adapter_path) if base_model is None else None
+            if recorded_base:
+                self.model = recorded_base
+                print(f"[LoRA] Base model from adapter_config.json: {self.model}")
+            elif base_model is None:
                 pkg_root = os.path.dirname(
                     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                 )
@@ -984,10 +1002,14 @@ class LoRAClient:
                 provider="lora",
             )
 
+        from poesia.device import four_bit_placement
+
+        extra, device_map = four_bit_placement(os.environ.get("POESIA_MEMORY_LAYOUT", "default"))
         bnb = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
             bnb_4bit_compute_dtype=torch.bfloat16,
+            **extra,
         )
         try:
             self._tokenizer = AutoTokenizer.from_pretrained(self.model)
@@ -995,7 +1017,7 @@ class LoRAClient:
             self._model = AutoModelForCausalLM.from_pretrained(
                 self.model,
                 quantization_config=bnb,
-                device_map="auto",
+                device_map=device_map,
                 torch_dtype=torch.bfloat16,
             )
             if self._adapter_path and os.path.exists(self._adapter_path):
