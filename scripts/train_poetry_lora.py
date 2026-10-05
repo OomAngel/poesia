@@ -122,6 +122,11 @@ def _pop_resume_flag(argv: list[str]) -> bool:
     return False
 
 
+# No real text averages more than ~5 characters per token (Qwen tokenizers, es/en); a text
+# longer than max_length * 16 characters cannot fit max_length tokens.
+_MAX_CHARS_PER_TOKEN = 16
+
+
 def _drop_overlong(dataset, max_length: int, split: str):
     """Keep only examples whose whole prompt + completion + EOS fits in max_length tokens.
 
@@ -319,21 +324,33 @@ def main():
         model.print_trainable_parameters()
 
         # ── Load data ────────────────────────────────────────────────
+        max_length = cfg.get("max_length", 300)
+        char_limit = max_length * _MAX_CHARS_PER_TOKEN
+        prefiltered = {}
+
         def load_jsonl(path):
-            texts, weights = [], []
+            # Drop texts too long to fit max_length tokens before building the Dataset:
+            # line examples repeat every prior line, so long poems produce huge prompts
+            # that are dropped anyway, and their total once overflowed pyarrow's 2 GB
+            # string offsets ("offset overflow while concatenating arrays").
+            texts, weights, too_long = [], [], 0
             with open(path) as f:
                 for line in f:
                     ex = json.loads(line)
                     text = ex["prompt"] + ex["completion"] + tokenizer.eos_token
+                    if len(text) > char_limit:
+                        too_long += 1
+                        continue
                     texts.append(text)
                     weights.append(ex.get("quality_score", 1.0))
+            prefiltered[path] = too_long
             return Dataset.from_dict({"text": texts, "quality_weight": weights})
 
         train_ds = load_jsonl(train_path)
         eval_ds = load_jsonl(eval_path)
+        print(f"Pre-filtered by length (> {char_limit} chars): {prefiltered}")
+        mlflow.log_param("dropped_overlong_chars_train", prefiltered[train_path])
         print(f"Train: {len(train_ds)}, Eval: {len(eval_ds)}")
-
-        max_length = cfg.get("max_length", 300)
 
         def tokenize(ex):
             tokens = tokenizer(ex["text"])  # no truncation: overlong examples are dropped below

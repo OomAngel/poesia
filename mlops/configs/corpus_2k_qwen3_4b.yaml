@@ -1,0 +1,32 @@
+# First proper corpus run (docs/RETRAINING_PLAN_2026-10.md §6): Qwen3-4B on line-by-line
+# examples from corpus_master, the same prompt format the generation loop sends.
+# Data: python scripts/build_fixed_dataset.py --max-poems 2000 --seed 42 \
+#           --output mlops/data/corpus_2k.jsonl   (corpus_master sha256 41c6a60d372b87a8)
+# Target to beat: plain Qwen3-4B with no adapter (it already beats the July recipe).
+experiment: "retrain-2026-10"
+run_name: "corpus-2k-qwen3-4b"
+tags: ["retrain-2026-10", "corpus-master", "line-format", "qwen3-4b"]
+
+model: "Qwen/Qwen3-4B-Instruct-2507"
+quantization: "4bit"
+memory_layout: "default"   # Qwen3-4B ties its embeddings, so no CPU offload
+train_data: "mlops/data/corpus_2k.jsonl"
+eval_data: "mlops/data/corpus_2k.eval.jsonl"
+max_length: 300            # longer examples are dropped, not truncated
+
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+batch_size: 2              # batch 4 spilled past 8 GB into shared memory (plan §5)
+gradient_accumulation: 8   # effective batch 16
+epochs: 1
+learning_rate: 0.0002
+logging_steps: 25
+eval_steps: 1000
+save_steps: 500            # resumable with --resume-from-checkpoint
+
+auto_evaluate: false       # evaluated with scripts/evaluate_adapter_mlflow.py afterwards
+
+output_dir: "models/corpus-2k-qwen3-4b"

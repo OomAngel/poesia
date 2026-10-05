@@ -262,6 +262,25 @@ Each step changes one thing, so its effect can be read off.
    there. Confirm before treating a 9B adapter as deployable. The Lemonade plan
    (`LEMONADE_INTEGRATION.md`) serves "the champion adapter", so its size matters there too.
 
+## 6a. Results so far (2026-10-05)
+
+**The July recipe is a dead end, and plain Qwen3-4B is the bar to beat.**
+
+- Baseline (July recipe rebuilt, Qwen2.5-1.5B), 36 seeded poems: Spanish 0.63 syllables off
+  per line, 57% of lines pass metre, 3% rhyme accuracy; English 0.35, 73%, 10%.
+- The same recipe on Qwen3-4B produced runaway lines (76 lines over 20 syllables, up to
+  55, in 15 poems; evaluation stopped there). Test on the same themes and seeds with plain
+  Qwen3-4B and no adapter: 0.21 and 0.29 syllables off, 79% and 71% metre, 30% and 60%
+  rhyme, no runaway lines. So the adapter trained on the July recipe (whole poems with
+  literal `\n`, while the loop asks for one line) caused the runaway, not the base model.
+  Two poems only: a signal, measured fully in the queue below.
+- First corpus run (`mlops/configs/corpus_2k_qwen3_4b.yaml`): 2,000 poems from
+  `corpus_master` in the loop's line format, 28,928 examples after dropping those over 300
+  tokens, 1,808 steps at ~7.8 s. Queued after it: the adapter and plain Qwen3-4B, 36 poems
+  each. Building that dataset once overflowed pyarrow (2 GB of prompt text); the training
+  script now drops texts over `max_length × 16` characters before building the Dataset
+  (the densest fitting example measured 4.63 characters per token).
+
 ## 7. Decisions for Angel
 
 Decided 2026-10-04: Spanish and English, mainly English; copyrighted poems in (personal
