@@ -9,7 +9,7 @@
 # builds do not include sm_50. This makes poesia.device.cuda_usable() true on the laptop, so
 # sentence-transformers embeddings run on its GPU.
 # torchvision/torchaudio are not installed: nothing in this repository imports them.
-torch==2.14.0+cu126
+torch==2.14.1+cu130
 
 # No training stack and no bitsandbytes: bitsandbytes' Linux CUDA 12.x wheels start at
 # sm_60 (4-bit NF4 needs compute capability >= 6.0), and 2 GB cannot hold a QLoRA run.
