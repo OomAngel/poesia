@@ -1,138 +1,201 @@
 #!/usr/bin/env python3
-"""MLflow-native evaluation using existing Poesia metrics.
+"""Evaluate an adapter (or a bare base model) on generated sonnets, both languages.
 
-Supports nested runs (Phase 4): if --parent-run-id is provided, evaluation
-metrics are logged as a child of the training run, establishing provenance.
-If omitted, creates a top-level run (backward compatible).
+Rebuilt 2026-10-04 for the retraining (docs/RETRAINING_PLAN_2026-10.md §6 step 2):
+
+- Spanish sonnets (11-syllable lines, ABBAABBACDCDCD) and English Shakespearean sonnets
+  (10 syllables, ABABCDCDEFEFGG), 6 themes each by default, several seeded samples per
+  theme, so a score is a mean over 36 poems rather than 3 unseeded ones.
+- Scores come from poesia.evaluation.poem_eval: line-count accuracy, per-line syllable
+  deviation (the old |mean - 11| let long and short lines cancel), metre pass rate and
+  rhyme accuracy. The Spanish counter's own error is measured by
+  scripts/check_scansion_vs_adso.py; compare deviations against it.
+- ``--base-model`` without ``--adapter`` evaluates the base model alone (a baseline);
+  ``--memory-layout low_vram`` lets 8-9B models load in 8 GB.
+
+Metrics go to MLflow (nested under ``--parent-run-id`` when given) and to a JSON report.
 
 Usage:
-    python scripts/evaluate_adapter_mlflow.py --adapter models/poetry-lora-v2/final_adapter \\
-        --theme luna --form soneto
-    python scripts/evaluate_adapter_mlflow.py --adapter models/poetry-lora-v2/final_adapter \\
-        --parent-run-id <mlflow_run_id>  # nested under training run
+    python scripts/evaluate_adapter_mlflow.py --adapter models/smoke-qwen3-8b/final_adapter
+    python scripts/evaluate_adapter_mlflow.py --base-model Qwen/Qwen3-4B-Instruct-2507 \\
+        --languages es en --samples 3 --out reports/eval_qwen3_4b_base.json
 """
 
+from __future__ import annotations
+
 import argparse
+import json
 import os
+import random
+import time
 
 import mlflow
 
-# MLflow setup
-mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "sqlite:///mlruns/mlflow.db"))
-try:
-    mlflow.create_experiment("poesia-evaluation", artifact_location="./mlruns/poesia-evaluation")
-except Exception:
-    pass
+from poesia.evaluation.poem_eval import aggregate, score_poem
+from poesia.forms.definitions import get_form
 
-from poesia.generation.constrained_loop import ConstrainedLoop
-from poesia.generation.llm_client import LoRAClient
-from poesia.phonology.spanish import SpanishPhonology
+FORMS = {"es": "soneto", "en": "sonnet_shakespearean"}
+THEMES = {
+    "es": ["luna", "mar", "tiempo", "noche", "soledad", "memoria"],
+    "en": ["moon", "sea", "time", "night", "solitude", "memory"],
+}
 
 
-def _make_llm_client(adapter_path):
-    """Pick LoRAClient (bitsandbytes 4-bit) when bitsandbytes actually runs on
-    the GPU, else fall back to the GGUF/llama.cpp client (see llama_cpp.py) so
-    evaluation isn't hardcoded to CUDA-only hardware. The check is
-    bnb_4bit_usable(), not cuda_usable(): on the laptop torch's cu126 build runs
-    on the GPU (sm_50) but bitsandbytes cannot."""
+def _phonology(language: str):
+    if language == "es":
+        from poesia.phonology.spanish import SpanishPhonology
+
+        return SpanishPhonology()
+    from poesia.phonology.english import EnglishPhonology
+
+    return EnglishPhonology()
+
+
+def _make_llm_client(adapter_path: str | None, base_model: str | None):
+    """LoRAClient (bitsandbytes 4-bit) when it runs on this GPU; otherwise the GGUF/llama.cpp
+    client next to the adapter (the laptop). The check is bnb_4bit_usable(), not
+    cuda_usable(): on the laptop torch runs on the GPU (sm_50) but bitsandbytes cannot."""
     from poesia.device import bnb_4bit_usable
+    from poesia.generation.llm_client import LoRAClient
 
     if bnb_4bit_usable():
-        return LoRAClient(adapter_path=adapter_path)
+        return LoRAClient(adapter_path=adapter_path, base_model=base_model)
 
     import glob
 
     from poesia.exceptions import LLMProviderError
     from poesia.generation.llama_cpp import LlamaCppLoRAClient
 
-    matches = glob.glob(os.path.join(os.path.dirname(adapter_path), "*Q4_K_M.gguf"))
+    matches = glob.glob(os.path.join(os.path.dirname(adapter_path or ""), "*Q4_K_M.gguf"))
     if not matches:
         raise LLMProviderError(
-            "No usable CUDA device for bitsandbytes 4-bit inference, and no "
-            f"*Q4_K_M.gguf sibling found next to {adapter_path} for the llama.cpp "
-            "fallback (see poesia/generation/llama_cpp.py for the merge/convert/"
-            "quantize pipeline).",
+            "No usable CUDA device for bitsandbytes 4-bit inference, and no *Q4_K_M.gguf "
+            f"next to {adapter_path} for the llama.cpp fallback (poesia/generation/llama_cpp.py).",
             provider="lora",
         )
     return LlamaCppLoRAClient(model_path=matches[0])
 
 
-def evaluate(adapter_path, themes, form, language="es", parent_run_id=None):
-    phonology = SpanishPhonology()
-    results = []
+def _seed_everything(seed: int) -> None:
+    random.seed(seed)
+    try:
+        import numpy as np
 
-    # Phase 4: Nest evaluation under the training run when parent_run_id is provided
+        np.random.seed(seed)
+    except ImportError:
+        pass
+    try:
+        import torch
+
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    except ImportError:
+        pass
+
+
+def evaluate(
+    adapter_path: str | None,
+    base_model: str | None,
+    languages: list[str],
+    themes: dict[str, list[str]],
+    samples: int,
+    seed: int,
+    parent_run_id: str | None = None,
+    out_path: str | None = None,
+) -> dict:
+    from poesia.generation.constrained_loop import ConstrainedLoop
+
+    mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "sqlite:///mlruns/mlflow.db"))
+    label = adapter_path or f"base:{base_model}"
     if parent_run_id:
         run = mlflow.start_run(run_id=parent_run_id, nested=True)
     else:
         mlflow.set_experiment("poesia-evaluation")
-        run = mlflow.start_run(run_name=f"eval-{os.path.basename(adapter_path)}")
-        parent_run_id = run.info.run_id
+        run = mlflow.start_run(run_name=f"eval-{os.path.basename(label.rstrip('/'))}")
 
+    llm = _make_llm_client(adapter_path, base_model)  # loaded once, reused for every poem
+    report: dict = {
+        "adapter": adapter_path,
+        "base_model": llm.model,
+        "samples": samples,
+        "seed": seed,
+        "languages": {},
+    }
     with run:
-        mlflow.log_param("adapter", adapter_path)
-        mlflow.log_param("form", form)
-        mlflow.log_param("n_themes", len(themes))
-        if parent_run_id:
-            mlflow.log_param("parent_run_id", parent_run_id)
-            mlflow.set_tag("mlflow.parentRunId", parent_run_id)
+        mlflow.log_params(
+            {
+                "adapter": adapter_path or "",
+                "base_model": llm.model,
+                "samples": samples,
+                "seed": seed,
+                "languages": ",".join(languages),
+                "memory_layout": os.environ.get("POESIA_MEMORY_LAYOUT", "default"),
+            }
+        )
+        for lang in languages:
+            form = get_form(FORMS[lang], lang)
+            phon = _phonology(lang)
+            poems = []
+            for theme in themes[lang]:
+                for k in range(samples):
+                    poem_seed = seed + k
+                    _seed_everything(poem_seed)
+                    t0 = time.time()
+                    loop = ConstrainedLoop(language=lang, form=FORMS[lang], llm=llm)
+                    result = loop.run(theme=theme, n_candidates=8, max_repair_attempts=4)
+                    scores = score_poem(result.lines, form, phon)
+                    scores.update(
+                        theme=theme,
+                        seed=poem_seed,
+                        seconds=round(time.time() - t0, 1),
+                        lines=list(result.lines),
+                    )
+                    poems.append(scores)
+                    print(
+                        f"[{lang}] {theme} seed {poem_seed}: dev {scores['syllable_abs_dev']}, "
+                        f"metre {scores['metre_pass_rate']}, rhyme {scores['rhyme_accuracy']}, "
+                        f"{scores['seconds']}s"
+                    )
+            agg = aggregate(poems)
+            report["languages"][lang] = {"form": FORMS[lang], "aggregate": agg, "poems": poems}
+            for key, value in agg.items():
+                if value is not None:
+                    mlflow.log_metric(f"{lang}_{key}", value)
+            print(f"[{lang}] aggregate: {json.dumps(agg)}")
 
-        for theme in themes:
-            loop = ConstrainedLoop(
-                language=language,
-                form=form,
-                llm=_make_llm_client(adapter_path),
-            )
-            # match the CLI's own default (gap #15) — loop.run()'s own default of 2
-            # understates what an adapter can hit once fully repaired.
-            result = loop.run(theme=theme, n_candidates=8, max_repair_attempts=4)
-            lines = result.lines
-            line_count = len(lines)
-
-            syll_counts = []
-            for line in lines:
-                scan = phonology.scan_line(line)
-                syll_counts.append(scan.metrical_syllable_count)
-
-            avg_syll = sum(syll_counts) / len(syll_counts) if syll_counts else 0
-            line_ok = 1.0 if line_count == 14 else 0.0
-
-            results.append(
-                {
-                    "theme": theme,
-                    "line_count": line_count,
-                    "avg_syllables": avg_syll,
-                    "line_accuracy": line_ok,
-                }
-            )
-
-            mlflow.log_metric(f"{theme}_line_accuracy", line_ok)
-            mlflow.log_metric(f"{theme}_syllable_dev", avg_syll - 11)
-
-        avg_line_acc = sum(r["line_accuracy"] for r in results) / len(results)
-        avg_syll_dev = abs(sum(r["avg_syllables"] for r in results) / len(results) - 11)
-
-        mlflow.log_metric("avg_line_accuracy", avg_line_acc)
-        mlflow.log_metric("avg_syllable_deviation", avg_syll_dev)
-        mlflow.set_tag("eval_status", "passed")
-
-        print(f"\nEvaluation complete for: {adapter_path}")
-        print(f"  Avg line accuracy: {avg_line_acc:.0%}")
-        print(f"  Avg syllable dev:  {avg_syll_dev:.2f}")
-        print(f"  Nested under: {parent_run_id}")
-        for r in results:
-            print(f"  {r['theme']}: {r['line_count']} lines, {r['avg_syllables']:.1f} syll/line")
+        if out_path:
+            os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            mlflow.log_artifact(out_path)
+            print(f"Report: {out_path}")
+    return report
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--adapter", required=True)
-    parser.add_argument("--form", default="soneto")
-    parser.add_argument(
-        "--themes", nargs="+", default=["luna", "mar", "noche", "soledad", "tiempo"]
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--adapter", default=None, help="LoRA adapter dir (final_adapter)")
+    ap.add_argument("--base-model", default=None, help="base model; alone = baseline run")
+    ap.add_argument("--languages", nargs="+", default=["es", "en"], choices=sorted(FORMS))
+    ap.add_argument("--themes-es", nargs="+", default=THEMES["es"])
+    ap.add_argument("--themes-en", nargs="+", default=THEMES["en"])
+    ap.add_argument("--samples", type=int, default=3, help="seeded samples per theme")
+    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--memory-layout", default=None, choices=["default", "low_vram"])
+    ap.add_argument("--out", default=None, help="JSON report path")
+    ap.add_argument("--parent-run-id", default=None, help="MLflow run to nest under")
+    args = ap.parse_args()
+    if not args.adapter and not args.base_model:
+        ap.error("give --adapter, --base-model, or both")
+    if args.memory_layout:
+        os.environ["POESIA_MEMORY_LAYOUT"] = args.memory_layout
+    evaluate(
+        args.adapter,
+        args.base_model,
+        args.languages,
+        {"es": args.themes_es, "en": args.themes_en},
+        args.samples,
+        args.seed,
+        parent_run_id=args.parent_run_id or None,
+        out_path=args.out,
     )
-    parser.add_argument(
-        "--parent-run-id", default=None, help="MLflow run ID to nest under (for provenance)"
-    )
-    args = parser.parse_args()
-    evaluate(args.adapter, args.themes, args.form, parent_run_id=args.parent_run_id)
