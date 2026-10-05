@@ -129,7 +129,7 @@ unmeasured). Qwen2.5-3B has since been trained (`poetry-lora-qwen3b`, §4 below)
 | Technique | Config/Status | Why Not Done |
 |-----------|--------------|-------------|
 | **DPO** | `train_poetry_dpo.py` + `dpo_v1.yaml` exist | Trained since: `poetry-lora-dpo-expanded` (run `20260731_023723`, §4) |
-| **Unsloth** | Not installed | Blocked by version pins (`EXPERIMENTS_PLAN.md` §3) |
+| **Unsloth** | Not installed | Blocked by version pins (`docs/archive/EXPERIMENTS_PLAN.md` §3) |
 | **LoRA r=64** | One-line config change | Not prioritized yet |
 | **LoRA all linear layers** | Add gate_proj, up_proj, down_proj | Not tested |
 | **Multi-teacher distillation** | Ensemble Groq + Gemini outputs | Not implemented |
@@ -159,7 +159,7 @@ All MLOps phases have been coded and most have been validated:
 
 Superseded 2026-10-04 by `docs/RETRAINING_PLAN_2026-10.md` §6: the rhyme-key score (item 3
 below) is part of its step 2, the DPO-vs-CE comparison and the experiment grid (items 1–2)
-fold into steps 2–3, and Unsloth (item 7) is blocked by version pins (`EXPERIMENTS_PLAN.md` §3).
+fold into steps 2–3, and Unsloth (item 7) is blocked by version pins (`docs/archive/EXPERIMENTS_PLAN.md` §3).
 
 #### History (2026-09-02)
 

@@ -311,7 +311,7 @@ Phase status is owned by `docs/ROADMAP.md` (Phase 3A–3E); the list below is a 
 - [x] InfluenceRecord dataclass
 - [x] SeedExpander (WordNet + rhyme + semantic + Datamuse)
 - [x] 26 personal fragments in seeds/angel_fragments/
-- [x] Influence registry (24 poets): data/influences.yaml (docs/INFLUENCE_REGISTRY.md is a readable copy)
+- [x] Influence registry (24 poets): data/influences.yaml (docs/INFLUENCE_REGISTRY.md points to it)
 
 ### Phase 3D: Brief Assembly .
 - [x] BriefBuilder class

@@ -46,7 +46,7 @@
 - [x] `SeedExpander` — WordNet + rhyme + semantic + Datamuse expansion
 - [x] First 10 personal fragments in `seeds/angel_fragments/` (now 26)
 - [x] Influence registry (24 poets): now `data/influences.yaml`, loaded by
-      `memoria/influence_loader.py`; `docs/INFLUENCE_REGISTRY.md` is a readable copy
+      `memoria/influence_loader.py`; `docs/INFLUENCE_REGISTRY.md` points to it
 - [x] Ingestion CLI: `poesia memoria add-fragment|add-seed|add-influence|list-fragments|list-influences`
 
 ### 3D: Pre-Generation Enrichment ✅ (see `docs/ENRICHMENT.md`)

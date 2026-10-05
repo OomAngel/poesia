@@ -9,13 +9,15 @@
 * **PoesIA**: A personal hybrid poetry-writing engine combining deterministic phonology/prosody validation with LLM semantic generation, extended into sound analysis (`eufonia`), illustration (`galeria`), collection library (`memoria`), and music score/recitation (`armonia`).
 * **Repo State**: Public GitHub repository (`OomAngel/poesia`). **Push only when the author asks. Never commit poems or corpus data (DVC only) and never bake them into Docker images.**
 
-### Active RAG/LLM Development Authority
+### RAG/LLM Development Standard
 
 Before changing `memoria/`, embedding-backed evaluation, retrieval-informed generation,
 hosted LLM integration, or their CLI paths, read
-`docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md` completely. It owns the current sequencing,
-honest capability boundary, acceptance criteria, and definition of done for this work.
-Do not mark a RAG/LLM phase complete from file presence or aggregate test count alone.
+`docs/archive/RAG_LLM_ENGINEERING_HARDENING_PLAN.md`. Its phases are complete (2026-07-28)
+and it is archived, but its honest capability boundary, acceptance criteria and definition
+of done still apply to new work in these areas. Do not mark RAG/LLM work complete from file
+presence or aggregate test count alone. Training and evaluation work follows
+`docs/RETRAINING_PLAN_2026-10.md`.
 
 ### Infrastructure & Data Authority
 
@@ -66,7 +68,7 @@ Before making any git commit, adhere to the following workflow:
 
 ### Session Start
 1. Check `memory-bank/activeContext.md` and `memory-bank/tasks.md` to establish current state and active focus.
-2. For RAG/LLM work, read `docs/RAG_LLM_ENGINEERING_HARDENING_PLAN.md`.
+2. For RAG/LLM work, read `docs/archive/RAG_LLM_ENGINEERING_HARDENING_PLAN.md` (complete; its standards still apply). For training or evaluation, read `docs/RETRAINING_PLAN_2026-10.md`.
 3. For infrastructure/data/model work, read `docs/INFRASTRUCTURE_DECISIONS.md`.
 4. Run `pytest` to confirm working tree status.
 

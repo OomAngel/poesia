@@ -572,11 +572,11 @@ Model weights (`final_adapter/` + `*-Q4_K_M.gguf`) are versioned with DVC
 **Documentation**: `docs/` — the human position
 ([`POSITIONING.md`](docs/POSITIONING.md)), the comparative
 [UX reference](docs/UX_REFERENCE.md), architecture, package survey, roadmap,
-experiment plan, RAG/LLM hardening plan, corpus sources, MLOps diagnosis,
+corpus sources, MLOps diagnosis,
 [training runbook](docs/TRAINING_RUNBOOK.md),
-[retraining plan](docs/RETRAINING_PLAN_2026-10.md),
-[presentation reference](docs/PRESENTATION_REFERENCE.md) + repo
-[README audit](docs/REPO_README_AUDIT.md). Full CLI reference
+[retraining plan](docs/RETRAINING_PLAN_2026-10.md); archived plans in `docs/archive/`
+(the cross-repo README standard and audit moved to the author's private governance repo,
+2026-10-05). Full CLI reference
 in [`USAGE_GUIDE.md`](USAGE_GUIDE.md); what a clone lacks (DVC data, secrets) in
 [`LOCAL_ONLY.md`](LOCAL_ONLY.md).
 
