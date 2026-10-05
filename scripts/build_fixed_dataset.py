@@ -194,6 +194,19 @@ def load_all_poems() -> list[dict]:
     return poems
 
 
+def eval_path_for(train_path: str) -> str:
+    """Eval file next to the train file. Replacing "train_fixed" only worked for the default
+    name: any other --output made eval_path == train_path, so the eval split overwrote the
+    training file."""
+    if "train_fixed" in os.path.basename(train_path):
+        return os.path.join(
+            os.path.dirname(train_path),
+            os.path.basename(train_path).replace("train_fixed", "eval_fixed"),
+        )
+    root, ext = os.path.splitext(train_path)
+    return f"{root}.eval{ext or '.jsonl'}"
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -246,7 +259,7 @@ def main():
 
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
     train_path = args.output
-    eval_path = args.output.replace("train_fixed", "eval_fixed")
+    eval_path = eval_path_for(args.output)
 
     with open(train_path, "w") as f:
         for e in train_examples:
