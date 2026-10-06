@@ -32,6 +32,33 @@ FORMS: list[tuple[str, str]] = [
 ]
 
 
+# Read-back voices (clear licences, docs/CORPUS_SOURCES.md): es CC0, en public domain.
+VOICES = {
+    "es": "es/es_ES/davefx/medium/es_ES-davefx-medium.onnx",
+    "en": "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx",
+}
+_voice_cache: dict[str, Any] = {}
+
+
+def read_aloud(text: str, language: str) -> bytes:
+    """WAV bytes of ``text`` in a stock synthetic voice (Piper, offline). Raises on no voice."""
+    import io
+    import wave
+
+    from piper import PiperVoice
+
+    if language not in _voice_cache:
+        root = Path(os.environ.get("POESIA_PIPER_VOICES", "models/piper"))
+        path = root / VOICES[language]
+        if not path.exists():
+            raise FileNotFoundError(f"voice not installed: {path}")
+        _voice_cache[language] = PiperVoice.load(str(path))
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wav:
+        _voice_cache[language].synthesize_wav(text, wav)
+    return buf.getvalue()
+
+
 def _phonology(language: str) -> Any:
     if language == "es":
         from poesia.phonology.spanish import SpanishPhonology
@@ -185,6 +212,10 @@ def create_app(llm: Any | None = None) -> Any:
     class SafetyRequest(BaseModel):
         text: str = Field(default="", max_length=8000)
 
+    class ReadRequest(BaseModel):
+        language: str = Field(pattern="^(es|en)$")
+        text: str = Field(min_length=1, max_length=4000)
+
     class ProposeRequest(LineRequest):
         theme: str = Field(default="", max_length=200)
         reflection: str = Field(default="", max_length=4000)
@@ -227,6 +258,17 @@ def create_app(llm: Any | None = None) -> Any:
 
         result = screen(req.text, llm=llm)
         return {"flagged": result.flagged, "resources": result.resources}
+
+    @app.post("/api/readback")
+    def readback(req: ReadRequest) -> Any:
+        """The poem read by a labelled synthetic voice; no cloning, nothing stored."""
+        from fastapi.responses import Response
+
+        try:
+            audio = read_aloud(req.text, req.language)
+        except (ImportError, FileNotFoundError) as exc:
+            raise HTTPException(status_code=503, detail=f"read-back unavailable: {exc}") from exc
+        return Response(content=audio, media_type="audio/wav")
 
     @app.post("/api/propose")
     def propose(req: ProposeRequest) -> dict[str, Any]:
