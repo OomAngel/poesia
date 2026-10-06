@@ -120,7 +120,17 @@ application** (Phoeniqs runs 192 NVIDIA H100s in Basel); **$10 Hugging Face cred
 hacker; **Edit with Ava** for demo videos; bookable **mentors** 1–16 Oct. (CSCS compute is
 for Swiss academic teams only.) Redemption steps are in the Getting Started guide.
 
-What changes:
+**Closed before we registered (Resources & Tools page, read 2026-10-06 evening):** CSCS keys
+"have been distributed. We are no longer accepting new requests" (6 Oct, 18:40 CEST);
+Phoeniqs applications closed 4 Oct, 20:30 CEST. So no CSCS 70B and no H100 time: the bullets
+below and the Phoeniqs branch of §5 do not apply. Still open: HF credits
+(hackapertus.ch/online-hack/hugging-face, same email as the Devpost account), Edit with Ava
+(editwithava.com/promo, code AVA5), mentors. Remote GPU instead: Kaggle (free weekly GPU
+quota) with Andreas Martin's Apertus v1.5 8B SFT notebook
+(kaggle.com/code/andreasmartinch/sft-apertus-v1-5-8b-hack-apertus-template); 70B only through
+the $10 HF credits, if at all. Multimodal tests run locally (4-bit) or are dropped.
+
+What was planned (superseded by the closure above):
 - **Bigger models for development, not for the deliverable.** The entry must run
   on-prem/offline with `make run`, so the demo stays on Apertus 8B locally. Use CSCS for what
   the 3070 can't do: Apertus **70B** and the full **multimodal v1.5** (image/audio tests,
