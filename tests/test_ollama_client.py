@@ -204,3 +204,40 @@ def test_registry_honours_ollama_model_env(monkeypatch) -> None:
     monkeypatch.delenv("OLLAMA_MODEL")
     assert get_llm("ollama").model == "gemma2:2b"
     assert get_llm("ollama", model="qwen2.5:7b").model == "qwen2.5:7b"
+
+
+@patch("urllib.request.urlopen")
+def test_openai_compat_client_uses_the_hack_apertus_env(
+    mock_urlopen: MagicMock, monkeypatch
+) -> None:
+    from poesia.generation.llm_client import LINE_SYSTEM_PROMPT, OpenAICompatClient
+
+    monkeypatch.setenv("LLM_BASE_URL", "http://ollama:11434/v1/")
+    monkeypatch.setenv("LLM_NAME", "poesia-apertus")
+    monkeypatch.setenv("LLM_API_KEY", "")
+    resp = MagicMock()
+    resp.read.return_value = json.dumps(
+        {"choices": [{"message": {"content": " a line "}}]}
+    ).encode()
+    cm = MagicMock()
+    cm.__enter__.return_value = resp
+    mock_urlopen.return_value = cm
+    client = OpenAICompatClient()
+    assert client.generate("Write line 1. Output ONLY the line.", n=2) == ["a line", "a line"]
+    req = mock_urlopen.call_args.args[0]
+    assert req.full_url == "http://ollama:11434/v1/chat/completions"
+    assert "Authorization" not in req.headers
+    body = json.loads(req.data)
+    assert body["model"] == "poesia-apertus"
+    assert body["messages"][0] == {"role": "system", "content": LINE_SYSTEM_PROMPT}
+
+
+def test_openai_compat_client_refuses_without_endpoint(monkeypatch) -> None:
+    import pytest
+
+    from poesia.exceptions import LLMProviderError
+    from poesia.generation.llm_client import OpenAICompatClient
+
+    monkeypatch.delenv("LLM_BASE_URL", raising=False)
+    with pytest.raises(LLMProviderError):
+        OpenAICompatClient(model="x")

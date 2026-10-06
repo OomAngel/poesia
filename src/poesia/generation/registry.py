@@ -25,6 +25,7 @@ _DEFAULT_PARAMS: dict[str, dict[str, Any]] = {
     "openai": {"provider": "openai"},
     "auto": {"provider": "auto"},
     "route": {},
+    "openai_compat": {},  # LLM_BASE_URL / LLM_NAME / LLM_API_KEY (Hack Apertus convention)
     "ollama": {},  # model: explicit override, else OLLAMA_MODEL, else the client default
     "lora": {},
     "llama_cpp": {},
@@ -156,6 +157,7 @@ from poesia.generation.llm_client import (  # noqa: E402
     LoRAClient,
     MLflowModelClient,
     OllamaClient,
+    OpenAICompatClient,
     OutlinesClient,
     StubLLMClient,
 )
@@ -169,6 +171,7 @@ _LLM_MAP = {
     "auto": HostedLLMClient,
     "route": RoutedLLMClient,
     "ollama": OllamaClient,
+    "openai_compat": OpenAICompatClient,
     "lora": LoRAClient,
     "llama_cpp": LlamaCppLoRAClient,
     "outlines": OutlinesClient,
