@@ -121,3 +121,24 @@ def test_offload_refuses_tied_embeddings() -> None:
 
     with pytest.raises(ValueError, match="tied"):
         offload_input_embeddings(Tied(), compute_device="cpu")
+
+
+def test_collator_learns_the_end_token_and_masks_only_padding() -> None:
+    pytest.importorskip("torch")
+    for dep in ("mlflow", "yaml", "datasets", "peft", "transformers"):
+        pytest.importorskip(dep)
+    tpl = _load("train_poetry_lora")
+    eos = 7  # pad id == eos id: the situation that hid the end token before
+    collate = tpl._causal_lm_collator(pad_token_id=eos)
+    batch = collate(
+        [
+            {"input_ids": [1, 2, eos], "quality_weight": 1.0},
+            {"input_ids": [3, eos], "quality_weight": 0.5},
+        ]
+    )
+    assert batch["labels"].tolist() == [
+        [1, 2, eos],
+        [3, eos, -100],
+    ]  # real eos learned, padding masked
+    assert batch["attention_mask"].tolist() == [[1, 1, 1], [1, 1, 0]]
+    assert batch["quality_weight"].tolist() == [1.0, 0.5]

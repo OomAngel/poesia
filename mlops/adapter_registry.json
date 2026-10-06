@@ -168,7 +168,7 @@
       "lora_r": 32,
       "train_loss": 1.4081455230712892,
       "adapter_path": "models/baseline-distilled-2026-10/final_adapter",
-      "notes": "",
+      "notes": "Trained with the masked end-of-text bug (pad_token == eos_token in DataCollatorForLanguageModeling; fixed 2026-10-06): never learned to stop. Qwen3-4B adapters produce runaway lines; do not use. RETRAINING_PLAN §6a.",
       "mlflow_model_version": 1
     },
     {
@@ -182,8 +182,22 @@
       "lora_r": 32,
       "train_loss": 1.0823299407958984,
       "adapter_path": "models/compare-qwen3-4b-distilled/final_adapter",
-      "notes": "",
+      "notes": "Trained with the masked end-of-text bug (pad_token == eos_token in DataCollatorForLanguageModeling; fixed 2026-10-06): never learned to stop. Qwen3-4B adapters produce runaway lines; do not use. RETRAINING_PLAN §6a.",
       "mlflow_model_version": 2
+    },
+    {
+      "id": "20261005_190728",
+      "mlflow_run_id": "d6566f265fb54bb096ca443701d2af3d",
+      "mlflow_model_name": "poesia-lora-retrain-2026-10",
+      "created": "2026-10-05T23:11:47.644484",
+      "config": "mlops/configs/corpus_2k_qwen3_4b.yaml",
+      "data_sha256": "0cf32f25ff5bdc339dfcc9d8e7534cb11e781a185b2eb610813ff436f186528e",
+      "base_model": "Qwen/Qwen3-4B-Instruct-2507",
+      "lora_r": 16,
+      "train_loss": 1.1246392822265625,
+      "adapter_path": "models/corpus-2k-qwen3-4b/final_adapter",
+      "notes": "Trained with the masked end-of-text bug (pad_token == eos_token in DataCollatorForLanguageModeling; fixed 2026-10-06): never learned to stop. Qwen3-4B adapters produce runaway lines; do not use. RETRAINING_PLAN §6a.",
+      "mlflow_model_version": 3
     }
   ],
   "description": "Registry of all trained LoRA adapters. Each entry records the adapter path, config used, data hash, and evaluation metrics. Updated manually or via training script.",
