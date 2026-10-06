@@ -5,8 +5,7 @@ closes Fri 16 Oct 2026 12:00 CEST._
 
 This is the **working runbook**: what to build, in what order, with the commands and a
 "done when" check for each step. The author's planning notes (jury, pitch reasoning,
-schedule constraints, research sources) live outside this public repo, in career-assets
-`docs/ww-transition/competitions/hack-apertus.md`. Read that once; work from this file.
+schedule constraints, research sources) live outside this public repo, in the private career-assets repo (Hack Apertus plan). Read that once; work from this file.
 
 ---
 
