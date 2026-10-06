@@ -24,7 +24,9 @@ Deliverables (from the organiser's Getting Started guide, read 2026-10-05):
 - [ ] **Demo video, at most 2 minutes.**
 - [ ] A public Hugging Face dataset with a card **if** a dataset is part of the entry (the
       safety test set, section 6).
-- [ ] Submitted on hackapertus.ch/online-hack/submissions (not Devpost).
+- [ ] Submitted on hackapertus.ch/online-hack/submissions (the guide, read 2026-10-05) **and**
+      the Devpost portal (devpost.com/submit-to/30350-hack-apertus, linked on Devpost 2026-10-06)
+      until the organisers confirm which counts (hello@hackapertus.ch / Discord).
 
 ## 2. The product (POSITIONING.md, applied)
 
