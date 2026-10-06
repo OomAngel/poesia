@@ -224,8 +224,21 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
 ### Wed 7 Oct — runtime, baseline, page skeleton
 
 - [ ] `OLLAMA_MODEL=apertus-v1.5-8b-text:q4km poesia write --llm ollama --theme luna`
-- [ ] Seeded baseline, es + en, 36 poems (same harness and seeds as the Qwen3-4B reference
-      in RETRAINING_PLAN §6a); add Apertus as a third row in that table.
+- [x] Seeded baseline, es + en, 36 poems (same harness and seeds as the Qwen3-4B reference
+      in RETRAINING_PLAN §6a; `reports/eval_2026-10/apertus-v1.5-8b-text.json`, run
+      2026-10-07 through transformers, `low_vram`, 40–127 s per poem):
+
+      | 18 poems per language | es off/line | es metre | es rhyme | en off/line | en metre | en rhyme |
+      |---|---|---|---|---|---|---|
+      | Plain Qwen3-4B | 0.52 | 62% | 30% | 0.69 | 56% | 70% |
+      | Qwen3-4B + corpus adapter (main, 55784bd) | 0.38 | 71% | 24% | 0.46 | 75% | 40% |
+      | **Plain Apertus v1.5 8B text** | 0.83 | 60% | 41% | 0.73 | 77% | 82% |
+
+      No runaway lines (max 16 syllables). The deviation comes from fragments: 16 Spanish and
+      23 English lines are 4+ syllables off, mostly very short ones that are only a rhyme pair
+      ("bayed blade", "gleam extreme"). Such fragments rhyme trivially, so the English rhyme
+      figure is inflated. Cause not established (prompt following vs the chat template the
+      transformers path applies); fix before trusting rhyme, then re-run.
 - [ ] Web page skeleton: FastAPI (or similar) + one HTML page over `poesia.api` — photo
       upload, reflection box, line-by-line shaping with the existing scan feedback.
 - [ ] 4-bit multimodal load test with the official weights (record peak VRAM).
