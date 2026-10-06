@@ -122,3 +122,19 @@ def test_model_failure_is_a_503_not_a_crash() -> None:
     client = TestClient(create_app(llm=_Down([])))
     r = client.post("/api/propose", json={"language": "es", "form": "soneto", "index": 0})
     assert r.status_code == 503
+
+
+def test_readback_returns_wav_or_a_clear_503(monkeypatch) -> None:
+    import poesia.webapp as webapp
+
+    client, _ = _client()
+    monkeypatch.setattr(webapp, "read_aloud", lambda text, language: b"RIFF....WAVEfmt ")
+    r = client.post("/api/readback", json={"language": "es", "text": "La luna vierte su silencio"})
+    assert r.status_code == 200 and r.headers["content-type"] == "audio/wav"
+
+    def _missing(text: str, language: str) -> bytes:
+        raise FileNotFoundError("voice not installed")
+
+    monkeypatch.setattr(webapp, "read_aloud", _missing)
+    r = client.post("/api/readback", json={"language": "en", "text": "a line"})
+    assert r.status_code == 503 and "voice not installed" in r.json()["detail"]
