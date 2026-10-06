@@ -46,8 +46,12 @@ LINE_SYSTEM_PROMPT = (
 
 
 def is_line_prompt(prompt: str) -> bool:
-    """True for the constrained loop's line and repair prompts (one line expected back)."""
-    return "Write line" in prompt or "Output ONLY" in prompt
+    """True for the constrained loop's line and repair prompts (one line expected back).
+
+    Not "Output ONLY": the whole-poem draft ("Output ONLY the poem") and title prompts say
+    it too, and the one-line system message made the draft come back as a single line.
+    """
+    return "Write line" in prompt or "Fix this poetic line" in prompt
 
 
 def _trace_decorator(span_type: str, name: str) -> Callable[[Any], Any]:
