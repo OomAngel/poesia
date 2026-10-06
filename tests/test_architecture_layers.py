@@ -46,6 +46,7 @@ ALLOWED: dict[str, set[str]] = {
     "memoria": {"memoria", "exceptions", "device"},
     "training": {"training", "phonology"},
     "config": {"config", "forms"},
+    "safety": {"safety"},  # the model arrives as a duck-typed argument, never imported
 }
 
 # Top-level modules in ``src/poesia/`` (cli.py, api.py, exceptions.py,

@@ -49,12 +49,28 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
        padding: 10px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .note { color: var(--muted); font-size: .85rem; }
 .sr { position: absolute; left: -9999px; }
+.pause { border: 2px solid var(--accent); border-radius: 12px; padding: 16px; margin: 0 0 16px;
+         background: var(--card); }
+.pause h2 { margin: 0 0 8px; font-size: 1.2rem; }
+.pause ul { padding-left: 1.2em; } .pause li { margin: 6px 0; }
+.pause .num { font-weight: bold; font-size: 1.1rem; }
+[hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
   <h1>PoesIA</h1>
   <p class="sub" id="tagline">You write the poem. PoesIA counts, listens and explains. Nothing leaves this computer.</p>
+
+  <section class="pause" id="pause" role="alertdialog" aria-labelledby="pauseTitle" hidden>
+    <h2 id="pauseTitle">Let's pause for a moment</h2>
+    <p id="pauseText">What you wrote matters. If you are thinking about hurting yourself or someone
+      else, please talk to someone now. These services are free and confidential:</p>
+    <ul id="pauseList"></ul>
+    <p class="note" id="pauseNote">PoesIA is a writing tool, not a counsellor. Nothing you wrote has
+      left this computer or been saved.</p>
+    <button id="pauseContinue">Continue writing</button>
+  </section>
 
   <fieldset>
     <legend>Before you start</legend>
@@ -153,6 +169,7 @@ function render() {
       clearTimeout(timer); timer = setTimeout(() => check(i), 350);
     });
     $("sug" + i).addEventListener("click", () => suggest(i));
+    inp.addEventListener("blur", () => screenText(ln.text));
     showOrigin(i);
     if (ln.text) check(i);
   });
@@ -183,6 +200,7 @@ async function check(i) {
 
 async function suggest(i) {
   const f = currentForm(), es = f.language === "es", box = $("props" + i), btn = $("sug" + i);
+  if (await screenText(state.reflection)) return;
   btn.disabled = true; box.textContent = es ? "Pensando…" : "Thinking…";
   try {
     const r = await api("/api/propose", { language: f.language, form: f.form, index: i, lines: texts(),
@@ -204,6 +222,38 @@ async function suggest(i) {
     });
   } catch (e) { box.textContent = (es ? "El modelo no responde: " : "The model is not answering: ") + e.message; }
   finally { btn.disabled = false; }
+}
+
+let screened = "";
+async function screenText(text) {
+  if (!text.trim() || text === screened) return false;
+  try {
+    const r = await api("/api/safety", { text });
+    screened = text;
+    if (r.flagged) { showPause(r.resources); return true; }
+  } catch (e) { /* the screen never blocks writing when the server is down */ }
+  return false;
+}
+function showPause(resources) {
+  const es = (currentForm() || {}).language === "es";
+  $("pauseTitle").textContent = es ? "Hagamos una pausa" : "Let's pause for a moment";
+  $("pauseText").textContent = es
+    ? "Lo que escribiste importa. Si estás pensando en hacerte daño o en dañar a alguien, habla con alguien ahora. Estos servicios son gratuitos y confidenciales:"
+    : "What you wrote matters. If you are thinking about hurting yourself or someone else, please talk to someone now. These services are free and confidential:";
+  $("pauseNote").textContent = es
+    ? "PoesIA es una herramienta para escribir, no un servicio de ayuda. Nada de lo que escribiste ha salido de este ordenador ni se ha guardado."
+    : "PoesIA is a writing tool, not a counsellor. Nothing you wrote has left this computer or been saved.";
+  $("pauseContinue").textContent = es ? "Seguir escribiendo" : "Continue writing";
+  const ul = $("pauseList"); ul.innerHTML = "";
+  resources.forEach(r => {
+    const li = document.createElement("li");
+    const num = document.createElement("span"); num.className = "num"; num.textContent = r.number + " ";
+    li.append(num, document.createTextNode(`${r.name}. ${r.note} `));
+    if (r.url) { const a = document.createElement("a"); a.href = r.url; a.textContent = r.url.replace("https://", "");
+      a.target = "_blank"; a.rel = "noopener"; li.appendChild(a); }
+    ul.appendChild(li);
+  });
+  $("pause").hidden = false; $("pause").scrollIntoView({ behavior: "smooth" }); $("pauseContinue").focus();
 }
 
 function authorship() {
@@ -241,6 +291,8 @@ async function init() {
   $("theme").value = state.theme; $("reflection").value = state.reflection;
   $("theme").addEventListener("input", e => { state.theme = e.target.value; save(); });
   $("reflection").addEventListener("input", e => { state.reflection = e.target.value; save(); });
+  $("reflection").addEventListener("blur", () => screenText(state.reflection));
+  $("pauseContinue").addEventListener("click", () => { $("pause").hidden = true; });
   $("keep").addEventListener("click", keep);
   $("clear").addEventListener("click", () => { if (confirm("Start over? The draft is removed.")) {
     state = { formKey: state.formKey, theme: "", reflection: "", lines: [] }; save();

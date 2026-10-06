@@ -180,6 +180,9 @@ def create_app(llm: Any | None = None) -> Any:
         index: int = Field(ge=0, le=200)
         lines: list[str] = Field(default_factory=list, max_length=200)
 
+    class SafetyRequest(BaseModel):
+        text: str = Field(default="", max_length=8000)
+
     class ProposeRequest(LineRequest):
         theme: str = Field(default="", max_length=200)
         reflection: str = Field(default="", max_length=4000)
@@ -214,6 +217,14 @@ def create_app(llm: Any | None = None) -> Any:
         _check(req)
         line = req.lines[req.index] if req.index < len(req.lines) else ""
         return scan_line(line, req.language, req.form, req.index, req.lines)
+
+    @app.post("/api/safety")
+    def safety(req: SafetyRequest) -> dict[str, Any]:
+        """Screen a reflection or line; nothing is stored or logged."""
+        from poesia.safety import screen
+
+        result = screen(req.text, llm=llm)
+        return {"flagged": result.flagged, "resources": result.resources}
 
     @app.post("/api/propose")
     def propose(req: ProposeRequest) -> dict[str, Any]:

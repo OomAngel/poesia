@@ -15,3 +15,5 @@ calles
 rime
 responde
 Responde
+ende
+sie
