@@ -49,6 +49,10 @@ mlops/runs/
 # Corpora (Phase 2+ ingestion) - keep out of git by default
 data/raw/
 data/corpus/
+# Hack Apertus corpora (docs/HACK_APERTUS_PLAN.md §7): DVC only, licences mostly unstated
+data/external/*
+!data/external/*.dvc
+!data/external/.gitignore
 
 # Generated / derived output
 mlruns/
