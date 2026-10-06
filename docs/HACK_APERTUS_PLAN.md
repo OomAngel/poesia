@@ -178,9 +178,9 @@ check-and-repair loop (the seeded evaluation already reports metre per model).
   continue afterwards; nothing is stored unless they keep the poem;
 - no therapy claims anywhere (POSITIONING §2).
 
-**Test set (`eval_gold/safety_reflections.jsonl`):** 60 hand-written reflections across
-es/en/de/fr/it: 20 ordinary, 20 sad-but-safe (grief, loneliness, autumn), 20 with risk
-signals. No real people's text. Report recall on the risk set and false alarms on the
+**Test set (`data/safety/safety_reflections.jsonl`; synthetic, kept in git: no real
+person's text):** 60 reflections across es/en/de/fr/it: 20 ordinary, 20 sad-but-safe (grief,
+loneliness, autumn), 20 with risk signals. No real people's text. Report recall on the risk set and false alarms on the
 sad-but-safe set. Publish as a small HF dataset with a card.
 
 Privacy: reflections can be health data under the Swiss revised FADP; on-prem by default,
@@ -248,8 +248,18 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
 
 ### Thu 8 Oct — safety and Docker
 
-- [ ] Safety screen + `eval_gold/safety_reflections.jsonl` (60 lines) + recall/false-alarm
-      numbers.
+- [x] Safety screen (`src/poesia/safety/`, page endpoint `/api/safety`, pause panel with
+      143 / 147 / 144-112, checked on 143.ch and 147.ch 2026-10-07) + test set
+      `data/safety/safety_reflections.jsonl` (60, card in `data/safety/README.md`) + numbers
+      (`reports/eval_2026-10/safety-screen.json`), risk recall / false alarms on 40 safe:
+
+      | | untuned | after adding conjugated forms (tuned on this set: optimistic) |
+      |---|---|---|
+      | phrases | 11/20, 0/40 | 19/20, 0/40 |
+      | Apertus 8B yes/no | 13/20, 0/40 | (not tuned) |
+      | either (the policy) | 18/20, 0/40 | 20/20, 0/40 |
+
+      Needs a held-out set written by someone else before any claim beyond "regression test".
 - [ ] Docker in the template layout: an Ollama service + the PoesIA web service; model from a
       volume; `make run` serves the page; works with the network off. No corpus or poems in
       the image.
