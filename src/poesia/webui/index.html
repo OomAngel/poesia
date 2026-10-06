@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PoesIA</title>
+<style>
+:root {
+  --bg: #faf8f4; --fg: #1f1d1a; --muted: #6b665e; --line: #ddd7cc; --accent: #7a3e1d;
+  --ok: #2f6b3a; --warn: #9a5b00; --bad: #a3271f; --card: #ffffff; --ghost: #9a948a;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #171614; --fg: #ece8e1; --muted: #a39d93; --line: #3a3732; --accent: #e09a6b;
+          --ok: #7cc28a; --warn: #e2b05a; --bad: #ef8a80; --card: #201f1c; --ghost: #7d786f; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+       font: 17px/1.5 Georgia, "Iowan Old Style", serif; }
+main { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+h1 { font-size: 1.6rem; margin: 0 0 4px; }
+.sub { color: var(--muted); margin: 0 0 20px; font-size: .95rem; }
+fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 0 0 16px;
+           background: var(--card); }
+legend { padding: 0 6px; color: var(--muted); font-size: .9rem; }
+label { display: block; font-size: .9rem; color: var(--muted); margin: 6px 0 2px; }
+input[type=text], textarea, select { width: 100%; font: inherit; color: var(--fg); background: var(--bg);
+       border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+textarea { min-height: 90px; resize: vertical; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; } .row > div { flex: 1 1 200px; }
+.line { border-top: 1px solid var(--line); padding: 10px 0; }
+.line:first-child { border-top: 0; }
+.lhead { display: flex; gap: 8px; align-items: baseline; font-size: .82rem; color: var(--muted); }
+.lnum { min-width: 2.2em; font-variant-numeric: tabular-nums; }
+.badge { border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; }
+.ok { color: var(--ok); } .short, .over { color: var(--warn); } .norhyme { color: var(--bad); }
+.lint { font-size: .88rem; color: var(--muted); margin: 4px 0 0 2.6em; }
+.lint li { margin: 2px 0; }
+.lbody { display: flex; gap: 8px; align-items: center; }
+.lbody input { flex: 1; }
+button { font: inherit; font-size: .9rem; border: 1px solid var(--line); background: var(--card);
+         color: var(--fg); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+button:hover, button:focus-visible { border-color: var(--accent); outline: none; }
+button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.props { margin: 6px 0 0 2.6em; display: grid; gap: 4px; }
+.prop { display: flex; gap: 8px; align-items: center; color: var(--ghost); font-style: italic; }
+.prop span { flex: 1; }
+.origin { font-size: .75rem; color: var(--ghost); }
+.bar { position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--line);
+       padding: 10px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.note { color: var(--muted); font-size: .85rem; }
+.sr { position: absolute; left: -9999px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>PoesIA</h1>
+  <p class="sub" id="tagline">You write the poem. PoesIA counts, listens and explains. Nothing leaves this computer.</p>
+
+  <fieldset>
+    <legend>Before you start</legend>
+    <div class="row">
+      <div><label for="form">Form</label><select id="form"></select></div>
+      <div><label for="theme">What it is about (a word is enough)</label>
+        <input type="text" id="theme" maxlength="200" placeholder="autumn tree"></div>
+    </div>
+    <label for="reflection">What did you feel or think? (optional, only for you and the suggestions)</label>
+    <textarea id="reflection" maxlength="4000"></textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend id="poemLegend">Your poem</legend>
+    <div id="lines"></div>
+  </fieldset>
+
+  <div class="bar">
+    <button class="primary" id="keep">Keep poem (download)</button>
+    <button id="clear">Start over</button>
+    <span class="note" id="authorship" aria-live="polite"></span>
+  </div>
+  <p class="note">Suggestions come only when you ask, from a model running on this machine.
+    They are a starting point: change them, or ignore them. Drafts stay in this browser tab
+    and disappear when you close it, unless you keep the poem.</p>
+  <div class="sr" aria-live="polite" id="live"></div>
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const STORE = "poesia.draft.v1";
+let forms = [];
+let state = { formKey: "", theme: "", reflection: "", lines: [] };
+// each line: { text, origin: "human"|"proposal-accepted"|"proposal-edited", proposal: "" }
+
+function save() {
+  try { sessionStorage.setItem(STORE, JSON.stringify(state)); } catch (e) { /* private mode */ }
+}
+function load() {
+  try { const s = JSON.parse(sessionStorage.getItem(STORE) || "null"); if (s) state = s; } catch (e) {}
+}
+function currentForm() { return forms.find(f => f.language + ":" + f.form === state.formKey) || forms[0]; }
+function texts() { return state.lines.map(l => l.text); }
+
+async function api(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(body) });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+  return r.json();
+}
+
+function editDistance(a, b) {
+  const m = a.length, n = b.length, d = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    let prev = d[0]; d[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const t = d[j];
+      d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = t;
+    }
+  }
+  return d[n];
+}
+
+function render() {
+  const f = currentForm(); if (!f) return;
+  const es = f.language === "es";
+  $("poemLegend").textContent = es ? "Tu poema" : "Your poem";
+  while (state.lines.length < f.lines) state.lines.push({ text: "", origin: "human", proposal: "" });
+  state.lines.length = f.lines;
+  const box = $("lines"); box.innerHTML = "";
+  state.lines.forEach((ln, i) => {
+    const div = document.createElement("div"); div.className = "line"; div.id = "line" + i;
+    div.innerHTML = `
+      <div class="lhead"><span class="lnum">${i + 1}</span>
+        <span class="badge" title="${es ? "rima" : "rhyme"}">${f.scheme[i] || "–"}</span>
+        <span class="badge count" id="count${i}">– / ${f.syllables[i]}</span>
+        <span class="stress" id="stress${i}"></span>
+        <span class="origin" id="origin${i}"></span></div>
+      <div class="lbody">
+        <label class="sr" for="in${i}">${es ? "Verso" : "Line"} ${i + 1}</label>
+        <input type="text" id="in${i}" maxlength="300" autocomplete="off">
+        <button id="sug${i}" title="${es ? "Pedir ideas para este verso" : "Ask for ideas for this line"}">${es ? "Ideas" : "Ideas"}</button>
+      </div>
+      <ul class="lint" id="lint${i}"></ul>
+      <div class="props" id="props${i}"></div>`;
+    box.appendChild(div);
+    const inp = $("in" + i); inp.value = ln.text;
+    let timer = null;
+    inp.addEventListener("input", () => {
+      ln.text = inp.value;
+      if (ln.origin !== "human" && ln.proposal) {
+        ln.origin = inp.value === ln.proposal ? "proposal-accepted" : "proposal-edited";
+      }
+      showOrigin(i); save(); authorship();
+      clearTimeout(timer); timer = setTimeout(() => check(i), 350);
+    });
+    $("sug" + i).addEventListener("click", () => suggest(i));
+    showOrigin(i);
+    if (ln.text) check(i);
+  });
+  authorship();
+}
+
+function showOrigin(i) {
+  const ln = state.lines[i], es = currentForm().language === "es";
+  const label = { "human": "", "proposal-accepted": es ? "idea aceptada" : "suggestion used",
+                  "proposal-edited": es ? "idea editada" : "suggestion, edited" }[ln.origin];
+  $("origin" + i).textContent = label;
+}
+
+async function check(i) {
+  const f = currentForm();
+  const lint = $("lint" + i), count = $("count" + i);
+  if (!state.lines[i].text.trim()) { lint.innerHTML = ""; count.textContent = `– / ${f.syllables[i]}`;
+    count.className = "badge count"; $("stress" + i).textContent = ""; return; }
+  try {
+    const r = await api("/api/scan", { language: f.language, form: f.form, index: i, lines: texts() });
+    count.textContent = `${r.syllables} / ${r.target ?? "–"}`;
+    count.className = "badge count " + (r.status === "ok" ? "ok" : r.status) + (r.rhymes === false ? " norhyme" : "");
+    $("stress" + i).textContent = r.stress;
+    lint.innerHTML = "";
+    r.messages.forEach(m => { const li = document.createElement("li"); li.textContent = m; lint.appendChild(li); });
+  } catch (e) { lint.innerHTML = `<li>${e.message}</li>`; }
+}
+
+async function suggest(i) {
+  const f = currentForm(), es = f.language === "es", box = $("props" + i), btn = $("sug" + i);
+  btn.disabled = true; box.textContent = es ? "Pensando…" : "Thinking…";
+  try {
+    const r = await api("/api/propose", { language: f.language, form: f.form, index: i, lines: texts(),
+      theme: state.theme, reflection: state.reflection, n: 3 });
+    box.innerHTML = "";
+    if (!r.proposals.length) box.textContent = es ? "Sin ideas esta vez." : "No ideas this time.";
+    r.proposals.forEach(p => {
+      const row = document.createElement("div"); row.className = "prop";
+      const span = document.createElement("span"); span.textContent = p.text;
+      const meta = document.createElement("small");
+      meta.textContent = `${p.check.syllables}/${p.check.target}` + (p.check.rhymes === true ? " ✓" : "");
+      const use = document.createElement("button"); use.textContent = es ? "Usar" : "Use";
+      use.addEventListener("click", () => {
+        const ln = state.lines[i]; ln.text = p.text; ln.proposal = p.text; ln.origin = "proposal-accepted";
+        $("in" + i).value = p.text; box.innerHTML = ""; showOrigin(i); save(); authorship(); check(i);
+        $("in" + i).focus();
+      });
+      row.append(span, meta, use); box.appendChild(row);
+    });
+  } catch (e) { box.textContent = (es ? "El modelo no responde: " : "The model is not answering: ") + e.message; }
+  finally { btn.disabled = false; }
+}
+
+function authorship() {
+  const filled = state.lines.filter(l => l.text.trim());
+  const own = filled.filter(l => l.origin === "human").length;
+  const es = (currentForm() || {}).language === "es";
+  $("authorship").textContent = filled.length
+    ? (es ? `${own} de ${filled.length} versos escritos por ti` : `${own} of ${filled.length} lines worded by you`)
+    : "";
+}
+
+function keep() {
+  const f = currentForm();
+  const lines = state.lines.map(l => ({ text: l.text, origin: l.origin,
+    edit_distance: l.origin === "proposal-edited" ? editDistance(l.proposal, l.text) : 0 }));
+  const own = lines.filter(l => l.text.trim() && l.origin === "human").length;
+  const filled = lines.filter(l => l.text.trim()).length;
+  const poem = { form: f.form, language: f.language, theme: state.theme,
+    reflection: state.reflection, lines, kept_at: new Date().toISOString(),
+    statement: `${own} of ${filled} lines worded by the author; metre checked by PoesIA.` };
+  const blob = new Blob([JSON.stringify(poem, null, 2)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `poem-${(state.theme || "untitled").replace(/[^\p{L}\p{N}]+/gu, "-").slice(0, 40)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+async function init() {
+  load();
+  forms = await (await fetch("/api/forms")).json();
+  const sel = $("form");
+  forms.forEach(f => { const o = document.createElement("option"); o.value = f.language + ":" + f.form;
+    o.textContent = `${f.form} (${f.language})`; sel.appendChild(o); });
+  if (!state.formKey) state.formKey = sel.value; else sel.value = state.formKey;
+  sel.addEventListener("change", () => { state.formKey = sel.value; state.lines = []; save(); render(); });
+  $("theme").value = state.theme; $("reflection").value = state.reflection;
+  $("theme").addEventListener("input", e => { state.theme = e.target.value; save(); });
+  $("reflection").addEventListener("input", e => { state.reflection = e.target.value; save(); });
+  $("keep").addEventListener("click", keep);
+  $("clear").addEventListener("click", () => { if (confirm("Start over? The draft is removed.")) {
+    state = { formKey: state.formKey, theme: "", reflection: "", lines: [] }; save();
+    $("theme").value = ""; $("reflection").value = ""; render(); } });
+  render();
+}
+init();
+</script>
+</body>
+</html>

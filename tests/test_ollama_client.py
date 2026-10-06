@@ -194,3 +194,13 @@ def test_seed_follows_pythons_rng(mock_urlopen: MagicMock) -> None:
             ]
         )
     assert seeds[0] == seeds[1]
+
+
+def test_registry_honours_ollama_model_env(monkeypatch) -> None:
+    from poesia.generation.registry import get_llm
+
+    monkeypatch.setenv("OLLAMA_MODEL", "apertus-v1.5-8b-text:q4km")
+    assert get_llm("ollama").model == "apertus-v1.5-8b-text:q4km"
+    monkeypatch.delenv("OLLAMA_MODEL")
+    assert get_llm("ollama").model == "gemma2:2b"
+    assert get_llm("ollama", model="qwen2.5:7b").model == "qwen2.5:7b"
