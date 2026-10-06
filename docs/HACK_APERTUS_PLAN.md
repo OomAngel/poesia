@@ -54,6 +54,32 @@ reflection, the fine-tuned adapter, German/French teaching beyond syllable count
 
 Guardrail (POSITIONING §8) applies to every screen and string: *who is the author?*
 
+## 2a. Writing UX: the person's own line comes first
+
+From the co-writing research of 2026-10-06 (ownership drops with AI help unless suggestions
+are small, requested and editable; readers penalise AI-worded personal writing; AI text
+homogenises voice). Design for the web page:
+
+- **Typing your own line is the default action.** Every line slot is a free-text field;
+  proposals come only on request, appear greyed until edited or accepted, and default to
+  several short options (words, phrases) rather than one finished line. Whole AI-written
+  lines are off by default for personal poems.
+- **Per-line origin in the data model:** `human` / `proposal-accepted` / `proposal-edited`
+  (+ edit distance, history). Shown quietly, never as permanent colouring. Export can then
+  state a true sentence ("all 14 lines worded by the author; metre checked by PoesIA"), and
+  the report gets a privacy-safe metric: the human-worded share of each poem.
+- **The engine lints, it doesn't rewrite:** per-syllable/stress diagnostics with an
+  explanation in the poem's language; repairs as one-word changes, ranked by fit and
+  variety (not model likelihood), preferring words already in the poem; each candidate
+  shows why it fits. A per-line "allow this irregularity" switch; engine off for free verse.
+- **Lock, reorder, recheck:** lock finished lines; drag to reorder with metre and rhyme
+  letters recomputed live; per-line and per-poem undo and version history.
+- **Gentle defaults:** short sessions, a visible stop, no pressure to write about trauma,
+  linked poems offered as a choice (never pushed), the photo prompt asks "what did you feel?".
+
+Must-have for 13 Oct: own-line-first input, greyed proposals, per-line origin, lint
+explanations. Stretch: locks, drag-to-reorder, version history.
+
 ## 3. Languages and craft teaching
 
 | Language | Engine | This week |
