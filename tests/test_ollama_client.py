@@ -157,3 +157,40 @@ def test_check_available_succeeds_when_ollama_online(mock_urlopen: MagicMock) ->
     client = OllamaClient()
     client._check_available()
     assert client._checked is True
+
+
+@patch("urllib.request.urlopen")
+def test_line_prompt_carries_the_line_system_message(mock_urlopen: MagicMock) -> None:
+    from poesia.generation.llm_client import LINE_SYSTEM_PROMPT
+
+    mock_urlopen.side_effect = _mock_ollama(["gemma2:2b"], ["the tide returns to kiss the shore"])
+    OllamaClient().generate("Write line 3. Exactly 10 syllables.\nOutput ONLY the line.", n=1)
+    sent = json.loads(mock_urlopen.call_args_list[-1].args[0].data)
+    assert sent["messages"][0] == {"role": "system", "content": LINE_SYSTEM_PROMPT}
+    assert sent["messages"][1]["role"] == "user"
+
+
+@patch("urllib.request.urlopen")
+def test_other_prompts_have_no_system_message(mock_urlopen: MagicMock) -> None:
+    mock_urlopen.side_effect = _mock_ollama(["gemma2:2b"], ["Moonlight"])
+    OllamaClient().generate("Suggest a title for this poem.", n=1)
+    sent = json.loads(mock_urlopen.call_args_list[-1].args[0].data)
+    assert [m["role"] for m in sent["messages"]] == ["user"]
+
+
+@patch("urllib.request.urlopen")
+def test_seed_follows_pythons_rng(mock_urlopen: MagicMock) -> None:
+    import random
+
+    seeds = []
+    for _ in range(2):
+        mock_urlopen.side_effect = _mock_ollama(["gemma2:2b"], ["a", "b"])
+        random.seed(7)
+        OllamaClient().generate("Write line 1.", n=2)
+        seeds.append(
+            [
+                json.loads(c.args[0].data)["options"]["seed"]
+                for c in mock_urlopen.call_args_list[-2:]
+            ]
+        )
+    assert seeds[0] == seeds[1]

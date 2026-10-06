@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import re
 import time
 import urllib.error
@@ -33,6 +34,20 @@ GROQ_MODEL = "qwen/qwen3.8-27b"
 LORA_REPAIR_PROMPT_TEMPLATE = (
     'Fix this poetic line: {defect_description}\nLine: "{line}"\nOutput ONLY the corrected line.\n'
 )
+
+# System message for chat models asked for one line. Without it Apertus v1.5 8B answers a
+# line prompt that carries a rhyme word bank with the rhyme word alone ("more", "floor"):
+# 6 of 6 seeded tries in English and Spanish on 2026-10-07, 0 of 6 with this message
+# (docs/HACK_APERTUS_PLAN.md §8, Wed).
+LINE_SYSTEM_PROMPT = (
+    "You are a poet writing verse line by line. You always answer with exactly one complete "
+    "line of poetry: a full phrase of several words, never a single word or a list."
+)
+
+
+def is_line_prompt(prompt: str) -> bool:
+    """True for the constrained loop's line and repair prompts (one line expected back)."""
+    return "Write line" in prompt or "Output ONLY" in prompt
 
 
 def _trace_decorator(span_type: str, name: str) -> Callable[[Any], Any]:
@@ -699,15 +714,21 @@ class OllamaClient:
         results: list[str] = []
         t0 = time.time()
 
+        messages = [{"role": "user", "content": prompt}]
+        if is_line_prompt(prompt):
+            messages.insert(0, {"role": "system", "content": LINE_SYSTEM_PROMPT})
         for i in range(n):
             if i > 0:
                 time.sleep(0.1)  # Small delay between sequential calls
             payload = {
                 "model": self.model,
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": messages,
                 "stream": False,
                 "options": {
                     "temperature": temperature,
+                    # Drawn from Python's RNG so a seeded evaluation run is reproducible;
+                    # unseeded use stays as random as Ollama's own default.
+                    "seed": random.randrange(2**31),
                 },
             }
             data = json.dumps(payload).encode("utf-8")

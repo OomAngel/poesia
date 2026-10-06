@@ -22,8 +22,18 @@ def test_midi_score_backend_valid_midi() -> None:
     assert b"MTrk" in midi_bytes
 
 
-def test_espeak_recitation_backend_missing_binary() -> None:
+def test_espeak_recitation_backend_missing_binary(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Simulate a machine without eSpeak NG (the desktop has it since 2026-10-07).
+    monkeypatch.setattr("shutil.which", lambda _name: None)
     backend = EspeakRecitationBackend()
-    # espeak-ng is not installed, so it should raise RuntimeError cleanly
     with pytest.raises(RuntimeError, match="eSpeak NG binary is not installed"):
         backend.recite("En el principio era el Verbo", language="es")
+
+
+def test_espeak_recitation_backend_returns_wav_when_installed() -> None:
+    import shutil
+
+    if not (shutil.which("espeak-ng") or shutil.which("espeak")):
+        pytest.skip("eSpeak NG not installed on this machine")
+    audio = EspeakRecitationBackend().recite("En el principio era el Verbo", language="es")
+    assert audio.startswith(b"RIFF")

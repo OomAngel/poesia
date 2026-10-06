@@ -51,10 +51,18 @@ def _phonology(language: str):
     return EnglishPhonology()
 
 
-def _make_llm_client(adapter_path: str | None, base_model: str | None):
-    """LoRAClient (bitsandbytes 4-bit) when it runs on this GPU; otherwise the GGUF/llama.cpp
+def _make_llm_client(
+    adapter_path: str | None, base_model: str | None, ollama_model: str | None = None
+):
+    """OllamaClient when an Ollama model is named (how the Hack Apertus entry runs Apertus:
+    GGUF in Ollama, chat format). Otherwise LoRAClient (bitsandbytes 4-bit) when it runs on this GPU; otherwise the GGUF/llama.cpp
     client next to the adapter (the laptop). The check is bnb_4bit_usable(), not
     cuda_usable(): on the laptop torch runs on the GPU (sm_50) but bitsandbytes cannot."""
+    if ollama_model:
+        from poesia.generation.llm_client import OllamaClient
+
+        return OllamaClient(model=ollama_model, timeout=600.0)
+
     from poesia.device import bnb_4bit_usable
     from poesia.generation.llm_client import LoRAClient
 
@@ -102,21 +110,25 @@ def evaluate(
     seed: int,
     parent_run_id: str | None = None,
     out_path: str | None = None,
+    ollama_model: str | None = None,
 ) -> dict:
     from poesia.generation.constrained_loop import ConstrainedLoop
 
     mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "sqlite:///mlruns/mlflow.db"))
-    label = adapter_path or f"base:{base_model}"
+    label = adapter_path or f"base:{base_model or 'ollama-' + str(ollama_model)}"
     if parent_run_id:
         run = mlflow.start_run(run_id=parent_run_id, nested=True)
     else:
         mlflow.set_experiment("poesia-evaluation")
         run = mlflow.start_run(run_name=f"eval-{os.path.basename(label.rstrip('/'))}")
 
-    llm = _make_llm_client(adapter_path, base_model)  # loaded once, reused for every poem
+    llm = _make_llm_client(
+        adapter_path, base_model, ollama_model
+    )  # loaded once, reused for every poem
     report: dict = {
         "adapter": adapter_path,
         "base_model": llm.model,
+        "backend": "ollama" if ollama_model else "transformers",
         "samples": samples,
         "seed": seed,
         "languages": {},
@@ -183,10 +195,13 @@ if __name__ == "__main__":
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--memory-layout", default=None, choices=["default", "low_vram"])
     ap.add_argument("--out", default=None, help="JSON report path")
+    ap.add_argument(
+        "--ollama-model", default=None, help="evaluate a model served by Ollama (OLLAMA_HOST)"
+    )
     ap.add_argument("--parent-run-id", default=None, help="MLflow run to nest under")
     args = ap.parse_args()
-    if not args.adapter and not args.base_model:
-        ap.error("give --adapter, --base-model, or both")
+    if not (args.adapter or args.base_model or args.ollama_model):
+        ap.error("give --adapter, --base-model (or both), or --ollama-model")
     if args.memory_layout:
         os.environ["POESIA_MEMORY_LAYOUT"] = args.memory_layout
     evaluate(
@@ -198,4 +213,5 @@ if __name__ == "__main__":
         args.seed,
         parent_run_id=args.parent_run_id or None,
         out_path=args.out,
+        ollama_model=args.ollama_model,
     )
