@@ -9,6 +9,7 @@
       Stretch: `italian.py`, photo image-words, spoken reflection, QLoRA adapter, de/fr
       teaching.
   - [x] `scripts/setup_apertus.sh` (2026-10-06)
+  - [ ] Register on Devpost + Discord; claim CSCS inference and HF credits; apply for Phoeniqs compute (runbook §4a)
   - [ ] Downloads (Tue 6 Oct evening)
   - [ ] Runtime + baseline + page skeleton (Wed 7)
   - [ ] Safety layer + Docker (Thu 8)

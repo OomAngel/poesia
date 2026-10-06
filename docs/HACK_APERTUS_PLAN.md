@@ -110,7 +110,35 @@ explanations. Stretch: locks, drag-to-reorder, version history.
   and quality on 20 reflections); fallback: the existing embedding profile
   (`docs/EMBEDDING_PROFILE.md`).
 
-## 5. Training: one QLoRA run (stretch, unattended)
+## 4a. Participant resources (from the organiser's resources page, read 2026-10-06)
+
+Registering on Devpost gives: **CSCS inference for all teams** (Apertus served by the Swiss
+National Supercomputing Centre); **Phoeniqs compute support for non-academic teams, on
+application** (Phoeniqs runs 192 NVIDIA H100s in Basel); **$10 Hugging Face credits** per
+hacker; **Edit with Ava** for demo videos; bookable **mentors** 1–16 Oct. (CSCS compute is
+for Swiss academic teams only.) Redemption steps are in the Getting Started guide.
+
+What changes:
+- **Bigger models for development, not for the deliverable.** The entry must run
+  on-prem/offline with `make run`, so the demo stays on Apertus 8B locally. Use CSCS for what
+  the 3070 can't do: Apertus **70B** and the full **multimodal v1.5** (image/audio tests,
+  image-words, spoken reflection), and fast evaluation runs.
+- **70B as teacher (no approval needed):** use CSCS 70B to (a) label the 60-line safety set
+  and many more synthetic reflections for the screen, (b) produce candidate lines in it/de/fr
+  that pass PoesIA's own metre check, as extra training data for the 8B adapter. Never put
+  real people's text through it. Record the model and date for every generated item.
+- **Two deployment tiers for the report:** 8B on a single consumer GPU (school, library,
+  home); 70B on a canton or hospital server, on-prem. Measure both if CSCS allows timing.
+
+## 5. Training (stretch, unattended)
+
+**If Phoeniqs approves H100 time:** run the QLoRA on Apertus 8B there in minutes to hours
+instead of overnight, and use the speed for what matters: 2–3 runs comparing data mixes
+(with and without the 70B-generated lines), larger `max_length` (keep long poems), and more
+poems per language. A 70B QLoRA fits one 80 GB H100, but only as the server tier above;
+it cannot be the `make run` demo. Apply on registration day: approval time is unknown.
+
+**If not (default):**
 
 From `RETRAINING_PLAN_2026-10.md` §3/§5: Qwen3-8B trained on the 3070 at 7.32 GB peak with
 `memory_layout: low_vram`, batch 1×8, `max_length` 300, ~140 tokens/s → ~2,600 tokens/poem →
