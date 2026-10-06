@@ -281,6 +281,31 @@ Each step changes one thing, so its effect can be read off.
   script now drops texts over `max_length × 16` characters before building the Dataset
   (the densest fitting example measured 4.63 characters per token).
 
+### Update 2026-10-06: the end-of-text bug
+
+The first corpus run trained cleanly (eval loss 1.40 → 1.07) but its adapter produced
+runaway lines again: Spanish 17.9 syllables off per line, 19% metre, 99 accepted lines over
+20 syllables. Cause, verified: `train_poetry_lora.py` set `pad_token = eos_token` and used
+`DataCollatorForLanguageModeling`, which masks every token equal to the pad id, so the real
+`<|im_end|>` ending every example got label −100. **No adapter since July learned to stop.**
+Fixed in `52fea7a` (labels mask padding positions only).
+
+| 2 Spanish poems (luna, tiempo; seed 0) | Off per line | Metre | Rhyme | Lines > 20 syll. | s/poem |
+|---|---|---|---|---|---|
+| corpus run, bug | — (17.9 over 18 poems) | 19% | 41% | many | 200–480 |
+| 120-step probe with the fix | 0.14 | 86% | 70% | 0 | 50–60 |
+| plain Qwen3-4B | 0.25 | 75% | 45% | 0 | 150–250 |
+
+**Full reference evaluations (36 seeded poems each):**
+
+| | es off/line | es metre | es rhyme | en off/line | en metre | en rhyme |
+|---|---|---|---|---|---|---|
+| July recipe (Qwen2.5-1.5B) | 0.63 | 57% | 3% | 0.35 | 73% | 10% |
+| Plain Qwen3-4B, no adapter | 0.52 | 62% | 30% | 0.69 | 56% | 70% |
+
+The corrected corpus run (`corpus_2k_qwen3_4b_eosfix.yaml`) is training; its evaluation
+decides whether fine-tuning on the corpus beats plain Qwen3-4B.
+
 ## 7. Decisions for Angel
 
 Decided 2026-10-04: Spanish and English, mainly English; copyrighted poems in (personal
