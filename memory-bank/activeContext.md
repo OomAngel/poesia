@@ -17,8 +17,7 @@ _Last updated: 2026-10-06 (Hack Apertus entry, branch `hack-apertus`)_
   `setup_apertus.sh --official`).
 - **Gaps the plan closes:** no web UI (CLI and `poesia.api` only), no distress handling, no
   tester evidence.
-- Author's planning notes (outside this public repo): career-assets
-  `docs/ww-transition/competitions/hack-apertus.md`.
+- Author's planning notes (outside this public repo): the private career-assets repo (Hack Apertus plan).
 
 ---
 
