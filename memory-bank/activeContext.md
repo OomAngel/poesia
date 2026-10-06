@@ -13,6 +13,9 @@ _Last updated: 2026-10-06 (Hack Apertus entry, branch `hack-apertus`)_
   except where the plan reuses it (seeded evaluation, QLoRA tooling).
 - **Done 2026-10-06:** `scripts/setup_apertus.sh` (download → GGUF Q4_K_M → Ollama, with the
   Apertus chat template; Ollama steps tested only against a mock server).
+- **Not yet run anywhere:** the script, corpus downloads, licence checks, `pytest` on this
+  branch, and the refs.bib validation were written in a cloud session that could not run them.
+  The full desktop checklist is in the private career-assets repo (Hack Apertus desktop todo).
 - **Next:** the Tue 6 Oct evening boxes in the plan's section 8 (downloads, `hf auth login`,
   `setup_apertus.sh --official`).
 - **Gaps the plan closes:** no web UI (CLI and `poesia.api` only), no distress handling, no
