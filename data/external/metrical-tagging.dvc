@@ -1,0 +1,6 @@
+outs:
+- md5: 826ff8336e2e8130d11d18f11b0971a7.dir
+  size: 213743565
+  nfiles: 532
+  hash: md5
+  path: metrical-tagging

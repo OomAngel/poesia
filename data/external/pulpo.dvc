@@ -1,0 +1,6 @@
+outs:
+- md5: 865f308496db08855e8cd1a0f8d3e530.dir
+  size: 1572520454
+  nfiles: 6
+  hash: md5
+  path: pulpo

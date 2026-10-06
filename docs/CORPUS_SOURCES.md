@@ -188,6 +188,42 @@ Downloads: `huggingface.co/datasets/<id>/resolve/main/<file>`, with files
 Poetry Foundation scrape puts a blank line after every line and uses U+2028; the reader
 collapses both.
 
+### Hack Apertus corpora (2026-10-06, `data/external/`, docs/HACK_APERTUS_PLAN.md §7)
+
+Downloaded raw, not yet ingested into `corpus_master`. Licences as the sources state them,
+checked 2026-10-07 in each download (README, LICENSE, dataset card, `.zenodo.json`) and on
+GitHub's licence field. **No stated licence → training and evaluation only, never shown to
+users, never published.**
+
+| Source | Language | Revision | Licence (as stated) | Use |
+|---|---|---|---|---|
+| PULPO, `linhd-postdata/pulpo` (HF dataset; arXiv 2307.01387) | de, it, fr, es, en + 7 | `464a2f8` | none stated on the card | training lines only |
+| DLK, `tnhaider/DLK` (German poetry, metre-annotated) | de | `ef0b620` | none in the repo; the LREC-COLING 2024 paper is CC BY 4.0, which covers the paper, not the data | training, evaluation |
+| PO-EMO, `tnhaider/poetry-emotion` | de, en | `92fcc10` | none in the repo | evaluation of linking |
+| Metrical gold, `tnhaider/metrical-tagging-in-the-wild` | de, en | `3934b28` | none in the repo | German metre test |
+| Métrique en Ligne (Averell 9), `linhd-postdata/metrique-en-ligne` | fr | `79a5bd0` | `.zenodo.json` says Apache-2.0 for the packaging; the poems' own status not stated | training, evaluation |
+| Biblioteca Italiana (Averell 10), `linhd-postdata/biblioteca_italiana` | it | `e35bc1a` | none stated | training, evaluation |
+| Carnet du Poète, `sbridel/carnet-du-poete` (code, reference only) | fr | `03ce428` | GPL-3.0 | read the rules; reimplement, never copy |
+
+Averell 9 and 10 were fetched as the same zips `averell download 9 10` uses (averell
+1.2.2's `corpora.yaml`), unzipped under `data/external/averell/`. Wikisource de/fr/it (the
+only texts meant to be shown to users) is not fetched yet: no script.
+
+Models downloaded for the entry (not corpus data; listed for licences):
+
+| Model | Revision | Licence |
+|---|---|---|
+| `swiss-ai/Apertus-v1.5-8B` (gated; terms accepted 2026-10-06) | `a411d83` | Apache-2.0 + Apertus Acceptable Use Policy |
+| `andreasmartin/apertus-v1.5-8b-text` (runtime base, gated) | `c0e7eeb` | Apache-2.0 |
+| `andreasmartin/apertus-v1.5-8b-text-Q8_0-GGUF` (fallback) | `2028c31` | Apache-2.0 |
+| `andreasmartin/apertus-v1.1-swiss-embed-0.4b-bidir` | `875c1f9` | Apache-2.0 |
+| `Systran/faster-whisper-small` | `536b066` | MIT |
+| `rhasspy/piper-voices`, de/fr/it/es/en (68 voices) | `c10ece1` | per voice (each `MODEL_CARD`): CC0, CC BY 4.0, CC BY-SA 4.0, public domain, Apache-2.0, GPLv3, **CC BY-NC-SA 4.0** (en_US ryan), and 29 cards with no licence line |
+
+Read-back voices to use (clear licence, one per language): `de_DE-thorsten-medium` (CC0),
+`fr_FR-siwis-medium` (CC BY 4.0), `it_IT-serena-medium` (CC BY 4.0), `es_ES-davefx-medium`
+(CC0), `en_US-ljspeech-medium` (public domain). Credit CC BY voices in the README.
+
 ### Other datasets seen, not taken
 
 Gongocorpus (CC BY-NC-ND: no derivatives, so not for training). Hugging Face

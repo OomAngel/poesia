@@ -7,3 +7,7 @@ merged/
 
 # Interrupted-merge leftovers
 *.tmp
+
+# Hack Apertus downloads: clone metadata and Hugging Face download cache
+data/external/*/.git/
+data/external/*/.cache/

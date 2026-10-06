@@ -1,0 +1,6 @@
+outs:
+- md5: 6ad3aa2be5ad7ff050a23e1b01e60284.dir
+  size: 2859126
+  nfiles: 70
+  hash: md5
+  path: poetry-emotion
