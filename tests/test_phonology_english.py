@@ -82,3 +82,14 @@ def test_rhyme_key_of_a_line_without_words_is_empty_not_an_error() -> None:
 
     key = EnglishPhonology().rhyme_key("😊😊 ...")
     assert key.consonant == "" and key.assonant == ""
+
+
+def test_unpronounceable_word_gives_empty_rhyme_not_a_crash() -> None:
+    from poesia.phonology.english import EnglishPhonology
+
+    p = EnglishPhonology()
+    # inflect raises NumOutOfRangeError expanding this inside g2p_en
+    huge = "año" + "9" * 40
+    assert p._fallback_phones(huge) is None  # raw g2p raises NumOutOfRangeError here
+    key = p.rhyme_key("the moon of " + huge)
+    assert isinstance(key.consonant, str)

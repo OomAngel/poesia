@@ -26,7 +26,6 @@ from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     BitsAndBytesConfig,
-    DataCollatorForLanguageModeling,
     TrainingArguments,
 )
 
@@ -152,6 +151,40 @@ def _device_map(cfg: dict, bnb_kwargs: dict):
     extra, device_map = four_bit_placement(cfg.get("memory_layout", "default"))
     bnb_kwargs.update(extra)
     return device_map
+
+
+def _causal_lm_collator(pad_token_id: int):
+    """Right-pad a batch and mask only the padding positions in the labels.
+
+    DataCollatorForLanguageModeling masks every token equal to pad_token_id. This script
+    used to set pad_token = eos_token, so the real end-of-text token of every example was
+    masked too and no adapter learned to stop: generation ran on to the 40-token limit
+    ('runaway lines', found 2026-10-06). Here the mask comes from the padding positions, so
+    an end-of-text token inside an example is always learned.
+    """
+    import torch
+
+    def collate(features: list[dict]) -> dict:
+        width = max(len(f["input_ids"]) for f in features)
+        ids, mask, labels = [], [], []
+        for f in features:
+            row = list(f["input_ids"])
+            pad = width - len(row)
+            ids.append(row + [pad_token_id] * pad)
+            mask.append([1] * len(row) + [0] * pad)
+            labels.append(row + [-100] * pad)
+        batch = {
+            "input_ids": torch.tensor(ids),
+            "attention_mask": torch.tensor(mask),
+            "labels": torch.tensor(labels),
+        }
+        if "quality_weight" in features[0]:
+            batch["quality_weight"] = torch.tensor(
+                [float(f["quality_weight"]) for f in features], dtype=torch.float32
+            )
+        return batch
+
+    return collate
 
 
 def main():
@@ -283,7 +316,8 @@ def main():
         mlflow.log_param("memory_layout", cfg.get("memory_layout", "default"))
         bnb = BitsAndBytesConfig(**bnb_kwargs)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        tokenizer.pad_token = tokenizer.eos_token
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
 
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
@@ -364,7 +398,7 @@ def main():
         mlflow.log_param("dropped_overlong_train", dropped_train)
         mlflow.log_param("dropped_overlong_eval", dropped_eval)
 
-        collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+        collator = _causal_lm_collator(tokenizer.pad_token_id)
 
         # ── Train ────────────────────────────────────────────────────
         args = TrainingArguments(

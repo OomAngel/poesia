@@ -71,7 +71,10 @@ class EnglishPhonology:
         g2p = self._ensure_g2p()
         if g2p is None:
             return None
-        phones = [p for p in g2p(word) if p.strip()]
+        try:
+            phones = [p for p in g2p(word) if p.strip()]
+        except Exception:  # e.g. inflect's NumOutOfRangeError on a huge number
+            return None
         return " ".join(phones) if phones else None
 
     def stresses_for_word(self, word: str) -> str | None:
@@ -142,10 +145,12 @@ class EnglishPhonology:
         phones = pronouncing.phones_for_word(last_word.lower())
         phone_str = phones[0] if phones else self._fallback_phones(last_word)
         if phone_str is None:
-            raise ValueError(
-                f"No pronunciation found for '{last_word}' in CMUdict, and "
-                "the g2p_en fallback is unavailable. Run: "
-                "pip install -e '.[english]' g2p_en"
-            )
+            if self._ensure_g2p() is None:
+                raise ValueError(
+                    f"No pronunciation found for '{last_word}' in CMUdict, and "
+                    "the g2p_en fallback is unavailable. Run: "
+                    "pip install -e '.[english]' g2p_en"
+                )
+            return RhymeKey(consonant="", assonant="")  # unpronounceable: no rhyme
         rhyme_part = pronouncing.rhyming_part(phone_str)
         return RhymeKey(consonant=rhyme_part, assonant=rhyme_part)
