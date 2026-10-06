@@ -228,17 +228,23 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
       in RETRAINING_PLAN §6a; `reports/eval_2026-10/apertus-v1.5-8b-text.json`, run
       2026-10-07 through transformers, `low_vram`, 40–127 s per poem):
 
+      All rows re-scored 2026-10-07 with the current scorer (English rhyme keys no longer
+      separate secondary from primary stress: "evermore" rhymes with "shore").
+
       | 18 poems per language | es off/line | es metre | es rhyme | en off/line | en metre | en rhyme |
       |---|---|---|---|---|---|---|
-      | Plain Qwen3-4B | 0.52 | 62% | 30% | 0.69 | 56% | 70% |
+      | July recipe (Qwen2.5-1.5B) | 0.63 | 57% | 3% | 0.35 | 73% | 11% |
+      | Plain Qwen3-4B | 0.52 | 62% | 30% | 0.69 | 56% | 72% |
       | Qwen3-4B + corpus adapter (main, 55784bd) | 0.38 | 71% | 24% | 0.46 | 75% | 40% |
-      | **Plain Apertus v1.5 8B text** | 0.83 | 60% | 41% | 0.73 | 77% | 82% |
+      | Apertus 8B text, transformers, raw prompt | 0.83 | 60% | 41% | 0.73 | 77% | 83% |
+      | **Apertus 8B text, Ollama Q4_K_M + line system message** | 0.42 | **82%** | **44%** | **0.29** | **89%** | 83% |
 
-      No runaway lines (max 16 syllables). The deviation comes from fragments: 16 Spanish and
-      23 English lines are 4+ syllables off, mostly very short ones that are only a rhyme pair
-      ("bayed blade", "gleam extreme"). Such fragments rhyme trivially, so the English rhyme
-      figure is inflated. Cause not established (prompt following vs the chat template the
-      transformers path applies); fix before trusting rhyme, then re-run.
+      The raw-prompt run had rhyme-word fragments ("bayed blade"): 17 es / 19 en lines under
+      four words, which also inflated its rhyme. Cause: with a rhyme word bank in the prompt,
+      Apertus answers with the word alone (6/6 seeded tries, chat format); a system message for
+      line prompts fixes that (0/6) and is now sent by the Ollama and OpenAI-compatible clients
+      (921d6b6). Fragments left with it: 9 es / 5 en, so the loop now also drops candidates
+      under three words for lines of 8+ syllables (fail-open). ~35 s per poem via Ollama.
 - [ ] Web page skeleton: FastAPI (or similar) + one HTML page over `poesia.api` — photo
       upload, reflection box, line-by-line shaping with the existing scan feedback.
 - [ ] 4-bit multimodal load test with the official weights (record peak VRAM).

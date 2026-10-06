@@ -298,6 +298,20 @@ def _clean_candidates(candidates: list[str], prior_lines: list[str]) -> list[str
     return cleaned or candidates
 
 
+def _drop_fragments(candidates: list[str], target_syllables: int) -> list[str]:
+    """Reject bare words and word pairs for long lines; fail-open.
+
+    Chat models sometimes answer a line prompt with the rhyme word alone ("mollify",
+    "bayed blade"); a long line (8+ syllables: endecasílabo, pentameter) is never under
+    three words. Short-line forms (haiku: "autumn moonlight") are left alone. If every
+    candidate is a fragment the batch is returned unchanged, as _clean_candidates does.
+    """
+    if target_syllables < 8:
+        return candidates
+    whole = [c for c in candidates if len(c.split()) >= 3]
+    return whole or candidates
+
+
 def _metre_defect_text(actual_syllables: int | None, target_syllables: int) -> str:
     """Describe a syllable-count defect, calling out severe undershoots.
 
@@ -764,6 +778,7 @@ class ConstrainedLoop:
         )
         # Clean prompt-echo artifacts and reject exact repeats (accuracy)
         candidates = _clean_candidates(candidates, prior_lines)
+        candidates = _drop_fragments(candidates, target_syllables)
         # Filter out candidates not in the target language
         candidates = _filter_by_language(candidates, self.language)
         if not candidates:
