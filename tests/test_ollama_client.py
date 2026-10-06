@@ -241,3 +241,14 @@ def test_openai_compat_client_refuses_without_endpoint(monkeypatch) -> None:
     monkeypatch.delenv("LLM_BASE_URL", raising=False)
     with pytest.raises(LLMProviderError):
         OpenAICompatClient(model="x")
+
+
+def test_draft_and_title_prompts_are_not_line_prompts() -> None:
+    from poesia.generation.llm_client import is_line_prompt
+
+    assert is_line_prompt("Write line 3. Exactly 11 syllables.")
+    assert is_line_prompt(
+        'Fix this poetic line: too long\nLine: "x"\nOutput ONLY the corrected line.'
+    )
+    assert not is_line_prompt("Write a soneto about the moon.\nOutput ONLY the poem — no title.")
+    assert not is_line_prompt("Output ONLY the title — no quotes.")
