@@ -131,6 +131,13 @@ recitation = [
     "piper-tts",
 ]
 
+web = [
+    # Local writing page (src/poesia/webapp.py, Hack Apertus entry). Already in the env as
+    # mlflow's dependencies; declared here so the page installs without the mlops extra.
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+]
+
 mlops = [
     # Same pin as environment.yml and docker/mlflow.Dockerfile (3.16.1, security fixes,
     # 2026-10-04). Older tracking stores need `mlflow db upgrade` (LOCAL_ONLY.md).
@@ -153,9 +160,13 @@ all-lang = ["poesia[spanish,english,phonology-multi,phonology-extra,nlp]"]
 
 [project.scripts]
 poesia = "poesia.cli:main"
+poesia-web = "poesia.webapp:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+poesia = ["webui/*.html"]
 
 [tool.ruff]
 line-length = 100

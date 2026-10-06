@@ -25,7 +25,7 @@ _DEFAULT_PARAMS: dict[str, dict[str, Any]] = {
     "openai": {"provider": "openai"},
     "auto": {"provider": "auto"},
     "route": {},
-    "ollama": {"model": "gemma2:2b"},
+    "ollama": {},  # model: explicit override, else OLLAMA_MODEL, else the client default
     "lora": {},
     "llama_cpp": {},
     "outlines": {},
@@ -101,8 +101,10 @@ def get_llm(name: str, **overrides) -> Any:
     elif name in ("groq", "gemini", "openai", "auto"):
         return cls(provider=params.get("provider", name))
     elif name == "ollama":
+        # No hard-coded model here: a default of "gemma2:2b" used to override OLLAMA_MODEL,
+        # so `OLLAMA_MODEL=apertus-... poesia write --llm ollama` silently ran gemma2.
         return cls(
-            model=params.get("model", "gemma2:2b"),
+            model=params.get("model"),
             host=params.get("host", os.environ.get("OLLAMA_HOST")),
         )
     elif name == "mlflow":

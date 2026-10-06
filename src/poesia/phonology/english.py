@@ -152,5 +152,8 @@ class EnglishPhonology:
                     "pip install -e '.[english]' g2p_en"
                 )
             return RhymeKey(consonant="", assonant="")  # unpronounceable: no rhyme
-        rhyme_part = pronouncing.rhyming_part(phone_str)
+        # The rhyming part starts at the last stressed vowel, primary (1) or secondary (2).
+        # Stress level doesn't change the sound for rhyme: "evermore" (AO2 R) rhymes with
+        # "shore" (AO1 R), and treating them as different keys failed true rhymes.
+        rhyme_part = pronouncing.rhyming_part(phone_str).replace("2", "1")
         return RhymeKey(consonant=rhyme_part, assonant=rhyme_part)

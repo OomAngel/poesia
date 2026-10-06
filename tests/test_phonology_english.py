@@ -93,3 +93,11 @@ def test_unpronounceable_word_gives_empty_rhyme_not_a_crash() -> None:
     assert p._fallback_phones(huge) is None  # raw g2p raises NumOutOfRangeError here
     key = p.rhyme_key("the moon of " + huge)
     assert isinstance(key.consonant, str)
+
+
+def test_secondary_stress_rhymes_with_primary() -> None:
+    from poesia.phonology.english import EnglishPhonology
+
+    p = EnglishPhonology()
+    assert p.rhyme_key("echoes evermore").consonant == p.rhyme_key("on the shore").consonant
+    assert p.rhyme_key("on the shore").consonant != p.rhyme_key("the moonlit pier").consonant
