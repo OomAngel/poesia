@@ -12,3 +12,4 @@ colera
 abominacion
 algoritmos
 calles
+rime

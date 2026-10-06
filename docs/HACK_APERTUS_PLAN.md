@@ -206,7 +206,8 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
       faster-whisper averell`; Piper voices de/fr/it/es/en; `hf download
       andreasmartin/apertus-v1.1-swiss-embed-0.4b-bidir --local-dir models/swiss-embed`;
       `git clone --depth 1 https://github.com/sbridel/carnet-du-poete external/carnet-du-poete`.
-- [ ] Open the organiser's Getting Started guide; copy the template repo URL here: ______
+- [x] Template repo: https://github.com/HackApertus/project-template (named on the Track 1A/1B/2B
+      pages, read 2026-10-06; has `track_2b/`). FHGR 2A starter: `fhgr/HackApertusTemplate26`.
 
 **Done when:** `bash scripts/setup_apertus.sh --check` shows the GGUF and the Ollama model.
 
