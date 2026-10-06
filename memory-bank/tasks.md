@@ -2,6 +2,20 @@
 
 ## IN PROGRESS
 
+- [ ] **Hack Apertus entry (Track 2B), submit 13 Oct 2026** (decided 2026-10-06). Branch
+      `hack-apertus`; runbook `docs/HACK_APERTUS_PLAN.md` §8. Must-have: local web page,
+      reflection → shaping → teaching (es/en) → Piper read-back → linking, safety screen +
+      60-line test set, Docker `make run` offline, report (≤6 pages), video (≤2 min).
+      Stretch: `italian.py`, photo image-words, spoken reflection, QLoRA adapter, de/fr
+      teaching.
+  - [x] `scripts/setup_apertus.sh` (2026-10-06)
+  - [ ] Downloads (Tue 6 Oct evening)
+  - [ ] Runtime + baseline + page skeleton (Wed 7)
+  - [ ] Safety layer + Docker (Thu 8)
+  - [ ] Linking + read-back + ux-audit + testers (Fri 9)
+  - [ ] Evidence + on-prem proof + video (Sat 10)
+  - [ ] Report + polish (Sun 11 – Mon 12)
+  - [ ] Submit (Tue 13)
 - [ ] **Retrain: bigger base model and expanded corpus** (decided 2026-10-04). Plan and
       step order: `docs/RETRAINING_PLAN_2026-10.md` §6; current order in
       `activeContext.md` "Current focus". Done: corpus build and dedup (`corpus_master`,
