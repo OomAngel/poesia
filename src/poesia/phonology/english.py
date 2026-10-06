@@ -18,7 +18,36 @@ parsing is not yet wired in).
 
 from __future__ import annotations
 
+import contextlib
+from collections.abc import Iterator
+
 from poesia.phonology.base import RhymeKey, ScanResult, Stress
+
+
+@contextlib.contextmanager
+def _no_redundant_nltk_downloads() -> Iterator[None]:
+    """Skip g2p_en's import-time ``nltk.download`` calls when the data is already installed.
+
+    g2p_en checks for ``taggers/averaged_perceptron_tagger.zip`` and ``corpora/cmudict.zip``;
+    NLTK 3.10 no longer resolves ``.zip`` paths, so the check always fails and g2p_en goes to
+    the network on every import, even with the data unzipped next to it (an offline or
+    air-gapped install then prints download errors). If the unzipped data that NLTK does use
+    is present, those downloads are no-ops; otherwise g2p_en downloads as before.
+    """
+    try:
+        import nltk  # type: ignore[import-untyped]
+
+        nltk.data.find("corpora/cmudict")
+        nltk.data.find("taggers/averaged_perceptron_tagger_eng")
+    except (ImportError, LookupError):
+        yield
+        return
+    original = nltk.download
+    nltk.download = lambda *args, **kwargs: True
+    try:
+        yield
+    finally:
+        nltk.download = original
 
 
 class EnglishPhonology:
@@ -54,7 +83,8 @@ class EnglishPhonology:
         """
         if self._g2p is None:
             try:
-                from g2p_en import G2p  # type: ignore[import-untyped]
+                with _no_redundant_nltk_downloads():
+                    from g2p_en import G2p  # type: ignore[import-untyped]
             except ImportError:  # pragma: no cover - environment dependent
                 self._g2p = False
             else:
