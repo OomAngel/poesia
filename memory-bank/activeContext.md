@@ -1,7 +1,24 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-10-04 (retraining plan, Python 3.13; re-entry checklist, Current focus
-and Document authority brought current)_
+_Last updated: 2026-10-06 (Hack Apertus entry, branch `hack-apertus`)_
+
+---
+
+## Current focus (2026-10-06 → 13 Oct): Hack Apertus — START HERE
+
+- **Decision (Angel, 2026-10-06):** enter Hack Apertus, Track 2B "Own Project", with PoesIA
+  on Apertus v1.5 8B. Submit target Tue 13 Oct; the hackathon closes Fri 16 Oct 12:00 CEST.
+- **Working plan and day-by-day runbook:** `docs/HACK_APERTUS_PLAN.md` (this branch). Each
+  day's boxes, commands and "done when" are there. The retraining work below is paused
+  except where the plan reuses it (seeded evaluation, QLoRA tooling).
+- **Done 2026-10-06:** `scripts/setup_apertus.sh` (download → GGUF Q4_K_M → Ollama, with the
+  Apertus chat template; Ollama steps tested only against a mock server).
+- **Next:** the Tue 6 Oct evening boxes in the plan's section 8 (downloads, `hf auth login`,
+  `setup_apertus.sh --official`).
+- **Gaps the plan closes:** no web UI (CLI and `poesia.api` only), no distress handling, no
+  tester evidence.
+- Author's planning notes (outside this public repo): career-assets
+  `docs/ww-transition/competitions/hack-apertus.md`.
 
 ---
 
