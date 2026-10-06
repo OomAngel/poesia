@@ -179,6 +179,7 @@ def evaluate(
             os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
+                f.write("\n")
             mlflow.log_artifact(out_path)
             print(f"Report: {out_path}")
     return report
