@@ -192,9 +192,11 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
 
 ### Sat 10 Oct — evidence, on-prem proof, video
 
-- [ ] `refs.bib` (~15 entries: expressive writing, arts and health, Swiss mental-health
-      statistics, LLM and speech-generator harms, automatic scansion, the Apertus report
-      arXiv 2509.14233) validated with research-tools.
+- [ ] Validate `docs/hack_apertus/refs.bib` (14 entries, drafted 2026-10-06) with
+      research-tools; fetch the open-access papers; check each cited sentence against them.
+- [ ] Health statistics: venture-lab `research/statistics/poesia-health-statistics.md`
+      (drafted 2026-10-06). Replace the rows tagged [S] with Obsan's own tables; promote the
+      figures the report uses into venture-lab's claims registry.
 - [ ] Cost per poem: seconds and watts on the 3070 and on a CPU-only server.
 - [ ] `make run` on the CPU-only server (on-prem proof).
 - [ ] Record the 2-minute video: a real photo and a real reflection (the author's own).
