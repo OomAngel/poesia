@@ -85,3 +85,12 @@ def test_preserves_real_parentheticals() -> None:
     assert _clean_candidate("un verso normal (risas)") == "un verso normal (risas)"
     assert _clean_candidate("otro verso (o eso creía)") == "otro verso (o eso creía)"
     assert _clean_candidate("la vida es (breve)") == "la vida es (breve)"
+
+
+def test_fragments_are_dropped_for_long_lines_only() -> None:
+    from poesia.generation.constrained_loop import _drop_fragments
+
+    batch = ["mollify", "bayed blade", "The tide returns to kiss the silver shore"]
+    assert _drop_fragments(batch, 10) == ["The tide returns to kiss the silver shore"]
+    assert _drop_fragments(["autumn moonlight", "a crow"], 5) == ["autumn moonlight", "a crow"]
+    assert _drop_fragments(["mollify", "stream"], 11) == ["mollify", "stream"]  # fail-open
