@@ -162,7 +162,8 @@ def propose_lines(
 
 
 def create_app(llm: Any | None = None) -> Any:
-    """FastAPI app. ``llm`` defaults to ``POESIA_WEB_LLM`` (registry name, default 'ollama')."""
+    """FastAPI app. ``llm`` defaults to ``POESIA_WEB_LLM`` (a registry name); without it, an
+    OpenAI-compatible endpoint when ``LLM_BASE_URL`` is set, else Ollama (``OLLAMA_MODEL``)."""
     from fastapi import FastAPI, HTTPException
     from fastapi.responses import FileResponse
     from pydantic import BaseModel, Field
@@ -170,7 +171,8 @@ def create_app(llm: Any | None = None) -> Any:
     if llm is None:
         from poesia.generation.registry import get_llm
 
-        llm = get_llm(os.environ.get("POESIA_WEB_LLM", "ollama"))
+        default = "openai_compat" if os.environ.get("LLM_BASE_URL") else "ollama"
+        llm = get_llm(os.environ.get("POESIA_WEB_LLM", default))
 
     app = FastAPI(title="PoesIA", docs_url=None, redoc_url=None)
 

@@ -629,6 +629,86 @@ class HostedLLMClient:
         )
 
 
+class OpenAICompatClient:
+    """Any OpenAI-compatible chat endpoint: Ollama's /v1, vLLM, llama.cpp server, CSCS.
+
+    Configured by the Hack Apertus convention: ``LLM_BASE_URL`` (e.g.
+    ``http://ollama:11434/v1``), ``LLM_NAME`` (model id) and ``LLM_API_KEY`` (may be empty
+    for a local server). Line prompts get ``LINE_SYSTEM_PROMPT``; ``n`` candidates are n
+    sequential calls, each with a seed from Python's RNG (many servers ignore ``n``).
+    """
+
+    def __init__(
+        self,
+        base_url: str | None = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        timeout: float = 120.0,
+    ) -> None:
+        self.base_url = (base_url or os.environ.get("LLM_BASE_URL", "")).rstrip("/")
+        self.model = model or os.environ.get("LLM_NAME", "")
+        self.api_key = api_key if api_key is not None else os.environ.get("LLM_API_KEY", "")
+        self.timeout = timeout
+        self.provider = "openai_compat"
+        self.usage: LLMUsage = LLMUsage()
+        if not self.base_url or not self.model:
+            raise LLMProviderError(
+                "OpenAI-compatible client needs LLM_BASE_URL and LLM_NAME", provider="openai_compat"
+            )
+
+    def _chat(self, messages: list[dict[str, str]], temperature: float) -> str:
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+            "seed": random.randrange(2**31),
+            "max_tokens": 120,
+        }
+        headers = {"Content-Type": "application/json", "User-Agent": "poesia/1.0"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        req = urllib.request.Request(
+            f"{self.base_url}/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                res = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", "replace")
+            raise LLMProviderError(
+                f"LLM endpoint HTTP {e.code}: {body}",
+                provider="openai_compat",
+                status_code=e.code,
+                response_body=body,
+            ) from e
+        except Exception as e:
+            raise LLMProviderError(
+                f"LLM endpoint request failed: {e}", provider="openai_compat"
+            ) from e
+        choices = res.get("choices") or [{}]
+        return (choices[0].get("message", {}).get("content") or "").strip()
+
+    def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
+        self.usage = LLMUsage()
+        t0 = time.time()
+        messages = [{"role": "user", "content": prompt}]
+        if is_line_prompt(prompt):
+            messages.insert(0, {"role": "system", "content": LINE_SYSTEM_PROMPT})
+        out = [text for _ in range(n) if (text := self._chat(messages, temperature))]
+        self.usage.latency_ms = (time.time() - t0) * 1000
+        return out
+
+    def repair(self, line: str, defect_description: str) -> str:
+        prompt = (
+            f'Fix this poetic line: {defect_description}\nLine: "{line}"\n'
+            "Output ONLY the corrected single line without quotation marks, intro, or explanation."
+        )
+        out = self.generate(prompt, n=1, temperature=0.7)
+        return out[0].strip().strip("\"'") if out else line
+
+
 class OllamaClient:
     """Local LLM via Ollama (https://ollama.com).
 
