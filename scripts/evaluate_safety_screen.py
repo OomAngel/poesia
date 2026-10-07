@@ -45,6 +45,11 @@ def _rates(rows: list[dict], flags: dict[str, bool]) -> dict[str, object]:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--ollama-model", default=None)
+    ap.add_argument(
+        "--openai-compat",
+        action="store_true",
+        help="ask the model at LLM_BASE_URL/LLM_NAME instead (as the page does)",
+    )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
@@ -53,15 +58,20 @@ def main() -> None:
     report: dict[str, object] = {"items": len(rows), "data": str(DATA)}
     phrases = {r["id"]: bool(keyword_matches(r["text"])) for r in rows}
     report["phrases"] = _rates(rows, phrases)
-    if args.ollama_model:
-        from poesia.generation.llm_client import OllamaClient
-
+    if args.ollama_model or args.openai_compat:
         random.seed(args.seed)
-        llm = OllamaClient(model=args.ollama_model, timeout=300.0)
+        if args.openai_compat:
+            from poesia.generation.registry import get_llm
+
+            llm = get_llm("openai_compat")
+        else:
+            from poesia.generation.llm_client import OllamaClient
+
+            llm = OllamaClient(model=args.ollama_model, timeout=300.0)
         answers = {r["id"]: _ask_model(llm, r["text"]) for r in rows}
         model = {k: v is True for k, v in answers.items()}
         report["model"] = {
-            "name": args.ollama_model,
+            "name": args.ollama_model or getattr(llm, "model", ""),
             "no_answer": sum(v is None for v in answers.values()),
         }
         report["model"].update(_rates(rows, model))  # type: ignore[union-attr]
