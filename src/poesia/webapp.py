@@ -30,7 +30,14 @@ FORMS: list[tuple[str, str]] = [
     ("es", "haiku"),
     ("en", "haiku"),
     ("it", "sonetto"),
+    # Free verse: no metre or rhyme checks; scanning still shows syllables, and safety,
+    # suggestions, read-back and linking all work.
+    ("es", "free"),
+    ("en", "free"),
+    ("it", "free"),
 ]
+FREE = "free"
+FREE_START_LINES = 8
 
 
 # Read-back voices (clear licences, docs/CORPUS_SOURCES.md): es CC0, en public domain,
@@ -93,18 +100,33 @@ def _phonology(language: str) -> Any:
 
 
 def _form(language: str, name: str) -> Any:
+    """The FormSpec, or None for free verse."""
+    if name == FREE:
+        return None
     from poesia.forms.definitions import get_form
 
     return get_form(name, language)
 
 
+def _target(form: Any, index: int) -> int | None:
+    if form is None:
+        return None
+    return (
+        form.syllables_for_line(index) if index < form.total_lines or not form.total_lines else None
+    )
+
+
 def _letter(form: Any, index: int) -> str:
+    if form is None:
+        return ""
     scheme = form.rhyme_scheme.replace(" ", "")
     return scheme[index] if index < len(scheme) else ""
 
 
 def _partner_index(form: Any, index: int) -> int | None:
     """First earlier line in the same rhyme group, or None (first of its group / unrhymed)."""
+    if form is None:
+        return None
     letter = _letter(form, index)
     if not letter.isalpha():
         return None
@@ -123,11 +145,11 @@ def scan_line(
 
     form = _form(language, form_name)
     phon = _phonology(language)
-    target = (
-        form.syllables_for_line(index) if index < form.total_lines or not form.total_lines else None
-    )
+    target = _target(form, index)
     scan = phon.scan_line(line)
-    lesson = teach_scan(scan, target, language=language, form_name=form.name)
+    lesson = teach_scan(
+        scan, target, language=language, form_name=getattr(form, "name", None), ui_language=language
+    )
     letter = _letter(form, index)
     partner = _partner_index(form, index)
     rhymes: bool | None = None
@@ -139,11 +161,14 @@ def scan_line(
     messages = list(lesson.messages)
     if rhymes is False and partner is not None:
         messages.append(
-            f"Rhyme {letter}: this line should rhyme with line {partner + 1} "
-            f"(“{partner_line}”). Change the last word."
-            if language == "en"
-            else f"Rima {letter}: este verso debe rimar con el verso {partner + 1} "
-            f"(«{partner_line}»). Cambia la última palabra."
+            {
+                "en": f"Rhyme {letter}: this line should rhyme with line {partner + 1} "
+                f"(“{partner_line}”). Change the last word.",
+                "es": f"Rima {letter}: este verso debe rimar con el verso {partner + 1} "
+                f"(«{partner_line}»). Cambia la última palabra.",
+                "it": f"Rima {letter}: questo verso deve rimare con il verso {partner + 1} "
+                f"(«{partner_line}»). Cambia l'ultima parola.",
+            }[language]
         )
     return {
         "index": index,
@@ -174,7 +199,7 @@ def propose_lines(
 
     form = _form(language, form_name)
     phon = _phonology(language)
-    target = form.syllables_for_line(index)
+    target = _target(form, index)
     partner = _partner_index(form, index)
     prior = [ln for ln in lines[:index] if ln.strip()]
     rhyme_key = example = None
@@ -203,7 +228,7 @@ def propose_lines(
             continue
         seen.add(text.lower())
         result = scan_line(text, language, form_name, index, [*lines[:index], text])
-        off = abs(result["syllables"] - target) if target else 0
+        off = abs(result["syllables"] - target) if target else 0  # free verse: no metre rank
         ranked.append((off, result["rhymes"] is False, text, result))
     ranked.sort(key=lambda r: (r[0], r[1]))
     return [{"text": t, "check": res} for _, _, t, res in ranked[:n]]
@@ -227,7 +252,7 @@ def create_app(llm: Any | None = None) -> Any:
     class LineRequest(BaseModel):
         language: str = Field(pattern="^(es|en|it)$")
         form: str
-        index: int = Field(ge=0, le=200)
+        index: int = Field(ge=0, le=200)  # free verse grows line by line
         lines: list[str] = Field(default_factory=list, max_length=200)
 
     class SafetyRequest(BaseModel):
@@ -259,13 +284,28 @@ def create_app(llm: Any | None = None) -> Any:
         out = []
         for lang, name in FORMS:
             f = _form(lang, name)
+            if f is None:
+                out.append(
+                    {
+                        "language": lang,
+                        "form": name,
+                        "free": True,
+                        "lines": FREE_START_LINES,
+                        "scheme": "",
+                        "syllables": [],
+                        "stanzas": [],
+                    }
+                )
+                continue
             out.append(
                 {
                     "language": lang,
                     "form": name,
+                    "free": False,
                     "lines": f.total_lines,
                     "scheme": f.rhyme_scheme.replace(" ", ""),
                     "syllables": [f.syllables_for_line(i) for i in range(f.total_lines)],
+                    "stanzas": list(f.lines_per_stanza),
                 }
             )
         return out
