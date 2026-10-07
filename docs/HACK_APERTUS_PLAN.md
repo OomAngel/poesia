@@ -247,7 +247,17 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
       under three words for lines of 8+ syllables (fail-open). ~35 s per poem via Ollama.
 - [ ] Web page skeleton: FastAPI (or similar) + one HTML page over `poesia.api` — photo
       upload, reflection box, line-by-line shaping with the existing scan feedback.
-- [ ] 4-bit multimodal load test with the official weights (record peak VRAM).
+- [x] 4-bit multimodal load test with the official weights (2026-10-07, RTX 3070 8 GB, separate
+      venv with Swiss AI's transformers fork `3797303`; script `~/data/hack-apertus/mm_load_test.py`).
+      NF4 language model and lm_head on GPU, vision and audio tokenizers fp32 on GPU, the 2.2 GB
+      input embedding (vocab 266,752) moved to RAM by hand (accelerate's CPU offload leaves a meta
+      tensor that `generate()` reads; `PreTrainedModel.device` also has to report the GPU).
+      Loads in 15 s at 5.29 GB. Text 3.6 s; image (COCO sample) 2.2 s, "cats, remote controls,
+      pink couch" (right); audio (Piper clip, Spanish) 1.5 s, "Vi un árbol perdiendo sus hojas y
+      pensé en mi parte" (said: *padre*). Peak 6.57 GB allocated, **7.5 GB reserved**: fits only
+      with the card otherwise empty (Ollama unloaded, ~0.3 GB desktop). Photo image-words and
+      spoken reflection on Apertus itself are possible; shipping them needs a second image with
+      torch + the fork (several GB) and an 8 GB card to itself.
 - [ ] Stretch: mixed dataset → 40-step smoke run → QLoRA overnight.
 
 **Done when:** a poem is shaped in the browser on Apertus; baseline numbers recorded.
