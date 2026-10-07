@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-10-07 (Hack Apertus: built and measured on the desktop)_
+_Last updated: 2026-10-07 evening (Hack Apertus: packaging/UX plan steps 1–3 done)_
 
 ---
 
@@ -29,9 +29,17 @@ _Last updated: 2026-10-07 (Hack Apertus: built and measured on the desktop)_
   retry (no rhyme-word fragments left); benchmarks es 0.21/83%/36%, en 0.10/90%/88%,
   it 0.16/87%/43%; energy 1.7 Wh per automatic sonnet; CPU-only timings. The entry stack runs
   on the desktop (`~/dev/poesia-apertus/track_2b`, `make stop` frees the GPU).
-- **Next:** the packaging and UX plan, `docs/hack_apertus/PACKAGING_UX_PLAN.md` (Angel's four
-  decisions at its end); then testers, the video (Edit with Ava) and the report PDF (draft
-  renders to 4 of 6 pages). The public repo is needed only at submission.
+- **Packaging and UX plan, steps 1–3 done (2026-10-07)**, `docs/hack_apertus/PACKAGING_UX_PLAN.md`
+  (✓ marks with results): one language per session, guided 4-step page, scansion view, keep as
+  text/print, phone layout, first-run progress screen, CPU notice (P6), offline bundle (P5,
+  tested with no network and on Windows), Italian linking (609 Gutenberg poems, outside
+  training), no-Docker start `poesia-web --with-ollama` (P9; Ollama 0.40 on Windows 11 25H2
+  with Developer Mode cannot read models it pulls: Docker there), P2 measured (keep Ollama
+  until after 16 Oct; llama.cpp equal scores, smaller, faster). Entry pins engine `fc9dd5b`.
+- **Next:** U11 testers (needs people), the video (Edit with Ava) and the report PDF; if time,
+  U6 (word suggestions first), P7 (CI smoke test), U9 (safety copy review); P8 (publish
+  images) and the public repo at submission. The history rewrite (13 repos) waits for Angel's
+  permission rule; repin `POESIA_REF` after it.
 
 ---
 
