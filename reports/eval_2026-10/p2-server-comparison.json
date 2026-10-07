@@ -1,0 +1,79 @@
+{
+ "date": "2026-10-07",
+ "plan_step": "P2 (docs/hack_apertus/PACKAGING_UX_PLAN.md)",
+ "method": "scripts/evaluate_adapter_mlflow.py --openai-compat --samples 3 --seed 0 (6 themes x 3 seeds = 18 sonnets per language), Apertus v1.5 8B text Q4_K_M (same GGUF blob), RTX 3070, the page's OpenAI-compatible client. Timing: scratch script, median of 5 first-token and 10 three-line suggestions.",
+ "caveat": "Not reproducible run to run: the same seeds on Ollama gave different Italian sonnets in two runs (4 of the first 7 differ), so differences of a few points between servers are within noise at n=18.",
+ "llama_cpp": {
+  "image": "ghcr.io/ggml-org/llama.cpp:server-cuda, build 11459 (f498f864f)",
+  "download_gb": {
+   "server-cuda": 2.59,
+   "server (CPU)": 0.31
+  },
+  "first_token_s": 0.037,
+  "suggestion_n3_s": 0.63,
+  "seconds_per_sonnet": {
+   "es": 24.0,
+   "en": 21.6,
+   "it": 26.6
+  },
+  "scores": {
+   "es": {
+    "poems": 18.0,
+    "line_count_accuracy": 1.0,
+    "syllable_abs_dev": 0.175,
+    "metre_pass_rate": 0.841,
+    "rhyme_accuracy": 0.422
+   },
+   "en": {
+    "poems": 18.0,
+    "line_count_accuracy": 1.0,
+    "syllable_abs_dev": 0.115,
+    "metre_pass_rate": 0.917,
+    "rhyme_accuracy": 0.897
+   },
+   "it": {
+    "poems": 18.0,
+    "line_count_accuracy": 1.0,
+    "syllable_abs_dev": 0.159,
+    "metre_pass_rate": 0.853,
+    "rhyme_accuracy": 0.488
+   }
+  },
+  "report": "reports/eval_2026-10/p2-llamacpp-b11459.json"
+ },
+ "ollama": {
+  "image": "ollama/ollama:0.34.4",
+  "download_gb": 3.75,
+  "first_token_s": 0.073,
+  "suggestion_n3_s": 1.05,
+  "seconds_per_sonnet": {
+   "es": 28.0,
+   "en": 24.0,
+   "it": "33.6 (7 sonnets) and 43.1 (rerun); not used"
+  },
+  "scores": {
+   "es": {
+    "poems": 18.0,
+    "line_count_accuracy": 1.0,
+    "syllable_abs_dev": 0.206,
+    "metre_pass_rate": 0.841,
+    "rhyme_accuracy": 0.367
+   },
+   "en": {
+    "poems": 18.0,
+    "line_count_accuracy": 1.0,
+    "syllable_abs_dev": 0.143,
+    "metre_pass_rate": 0.893,
+    "rhyme_accuracy": 0.841
+   },
+   "it": {
+    "poems": 18.0,
+    "line_count_accuracy": 1.0,
+    "syllable_abs_dev": 0.183,
+    "metre_pass_rate": 0.829,
+    "rhyme_accuracy": 0.432
+   }
+  },
+  "report": "es/en from the run log (the run was cut off before writing its report); it: reports/eval_2026-10/p2-ollama-0.34.4-it.json"
+ }
+}
