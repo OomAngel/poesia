@@ -344,6 +344,11 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
 
 - [ ] Submit on hackapertus.ch. Fixes only until Fri 16 Oct 12:00 CEST.
 
+## 8b. Next block: packaging and UX (2026-10-07)
+
+Before testers, video and report: `docs/hack_apertus/PACKAGING_UX_PLAN.md` (a ~17 GB first
+install, mixed-language page, no guided flow). Its decisions are Angel's.
+
 ## 9. Open questions (organiser Discord)
 
 1. Track 2B: may the entry extend a project started before 1 Oct, if the Apertus integration,
