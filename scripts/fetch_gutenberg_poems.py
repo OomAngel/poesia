@@ -21,8 +21,13 @@ cleanly. Two signals do most of the work:
    ~70-character plain-text wrap width — verse lines break naturally and
    rarely do this, wrapped prose paragraphs almost always do.
 
+Italian books (``LINKING_MANIFEST``) are for the page's linking index only, not training:
+``--linking-only`` writes them to seeds/poetry_corpus/linking_only/, which build_corpus.py
+does not read, so adding them leaves the training corpus unchanged.
+
 Usage:
     python scripts/fetch_gutenberg_poems.py            # fetch the full manifest
+    python scripts/fetch_gutenberg_poems.py --linking-only   # Italian, for linking
     python scripts/fetch_gutenberg_poems.py --only garcilaso whitman
     python scripts/fetch_gutenberg_poems.py --dry-run  # download+parse, don't write
 """
@@ -39,6 +44,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 OUTPUT_DIR = Path("seeds/poetry_corpus/training_data_structured")
+LINKING_ONLY_DIR = Path("seeds/poetry_corpus/linking_only")
+LANGUAGE_NAMES = {"es": "Spanish", "en": "English", "it": "Italian"}
 RAW_CACHE_DIR = Path("/tmp/gutenberg_raw_cache")
 
 # Phrase-level Gutenberg/legal boilerplate — deliberately NOT single common
@@ -69,7 +76,7 @@ class BookSpec:
     book_id: int
     author: str
     tag: str
-    language: str  # "es" | "en"
+    language: str  # "es" | "en" | "it"
     verify_substr: str  # must appear in the raw header to confirm the right book
     # Some Gutenberg editions bundle unrelated prose (legends, essays,
     # introductions) alongside the actual verse. When set, only the text
@@ -232,6 +239,38 @@ MANIFEST: list[BookSpec] = [
 ]
 
 
+# Italian, for the page's linking index only (--linking-only; never training). Chosen
+# 2026-10-07 from pg_catalog.csv (language it, poetry subjects, author searches): lyric
+# collections by authors who died by 1955; Aleramo and Palazzeschi (died after 1955) and
+# Pascarella (Roman dialect) left out; Pellico's "Poesie scelte" (17671) is a tragedy, not lyrics.
+LINKING_MANIFEST: list[BookSpec] = [
+    BookSpec(55236, "Giacomo Leopardi", "gutenberg_leopardi_canti", "it", "Leopardi"),
+    BookSpec(36060, "Ada Negri", "gutenberg_negri_dal_profondo", "it", "Negri"),
+    BookSpec(36061, "Ada Negri", "gutenberg_negri_maternita", "it", "Negri"),
+    BookSpec(36063, "Ada Negri", "gutenberg_negri_tempeste", "it", "Negri"),
+    BookSpec(36239, "Ada Negri", "gutenberg_negri_fatalita", "it", "Negri"),
+    BookSpec(36792, "Ada Negri", "gutenberg_negri_esilio", "it", "Negri"),
+    BookSpec(58615, "Annie Vivanti", "gutenberg_vivanti_lirica", "it", "Vivanti"),
+    BookSpec(59903, "Vittorio Betteloni", "gutenberg_betteloni_nuovi_versi", "it", "Betteloni"),
+    BookSpec(60549, "Giuseppe Montanelli", "gutenberg_montanelli_liriche", "it", "Montanelli"),
+    BookSpec(
+        61548, "Amalia Guglielminetti", "gutenberg_guglielminetti_seduzioni", "it", "Guglielminetti"
+    ),
+    BookSpec(
+        62563,
+        "Mario Rapisardi",
+        "gutenberg_rapisardi_ricordanze",
+        "it",
+        "Rapisardi",
+        section_end="INTERMEZZO.",  # then a verse drama (Francesca da Rimini), not lyrics
+    ),
+    BookSpec(19428, "Luigi Gualdo", "gutenberg_gualdo_nostalgie", "it", "Gualdo"),
+    BookSpec(17905, "Emilio De Marchi", "gutenberg_de_marchi_vecchie_cadenze", "it", "De Marchi"),
+    BookSpec(27825, "Gabriele D'Annunzio", "gutenberg_dannunzio_isaotta", "it", "Annunzio"),
+    BookSpec(58648, "Gabriele D'Annunzio", "gutenberg_dannunzio_elegie_romane", "it", "Annunzio"),
+]
+
+
 def fetch_raw_text(book_id: int) -> str:
     RAW_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     cache_path = RAW_CACHE_DIR / f"pg{book_id}.txt"
@@ -327,8 +366,42 @@ def split_into_poems(body: str) -> list[tuple[str, str]]:
     return poems
 
 
+# Shown to people (linking), so stricter than training: front matter, speaker labels of
+# dramatic passages and verse lines taken for titles are dropped, asterisk titles blanked.
+_FRONT_MATTER_TITLE_RE = re.compile(
+    r"indice|propriet[àa] letteraria|prefazione|\bnota\b|dedica|riservati|\btip\.|"
+    r"trascrittore|editori|notizia intorno|\bpag\.|personaggi|tragedia|scena|interlocutori|"
+    r"\batto\b|prologo|\bvoce\b|\bcoro\b|cantando|»",  # dramatic passages; contents lines
+    re.IGNORECASE,
+)
+
+
+def clean_for_display(spec: BookSpec, poems: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    counts: dict[str, int] = {}
+    for title, _ in poems:
+        counts[title.upper()] = counts.get(title.upper(), 0) + 1
+    surname = spec.author.split()[-1].upper()
+    kept = []
+    for title, text in poems:
+        if not any(c.isalpha() for c in title) or title.startswith("("):
+            kept.append(("", text))  # "* * *", "—————", "[1887-1891]", "(Villa Cesarini)"
+            continue
+        bare = title.strip("_ .")
+        if (
+            _FRONT_MATTER_TITLE_RE.search(title)
+            or surname in title.upper()
+            or title.startswith("_")  # italic verse lines and speaker labels, not titles
+            or (counts[title.upper()] >= 2 and not re.fullmatch(r"[IVXLC]+", bare))
+            or (len(bare) > 30 and (bare[:1].islower() or title.rstrip("_ ")[-1:] in ".!?;,—"))
+            or "Pag." in text
+        ):
+            continue
+        kept.append((title, text))
+    return kept
+
+
 def build_records(spec: BookSpec, poems: list[tuple[str, str]]) -> list[dict]:
-    lang_name = "Spanish" if spec.language == "es" else "English"
+    lang_name = LANGUAGE_NAMES[spec.language]
     records = []
     for title, text in poems:
         records.append(
@@ -345,7 +418,9 @@ def build_records(spec: BookSpec, poems: list[tuple[str, str]]) -> list[dict]:
     return records
 
 
-def process_book(spec: BookSpec, dry_run: bool) -> int:
+def process_book(
+    spec: BookSpec, dry_run: bool, out_dir: Path = OUTPUT_DIR, display: bool = False
+) -> int:
     try:
         raw = fetch_raw_text(spec.book_id)
     except Exception as exc:  # noqa: BLE001 - report and move on
@@ -388,11 +463,14 @@ def process_book(spec: BookSpec, dry_run: bool) -> int:
         if len(cleaned) >= MIN_POEM_LINES and len(text) >= MIN_POEM_CHARS:
             poems = [(fallback_title, text)]
 
+    if display:
+        poems = clean_for_display(spec, poems)
     records = build_records(spec, poems)
     print(f"  {spec.tag}: {len(records)} poems extracted")
 
     if not dry_run and records:
-        out_path = OUTPUT_DIR / f"{spec.tag}.jsonl"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / f"{spec.tag}.jsonl"
         with open(out_path, "w", encoding="utf-8") as f:
             for record in records:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -405,9 +483,15 @@ def main() -> None:
     parser.add_argument(
         "--dry-run", action="store_true", help="Fetch and parse, but don't write JSONL"
     )
+    parser.add_argument(
+        "--linking-only",
+        action="store_true",
+        help=f"Fetch LINKING_MANIFEST (Italian) into {LINKING_ONLY_DIR}, outside training",
+    )
     args = parser.parse_args()
 
-    specs = MANIFEST
+    specs = LINKING_MANIFEST if args.linking_only else MANIFEST
+    out_dir = LINKING_ONLY_DIR if args.linking_only else OUTPUT_DIR
     if args.only:
         specs = [s for s in specs if any(sub in s.tag for sub in args.only)]
         if not specs:
@@ -416,7 +500,7 @@ def main() -> None:
 
     total = 0
     for spec in specs:
-        total += process_book(spec, args.dry_run)
+        total += process_book(spec, args.dry_run, out_dir, display=args.linking_only)
     print(
         f"\nTotal poems extracted: {total}"
         + (" (dry run, nothing written)" if args.dry_run else "")

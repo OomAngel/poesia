@@ -206,8 +206,17 @@ users, never published.**
 | Carnet du Poète, `sbridel/carnet-du-poete` (code, reference only) | fr | `03ce428` | GPL-3.0 | read the rules; reimplement, never copy |
 
 Averell 9 and 10 were fetched as the same zips `averell download 9 10` uses (averell
-1.2.2's `corpora.yaml`), unzipped under `data/external/averell/`. Wikisource de/fr/it (the
-only texts meant to be shown to users) is not fetched yet: no script.
+1.2.2's `corpora.yaml`), unzipped under `data/external/averell/`. Wikisource de/fr/it is not
+fetched yet: no script.
+
+**Shown to people, not trained on: `seeds/poetry_corpus/linking_only/`** (DVC, 2026-10-07).
+Italian poems for the page's linking ("Others felt this too"): fifteen Project Gutenberg
+books (`LINKING_MANIFEST` in `scripts/fetch_gutenberg_poems.py`, run with `--linking-only`),
+chosen from `pg_catalog.csv` (language it, poetry subjects, author searches), authors who
+died by 1955. A display filter drops front matter, contents lines and speakers of dramatic
+passages; 1,000 records, of which 609 (4–24 lines, unique first line) are in the index.
+`scripts/build_corpus.py` does not read this folder, so the training corpus is unchanged;
+`scripts/build_linking_index.py` reads it next to `corpus_master`.
 
 Models downloaded for the entry (not corpus data; listed for licences):
 
