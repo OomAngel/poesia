@@ -253,6 +253,10 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
       neither run is "the" number; report both. Note: this loop's Spanish rhyme word bank comes
       from Datamuse (online); English from CMUdict (offline). The page sends no word bank, so
       the benchmark is not the page's exact condition.
+
+      Fix (5b94712): a batch of nothing but bare words is regenerated once without the word
+      bank. Re-run (`apertus-v1.5-8b-text-ollama-retry.json`): **no fragments left** (0 es,
+      0 en); es 0.21 / 83% / 36%, **en 0.10 / 90% / 88%**, the best English row so far.
 - [ ] Web page skeleton: FastAPI (or similar) + one HTML page over `poesia.api` — photo
       upload, reflection box, line-by-line shaping with the existing scan feedback.
 - [x] 4-bit multimodal load test with the official weights (2026-10-07, RTX 3070 8 GB, separate
