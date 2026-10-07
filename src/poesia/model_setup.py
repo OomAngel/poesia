@@ -32,6 +32,15 @@ APERTUS_TEMPLATE = (
 APERTUS_GGUF = "hf.co/Colby/apertus-v1.5-8b-text-Q4_K_M-GGUF:Q4_K_M"
 
 
+def _ollama_message(exc: urllib.error.HTTPError) -> str:
+    """Ollama's own error text (``{"error": ...}``) instead of a bare "HTTP Error 500"."""
+    try:
+        body = exc.read().decode("utf-8", "replace")
+        return f"{exc.code}: {json.loads(body).get('error') or body}"
+    except (OSError, ValueError, AttributeError):
+        return str(exc)
+
+
 @dataclass
 class ModelSpec:
     name: str  # what the page asks for (LLM_NAME / EMBED_NAME)
@@ -154,6 +163,8 @@ class OllamaSetup:
                 if spec.warm:
                     self._warm(spec)
             self._set(phase="ready", model="", completed=0, total=0)
+        except urllib.error.HTTPError as exc:  # Ollama says why in the body; show that
+            self._set(phase="error", error=_ollama_message(exc))
         except (urllib.error.URLError, OSError, RuntimeError, ValueError) as exc:
             self._set(phase="error", error=str(exc))
         return self.status
