@@ -1,5 +1,6 @@
 # Pre-commit config for poesia — Tier 1 (see ~/dev/DEV_STANDARDS.md).
 # Install: pre-commit install
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.0
