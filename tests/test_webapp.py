@@ -177,3 +177,46 @@ def test_lessons_follow_the_page_language() -> None:
         "/api/scan", json={"language": "es", "form": "soneto", "index": 0, "lines": ["La luna"]}
     ).json()
     assert r["messages"][0].startswith("Faltan")
+
+
+def test_scan_returns_the_syllable_view() -> None:
+    client, _ = _client()
+    r = client.post(
+        "/api/scan",
+        json={
+            "language": "es",
+            "form": "soneto",
+            "index": 0,
+            "lines": ["La luna ilumina la noche serena"],
+        },
+    ).json()
+    words = r["view"]
+    assert [s["t"] for s in words[1]["syl"]] == ["lu", "na"] and words[1][
+        "join"
+    ] is True  # luna‿ilumina
+    assert any(s["s"] for s in words[2]["syl"])  # a stressed syllable is marked
+
+
+def test_a_line_in_another_language_gets_a_hint() -> None:
+    client, _ = _client()
+    r = client.post(
+        "/api/scan",
+        json={
+            "language": "es",
+            "form": "soneto",
+            "index": 0,
+            "lines": ["The chestnut drops its leaves along the lane"],
+        },
+    ).json()
+    assert r["other_language"] == "en"
+    assert r["messages"][0].startswith("Este verso parece estar en inglés")
+    ok = client.post(
+        "/api/scan",
+        json={
+            "language": "es",
+            "form": "soneto",
+            "index": 0,
+            "lines": ["La luna vierte su silencio blanco"],
+        },
+    ).json()
+    assert ok["other_language"] is None

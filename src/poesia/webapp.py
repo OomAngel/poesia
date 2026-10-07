@@ -137,6 +137,41 @@ def _partner_index(form: Any, index: int) -> int | None:
     return None
 
 
+# Function words per language, for spotting a line written in another language than the
+# form's (U5). Shared words ("la", "in", "no", "con") count for each language they belong to.
+_FUNCTION_WORDS = {
+    "es": set(
+        "el la los las que de y en con por para del una un como mi su sus sin se lo al más pero es no muy".split()
+    ),
+    "en": set(
+        "the and of to in a is my with on for that it as his her your from by at not are was i you we".split()
+    ),
+    "it": set(
+        "il lo la gli le che di e in con per del della una un come mio mia sua non si nel nella al ma è ed dei".split()
+    ),
+}
+_LANG_NAME = {
+    "es": {"es": "español", "en": "inglés", "it": "italiano"},
+    "en": {"es": "Spanish", "en": "English", "it": "Italian"},
+    "it": {"es": "spagnolo", "en": "inglese", "it": "italiano"},
+}
+_MISMATCH = {
+    "es": "Este verso parece estar en {other}; esta forma cuenta las sílabas en {own}.",
+    "en": "This line looks {other}; this form counts syllables in {own}.",
+    "it": "Questo verso sembra in {other}; questa forma conta le sillabe in {own}.",
+}
+
+
+def guess_language(line: str) -> str | None:
+    """es, en or it when the function words point clearly one way, else None."""
+    words = [w.strip(".,;:!?¡¿«»\"'()").lower() for w in line.replace("’", "'").split()]
+    words = [w.split("'")[-1] if "'" in w else w for w in words]
+    scores = {lang: sum(w in fw for w in words) for lang, fw in _FUNCTION_WORDS.items()}
+    ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+    (best, top), (_, second) = ranked[0], ranked[1]
+    return best if top >= 2 and top - second >= 2 else None
+
+
 def scan_line(
     line: str, language: str, form_name: str, index: int, lines: list[str]
 ) -> dict[str, Any]:
@@ -159,6 +194,11 @@ def scan_line(
         partner_line = lines[partner]
         rhymes = bool(key) and key == phon.rhyme_key(partner_line).consonant
     messages = list(lesson.messages)
+    looks_like = guess_language(line)
+    mismatch = looks_like is not None and looks_like != language
+    if looks_like is not None and mismatch:
+        names = _LANG_NAME[language]
+        messages.insert(0, _MISMATCH[language].format(other=names[looks_like], own=names[language]))
     if rhymes is False and partner is not None:
         messages.append(
             {
@@ -181,7 +221,20 @@ def scan_line(
         "rhyme_partner": partner,
         "rhymes": rhymes,
         "messages": messages,
+        "other_language": looks_like if mismatch else None,
+        # A line in another language is shown in that language's syllables, as the hint says.
+        "view": _view(line, looks_like if looks_like is not None and mismatch else language),
     }
+
+
+def _view(line: str, language: str) -> list[dict[str, Any]]:
+    """Syllables for display (poesia.scansion_view); never fails the scan."""
+    try:
+        from poesia.scansion_view import syllable_view
+
+        return syllable_view(line, language)
+    except Exception:
+        return []
 
 
 def propose_lines(
