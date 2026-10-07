@@ -43,6 +43,7 @@ english-scan = [
     "pronouncing",
     "cmudict",
     "g2p_en",  # neural G2P (ARPAbet output) fallback for words CMUdict misses
+    "pyphen",  # written syllable split for the page's display (poesia.scansion_view)
 ]
 
 # Multilingual phonology

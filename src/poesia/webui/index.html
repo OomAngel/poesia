@@ -67,15 +67,25 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
 .pause .num { font-weight: bold; font-size: 1.1rem; }
 .linked { border-top: 1px solid var(--line); padding: 10px 0; }
 .linked h3 { margin: 0; font-size: 1rem; } .linked .by { color: var(--muted); font-size: .88rem; }
-.linked pre { font: inherit; white-space: pre-wrap; margin: 6px 0; }
+.linked pre, pre.poemview { font: inherit; white-space: pre-wrap; margin: 6px 0; }
 .linked .credit { font-size: .75rem; color: var(--ghost); }
 .topline { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 16px; padding: 0; list-style: none; }
+.steps button { border-radius: 999px; font-size: .85rem; padding: 5px 12px; }
+.steps button[aria-current=step] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.next { display: flex; justify-content: flex-end; gap: 10px; align-items: center; margin: 8px 0 16px; flex-wrap: wrap; }
+.syl { font-size: .9rem; color: var(--muted); margin: 3px 0 0 2.2em; letter-spacing: .01em; }
+.syl b { color: var(--fg); }
+.syl .dot { color: var(--ghost); padding: 0 1px; }
+.syl .join { color: var(--accent); font-weight: bold; }
+.rmark { display: inline-block; width: .8em; height: .8em; border-radius: 50%; vertical-align: middle; }
+.hint { color: var(--warn); }
 [hidden] { display: none !important; }
 /* Phones: the action bar sits after the poem instead of floating over the lines. */
 @media (max-width: 600px) {
   .bar { position: static; }
   .bar button { flex: 1 1 auto; }
-  .status, details.why, .props { margin-left: 0; }
+  .status, details.why, .props, .syl { margin-left: 0; }
   main { padding-bottom: 32px; }
 }
 </style>
@@ -107,6 +117,12 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
       <button id="pauseContinue"></button>
     </section>
 
+    <nav aria-label="steps"><ol class="steps" id="steps">
+      <li><button data-step="1"></button></li><li><button data-step="2"></button></li>
+      <li><button data-step="3"></button></li><li><button data-step="4"></button></li>
+    </ol></nav>
+
+    <section id="step1">
     <fieldset>
       <legend id="startLegend"></legend>
       <label for="theme" id="themeLabel"></label>
@@ -114,32 +130,45 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
       <label for="reflection" id="reflectionLabel"></label>
       <textarea class="reflection" id="reflection" maxlength="4000"></textarea>
     </fieldset>
+    <div class="next"><button class="primary" data-goto="2"></button></div>
+    </section>
 
+    <section id="step2" hidden>
     <fieldset>
       <legend id="formLegend"></legend>
       <div class="choices" id="forms" role="group"></div>
     </fieldset>
+    <div class="next"><button class="primary" data-goto="3"></button></div>
+    </section>
 
+    <section id="step3" hidden>
     <fieldset>
       <legend id="poemLegend"></legend>
       <div id="lines"></div>
       <button id="addLine" hidden></button>
     </fieldset>
+    <div class="next"><span class="note" id="authorship" aria-live="polite"></span>
+      <button class="primary" data-goto="4"></button></div>
+    <p class="note" id="footnote"></p>
+    </section>
 
+    <section id="step4" hidden>
+    <fieldset>
+      <legend id="listenLegend"></legend>
+      <pre class="poemview" id="poemView"></pre>
+      <div class="next" style="justify-content:flex-start"><button id="listen"></button></div>
+    </fieldset>
     <fieldset>
       <legend id="linkLegend"></legend>
       <p class="note" id="linkNote"></p>
       <button id="linkBtn"></button>
       <div id="links"></div>
     </fieldset>
-
-    <div class="bar">
+    <div class="next" style="justify-content:flex-start">
       <button class="primary" id="keep"></button>
-      <button id="listen"></button>
       <button id="clear"></button>
-      <span class="note" id="authorship" aria-live="polite"></span>
     </div>
-    <p class="note" id="footnote"></p>
+    </section>
   </div>
   <div class="sr" aria-live="polite" id="live"></div>
 </main>
@@ -151,6 +180,7 @@ const STORE = "poesia.draft.v2";
 // Every word on the page, per language (docs/hack_apertus/PACKAGING_UX_PLAN.md, U1).
 const STR = {
   es: {
+    steps: ["Lo que sentiste", "La forma", "Escribe", "Escucha y guarda"], next: "Siguiente", listenLegend: "Tu poema, en voz alta",
     tagline: "Tú escribes el poema. PoesIA cuenta, escucha y explica. Nada sale de este ordenador.",
     changeLang: "Cambiar de idioma", startLegend: "Antes de empezar",
     themeLabel: "¿De qué trata? (basta una palabra)", themePh: "un árbol en otoño",
@@ -183,6 +213,7 @@ const STR = {
     },
   },
   en: {
+    steps: ["What moved you", "The form", "Write", "Listen and keep"], next: "Next", listenLegend: "Your poem, read aloud",
     tagline: "You write the poem. PoesIA counts, listens and explains. Nothing leaves this computer.",
     changeLang: "Change language", startLegend: "Before you start",
     themeLabel: "What is it about? (a word is enough)", themePh: "an autumn tree",
@@ -215,6 +246,7 @@ const STR = {
     },
   },
   it: {
+    steps: ["Ciò che hai provato", "La forma", "Scrivi", "Ascolta e conserva"], next: "Avanti", listenLegend: "La tua poesia, ad alta voce",
     tagline: "Scrivi tu la poesia. PoesIA conta, ascolta e spiega. Niente esce da questo computer.",
     changeLang: "Cambia lingua", startLegend: "Prima di cominciare",
     themeLabel: "Di che cosa parla? (basta una parola)", themePh: "un albero d'autunno",
@@ -248,7 +280,8 @@ const STR = {
 };
 
 let forms = [];
-let state = { lang: "", formKey: "", theme: "", reflection: "", lines: [] };
+let state = { lang: "", formKey: "", theme: "", reflection: "", lines: [], step: 1 };
+const RHYME_COLOURS = ["#c0392b", "#2471a3", "#1e8449", "#b9770e", "#7d3c98", "#117a65", "#a04000"];
 // each line: { text, origin: "human"|"proposal-accepted"|"proposal-edited", proposal: "" }
 const T = () => STR[state.lang] || STR.en;
 
@@ -288,6 +321,25 @@ function applyText() {
   }
   $("listen").textContent = t.listen;
   $("theme").placeholder = t.themePh;
+  $("listenLegend").textContent = t.listenLegend;
+  document.querySelectorAll("[data-step]").forEach(b => { b.textContent = `${b.dataset.step}. ${t.steps[b.dataset.step - 1]}`; });
+  document.querySelectorAll("[data-goto]").forEach(b => { b.textContent = `${t.next}: ${t.steps[b.dataset.goto - 1]} →`; });
+}
+
+function showStep(n) {
+  state.step = n; save();
+  for (let k = 1; k <= 4; k++) $("step" + k).hidden = k !== n;
+  document.querySelectorAll("[data-step]").forEach(b => {
+    if (Number(b.dataset.step) === n) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+  });
+  if (n === 3) renderLines();
+  if (n === 4) $("poemView").textContent = state.lines.map(l => l.text).filter(x => x.trim()).join("\n");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function goTo(n) {
+  if (state.step === 1 && n > 1 && await screenText(state.reflection)) return;  // pause before shaping
+  showStep(n);
 }
 
 function renderForms() {
@@ -324,13 +376,23 @@ function renderLines() {
   $("addLine").hidden = !f.free;
   const box = $("lines"); box.innerHTML = "";
   let stanzaBox = null, stanzaIdx = -1;
+  // Stanza by stanza: the next stanza appears once the one before it has a line.
+  let shown = 0;
+  if (f.free || !f.stanzas.length) shown = state.lines.length;
+  else for (let k = 0; k < state.lines.length; k++) {
+    const st = stanzaOf(f, k);
+    if (st === 0 || state.lines.some((l, j) => stanzaOf(f, j) === st - 1 && l.text.trim())) shown = k + 1; else break;
+  }
+  const letters = [...new Set((f.scheme || "").split("").filter(c => /[A-Z]/.test(c)))];
   state.lines.forEach((ln, i) => {
+    if (i >= shown) return;
     const s = stanzaOf(f, i);
     if (s !== stanzaIdx || !stanzaBox) { stanzaBox = document.createElement("div"); stanzaBox.className = "stanza"; box.appendChild(stanzaBox); stanzaIdx = s; }
     const div = document.createElement("div"); div.className = "line";
     const target = f.syllables[i];
     div.innerHTML = `
       <div class="lhead"><span class="lnum">${i + 1}</span>
+        ${f.scheme && /[A-Z]/.test(f.scheme[i] || "") ? `<span class="rmark" title="${f.scheme[i]}" style="background:${RHYME_COLOURS[letters.indexOf(f.scheme[i]) % RHYME_COLOURS.length]}"></span>` : ""}
         <span class="badge count" id="count${i}">${target ? "– / " + target : "–"} ${t.syll}</span>
         <span class="origin" id="origin${i}"></span></div>
       <div class="lbody">
@@ -338,6 +400,7 @@ function renderLines() {
         <textarea class="verse" id="in${i}" rows="1" maxlength="300" autocomplete="off"></textarea>
         <button id="sug${i}" title="${t.ideasTitle}">${t.ideas}</button>
       </div>
+      <div class="syl" id="syl${i}" aria-hidden="true"></div>
       <div class="status" id="status${i}"></div>
       <details class="why" id="whybox${i}" hidden><summary>${t.why}</summary><ul id="why${i}"></ul></details>
       <div class="props" id="props${i}"></div>`;
@@ -349,7 +412,7 @@ function renderLines() {
       ln.text = inp.value;
       if (ln.origin !== "human" && ln.proposal) ln.origin = inp.value === ln.proposal ? "proposal-accepted" : "proposal-edited";
       showOrigin(i); save(); authorship();
-      clearTimeout(timer); timer = setTimeout(() => check(i), 350);
+      clearTimeout(timer); timer = setTimeout(() => { check(i); revealNext(i); }, 350);
     });
     inp.addEventListener("keydown", (e) => {   // Enter goes to the next line, as in a poem
       if (e.key === "Enter") { e.preventDefault(); const next = $("in" + (i + 1)); if (next) next.focus(); else if (f.free) addLine(); }
@@ -360,6 +423,16 @@ function renderLines() {
     if (ln.text) check(i);
   });
   authorship();
+}
+
+function revealNext(i) {
+  // A stanza's first line written: show the next stanza without losing focus.
+  const f = currentForm();
+  if (f.free || !f.stanzas.length) return;
+  const nextFirst = (() => { let acc = 0; for (const n of f.stanzas) { acc += n; if (acc > i) return acc; } return -1; })();
+  if (nextFirst > 0 && nextFirst < state.lines.length && !$("in" + nextFirst)) {
+    const pos = $("in" + i).selectionStart; renderLines(); const el = $("in" + i); el.focus(); el.setSelectionRange(pos, pos);
+  }
 }
 
 function addLine() {
@@ -377,22 +450,39 @@ async function check(i) {
   const target = f.syllables[i];
   if (!state.lines[i].text.trim()) {
     count.textContent = `${target ? "– / " + target : "–"} ${t.syll}`; count.className = "badge count";
-    status.textContent = ""; $("whybox" + i).hidden = true; return;
+    status.textContent = ""; $("whybox" + i).hidden = true; $("syl" + i).innerHTML = ""; return;
   }
   try {
     const r = await api("/api/scan", { language: f.language, form: f.form, index: i, lines: texts() });
     count.textContent = `${r.syllables}${r.target ? " / " + r.target : ""} ${t.syll}`;
     count.className = "badge count " + (r.target ? (r.status === "ok" ? "ok" : r.status) : "");
+    drawSyllables($("syl" + i), r.view || []);
     const parts = [];
+    if (r.other_language) parts.push(r.messages[0]);
     if (r.target) parts.push(r.status === "ok" ? t.ok : t[r.status](Math.abs(r.syllables - r.target)));
     if (r.rhyme_partner !== null && r.rhymes !== null)
       parts.push(r.rhymes ? t.rhymeWith(r.rhyme_partner + 1) : t.rhymeMiss(r.rhyme_partner + 1));
     status.textContent = parts.join(" · ");
-    status.className = "status " + (r.rhymes === false ? "norhyme" : (r.status === "ok" || !r.target ? "ok" : r.status));
+    status.className = "status " + (r.other_language ? "hint" : r.rhymes === false ? "norhyme" : (r.status === "ok" || !r.target ? "ok" : r.status));
     const why = $("why" + i); why.innerHTML = "";
     r.messages.forEach(m => { const li = document.createElement("li"); li.textContent = m; why.appendChild(li); });
     $("whybox" + i).hidden = !r.messages.length;
   } catch (e) { status.textContent = e.message; }
+}
+
+function drawSyllables(box, view) {
+  // la·LU·na‿i·lu·MI·na : stressed syllables bold, merged vowels joined (U4)
+  box.innerHTML = "";
+  view.forEach((w, wi) => {
+    w.syl.forEach((s, si) => {
+      if (si) { const d = document.createElement("span"); d.className = "dot"; d.textContent = "·"; box.appendChild(d); }
+      const el = document.createElement(s.s ? "b" : "span"); el.textContent = s.t; box.appendChild(el);
+    });
+    if (wi < view.length - 1) {
+      const sep = document.createElement("span"); sep.className = w.join ? "join" : "";
+      sep.textContent = w.join ? "‿" : " "; box.appendChild(sep);
+    }
+  });
 }
 
 async function suggest(i) {
@@ -515,7 +605,7 @@ function chooseLang(lang) {
 
 function showWriter() {
   $("langStep").hidden = true; $("writer").hidden = false; $("changeLang").hidden = false;
-  applyText(); renderForms(); renderLines();
+  applyText(); renderForms(); renderLines(); showStep(state.step || 1);
 }
 
 async function init() {
@@ -534,9 +624,11 @@ async function init() {
   $("listen").addEventListener("click", listen);
   $("linkBtn").addEventListener("click", showLinks);
   $("addLine").addEventListener("click", addLine);
+  document.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => goTo(Number(b.dataset.step))));
+  document.querySelectorAll("[data-goto]").forEach(b => b.addEventListener("click", () => goTo(Number(b.dataset.goto))));
   $("clear").addEventListener("click", () => { if (confirm(T().clearAsk)) {
-    state = { lang: state.lang, formKey: state.formKey, theme: "", reflection: "", lines: [] }; save();
-    $("theme").value = ""; $("reflection").value = ""; renderLines(); } });
+    state = { lang: state.lang, formKey: state.formKey, theme: "", reflection: "", lines: [], step: 1 }; save();
+    $("theme").value = ""; $("reflection").value = ""; renderLines(); showStep(1); } });
   if (state.lang) showWriter(); else applyText();
 }
 init();
