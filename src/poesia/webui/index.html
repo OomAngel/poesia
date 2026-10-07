@@ -83,6 +83,13 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
 .setup { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px;
          padding: 10px 12px; margin: 0 0 16px; background: var(--card); font-size: .92rem; }
 .setup progress { width: 100%; margin-top: 6px; }
+#printArea { display: none; }
+@media print {
+  body { background: #fff; }
+  body > main > *:not(#printArea) { display: none !important; }
+  #printArea { display: block; font: 13pt/1.6 Georgia, serif; color: #000; }
+  #printArea h1 { font-size: 18pt; } #printArea .stmt { font-size: 10pt; color: #444; margin-top: 2em; }
+}
 [hidden] { display: none !important; }
 /* Phones: the action bar sits after the poem instead of floating over the lines. */
 @media (max-width: 600px) {
@@ -109,6 +116,7 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
       <button class="choice" data-lang="en"><strong>English</strong><span>sonnet, haiku, free verse</span></button>
       <button class="choice" data-lang="it"><strong>Italiano</strong><span>sonetto, verso libero</span></button>
     </div>
+    <p><button class="link" id="openStart">Open a saved poem · Abrir un poema guardado · Apri una poesia salvata</button></p>
   </section>
 
   <div class="setup" id="setup" role="status" hidden><span id="setupText"></span>
@@ -170,12 +178,23 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
       <button id="linkBtn"></button>
       <div id="links"></div>
     </fieldset>
-    <div class="next" style="justify-content:flex-start">
-      <button class="primary" id="keep"></button>
-      <button id="clear"></button>
-    </div>
+    <fieldset>
+      <legend id="keepLegend"></legend>
+      <div class="next" style="justify-content:flex-start">
+        <button class="primary" id="keepTxt"></button>
+        <button id="print"></button>
+        <button id="keep"></button>
+        <label class="sr" for="openFile" id="openLabel"></label>
+        <button id="openBtn"></button>
+        <input type="file" id="openFile" accept=".json,application/json" hidden>
+      </div>
+      <p class="note" id="keepNote"></p>
+    </fieldset>
+    <div class="next" style="justify-content:flex-start"><button id="clear"></button></div>
     </section>
   </div>
+  <div id="printArea"><h1 id="printTitle"></h1><pre id="printPoem" style="font: inherit; white-space: pre-wrap"></pre>
+    <p class="stmt" id="printStmt"></p></div>
   <div class="sr" aria-live="polite" id="live"></div>
 </main>
 <script>
@@ -195,6 +214,11 @@ const STR = {
       loading: () => "Preparando PoesIA: cargando el modelo de poesía…",
       error: (e) => `No se pudo preparar el modelo (${e}). Puedes escribir y escuchar; las ideas no están disponibles.`,
     },
+    keepLegend: "Guardar", keepTxt: "Guardar como texto", print: "Imprimir o guardar en PDF",
+    keepJson: "Guardar para seguir otro día", openBtn: "Abrir un poema guardado",
+    keepNote: "Todo se guarda en tu ordenador; nada se sube a ningún sitio.",
+    stmt: (own, all) => `Versos escritos con mis palabras: ${own} de ${all}. Métrica comprobada con PoesIA.`,
+    badFile: "Ese archivo no es un poema guardado por PoesIA.",
     tagline: "Tú escribes el poema. PoesIA cuenta, escucha y explica. Nada sale de este ordenador.",
     changeLang: "Cambiar de idioma", startLegend: "Antes de empezar",
     themeLabel: "¿De qué trata? (basta una palabra)", themePh: "un árbol en otoño",
@@ -236,6 +260,11 @@ const STR = {
       loading: () => "Preparing PoesIA: loading the poetry model…",
       error: (e) => `The model could not be prepared (${e}). You can write and listen; ideas are not available.`,
     },
+    keepLegend: "Keep", keepTxt: "Save as text", print: "Print or save as PDF",
+    keepJson: "Save to continue later", openBtn: "Open a saved poem",
+    keepNote: "Everything is saved on your computer; nothing is uploaded anywhere.",
+    stmt: (own, all) => `Lines in my own words: ${own} of ${all}. Metre checked with PoesIA.`,
+    badFile: "That file is not a poem saved by PoesIA.",
     tagline: "You write the poem. PoesIA counts, listens and explains. Nothing leaves this computer.",
     changeLang: "Change language", startLegend: "Before you start",
     themeLabel: "What is it about? (a word is enough)", themePh: "an autumn tree",
@@ -277,6 +306,11 @@ const STR = {
       loading: () => "Preparo PoesIA: carico il modello di poesia…",
       error: (e) => `Non è stato possibile preparare il modello (${e}). Puoi scrivere e ascoltare; le idee non sono disponibili.`,
     },
+    keepLegend: "Conserva", keepTxt: "Salva come testo", print: "Stampa o salva in PDF",
+    keepJson: "Salva per continuare un altro giorno", openBtn: "Apri una poesia salvata",
+    keepNote: "Tutto resta sul tuo computer; niente viene caricato da nessuna parte.",
+    stmt: (own, all) => `Versi con parole mie: ${own} su ${all}. Metrica controllata con PoesIA.`,
+    badFile: "Questo file non è una poesia salvata da PoesIA.",
     tagline: "Scrivi tu la poesia. PoesIA conta, ascolta e spiega. Niente esce da questo computer.",
     changeLang: "Cambia lingua", startLegend: "Prima di cominciare",
     themeLabel: "Di che cosa parla? (basta una parola)", themePh: "un albero d'autunno",
@@ -346,10 +380,12 @@ function applyText() {
   document.documentElement.lang = state.lang || "en";
   for (const id of ["tagline", "changeLang", "startLegend", "themeLabel", "reflectionLabel", "formLegend",
                     "poemLegend", "addLine", "linkLegend", "linkNote", "linkBtn", "keep", "clear",
-                    "footnote", "pauseTitle", "pauseText", "pauseNote", "pauseContinue"]) {
+                    "footnote", "pauseTitle", "pauseText", "pauseNote", "pauseContinue",
+                    "keepLegend", "keepTxt", "print", "openBtn", "keepNote"]) {
     if ($(id)) $(id).textContent = t[id];
   }
   $("listen").textContent = t.listen;
+  $("keep").textContent = t.keepJson;
   $("theme").placeholder = t.themePh;
   $("listenLegend").textContent = t.listenLegend;
   document.querySelectorAll("[data-step]").forEach(b => { b.textContent = `${b.dataset.step}. ${t.steps[b.dataset.step - 1]}`; });
@@ -630,19 +666,59 @@ function authorship() {
   $("authorship").textContent = filled.length ? T().authorship(own, filled.length) : "";
 }
 
+function poemText() {
+  const filled = state.lines.filter(l => l.text.trim());
+  const own = filled.filter(l => l.origin === "human").length;
+  return { title: state.theme.trim() || T().untitled, body: state.lines.map(l => l.text).join("\n").replace(/\n{3,}/g, "\n\n").trim(),
+           stmt: T().stmt(own, filled.length) };
+}
+
+function download(name, blob) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function fileBase() { return (state.theme || "poema").replace(/[^\p{L}\p{N}]+/gu, "-").slice(0, 40); }
+
+function keepText() {
+  const p = poemText();
+  download(`${fileBase()}.txt`, new Blob([`${p.title}\n\n${p.body}\n\n${p.stmt}\n`], { type: "text/plain;charset=utf-8" }));
+}
+
+function printPoem() {
+  const p = poemText();
+  $("printTitle").textContent = p.title; $("printPoem").textContent = p.body; $("printStmt").textContent = p.stmt;
+  window.print();
+}
+
+function openSaved(file, done = () => {}) {
+  const reader = new FileReader();
+  reader.onerror = () => { alert(T().badFile); done(); };
+  reader.onload = () => {
+    done();
+    try {
+      const poem = JSON.parse(reader.result);
+      if (!Array.isArray(poem.lines) || !poem.language || !poem.form) throw new Error("shape");
+      state.lang = poem.language; state.formKey = poem.language + ":" + poem.form;
+      state.theme = poem.theme || ""; state.reflection = poem.reflection || "";
+      state.lines = poem.lines.map(l => ({ text: l.text || "", origin: l.origin || "human", proposal: l.proposal || "" }));
+      $("theme").value = state.theme; $("reflection").value = state.reflection;
+      save(); showWriter(); showStep(3);
+    } catch (e) { alert(T().badFile); }
+  };
+  reader.readAsText(file);
+}
+
 function keep() {
   const f = currentForm();
-  const lines = state.lines.map(l => ({ text: l.text, origin: l.origin,
+  const lines = state.lines.map(l => ({ text: l.text, origin: l.origin, proposal: l.proposal,
     edit_distance: l.origin === "proposal-edited" ? editDistance(l.proposal, l.text) : 0 }));
   const own = lines.filter(l => l.text.trim() && l.origin === "human").length;
   const filled = lines.filter(l => l.text.trim()).length;
   const poem = { form: f.form, language: f.language, theme: state.theme,
     reflection: state.reflection, lines, kept_at: new Date().toISOString(),
     statement: `${own} of ${filled} lines worded by the author; metre checked by PoesIA.` };
-  const blob = new Blob([JSON.stringify(poem, null, 2)], { type: "application/json" });
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-  a.download = `poem-${(state.theme || "untitled").replace(/[^\p{L}\p{N}]+/gu, "-").slice(0, 40)}.json`;
-  a.click(); URL.revokeObjectURL(a.href);
+  download(`${fileBase()}.json`, new Blob([JSON.stringify(poem, null, 2)], { type: "application/json" }));
 }
 
 function chooseLang(lang) {
@@ -671,6 +747,12 @@ async function init() {
   $("reflection").addEventListener("blur", () => screenText(state.reflection));
   $("pauseContinue").addEventListener("click", () => { $("pause").hidden = true; });
   $("keep").addEventListener("click", keep);
+  $("keepTxt").addEventListener("click", keepText);
+  $("print").addEventListener("click", printPoem);
+  $("openBtn").addEventListener("click", () => $("openFile").click());
+  $("openStart").addEventListener("click", () => $("openFile").click());
+  // Clear the input only after the read: clearing it at once can abort the read in Chromium.
+  $("openFile").addEventListener("change", (e) => { const f = e.target.files[0]; if (f) openSaved(f, () => { e.target.value = ""; }); });
   $("listen").addEventListener("click", listen);
   $("linkBtn").addEventListener("click", showLinks);
   $("addLine").addEventListener("click", addLine);
