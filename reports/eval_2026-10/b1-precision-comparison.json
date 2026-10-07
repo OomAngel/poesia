@@ -1,0 +1,90 @@
+{
+ "date": "2026-10-07",
+ "question": "What does 4-bit (Q4_K_M) cost Apertus v1.5 8B behind the PoesIA engine?",
+ "method": "scripts/evaluate_adapter_mlflow.py --openai-compat --samples 3 --seed 0, one process per language; CSCS inference API (vLLM, full precision) through dotfiles/bin/secret-proxy; local rows from p2-server-comparison.json (same client, same seeds).",
+ "caveat": "Serving stacks differ (vLLM vs Ollama/llama.cpp: chat template, sampler), so this is not quantisation alone; seeded runs are not reproducible run to run (see p2), n=18 per language, one run each.",
+ "cscs_full_precision": {
+  "model": "swiss-ai/Apertus-v1.5-8B",
+  "scores": {
+   "es": {
+    "poems": 18.0,
+    "line_count_accuracy": 1.0,
+    "syllable_abs_dev": 0.119,
+    "metre_pass_rate": 0.885,
+    "rhyme_accuracy": 0.428
+   },
+   "en": {
+    "poems": 18.0,
+    "line_count_accuracy": 1.0,
+    "syllable_abs_dev": 0.111,
+    "metre_pass_rate": 0.913,
+    "rhyme_accuracy": 0.77
+   },
+   "it": {
+    "poems": 18.0,
+    "line_count_accuracy": 1.0,
+    "syllable_abs_dev": 0.103,
+    "metre_pass_rate": 0.901,
+    "rhyme_accuracy": 0.519
+   }
+  },
+  "seconds_per_sonnet": "~36 (three languages in parallel)",
+  "usage": {
+   "requests": 7216,
+   "prompt_tokens": 1545765,
+   "completion_tokens": 75584,
+   "approx_chf": 0.02
+  },
+  "reports": [
+   "reports/eval_2026-10/b1-cscs-apertus-v1.5-8B-es.json",
+   "reports/eval_2026-10/b1-cscs-apertus-v1.5-8B-en.json",
+   "reports/eval_2026-10/b1-cscs-apertus-v1.5-8B-it.json"
+  ]
+ },
+ "local_q4_ollama": {
+  "es": {
+   "poems": 18.0,
+   "line_count_accuracy": 1.0,
+   "syllable_abs_dev": 0.206,
+   "metre_pass_rate": 0.841,
+   "rhyme_accuracy": 0.367
+  },
+  "en": {
+   "poems": 18.0,
+   "line_count_accuracy": 1.0,
+   "syllable_abs_dev": 0.143,
+   "metre_pass_rate": 0.893,
+   "rhyme_accuracy": 0.841
+  },
+  "it": {
+   "poems": 18.0,
+   "line_count_accuracy": 1.0,
+   "syllable_abs_dev": 0.183,
+   "metre_pass_rate": 0.829,
+   "rhyme_accuracy": 0.432
+  }
+ },
+ "local_q4_llamacpp": {
+  "es": {
+   "poems": 18.0,
+   "line_count_accuracy": 1.0,
+   "syllable_abs_dev": 0.175,
+   "metre_pass_rate": 0.841,
+   "rhyme_accuracy": 0.422
+  },
+  "en": {
+   "poems": 18.0,
+   "line_count_accuracy": 1.0,
+   "syllable_abs_dev": 0.115,
+   "metre_pass_rate": 0.917,
+   "rhyme_accuracy": 0.897
+  },
+  "it": {
+   "poems": 18.0,
+   "line_count_accuracy": 1.0,
+   "syllable_abs_dev": 0.159,
+   "metre_pass_rate": 0.853,
+   "rhyme_accuracy": 0.488
+  }
+ }
+}
