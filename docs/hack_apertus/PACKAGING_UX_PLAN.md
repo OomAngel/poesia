@@ -34,8 +34,8 @@ carry-on bundle for an air-gapped machine.
 | P5 | **Air-gapped bundle.** `make bundle` writes the images and the model volume to one folder (`docker save` + a volume tar) with a checksum; `make load` restores it on a machine with no network. | `make load && make run` on a machine with the cable out; one paragraph and a photo for the report | 2 h |
 | P6 | **Hardware check at start.** Free GPU memory and RAM read at startup; under ~6 GB free on the GPU the page says it runs on CPU (suggestions ~15 s) instead of silently splitting the model. Minimum requirements in the README. | the 11%/89% CPU/GPU split seen on 2026-10-07 is reported, not hidden | 1 h |
 | P7 | **CI smoke test** of the entry: build, start CPU-only with a tiny GGUF, hit `/api/scan`, `/api/safety`, `/api/propose`. | green on every push | 2 h |
-| P8 | **Prebuilt images** (GHCR) so judges pull instead of build. *Publishing: your call.* | `docker compose up` pulls; no compiler, no 3-min build | 1 h |
-| P9 | **Native path, no Docker** (individuals): Ollama desktop app + `pipx install` + `poesia-web --setup` that pulls the models with progress. *After 13 Oct unless you want it now.* | works on a laptop with only Ollama installed | 4 h |
+| P8 | **Prebuilt images** (GHCR) so judges pull instead of build; local build stays as the fallback. *Decided: at submission.* | `docker compose up` pulls; no compiler, no 3-min build | 1 h |
+| P9 | **Native path, no Docker** (individuals): Ollama desktop app + `pipx install` + `poesia-web --setup` that pulls the models with progress. *Decided: before 13 Oct.* | works on a laptop with only Ollama installed | 4 h |
 
 ## UX: goal and steps
 
@@ -64,17 +64,18 @@ screenshots at 390, 768 and 1280 px in each language.
 
 1. P1, P3, U1, U2, U8 (small, remove the most visible problems).
 2. U3, U4, U5, P4 (the guided page and the first-run screen).
-3. P5, P6, U7, U10, P2 measurement.
+3. P5, P6, U7, U10, P2 measurement, P9 (no-Docker install, decided before 13 Oct).
 4. U11 testers, then the video (Edit with Ava) and the report PDF.
-5. If time: U6, P7, U9; P8/P9 per your decisions.
+5. If time: U6, P7, U9. P8 (publish images) at submission.
 
 About 35 hours of work for steps 1–3. Steps 4–5 need people and your decisions.
 
-## Decisions for Angel
+## Decisions (Angel, 2026-10-07)
 
-1. **P8:** publish prebuilt images on GitHub Container Registry at submission? (Recommended:
-   yes; judges then pull instead of build.)
-2. **P2:** switch from Ollama to llama.cpp's server if it is smaller and scores the same?
-   (Recommended: yes, decided by the measurement.)
-3. **P9:** native install without Docker before 13 Oct, or after? (Recommended: after.)
-4. **U1:** Spanish, English, Italian now; German and French after? (Recommended: yes.)
+1. **P8, images:** publish the page image on GitHub Container Registry at submission, and
+   keep the local build as the fallback when the pull fails.
+2. **P2, model server:** measure llama.cpp's server against Ollama (size, first-token time,
+   the seeded benchmark) and switch only if it is clearly smaller and scores the same.
+3. **P9, no-Docker install:** **before 13 Oct**, so the report can show that a person runs it
+   with only the Ollama app installed (it moves into step 3 of the order below).
+4. **U1, languages:** Spanish, English and Italian now; German and French after submitting.
