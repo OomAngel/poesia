@@ -33,9 +33,15 @@ spanish = [
 
 # English phonology / scansion
 english = [
+    "poesia[english-scan]",
+    "prosodic",  # planned: foot-level parsing (phonology/english.py); not imported yet
+]
+# What English scansion imports today. A lean install (the Hack Apertus page image) takes
+# this instead of `english`: prosodic alone pulls pandas, scipy, pyarrow, statsmodels and
+# matplotlib (~450 MB).
+english-scan = [
     "pronouncing",
     "cmudict",
-    "prosodic",
     "g2p_en",  # neural G2P (ARPAbet output) fallback for words CMUdict misses
 ]
 
