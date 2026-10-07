@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
 pytest.importorskip("fastapi")
@@ -220,3 +222,12 @@ def test_a_line_in_another_language_gets_a_hint() -> None:
         },
     ).json()
     assert ok["other_language"] is None
+
+
+def test_with_ollama_says_how_to_install_when_none_runs(monkeypatch):
+    from poesia import webapp
+
+    monkeypatch.delenv("LLM_BASE_URL", raising=False)
+    with pytest.raises(SystemExit, match="Install the Ollama app"):
+        webapp._use_local_ollama("http://127.0.0.1:9")  # discard port: nothing listens
+    assert "LLM_BASE_URL" not in os.environ
