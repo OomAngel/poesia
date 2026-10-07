@@ -35,10 +35,14 @@ _Last updated: 2026-10-07 evening (Hack Apertus: packaging/UX plan steps 1–3 d
   tested with no network and on Windows), Italian linking (609 Gutenberg poems, outside
   training), no-Docker start `poesia-web --with-ollama` (P9; Ollama 0.40 on Windows 11 25H2
   with Developer Mode cannot read models it pulls: Docker there), P2 measured (keep Ollama
-  until after 16 Oct; llama.cpp equal scores, smaller, faster). Entry pins engine `fc9dd5b`.
-- **Next:** U11 testers (needs people), the video (Edit with Ava) and the report PDF; if time,
-  U6 (word suggestions first), P7 (CI smoke test), U9 (safety copy review); P8 (publish
-  images) and the public repo at submission. The history rewrite (13 repos) waits for Angel's
+  until after 16 Oct; llama.cpp equal scores, smaller, faster). Then U6 (Ideas offers rhyme
+  words first, offline, `poesia.word_ideas` + `src/poesia/wordlists/`, CC BY-SA 4.0 data),
+  U9 keyboard half (pause focus; helplines in es/en/it) and a focus bug fixed (stanza
+  reveal sent fast typing into the previous line). Entry pins engine `31ab5ec`; its
+  `technical_report.md` is updated with all of this.
+- **Next:** U11 testers (needs people), U9's native-speaker read of the pause text, the video
+  (Edit with Ava) and the report PDF; P7 (CI smoke test) needs the entry on GitHub; P8
+  (publish images) and the public repo at submission. The history rewrite (13 repos) waits for Angel's
   permission rule; repin `POESIA_REF` after it.
 
 ---
