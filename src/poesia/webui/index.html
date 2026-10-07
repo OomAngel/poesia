@@ -80,6 +80,9 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
 .syl .join { color: var(--accent); font-weight: bold; }
 .rmark { display: inline-block; width: .8em; height: .8em; border-radius: 50%; vertical-align: middle; }
 .hint { color: var(--warn); }
+.setup { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px;
+         padding: 10px 12px; margin: 0 0 16px; background: var(--card); font-size: .92rem; }
+.setup progress { width: 100%; margin-top: 6px; }
 [hidden] { display: none !important; }
 /* Phones: the action bar sits after the poem instead of floating over the lines. */
 @media (max-width: 600px) {
@@ -107,6 +110,9 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
       <button class="choice" data-lang="it"><strong>Italiano</strong><span>sonetto, verso libero</span></button>
     </div>
   </section>
+
+  <div class="setup" id="setup" role="status" hidden><span id="setupText"></span>
+    <progress id="setupBar" max="1" value="0" hidden></progress></div>
 
   <div id="writer" hidden>
     <section class="pause" id="pause" role="alertdialog" aria-labelledby="pauseTitle" hidden>
@@ -181,6 +187,14 @@ const STORE = "poesia.draft.v2";
 const STR = {
   es: {
     steps: ["Lo que sentiste", "La forma", "Escribe", "Escucha y guarda"], next: "Siguiente", listenLegend: "Tu poema, en voz alta",
+    setup: {
+      models: { poetry: "el modelo de poesía", linking: "el modelo para enlazar poemas" },
+      checking: () => "Preparando PoesIA: comprobando los modelos…",
+      downloading: (m, done, total) => `Preparando PoesIA: descargando ${m} (${done} de ${total} GB). Ya puedes escribir; las ideas llegarán cuando termine.`,
+      preparing: (m) => `Preparando PoesIA: instalando ${m}…`,
+      loading: () => "Preparando PoesIA: cargando el modelo de poesía…",
+      error: (e) => `No se pudo preparar el modelo (${e}). Puedes escribir y escuchar; las ideas no están disponibles.`,
+    },
     tagline: "Tú escribes el poema. PoesIA cuenta, escucha y explica. Nada sale de este ordenador.",
     changeLang: "Cambiar de idioma", startLegend: "Antes de empezar",
     themeLabel: "¿De qué trata? (basta una palabra)", themePh: "un árbol en otoño",
@@ -214,6 +228,14 @@ const STR = {
   },
   en: {
     steps: ["What moved you", "The form", "Write", "Listen and keep"], next: "Next", listenLegend: "Your poem, read aloud",
+    setup: {
+      models: { poetry: "the poetry model", linking: "the model that links poems" },
+      checking: () => "Preparing PoesIA: checking the models…",
+      downloading: (m, done, total) => `Preparing PoesIA: downloading ${m} (${done} of ${total} GB). You can start writing; ideas arrive when it is done.`,
+      preparing: (m) => `Preparing PoesIA: installing ${m}…`,
+      loading: () => "Preparing PoesIA: loading the poetry model…",
+      error: (e) => `The model could not be prepared (${e}). You can write and listen; ideas are not available.`,
+    },
     tagline: "You write the poem. PoesIA counts, listens and explains. Nothing leaves this computer.",
     changeLang: "Change language", startLegend: "Before you start",
     themeLabel: "What is it about? (a word is enough)", themePh: "an autumn tree",
@@ -247,6 +269,14 @@ const STR = {
   },
   it: {
     steps: ["Ciò che hai provato", "La forma", "Scrivi", "Ascolta e conserva"], next: "Avanti", listenLegend: "La tua poesia, ad alta voce",
+    setup: {
+      models: { poetry: "il modello di poesia", linking: "il modello che collega le poesie" },
+      checking: () => "Preparo PoesIA: controllo i modelli…",
+      downloading: (m, done, total) => `Preparo PoesIA: scarico ${m} (${done} di ${total} GB). Puoi già scrivere; le idee arrivano quando ha finito.`,
+      preparing: (m) => `Preparo PoesIA: installo ${m}…`,
+      loading: () => "Preparo PoesIA: carico il modello di poesia…",
+      error: (e) => `Non è stato possibile preparare il modello (${e}). Puoi scrivere e ascoltare; le idee non sono disponibili.`,
+    },
     tagline: "Scrivi tu la poesia. PoesIA conta, ascolta e spiega. Niente esce da questo computer.",
     changeLang: "Cambia lingua", startLegend: "Prima di cominciare",
     themeLabel: "Di che cosa parla? (basta una parola)", themePh: "un albero d'autunno",
@@ -324,6 +354,25 @@ function applyText() {
   $("listenLegend").textContent = t.listenLegend;
   document.querySelectorAll("[data-step]").forEach(b => { b.textContent = `${b.dataset.step}. ${t.steps[b.dataset.step - 1]}`; });
   document.querySelectorAll("[data-goto]").forEach(b => { b.textContent = `${t.next}: ${t.steps[b.dataset.goto - 1]} →`; });
+}
+
+let modelsReady = true;
+async function pollSetup() {
+  // First run: show the model download in the page, not only in a terminal (plan P4).
+  let st;
+  try { st = await (await fetch("/api/status")).json(); } catch (e) { setTimeout(pollSetup, 3000); return; }
+  const t = T().setup, box = $("setup"), bar = $("setupBar");
+  modelsReady = st.phase === "ready";
+  document.querySelectorAll("[id^=sug], #linkBtn").forEach(b => { b.disabled = !modelsReady; });
+  if (modelsReady) { box.hidden = true; return; }
+  const gb = (x) => (x / 1e9).toLocaleString(state.lang || "en", { maximumFractionDigits: 1 });
+  const m = t.models[st.model] || st.model;
+  box.hidden = false;
+  $("setupText").textContent = st.phase === "downloading" && st.total ? t.downloading(m, gb(st.completed), gb(st.total))
+    : st.phase === "error" ? t.error(st.error) : (t[st.phase] || t.checking)(m);
+  bar.hidden = !(st.phase === "downloading" && st.total);
+  if (st.total) { bar.max = st.total; bar.value = st.completed; }
+  if (st.phase !== "error") setTimeout(pollSetup, 2000);
 }
 
 function showStep(n) {
@@ -419,6 +468,7 @@ function renderLines() {
     });
     inp.addEventListener("blur", () => screenText(ln.text));
     $("sug" + i).addEventListener("click", () => suggest(i));
+    $("sug" + i).disabled = !modelsReady;
     showOrigin(i);
     if (ln.text) check(i);
   });
@@ -630,6 +680,7 @@ async function init() {
     state = { lang: state.lang, formKey: state.formKey, theme: "", reflection: "", lines: [], step: 1 }; save();
     $("theme").value = ""; $("reflection").value = ""; renderLines(); showStep(1); } });
   if (state.lang) showWriter(); else applyText();
+  pollSetup();
 }
 init();
 </script>
