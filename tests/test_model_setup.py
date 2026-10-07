@@ -82,6 +82,30 @@ def test_unreachable_server_reports_error_without_raising() -> None:
     assert status.phase == "error" and "refused" in status.error
 
 
+def test_server_error_shows_ollamas_own_message() -> None:
+    import urllib.error
+
+    # Seen 2026-10-07: Ollama 0.40 on Windows 11 25H2 could not read the tag it had just
+    # written, and the page said only "HTTP Error 500".
+    body = io.BytesIO(
+        b'{"error":"The path cannot be traversed because it contains an untrusted mount point."}'
+    )
+    err = urllib.error.HTTPError("http://o/api/create", 500, "Internal Server Error", {}, body)
+    calls: list[tuple[str, dict]] = []
+    fake = _fake_ollama([], calls)
+
+    def urlopen(req, timeout=None):
+        if not isinstance(req, str) and req.full_url.endswith("/api/create"):
+            raise err
+        return fake(req, timeout)
+
+    setup = OllamaSetup("http://ollama:11434", _specs())
+    with patch("urllib.request.urlopen", urlopen):
+        status = setup.ensure()
+    assert status.phase == "error"
+    assert status.error.startswith("500: ") and "untrusted mount point" in status.error
+
+
 def test_status_endpoint_reports_setup_progress() -> None:
     import pytest
 
