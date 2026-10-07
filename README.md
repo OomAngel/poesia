@@ -450,6 +450,10 @@ poesia galeria illustrate soneto.txt --backend cloudflare --panel-mode poem \
 The free-provider landscape is evaluated and ranked in
 [`docs/IMAGE_GENERATION_PROVIDERS.md`](docs/IMAGE_GENERATION_PROVIDERS.md).
 
+Keeping the *same characters* across images, drawn from one reference drawing, needs a
+reference-image backend that does not exist yet; status, research and next steps are in
+[`docs/GALERIA_CHARACTER_COMIC_HANDOFF.md`](docs/GALERIA_CHARACTER_COMIC_HANDOFF.md).
+
 Style anchoring ties the visuals to the poetry itself — literary movements and
 tones map to visual keywords (Modernismo → *art nouveau, jewel tones*;
 melancholic → *muted colors, twilight*):
@@ -574,7 +578,9 @@ Model weights (`final_adapter/` + `*-Q4_K_M.gguf`) are versioned with DVC
 [UX reference](docs/UX_REFERENCE.md), architecture, package survey, roadmap,
 corpus sources, MLOps diagnosis,
 [training runbook](docs/TRAINING_RUNBOOK.md),
-[retraining plan](docs/RETRAINING_PLAN_2026-10.md); archived plans in `docs/archive/`
+[retraining plan](docs/RETRAINING_PLAN_2026-10.md),
+
+[GalerIA character comic handoff](docs/GALERIA_CHARACTER_COMIC_HANDOFF.md); archived plans in `docs/archive/`
 (the cross-repo README standard and audit moved to the author's private governance repo,
 2026-10-05). Full CLI reference
 in [`USAGE_GUIDE.md`](USAGE_GUIDE.md); what a clone lacks (DVC data, secrets) in

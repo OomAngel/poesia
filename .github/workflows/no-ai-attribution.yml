@@ -1,0 +1,50 @@
+# Angel's rule (2026-10-06): no commit names Claude or Anthropic as author or committer, or
+# carries a Co-Authored-By naming them, a Claude-Session trailer or a "Generated with Claude
+# Code" line. This job checks every commit of each push (any branch) and of each pull request
+# with the shared no-ai-attribution-range hook from the private pre-commit-hooks repo, read
+# with the HOOKS_DEPLOY_KEY deploy key (ci-infra docs/HOOKS_DEPLOY_KEY.md). A new branch is
+# checked against the default branch; history older than the push is not rechecked.
+name: no-ai-attribution
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  no-ai-attribution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # the range check needs the pushed commits and the default branch
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+      - name: Let pre-commit read the private hooks repo
+        env:
+          HOOKS_DEPLOY_KEY: ${{ secrets.HOOKS_DEPLOY_KEY }}
+        run: |
+          # pre-commit-hooks is private; a read-only deploy key reads it. See ci-infra docs/HOOKS_DEPLOY_KEY.md
+          umask 077
+          printf '%s\n' "$HOOKS_DEPLOY_KEY" > "$RUNNER_TEMP/hooks_deploy_key"
+          printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' > "$RUNNER_TEMP/hooks_known_hosts"
+      - name: No AI attribution in the pushed commits
+        run: pre-commit run no-ai-attribution-range --hook-stage manual --verbose
+        env:
+          GIT_SSH_COMMAND: "ssh -i ${{ runner.temp }}/hooks_deploy_key -o IdentitiesOnly=yes -o UserKnownHostsFile=${{ runner.temp }}/hooks_known_hosts -o StrictHostKeyChecking=yes"
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "url.git@github.com:OomAngel/pre-commit-hooks.insteadOf"
+          GIT_CONFIG_VALUE_0: "https://github.com/OomAngel/pre-commit-hooks"
+          NO_AI_ATTRIBUTION_FROM: ${{ github.event.pull_request.base.sha || github.event.before }}
+          NO_AI_ATTRIBUTION_TO: ${{ github.event.pull_request.head.sha || github.sha }}
+          NO_AI_ATTRIBUTION_BASE: ${{ github.ref != format('refs/heads/{0}', github.event.repository.default_branch) && format('origin/{0}', github.event.repository.default_branch) || '' }}
+      - name: Remove the hooks deploy key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/hooks_deploy_key" "$RUNNER_TEMP/hooks_known_hosts"
