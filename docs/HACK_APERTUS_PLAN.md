@@ -244,7 +244,15 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
       Apertus answers with the word alone (6/6 seeded tries, chat format); a system message for
       line prompts fixes that (0/6) and is now sent by the Ollama and OpenAI-compatible clients
       (921d6b6). Fragments left with it: 9 es / 5 en, so the loop now also drops candidates
-      under three words for lines of 8+ syllables (fail-open). ~35 s per poem via Ollama.
+      under three words for lines of 8+ syllables (fail-open, 9be86c3). ~35 s per poem via Ollama.
+
+      Re-run with that filter (`apertus-v1.5-8b-text-ollama-nofrag.json`): es 0.28 / 85% / 33%,
+      en 0.37 / 87% / 86%. Fragments barely moved (es 9 → 5, en 5 → 7): they come from batches
+      where every candidate is a bare word, which the fail-open keeps. The metre and rhyme shifts
+      between the two runs are within seed noise (per-poem rhyme ranges 0–100%; 18 poems), so
+      neither run is "the" number; report both. Note: this loop's Spanish rhyme word bank comes
+      from Datamuse (online); English from CMUdict (offline). The page sends no word bank, so
+      the benchmark is not the page's exact condition.
 - [ ] Web page skeleton: FastAPI (or similar) + one HTML page over `poesia.api` — photo
       upload, reflection box, line-by-line shaping with the existing scan feedback.
 - [x] 4-bit multimodal load test with the official weights (2026-10-07, RTX 3070 8 GB, separate
