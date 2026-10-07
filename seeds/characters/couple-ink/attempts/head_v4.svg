@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="943" height="691" viewBox="0 0 943 691">
+  <defs>
+    <filter id="ink" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="5" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="1.2" result="b"/>
+      <feComponentTransfer in="b">
+        <feFuncR type="discrete" tableValues="0 1"/>
+        <feFuncG type="discrete" tableValues="0 1"/>
+        <feFuncB type="discrete" tableValues="0 1"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <g filter="url(#ink)" stroke="#000" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect width="943" height="691" fill="white" stroke="none"/>
+
+    <!-- ears (behind everything): open C with a short inner dash -->
+    <path d="M 250 270 C 232 268, 222 274, 219 285 C 215 298, 218 312, 228 322 C 236 330, 248 332, 262 331" stroke-width="9"/>
+    <path d="M 236 301 Q 244 297 252 301" stroke-width="8"/>
+    <path d="M 500 268 C 512 268, 520 274, 522 284 C 525 295, 520 306, 514 312 C 506 320, 498 326, 485 330" stroke-width="9"/>
+    <path d="M 494 292 Q 500 288 506 292" stroke-width="8"/>
+
+    <!-- jaw: one heavy U from lock to lock, bottoming out just right of centre -->
+    <path d="M 262 325 C 266 336, 272 344, 280 350 C 292 358, 306 364, 326 370 C 342 375, 356 380, 368 381 C 384 380, 398 374, 410 370 C 428 365, 446 358, 460 350 C 468 344, 474 337, 480 328" stroke-width="10"/>
+
+    <!-- side locks, from the hair mass down past the jaw -->
+    <path d="M 251 262 L 266 262 L 263 300 L 259 330 L 258 360 L 261 390 L 266 408 L 262 408 L 252 380 L 249 345 L 249 300 Z" fill="#000" stroke-width="2"/>
+    <path d="M 473 262 L 489 262 L 491 300 L 492 325 L 489 350 L 486 370 L 481 385 L 473 399 L 475 380 L 478 350 L 477 300 Z" fill="#000" stroke-width="2"/>
+
+    <!-- hair dome: solid black from the bun to the ears -->
+    <path d="M 233 268 L 232 240 C 232 215, 234 205, 240 190 C 248 168, 258 152, 275 140 C 290 128, 304 118, 317 110 C 326 104, 334 101, 342 100 L 413 100 C 422 101, 432 105, 442 110 C 452 115, 470 128, 483 140 C 498 154, 508 172, 514 200 C 518 220, 517 232, 515 240 L 512 268 Z" fill="#000" stroke="none"/>
+    <!-- bun -->
+    <ellipse cx="378" cy="71" rx="46" ry="34" fill="#000" stroke="none"/>
+
+    <!-- forehead: the white window under the centre part -->
+    <path d="M 324 163 L 319 170 L 313 180 L 306 190 L 299 200 L 293 210 L 287 220 L 281 230 L 275 240 L 271 250 L 269 260 L 267 270 L 265 280 L 264 290 L 262 310 L 262 330
+             L 478 330 L 478 310 L 477 290 L 476 280 L 474 270 L 472 260 L 470 250 L 466 240 L 460 230 L 454 220 L 448 210 L 443 200 L 437 190 L 433 184
+             L 418 166 L 400 162 L 381 156 L 363 156 L 348 157 Z" fill="white" stroke="none"/>
+
+    <!-- fringe: tapering wedges fanned from the part, white partings between -->
+    <g fill="#000" stroke="none">
+      <path d="M 323 166 L 341 164 L 335 180 L 330 190 L 324 200 L 318 210 L 312 220 L 304 230 L 296 240 L 290 250 L 286 256 L 284 250 L 287 240 L 292 230 L 298 220 L 304 210 L 309 200 L 314 190 L 318 180 Z"/>
+      <path d="M 349 158 L 362 158 L 359 170 L 357 180 L 353 190 L 350 200 L 348 210 L 346 220 L 343 230 L 339 238 L 336 230 L 335 220 L 336 210 L 338 200 L 341 190 L 343 180 L 346 170 Z"/>
+      <path d="M 365 156 L 378 156 L 378 170 L 376 180 L 375 190 L 374 200 L 374 210 L 373 220 L 372 230 L 368 240 L 364 230 L 364 220 L 363 210 L 362 200 L 363 190 L 363 180 L 364 170 Z"/>
+      <path d="M 382 157 L 396 162 L 395 170 L 393 180 L 393 190 L 394 200 L 394 210 L 394 220 L 395 230 L 392 239 L 389 230 L 387 220 L 386 210 L 385 200 L 384 190 L 383 180 L 383 170 Z"/>
+      <path d="M 399 164 L 414 166 L 414 180 L 416 190 L 419 200 L 422 210 L 426 220 L 428 230 L 428 235 L 425 230 L 419 220 L 415 210 L 411 220 L 411 230 L 410 236 L 408 230 L 404 220 L 403 210 L 401 200 L 401 190 L 401 180 L 399 170 Z"/>
+      <path d="M 418 180 L 428 182 L 433 190 L 437 200 L 442 210 L 447 220 L 451 230 L 457 240 L 454 249 L 448 240 L 441 230 L 436 220 L 431 210 L 426 200 L 422 190 Z"/>
+    </g>
+
+    <!-- brows: solid commas, heavy end toward the centre, tail flicking outward-down -->
+    <g fill="#000" stroke="none">
+      <path d="M 302 247 C 302 239, 308 235, 318 236 C 322 237, 322 242, 318 244 C 312 244, 308 246, 305 250 Z"/>
+      <path d="M 434 245 C 434 238, 428 233, 418 234 C 413 235, 412 239, 416 240 C 422 241, 427 242, 430 246 Z"/>
+    </g>
+
+    <!-- closed eyes: thick crescents with teardrop ends; lashes only at the outer corners -->
+    <g fill="#000" stroke="none">
+      <path d="M 288 285 Q 314 310 341 286 L 343 290 Q 313 318 280 304 L 282 300 Q 284 292 288 285 Z"/>
+      <path d="M 406 286 Q 426 306 462 282 L 468 289 Q 440 315 405 292 Z"/>
+    </g>
+    <path d="M 290 302 L 281 304 M 296 306 L 290 313 M 309 309 L 305 317" stroke-width="6"/>
+    <path d="M 437 304 L 438 310 M 451 303 L 453 309 M 456 298 L 468 300" stroke-width="6"/>
+
+    <!-- nose dot, small smile -->
+    <circle cx="373.5" cy="295.5" r="5" fill="#000" stroke="none"/>
+    <path d="M 364 315 Q 375 330 386 315" stroke-width="6.5"/>
+  </g>
+</svg>

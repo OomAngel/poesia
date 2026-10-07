@@ -6,6 +6,12 @@
 > Gemini, AI Horde and local diffusers are **not** implemented; a local option
 > through Lemonade image generation is proposed in
 > [`LEMONADE_INTEGRATION.md`](LEMONADE_INTEGRATION.md) item 3.
+> **Correction (2026-10-07)**: Gemini image output is probably **no longer on the
+> free tier**, and the model IDs below changed (see §3). The ranking is kept as
+> the 2026-08-03 record. Drawing the *same characters* from a reference image is
+> a separate problem, covered in
+> [`CHARACTER_CONSISTENT_ILLUSTRATION_RESEARCH.md`](CHARACTER_CONSISTENT_ILLUSTRATION_RESEARCH.md)
+> and [`GALERIA_CHARACTER_COMIC_HANDOFF.md`](GALERIA_CHARACTER_COMIC_HANDOFF.md).
 > **Purpose**: choose online backends for GalerIA (auca sheets: one image per
 > stanza) without paying for image generation.
 > **Method**: documented sources (vendor docs, fetched 2026-08-03) **and** live
@@ -24,7 +30,7 @@
 | # | Provider | Weighted score | One-line why |
 |---|----------|---------------|--------------|
 | 1 | **Pollinations.ai** | 4.15 / 5 | Free, no key, GET endpoint, seed-deterministic — but community infra (low reliability), ~1 req/15s, and observed to route to a different model than requested |
-| 2 | **Google Gemini free tier** | 3.60 | Best quality (Nano Banana / Imagen) — needs a Google account + key, limits are per-project and opaque |
+| 2 | **Google Gemini free tier** | 3.60 | Best quality (Nano Banana / Imagen) — needs a Google account + key, limits are per-project and opaque. **2026-10-07: image output likely paid-only now (§3)** |
 | 2 | **AI Horde** | 3.60 | Truly free community grid (anonymous key `0000000000`) — slow queues, priority via kudos |
 | 4 | **Cloudflare Workers AI** | 3.50 | 10,000 neurons/day free (SDXL Beta $0.00/step, native 1024×1024), reliable infra — **seed NOT honoured** (live-verified), needs a free account + token |
 | 5 | **One-time-credit platforms** (fal, Together, DeepInfra, NVIDIA NIM…) | 3.25 | Real commercial infra + FLUX/SDXL, but ~$1 trials, not ongoing free |
@@ -122,10 +128,17 @@ and re-rank if your priorities differ.
 ### 3. Google Gemini API — free tier (AI Studio)
 
 - **What**: Google's API with native image generation.
-- **Models**: Nano Banana family (`gemini-2.0-flash-preview-image-generation`,
-  current `gemini-3.x-flash-image`), Nano Banana 2/Pro, Imagen 3/4. **Best
-  quality of any free option** (strong text rendering, editing, consistency).
-- **Free tier**: free API key from AI Studio; per-project rate limits
+- **Models**: Nano Banana family, Imagen 3/4. **Best quality of any free
+  option** (strong text rendering, editing, consistency). *2026-10-07:* the IDs
+  listed here on 2026-08-03 (`gemini-2.0-flash-preview-image-generation`,
+  `gemini-3.x-flash-image`) are superseded. Current IDs are
+  `gemini-nano-banana-2.1`, `gemini-3.1-flash-image`,
+  `gemini-3.1-flash-lite-image` and `gemini-3-pro-image`, and
+  `gemini-2.5-flash-image` was due to shut down on 2026-10-02.
+- **Free tier — likely gone for images (2026-10-07)**: the pricing page marked
+  image output "Not available" on the free tier for every image model (one
+  fetch; confirm in AI Studio). The 2026-08-03 reading was: free API key from
+  AI Studio; per-project rate limits
   (RPM/RPD, images-per-minute), reset daily at midnight Pacific. Exact numbers
   are shown per model in AI Studio and were **not fully retrievable from the
   docs pages fetched** (tables truncated) — treat as "generous for personal
@@ -297,10 +310,11 @@ service is a moving target — pin nothing, degrade gracefully.
    - **verified**: 2-stanza auca sheet composed live (1.3 MB PNG); same
      prompt+seed ⇒ byte-identical images (service-level determinism)
 2. **Re-verify at adoption** (free tiers move): Cloudflare daily quota + exact
-   neuron cost of the chosen model; Gemini's per-project image limits; the
+   neuron cost of the chosen model; whether Gemini images are free at all; the
    credit amounts on fal/Together before recommending them.
 3. **Follow-ups ranked by ROI**: ~~Cloudflare~~ ✅ (implemented + live-tested,
-   with determinism caveat) → Gemini (quality, needs a key) → AI Horde (async
+   with determinism caveat) → Gemini (quality, needs a paid key; as a
+   reference-image backend see `GALERIA_CHARACTER_COMIC_HANDOFF.md`) → AI Horde (async
    polling) → local diffusers (long-term).
 4. **Keep the README example on `procedural`** (offline, bit-for-bit stable);
    `pollinations` is documented as the free online option in the README's
@@ -310,8 +324,9 @@ service is a moving target — pin nothing, degrade gracefully.
 
 ## Honest gaps / open questions
 
-- **Gemini free-tier image rate limits**: docs page tables truncated in fetch;
-  numbers per model are visible in AI Studio. Verify before relying on volume.
+- **Gemini free-tier image access**: on 2026-10-07 the pricing page marked image
+  output "Not available" on the free tier. Confirm in AI Studio; if it holds,
+  Gemini is a paid backend.
 - **Stability AI platform**: JS-only page; historical free-credit program status
   unverified (platform has moved subscription-heavy). Treated as "paid, verify".
 - **fal.ai**: pricing page rate-limited (HTTP 429) this pass; credit amount
