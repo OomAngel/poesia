@@ -90,3 +90,37 @@ def test_page_endpoint_returns_resources_only_when_flagged() -> None:
     assert calm == {"flagged": False, "resources": []}
     risk = client.post("/api/safety", json={"text": "no quiero seguir viviendo"}).json()
     assert risk["flagged"] and risk["resources"][0]["number"] == "143"
+
+
+def test_helplines_follow_the_page_language_with_the_same_facts():
+    # U9: a pause shown in Spanish or Italian must not switch to English.
+    from poesia.safety.screen import RESOURCES_BY_LANGUAGE, resources_for
+
+    en = RESOURCES_BY_LANGUAGE["en"]
+    for lang in ("es", "it"):
+        loc = resources_for(lang)
+        assert [r["number"] for r in loc] == [r["number"] for r in en]
+        assert all(a["note"] != b["note"] for a, b in zip(loc, en, strict=True))
+        assert all("0800 143 000" in r["note"] for r in loc[:1])  # the English line kept
+    assert resources_for("de") == en  # not translated yet: English, never empty
+
+
+def test_safety_endpoint_answers_in_the_requested_language():
+    import pytest
+
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from poesia.webapp import create_app
+
+    client = TestClient(create_app(llm=object()))
+    r = client.post(
+        "/api/safety",
+        json={
+            "text": "Últimamente no quiero despertar. Todos estarían mejor sin mí.",
+            "language": "es",
+        },
+    ).json()
+    assert r["flagged"] and r["resources"][0]["note"].startswith("Siempre disponible")
+    calm = client.post("/api/safety", json={"text": "el mar en otoño", "language": "es"}).json()
+    assert calm == {"flagged": False, "resources": []}

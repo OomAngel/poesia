@@ -315,6 +315,7 @@ def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
 
     class SafetyRequest(BaseModel):
         text: str = Field(default="", max_length=8000)
+        language: str = Field(default="en", pattern="^(es|en|it)$")  # of the pause's text
 
     class ReadRequest(BaseModel):
         language: str = Field(pattern="^(es|en|it)$")
@@ -390,9 +391,13 @@ def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
     def safety(req: SafetyRequest) -> dict[str, Any]:
         """Screen a reflection or line; nothing is stored or logged."""
         from poesia.safety import screen
+        from poesia.safety.screen import resources_for
 
         result = screen(req.text, llm=llm)
-        return {"flagged": result.flagged, "resources": result.resources}
+        return {
+            "flagged": result.flagged,
+            "resources": resources_for(req.language) if result.flagged else [],
+        }
 
     @app.post("/api/readback")
     def readback(req: ReadRequest) -> Any:
