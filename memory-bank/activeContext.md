@@ -23,11 +23,15 @@ _Last updated: 2026-10-07 (Hack Apertus: built and measured on the desktop)_
   the way (registry ignored `OLLAMA_MODEL`; English rhyme keys kept stress digits; g2p_en
   network calls; drafts cut to one line; U+2028 in JSONL). Entry `make run` tested end to end
   in Docker (GPU), page image checked with `--network none`.
-- **Next:** 4-bit image/audio load test of the official weights (separate venv
-  `~/data/hack-apertus/venv-mm`, Swiss AI transformers fork); ux-audit on the page; tester
-  sessions; report polish, PDF, video; Discord questions; publish the entry repo and the
-  safety dataset once Angel agrees.
-
+- **Also done 2026-10-07 (night):** image/audio test of the official weights (fits in 4-bit,
+  7.5 GB reserved); Italian scansion (79.5% exact on 10,001 annotated endecasillabi) and the
+  Italian sonetto on the page; ux-audit pass + one fix; refs.bib validated; the word-bank
+  retry (no rhyme-word fragments left); benchmarks es 0.21/83%/36%, en 0.10/90%/88%,
+  it 0.16/87%/43%; energy 1.7 Wh per automatic sonnet; CPU-only timings. The entry stack runs
+  on the desktop (`~/dev/poesia-apertus/track_2b`, `make stop` frees the GPU).
+- **Next (needs Angel):** the "must be new" question to the organisers; publishing the entry
+  repo and the safety dataset; 2–3 tester sessions; the 2-minute video; report PDF (draft
+  renders to 4 of 6 pages).
 ---
 
 ## What We Just Did (2026-10-04) — retraining plan
