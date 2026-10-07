@@ -345,7 +345,15 @@ async function init() {
   forms.forEach(f => { const o = document.createElement("option"); o.value = f.language + ":" + f.form;
     o.textContent = `${f.form} (${f.language})`; sel.appendChild(o); });
   if (!state.formKey) state.formKey = sel.value; else sel.value = state.formKey;
-  sel.addEventListener("change", () => { state.formKey = sel.value; state.lines = []; save(); render(); });
+  sel.addEventListener("change", () => {
+    const es = (currentForm() || {}).language === "es";
+    if (state.lines.some(l => l.text.trim()) &&
+        !confirm(es ? "¿Cambiar de forma? Los versos escritos se borran (la reflexión se queda)."
+                    : "Change the form? The lines you wrote are cleared (your reflection stays).")) {
+      sel.value = state.formKey; return;
+    }
+    state.formKey = sel.value; state.lines = []; save(); render();
+  });
   $("theme").value = state.theme; $("reflection").value = state.reflection;
   $("theme").addEventListener("input", e => { state.theme = e.target.value; save(); });
   $("reflection").addEventListener("input", e => { state.reflection = e.target.value; save(); });

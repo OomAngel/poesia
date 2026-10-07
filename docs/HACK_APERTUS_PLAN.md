@@ -275,11 +275,15 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
 
 ### Fri 9 Oct — linking, voice, audit, users
 
-- [ ] Linking: embed public-domain poems (Wikisource + DLK) and the reflection; return 2–3
-      nearest in the person's language.
-- [ ] Piper read-back button, labelled as a synthetic voice.
-- [ ] ux-audit (separate repo) against the local page: accessibility, persistence (a typed
-      reflection must survive a reload), input robustness, keyboard, findability.
+- [x] Linking (2026-10-07): `src/poesia/linking/`, `/api/link`, panel "Poems that feel like
+      this"; index of 3,000 es + 3,000 en showable poems (Gutenberg, CC0 pd_poetry, DISCO CC BY;
+      authors dead after 1955 excluded) embedded with bge-m3 on CPU
+      (`scripts/build_linking_index.py`), shipped in the entry's `track_2b/data/linking`.
+- [x] Piper read-back button, labelled as a synthetic voice (2026-10-07).
+- [x] ux-audit (2026-10-07, against `poesia-web`): the five URL layers pass (positive control:
+      the broken fixture is flagged); persistence: reflection, theme and line 1 survive a reload;
+      keyboard: line 14's "Ideas" and the linking button reachable by Tab. Found and fixed:
+      changing the form silently cleared the lines (now asks first).
 - [ ] Adapter vs plain Apertus (if trained); pick one.
 - [ ] 2–3 tester sessions (consent; no reflections kept; three fixed questions: did you
       finish, does it feel like yours, what got in the way).
