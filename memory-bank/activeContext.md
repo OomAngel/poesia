@@ -5,6 +5,22 @@ and Document authority brought current)_
 
 ---
 
+## What We Just Did (2026-10-05 → 10-07) — GalerIA character comic, paused
+
+- **Goal (Angel):** comic-style pictures of his girlfriend and their dog, in the exact style
+  of one ink drawing he likes. Reference + crops + attempts saved to the gitignored
+  `galeria/characters/couple-ink/` (listed in `LOCAL_ONLY.md`; not regenerable).
+- **Tried:** Claude drawing in SVG (two autumn-walk scenes, a measured head trace v3–v5
+  scored by ink IoU). Angel's verdict: gaps in the fringe strands, irregular lashes,
+  inelegant curves. The IoU score rose while quality fell; it measures placement, not line
+  quality. **Dead end for drawing.**
+- **Researched:** `docs/CHARACTER_CONSISTENT_ILLUSTRATION_RESEARCH.md` (+ notes in
+  `docs/research/`). Plan: six-model reference-image test → threshold/vectorize →
+  `ReferenceImageBackend` → LoRA only if needed. `IMAGE_GENERATION_PROVIDERS.md`'s Gemini
+  free-tier row is likely wrong now (unconfirmed).
+- **Blocked:** no API keys. Claude has no image model on any plan, including Max.
+- **Handoff:** `docs/GALERIA_CHARACTER_COMIC_HANDOFF.md`. Committed and pushed 2026-10-07.
+
 ## What We Just Did (2026-10-04) — retraining plan
 
 - **Decision (Angel):** retrain, with the expanded corpus and a larger base model. This
