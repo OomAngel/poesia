@@ -287,12 +287,22 @@ def propose_lines(
     return [{"text": t, "check": res} for _, _, t, res in ranked[:n]]
 
 
-def create_app(llm: Any | None = None) -> Any:
+def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
     """FastAPI app. ``llm`` defaults to ``POESIA_WEB_LLM`` (a registry name); without it, an
-    OpenAI-compatible endpoint when ``LLM_BASE_URL`` is set, else Ollama (``OLLAMA_MODEL``)."""
+    OpenAI-compatible endpoint when ``LLM_BASE_URL`` is set, else Ollama (``OLLAMA_MODEL``).
+
+    ``setup`` (or ``POESIA_SETUP_OLLAMA``, an Ollama URL) prepares the models in the
+    background on first run (``poesia.model_setup``); ``/api/status`` reports its progress.
+    """
     from fastapi import FastAPI, HTTPException
     from fastapi.responses import FileResponse
     from pydantic import BaseModel, Field
+
+    if setup is None and os.environ.get("POESIA_SETUP_OLLAMA", "off") not in ("", "off", "none"):
+        from poesia.model_setup import OllamaSetup
+
+        setup = OllamaSetup(os.environ["POESIA_SETUP_OLLAMA"])
+        setup.start()
 
     if llm is None:
         from poesia.generation.registry import get_llm
@@ -331,6 +341,13 @@ def create_app(llm: Any | None = None) -> Any:
     @app.get("/")
     def index() -> Any:
         return FileResponse(WEBUI / "index.html")
+
+    @app.get("/api/status")
+    def status() -> dict[str, Any]:
+        """Model readiness: 'ready' unless a first-run setup is still working (or failed)."""
+        if setup is None:
+            return {"phase": "ready"}
+        return dict(setup.status.as_dict())
 
     @app.get("/api/forms")
     def forms() -> list[dict[str, Any]]:
