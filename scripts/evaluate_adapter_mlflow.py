@@ -57,12 +57,19 @@ def _phonology(language: str):
 
 
 def _make_llm_client(
-    adapter_path: str | None, base_model: str | None, ollama_model: str | None = None
+    adapter_path: str | None,
+    base_model: str | None,
+    ollama_model: str | None = None,
+    openai_compat: bool = False,
 ):
     """OllamaClient when an Ollama model is named (how the Hack Apertus entry runs Apertus:
     GGUF in Ollama, chat format). Otherwise LoRAClient (bitsandbytes 4-bit) when it runs on this GPU; otherwise the GGUF/llama.cpp
     client next to the adapter (the laptop). The check is bnb_4bit_usable(), not
     cuda_usable(): on the laptop torch runs on the GPU (sm_50) but bitsandbytes cannot."""
+    if openai_compat:  # the page's own path: LLM_BASE_URL / LLM_NAME / LLM_API_KEY
+        from poesia.generation.registry import get_llm
+
+        return get_llm("openai_compat")
     if ollama_model:
         from poesia.generation.llm_client import OllamaClient
 
@@ -116,6 +123,7 @@ def evaluate(
     parent_run_id: str | None = None,
     out_path: str | None = None,
     ollama_model: str | None = None,
+    openai_compat: bool = False,
 ) -> dict:
     from poesia.generation.constrained_loop import ConstrainedLoop
 
@@ -128,12 +136,18 @@ def evaluate(
         run = mlflow.start_run(run_name=f"eval-{os.path.basename(label.rstrip('/'))}")
 
     llm = _make_llm_client(
-        adapter_path, base_model, ollama_model
+        adapter_path, base_model, ollama_model, openai_compat
     )  # loaded once, reused for every poem
     report: dict = {
         "adapter": adapter_path,
         "base_model": llm.model,
-        "backend": "ollama" if ollama_model else "transformers",
+        "backend": (
+            f"openai_compat:{os.environ.get('LLM_BASE_URL', '')}"
+            if openai_compat
+            else "ollama"
+            if ollama_model
+            else "transformers"
+        ),
         "samples": samples,
         "seed": seed,
         "languages": {},
@@ -205,10 +219,15 @@ if __name__ == "__main__":
     ap.add_argument(
         "--ollama-model", default=None, help="evaluate a model served by Ollama (OLLAMA_HOST)"
     )
+    ap.add_argument(
+        "--openai-compat",
+        action="store_true",
+        help="evaluate the OpenAI-compatible endpoint in LLM_BASE_URL/LLM_NAME (as the page does)",
+    )
     ap.add_argument("--parent-run-id", default=None, help="MLflow run to nest under")
     args = ap.parse_args()
-    if not (args.adapter or args.base_model or args.ollama_model):
-        ap.error("give --adapter, --base-model (or both), or --ollama-model")
+    if not (args.adapter or args.base_model or args.ollama_model or args.openai_compat):
+        ap.error("give --adapter, --base-model (or both), --ollama-model or --openai-compat")
     if args.memory_layout:
         os.environ["POESIA_MEMORY_LAYOUT"] = args.memory_layout
     evaluate(
@@ -221,4 +240,5 @@ if __name__ == "__main__":
         parent_run_id=args.parent_run_id or None,
         out_path=args.out,
         ollama_model=args.ollama_model,
+        openai_compat=args.openai_compat,
     )
