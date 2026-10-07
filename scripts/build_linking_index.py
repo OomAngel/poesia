@@ -2,12 +2,16 @@
 """Build the linking index: showable poems + their vectors (src/poesia/linking).
 
 Only sources whose texts may be shown to people: Project Gutenberg books and the CC0
-``pd_poetry`` set (public domain), DISCO (CC BY 4.0, credited). Authors known to have died
+``pd_poetry`` set (public domain), DISCO (CC BY 4.0, credited). Italian comes from Gutenberg
+books fetched for linking only (``fetch_gutenberg_poems.py --linking-only``), outside the
+training corpus. Authors known to have died
 after 1955 are left out (life + 70 years, the Swiss and EU term). Short poems only (they are
 shown whole or nearly). Each poem is embedded from its title and first lines.
 
     OLLAMA_HOST=... python scripts/build_linking_index.py --per-language 3000 \
         --embed-base-url http://<ollama>:11434/v1 --embed-name bge-m3 --out <dir>
+    # only some languages (the others' files and selection stay as they are):
+    python scripts/build_linking_index.py ... --languages it --out <dir>
 """
 
 from __future__ import annotations
@@ -22,6 +26,8 @@ import numpy as np
 from poesia.linking.index import EmbeddingClient, _normalise
 
 MASTER = Path("seeds/poetry_corpus/corpus_master/poems.jsonl")
+LINKING_ONLY = Path("seeds/poetry_corpus/linking_only")
+LANGUAGES = ("es", "en", "it")  # order matters: one seeded shuffle runs through them in turn
 LICENCE = {
     "pd_poetry": "CC0 1.0 (DanFosing/public-domain-poetry)",
     "disco": "CC BY 4.0 (DISCO)",
@@ -53,13 +59,16 @@ def main() -> None:
     ap.add_argument("--embed-name", default="bge-m3")
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--languages", nargs="+", choices=LANGUAGES, default=list(LANGUAGES))
     args = ap.parse_args()
 
-    pools: dict[str, list[dict]] = {"es": [], "en": []}
+    pools: dict[str, list[dict]] = {lang: [] for lang in LANGUAGES}
     seen: set[str] = set()
     # Iterate the file, not .splitlines(): that also splits on U+2028 inside JSON strings.
-    with MASTER.open(encoding="utf-8") as master:
-        records = [json.loads(line) for line in master if line.strip()]
+    records = []
+    for path in [MASTER, *sorted(LINKING_ONLY.glob("*.jsonl"))]:
+        with path.open(encoding="utf-8") as f:
+            records += [json.loads(line) for line in f if line.strip()]
     for r in records:
         lic = _showable(r)
         lines = [ln for ln in r["completion"].splitlines() if ln.strip()]
@@ -83,7 +92,9 @@ def main() -> None:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     for lang, pool in pools.items():
-        rng.shuffle(pool)
+        rng.shuffle(pool)  # every language, so a subset build picks the same poems
+        if lang not in args.languages:
+            continue
         chosen = sorted(pool[: args.per_language], key=lambda p: (p["author"], p["title"]))
         vectors: list[list[float]] = []
         for i in range(0, len(chosen), args.batch):
@@ -96,13 +107,17 @@ def main() -> None:
                 f.write(json.dumps(p, ensure_ascii=False) + "\n")
         np.save(out / f"vectors_{lang}.npy", np.asarray(vectors, dtype="float16"))
         print(f"{lang}: {len(chosen)} poems from a pool of {len(pool)}")
+    previous = out / "index.json"
+    built = set(args.languages)
+    if previous.exists():
+        built |= set(json.loads(previous.read_text(encoding="utf-8"))["languages"])
     meta = {
         "model": args.embed_name,
-        "languages": list(pools),
+        "languages": [lang for lang in LANGUAGES if lang in built],
         "seed": args.seed,
         "per_language": args.per_language,
         "max_lines": args.max_lines,
-        "built_from": "corpus_master (docs/CORPUS_SOURCES.md)",
+        "built_from": "corpus_master + linking_only (docs/CORPUS_SOURCES.md)",
     }
     (out / "index.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
 

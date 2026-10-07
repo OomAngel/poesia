@@ -1,0 +1,6 @@
+outs:
+- md5: 4436d27fc553a29a39b15f71ed591fe8.dir
+  size: 1242043
+  nfiles: 15
+  hash: md5
+  path: linking_only
