@@ -10,6 +10,7 @@ Run (binds to this machine only):
 
     poesia-web                     # or: python -m poesia.webapp
     OLLAMA_MODEL=apertus-v1.5-8b-text:q4km POESIA_WEB_LLM=ollama poesia-web
+    poesia-web --with-ollama --link-index data/linking --open   # native: Ollama app only
 
 Like ``cli.py`` this module is a composition root, so it may import any poesia package.
 FastAPI and uvicorn are imported lazily (``pip install -e '.[web]'``). No
@@ -40,13 +41,6 @@ FREE = "free"
 FREE_START_LINES = 8
 
 
-# Read-back voices (clear licences, docs/CORPUS_SOURCES.md): es CC0, en public domain,
-# it CC BY 4.0 (credit in the README).
-VOICES = {
-    "es": "es/es_ES/davefx/medium/es_ES-davefx-medium.onnx",
-    "en": "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx",
-    "it": "it/it_IT/serena/medium/it_IT-serena-medium.onnx",
-}
 _voice_cache: dict[str, Any] = {}
 
 
@@ -57,9 +51,10 @@ def read_aloud(text: str, language: str) -> bytes:
 
     from piper import PiperVoice
 
+    from poesia.voices import VOICES, voice_dir
+
     if language not in _voice_cache:
-        root = Path(os.environ.get("POESIA_PIPER_VOICES", "models/piper"))
-        path = root / VOICES[language]
+        path = voice_dir() / VOICES[language]
         if not path.exists():
             raise FileNotFoundError(f"voice not installed: {path}")
         _voice_cache[language] = PiperVoice.load(str(path))
@@ -433,12 +428,76 @@ def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
     return app
 
 
-def main() -> None:
+def _use_local_ollama(url: str) -> None:
+    """Point the page at an Ollama app on this machine (native install, no Docker)."""
+    import json
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"{url}/api/version", timeout=5) as resp:
+            json.loads(resp.read())
+    except OSError:
+        raise SystemExit(
+            f"No Ollama at {url}. Install the Ollama app (https://ollama.com/download), "
+            "start it, and run this again."
+        ) from None
+    os.environ.setdefault("LLM_BASE_URL", f"{url}/v1")
+    os.environ.setdefault("LLM_NAME", "poesia-apertus")
+    os.environ.setdefault("EMBED_NAME", "poesia-embed")
+    os.environ.setdefault("POESIA_SETUP_OLLAMA", url)  # the page prepares the models
+
+
+def _ensure_voices() -> None:
+    from poesia import voices
+
+    if "POESIA_PIPER_VOICES" not in os.environ:
+        os.environ["POESIA_PIPER_VOICES"] = str(voices.user_voice_dir())
+    root = voices.voice_dir()
+    if voices.missing(root):
+        try:
+            voices.fetch(root)
+        except OSError as exc:  # read-back is optional; the page still works without it
+            print(f"Could not download the read-back voices ({exc}); continuing without.")
+
+
+def main(argv: list[str] | None = None) -> None:
+    """``poesia-web``; ``poesia-web --with-ollama --link-index DIR --open`` for a native install.
+
+    With ``--with-ollama`` the page uses the Ollama app on this machine and prepares the models
+    there on first run (progress on the page), and the read-back voices are fetched once into
+    the user's data folder. Settings already in the environment win over these defaults.
+    """
+    import argparse
+
+    ap = argparse.ArgumentParser(prog="poesia-web", description="PoesIA writing page")
+    ap.add_argument(
+        "--with-ollama",
+        nargs="?",
+        const="http://localhost:11434",
+        metavar="URL",
+        help="use the Ollama app on this machine (default URL http://localhost:11434)",
+    )
+    ap.add_argument("--link-index", metavar="DIR", help="linking index folder (data/linking)")
+    ap.add_argument("--open", action="store_true", help="open the page in the browser")
+    args = ap.parse_args(argv)
+
     import uvicorn
 
+    if args.with_ollama:
+        _use_local_ollama(args.with_ollama.rstrip("/"))
+        _ensure_voices()
+    if args.link_index:
+        os.environ["POESIA_LINK_INDEX"] = args.link_index
     host = os.environ.get("POESIA_WEB_HOST", "127.0.0.1")
     port = int(os.environ.get("POESIA_WEB_PORT", "8000"))
-    uvicorn.run(create_app(), host=host, port=port)
+    app = create_app()
+    if args.open:
+        import threading
+        import webbrowser
+
+        threading.Timer(1.5, webbrowser.open, [f"http://localhost:{port}"]).start()
+    print(f"PoesIA: http://localhost:{port}  (stop with Ctrl+C)")
+    uvicorn.run(app, host=host, port=port)
 
 
 if __name__ == "__main__":
