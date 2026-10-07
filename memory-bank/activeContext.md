@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-10-06 (Hack Apertus entry, branch `hack-apertus`)_
+_Last updated: 2026-10-07 (Hack Apertus: built and measured on the desktop)_
 
 ---
 
@@ -8,19 +8,25 @@ _Last updated: 2026-10-06 (Hack Apertus entry, branch `hack-apertus`)_
 
 - **Decision (Angel, 2026-10-06):** enter Hack Apertus, Track 2B "Own Project", with PoesIA
   on Apertus v1.5 8B. Submit target Tue 13 Oct; the hackathon closes Fri 16 Oct 12:00 CEST.
-- **Working plan and day-by-day runbook:** `docs/HACK_APERTUS_PLAN.md` (this branch). Each
-  day's boxes, commands and "done when" are there. The retraining work below is paused
-  except where the plan reuses it (seeded evaluation, QLoRA tooling).
-- **Done 2026-10-06:** `scripts/setup_apertus.sh` (download → GGUF Q4_K_M → Ollama, with the
-  Apertus chat template; Ollama steps tested only against a mock server).
-- **Not yet run anywhere:** the script, corpus downloads, licence checks, `pytest` on this
-  branch, and the refs.bib validation were written in a cloud session that could not run them.
-  The full desktop checklist is in the private career-assets repo (Hack Apertus desktop todo).
-- **Next:** the Tue 6 Oct evening boxes in the plan's section 8 (downloads, `hf auth login`,
-  `setup_apertus.sh --official`).
-- **Gaps the plan closes:** no web UI (CLI and `poesia.api` only), no distress handling, no
-  tester evidence.
-- Author's planning notes (outside this public repo): the private career-assets repo (Hack Apertus plan).
+- **Open, Angel's call:** the template's Track 2B README says "The project must be new,
+  started within the hackathon period." PoesIA started 2026-07-26. The entry is therefore
+  a new repo, `~/dev/poesia-apertus` (local only, no remote yet; template layout,
+  `track_2b/`), that pins this engine by commit; the report's §8 separates before/during.
+  Ask the organisers before submitting.
+- **Runbook:** `docs/HACK_APERTUS_PLAN.md` §8 (boxes ticked with results). Results tables
+  are there and in the entry's `technical_report.md`.
+- **Done 2026-10-06/07 (desktop):** downloads and `setup_apertus.sh` (first real run, works;
+  Windows Ollama, reached from WSL at the gateway IP); seeded baselines; the rhyme-word
+  fragment fix (line system message); web page `poesia-web` (scan as you type, proposals on
+  request, per-line origin, keep = download); safety screen + 60-item test set; read-back
+  (Piper); linking (bge-m3 index); OpenAI-compatible client (`LLM_BASE_URL`); fixes found on
+  the way (registry ignored `OLLAMA_MODEL`; English rhyme keys kept stress digits; g2p_en
+  network calls; drafts cut to one line; U+2028 in JSONL). Entry `make run` tested end to end
+  in Docker (GPU), page image checked with `--network none`.
+- **Next:** 4-bit image/audio load test of the official weights (separate venv
+  `~/data/hack-apertus/venv-mm`, Swiss AI transformers fork); ux-audit on the page; tester
+  sessions; report polish, PDF, video; Discord questions; publish the entry repo and the
+  safety dataset once Angel agrees.
 
 ---
 
