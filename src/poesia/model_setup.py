@@ -158,6 +158,23 @@ class OllamaSetup:
             self._set(phase="error", error=str(exc))
         return self.status
 
+    def gpu_fraction(self) -> float | None:
+        """Share of the chat model in GPU memory (Ollama /api/ps), or None if not loaded.
+
+        1.0 is the whole model on the GPU; less means part runs on the CPU and suggestions
+        slow down (2026-10-07: 11% on CPU when another model already held the card).
+        """
+        chat = next((s.name for s in self.specs if s.warm), None)
+        try:
+            with urllib.request.urlopen(f"{self.host}/api/ps", timeout=5) as resp:
+                models = json.loads(resp.read()).get("models", [])
+        except (urllib.error.URLError, OSError, ValueError):
+            return None
+        for m in models:
+            if chat and m.get("name", "").removesuffix(":latest") == chat and m.get("size"):
+                return round(m.get("size_vram", 0) / m["size"], 2)
+        return None
+
     def start(self) -> threading.Thread:
         thread = threading.Thread(target=self.ensure, name="poesia-model-setup", daemon=True)
         thread.start()

@@ -208,6 +208,8 @@ const STR = {
     steps: ["Lo que sentiste", "La forma", "Escribe", "Escucha y guarda"], next: "Siguiente", listenLegend: "Tu poema, en voz alta",
     setup: {
       models: { poetry: "el modelo de poesía", linking: "el modelo para enlazar poemas" },
+      cpuOnly: "Este ordenador no tiene tarjeta gráfica disponible para el modelo: las ideas tardarán unos 15 segundos.",
+      cpuSplit: (pct) => `El modelo no cabe entero en la tarjeta gráfica (${pct} en el procesador): las ideas tardarán más de lo normal.`,
       checking: () => "Preparando PoesIA: comprobando los modelos…",
       downloading: (m, done, total) => `Preparando PoesIA: descargando ${m} (${done} de ${total} GB). Ya puedes escribir; las ideas llegarán cuando termine.`,
       preparing: (m) => `Preparando PoesIA: instalando ${m}…`,
@@ -254,6 +256,8 @@ const STR = {
     steps: ["What moved you", "The form", "Write", "Listen and keep"], next: "Next", listenLegend: "Your poem, read aloud",
     setup: {
       models: { poetry: "the poetry model", linking: "the model that links poems" },
+      cpuOnly: "No graphics card is available for the model on this computer: ideas take about 15 seconds.",
+      cpuSplit: (pct) => `The model does not fit entirely on the graphics card (${pct} on the processor): ideas take longer than usual.`,
       checking: () => "Preparing PoesIA: checking the models…",
       downloading: (m, done, total) => `Preparing PoesIA: downloading ${m} (${done} of ${total} GB). You can start writing; ideas arrive when it is done.`,
       preparing: (m) => `Preparing PoesIA: installing ${m}…`,
@@ -300,6 +304,8 @@ const STR = {
     steps: ["Ciò che hai provato", "La forma", "Scrivi", "Ascolta e conserva"], next: "Avanti", listenLegend: "La tua poesia, ad alta voce",
     setup: {
       models: { poetry: "il modello di poesia", linking: "il modello che collega le poesie" },
+      cpuOnly: "Su questo computer il modello non ha una scheda grafica disponibile: le idee richiedono circa 15 secondi.",
+      cpuSplit: (pct) => `Il modello non entra tutto nella scheda grafica (${pct} sul processore): le idee richiedono più tempo del solito.`,
       checking: () => "Preparo PoesIA: controllo i modelli…",
       downloading: (m, done, total) => `Preparo PoesIA: scarico ${m} (${done} di ${total} GB). Puoi già scrivere; le idee arrivano quando ha finito.`,
       preparing: (m) => `Preparo PoesIA: installo ${m}…`,
@@ -400,7 +406,15 @@ async function pollSetup() {
   const t = T().setup, box = $("setup"), bar = $("setupBar");
   modelsReady = st.phase === "ready";
   document.querySelectorAll("[id^=sug], #linkBtn").forEach(b => { b.disabled = !modelsReady; });
-  if (modelsReady) { box.hidden = true; return; }
+  if (modelsReady) {
+    // P6: a model split onto the processor is slow; say so instead of leaving it a mystery.
+    const g = st.gpu_fraction;
+    if (typeof g === "number" && g < 1) {
+      box.hidden = false; $("setupBar").hidden = true;
+      $("setupText").textContent = g === 0 ? t.cpuOnly : t.cpuSplit(`${Math.round((1 - g) * 100)} %`);
+    } else box.hidden = true;
+    return;
+  }
   const gb = (x) => (x / 1e9).toLocaleString(state.lang || "en", { maximumFractionDigits: 1 });
   const m = t.models[st.model] || st.model;
   box.hidden = false;

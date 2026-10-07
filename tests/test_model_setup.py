@@ -112,3 +112,17 @@ def test_status_endpoint_reports_setup_progress() -> None:
         "error": "",
     }
     assert TestClient(create_app(llm=_LLM())).get("/api/status").json() == {"phase": "ready"}
+
+
+def test_gpu_fraction_reads_ollama_ps() -> None:
+    setup = OllamaSetup("http://ollama:11434", _specs())
+    ps = {
+        "models": [
+            {"name": "poesia-apertus:latest", "size": 1000, "size_vram": 890},
+            {"name": "poesia-embed:latest", "size": 10, "size_vram": 0},
+        ]
+    }
+    with patch("urllib.request.urlopen", lambda url, timeout=None: _Resp(json.dumps(ps).encode())):
+        assert setup.gpu_fraction() == 0.89
+    with patch("urllib.request.urlopen", lambda url, timeout=None: _Resp(b'{"models": []}')):
+        assert setup.gpu_fraction() is None
