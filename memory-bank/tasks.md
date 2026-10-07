@@ -26,6 +26,13 @@
 
 ## BACKLOG (priority order)
 
+- [ ] **GalerIA character comic** (paused 2026-10-07, waiting on API keys): new pictures
+      of Angel's girlfriend and their dog in the style of one reference ink drawing.
+      Handoff with everything tried, what fails, and the key plan:
+      `docs/GALERIA_CHARACTER_COMIC_HANDOFF.md`. Research:
+      `docs/CHARACTER_CONSISTENT_ILLUSTRATION_RESEARCH.md`. Next: Path A (free manual test
+      in the Gemini/ChatGPT apps) or Path B (`GEMINI_API_KEY` + `FAL_KEY` → stage-0
+      six-model test, $5–10). Claude-drawn SVG is a dead end; don't retry it.
 - [ ] **Lemonade integration for the AMD Lemonade Developer Challenge** (2026-09-28) —
       Lemonade as LLM provider, PoesIA's own adapter served locally, GalerIA image backend,
       poem read aloud. Plan and checklist: `docs/LEMONADE_INTEGRATION.md`. Time-sensitive:
