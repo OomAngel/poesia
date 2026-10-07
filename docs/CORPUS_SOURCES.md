@@ -202,7 +202,7 @@ users, never published.**
 | PO-EMO, `tnhaider/poetry-emotion` | de, en | `92fcc10` | none in the repo | evaluation of linking |
 | Metrical gold, `tnhaider/metrical-tagging-in-the-wild` | de, en | `3934b28` | none in the repo | German metre test |
 | Métrique en Ligne (Averell 9), `linhd-postdata/metrique-en-ligne` | fr | `79a5bd0` | `.zenodo.json` says Apache-2.0 for the packaging; the poems' own status not stated | training, evaluation |
-| Biblioteca Italiana (Averell 10), `linhd-postdata/biblioteca_italiana` | it | `e35bc1a` | none stated | training, evaluation |
+| Biblioteca Italiana (Averell 10), `linhd-postdata/biblioteca_italiana` | it | `e35bc1a` | none stated | training, evaluation; its 10,001 lines with an expert `metrical_pattern` (Dante, Petrarca) are the Italian counter's gold set (`scripts/check_italian_scansion.py`) |
 | Carnet du Poète, `sbridel/carnet-du-poete` (code, reference only) | fr | `03ce428` | GPL-3.0 | read the rules; reimplement, never copy |
 
 Averell 9 and 10 were fetched as the same zips `averell download 9 10` uses (averell
