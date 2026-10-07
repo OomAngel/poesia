@@ -312,6 +312,13 @@ def _drop_fragments(candidates: list[str], target_syllables: int) -> list[str]:
     return whole or candidates
 
 
+def _all_fragments(candidates: list[str], target_syllables: int) -> bool:
+    """True when a long line's batch holds nothing but one- and two-word answers."""
+    return (
+        target_syllables >= 8 and bool(candidates) and all(len(c.split()) < 3 for c in candidates)
+    )
+
+
 def _metre_defect_text(actual_syllables: int | None, target_syllables: int) -> str:
     """Describe a syllable-count defect, calling out severe undershoots.
 
@@ -763,22 +770,29 @@ class ConstrainedLoop:
             guest_word=guest_word,
             guest_phonology=guest_phonology,
         )
-        candidates = self._generator.generate_lines(
-            theme=theme,
-            language=self.language,
-            n_candidates=n_candidates,
-            prior_lines=prior_lines,
-            brief=brief,
-            target_syllables=target_syllables,
-            target_rhyme_key=target_rhyme_key,
-            example_rhyme_word=example_rhyme_word,
-            rhyme_candidates=rhyme_candidates,
-            guest_word=guest_word,
-            guest_lang=guest_lang,
-        )
-        # Clean prompt-echo artifacts and reject exact repeats (accuracy)
-        candidates = _clean_candidates(candidates, prior_lines)
-        candidates = _drop_fragments(candidates, target_syllables)
+
+        def _batch(word_bank: list[str] | None) -> list[str]:
+            raw = self._generator.generate_lines(
+                theme=theme,
+                language=self.language,
+                n_candidates=n_candidates,
+                prior_lines=prior_lines,
+                brief=brief,
+                target_syllables=target_syllables,
+                target_rhyme_key=target_rhyme_key,
+                example_rhyme_word=example_rhyme_word,
+                rhyme_candidates=word_bank,
+                guest_word=guest_word,
+                guest_lang=guest_lang,
+            )
+            # Clean prompt-echo artifacts and reject exact repeats (accuracy)
+            return _drop_fragments(_clean_candidates(raw, prior_lines), target_syllables)
+
+        candidates = _batch(rhyme_candidates)
+        if rhyme_candidates and _all_fragments(candidates, target_syllables):
+            # Every candidate was a bare word: some chat models (Apertus v1.5 8B) answer a
+            # word bank with one of its words. Ask once more without the bank.
+            candidates = _batch(None) or candidates
         # Filter out candidates not in the target language
         candidates = _filter_by_language(candidates, self.language)
         if not candidates:
