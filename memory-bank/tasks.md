@@ -9,11 +9,12 @@
       Stretch: `italian.py`, photo image-words, spoken reflection, QLoRA adapter, de/fr
       teaching.
   - [x] `scripts/setup_apertus.sh` (2026-10-06)
-  - [ ] Register on Devpost + Discord; claim CSCS inference and HF credits; apply for Phoeniqs compute (runbook §4a)
-  - [ ] Downloads (Tue 6 Oct evening)
-  - [ ] Runtime + baseline + page skeleton (Wed 7)
-  - [ ] Safety layer + Docker (Thu 8)
-  - [ ] Linking + read-back + ux-audit + testers (Fri 9)
+  - [x] Devpost registration (2026-10-06); HF credits requested (2026-10-07). CSCS keys and
+        Phoeniqs had closed before registration (late request emailed). Discord: open.
+  - [x] Downloads (2026-10-06/07)
+  - [x] Runtime + baseline + page (2026-10-07); multimodal load test still open
+  - [x] Safety layer + Docker (2026-10-07; entry repo `~/dev/poesia-apertus`, local)
+  - [ ] Linking + read-back (done 2026-10-07) + ux-audit + testers (open)
   - [ ] Evidence + on-prem proof + video (Sat 10)
   - [ ] Report + polish (Sun 11 – Mon 12)
   - [ ] Submit (Tue 13)
