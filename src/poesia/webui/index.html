@@ -127,8 +127,8 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
     <progress id="setupBar" max="1" value="0" hidden></progress></div>
 
   <div id="writer" hidden>
-    <section class="pause" id="pause" role="alertdialog" aria-labelledby="pauseTitle" hidden>
-      <h2 id="pauseTitle"></h2>
+    <section class="pause" id="pause" role="alertdialog" aria-modal="true" aria-labelledby="pauseTitle" aria-describedby="pauseText" hidden>
+      <h2 id="pauseTitle" tabindex="-1"></h2>
       <p id="pauseText"></p>
       <ul id="pauseList"></ul>
       <p class="note" id="pauseNote"></p>
@@ -487,12 +487,14 @@ function stanzaOf(f, i) {
 
 function autosize(el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
 
-function renderLines() {
+function renderLines(append = false) {
+  // append: add only lines not on the page yet (a newly revealed stanza), so the lines
+  // already there keep their focus, cursor and any open suggestions.
   const f = currentForm(), t = T(); if (!f) return;
   while (state.lines.length < f.lines) state.lines.push({ text: "", origin: "human", proposal: "" });
   if (!f.free) state.lines.length = f.lines;
   $("addLine").hidden = !f.free;
-  const box = $("lines"); box.innerHTML = "";
+  const box = $("lines"); if (!append) box.innerHTML = "";
   let stanzaBox = null, stanzaIdx = -1;
   // Stanza by stanza: the next stanza appears once the one before it has a line.
   let shown = 0;
@@ -503,7 +505,7 @@ function renderLines() {
   }
   const letters = [...new Set((f.scheme || "").split("").filter(c => /[A-Z]/.test(c)))];
   state.lines.forEach((ln, i) => {
-    if (i >= shown) return;
+    if (i >= shown || (append && $("in" + i))) return;
     const s = stanzaOf(f, i);
     if (s !== stanzaIdx || !stanzaBox) { stanzaBox = document.createElement("div"); stanzaBox.className = "stanza"; box.appendChild(stanzaBox); stanzaIdx = s; }
     const div = document.createElement("div"); div.className = "line";
@@ -549,9 +551,9 @@ function revealNext(i) {
   const f = currentForm();
   if (f.free || !f.stanzas.length) return;
   const nextFirst = (() => { let acc = 0; for (const n of f.stanzas) { acc += n; if (acc > i) return acc; } return -1; })();
-  if (nextFirst > 0 && nextFirst < state.lines.length && !$("in" + nextFirst)) {
-    const pos = $("in" + i).selectionStart; renderLines(); const el = $("in" + i); el.focus(); el.setSelectionRange(pos, pos);
-  }
+  // Appended, not redrawn: a redraw 350 ms after typing pulled focus back to this line while
+  // the author was already on the next one, and wiped open suggestions (found 2026-10-07).
+  if (nextFirst > 0 && nextFirst < state.lines.length && !$("in" + nextFirst)) renderLines(true);
 }
 
 function addLine() {
@@ -682,7 +684,7 @@ let screened = "";
 async function screenText(text) {
   if (!text || !text.trim() || text === screened) return false;
   try {
-    const r = await api("/api/safety", { text });
+    const r = await api("/api/safety", { text, language: state.lang || "en" });
     screened = text;
     if (r.flagged) { showPause(r.resources); return true; }
   } catch (e) { /* the screen never blocks writing when the server is down */ }
@@ -699,8 +701,38 @@ function showPause(resources) {
       a.target = "_blank"; a.rel = "noopener"; li.appendChild(a); }
     ul.appendChild(li);
   });
-  $("pause").hidden = false; $("pause").scrollIntoView({ behavior: "smooth" }); $("pauseContinue").focus();
+  // U9: focus starts on the heading (read first, not dismissed by a stray Enter), stays in the
+  // panel while it is open (Tab cycles links and the button; Escape continues) and returns
+  // to where the person was.
+  // During the check focus may already be on <body>; then go back to what they wrote.
+  const was = document.activeElement;
+  if ($("pause").hidden || !pauseReturn)  // shown again while open: keep the first target
+    pauseReturn = was && was !== document.body && !$("pause").contains(was) ? was
+      : $("reflection").offsetParent ? $("reflection") : null;
+  $("pause").hidden = false; $("pause").scrollIntoView({ behavior: "smooth" }); $("pauseTitle").focus();
 }
+
+let pauseReturn = null;
+function closePause() {
+  $("pause").hidden = true;
+  if (pauseReturn && document.contains(pauseReturn) && pauseReturn.offsetParent) pauseReturn.focus();
+  else document.activeElement?.blur();  // never leave focus inside the hidden panel
+  pauseReturn = null;
+}
+
+document.addEventListener("keydown", (e) => {
+  if ($("pause").hidden) return;
+  if (e.key === "Escape") { e.preventDefault(); closePause(); return; }
+  if (e.key !== "Tab") return;
+  const items = [...$("pause").querySelectorAll("a[href], button")];
+  const first = items[0], last = items[items.length - 1];
+  const inside = $("pause").contains(document.activeElement);
+  if (e.shiftKey && (!inside || document.activeElement === first || document.activeElement === $("pauseTitle"))) {
+    e.preventDefault(); last.focus();
+  } else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+    e.preventDefault(); first.focus();
+  }
+});
 
 let player = null;
 async function listen() {
@@ -830,7 +862,7 @@ async function init() {
   $("theme").addEventListener("input", e => { state.theme = e.target.value; save(); });
   $("reflection").addEventListener("input", e => { state.reflection = e.target.value; save(); });
   $("reflection").addEventListener("blur", () => screenText(state.reflection));
-  $("pauseContinue").addEventListener("click", () => { $("pause").hidden = true; });
+  $("pauseContinue").addEventListener("click", closePause);
   $("keep").addEventListener("click", keep);
   $("keepTxt").addEventListener("click", keepText);
   $("print").addEventListener("click", printPoem);

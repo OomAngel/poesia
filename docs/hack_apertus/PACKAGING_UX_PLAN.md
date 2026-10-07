@@ -53,7 +53,7 @@ language throughout.
 | U6 ✓ (done 2026-10-07: "Ideas" offers common rhyme words with why each fits, offline, checked with the page's own rhyme test; whole lines on a second click; works while the model downloads. Italian offers longer words only when the stress is certain. Short phrases not done) | **Smaller suggestions first** (plan §2a): rhyme words and short phrases from offline dictionaries (CMUdict, Spanish/Italian suffix lists), whole lines only on a second click; each says why it fits. | default "Ideas" offers words, not finished lines | 3 h |
 | U7 | **Keep as something to read:** text and print/PDF with title and the authorship line; JSON only as "open later". | a kept poem opens in any editor and prints on one page | 2 h |
 | U8 ✓ (done 2026-10-07) | **Phone layout:** compact bottom bar that never covers a line; lines wrap (no sideways scroll). | ux-audit responsive layer + screenshots at 390 px clean | 1 h |
-| U9 | **Safety copy per language** checked by a native speaker; focus stays in the pause panel. | three languages reviewed; keyboard test passes | 1 h |
+| U9 half ✓ (2026-10-07: helplines in es/en/it with the same facts, names checked on 143.ch/147.ch; the pause opens on its heading, Tab stays inside, Escape continues, focus returns; browser-tested. **Still open: a native speaker reads each language**) | **Safety copy per language** checked by a native speaker; focus stays in the pause panel. | three languages reviewed; keyboard test passes | 1 h |
 | U10 ✓ (done 2026-10-07: step 4, after Write; Italian added the same day, 609 Gutenberg poems, after the offline test showed it empty) | **Linking as the ending:** after the poem, "Others felt this too", with the credit line. | shown only after Write | 1 h |
 | U11 | **Usability check:** 3 people (es, en, it), before and after U1–U4: time to first own line, finished or not, "does it feel like yours", what got in the way. No reflection kept. | numbers for the report | 3 h |
 
@@ -105,3 +105,11 @@ two runs (4 of the first 7 differ), so only a gap that holds across repeated run
 days: the page would have to download the GGUFs itself to keep the progress screen, run two
 servers (chat and embeddings), replace the GPU-share check (`/api/ps`), and redo the bundle,
 the native path and their tests, all while U11, the video and the report are still open.
+
+## Bug found while testing U6 (2026-10-07, fixed)
+
+Writing a stanza's first line revealed the next stanza by redrawing every line 350 ms later
+and focusing the line that triggered it. Someone who pressed Enter and kept typing had focus
+pulled back mid-word: the rest of line 2 went into line 1, and open suggestions vanished.
+Reproduced in Chromium on the old code ("y el v" left in line 2); the reveal now appends the
+new stanza without touching the lines already there.

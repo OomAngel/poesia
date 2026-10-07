@@ -21,3 +21,4 @@ vie
 ore
 tre
 VAI
+alle

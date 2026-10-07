@@ -81,28 +81,80 @@ _PATTERNS: dict[str, list[str]] = {
 }
 _COMPILED = {lang: [re.compile(p) for p in pats] for lang, pats in _PATTERNS.items()}
 
-# Checked on the services' own sites, 2026-10-07 (www.143.ch, www.147.ch).
-RESOURCES: list[dict[str, str]] = [
-    {
-        "number": "143",
-        "name": "Die Dargebotene Hand / La Main Tendue",
-        "note": "Always available, anonymous; chat and email on 143.ch. "
-        "In English: 0800 143 000, 6–11 pm.",
-        "url": "https://www.143.ch",
-    },
-    {
-        "number": "147",
-        "name": "Pro Juventute, for children and young people",
-        "note": "Free and confidential, around the clock; WhatsApp and chat on 147.ch.",
-        "url": "https://www.147.ch",
-    },
-    {
-        "number": "144 / 112",
-        "name": "Emergency",
-        "note": "If someone is in immediate danger.",
-        "url": "",
-    },
-]
+# Checked on the services' own sites, 2026-10-07 (www.143.ch, www.143.ch/it, www.147.ch).
+# The same facts in each page language (U9): a pause shown in Spanish must not switch to
+# English. The services answer in the Swiss national languages; 143 also has an English line.
+RESOURCES_BY_LANGUAGE: dict[str, list[dict[str, str]]] = {
+    "en": [
+        {
+            "number": "143",
+            "name": "Die Dargebotene Hand / La Main Tendue / Telefono Amico",
+            "note": "Always available, anonymous; chat and email on 143.ch. "
+            "In English: 0800 143 000, 6–11 pm.",
+            "url": "https://www.143.ch",
+        },
+        {
+            "number": "147",
+            "name": "Pro Juventute, for children and young people",
+            "note": "Free and confidential, around the clock; WhatsApp and chat on 147.ch.",
+            "url": "https://www.147.ch",
+        },
+        {
+            "number": "144 / 112",
+            "name": "Emergency",
+            "note": "If someone is in immediate danger.",
+            "url": "",
+        },
+    ],
+    "es": [
+        {
+            "number": "143",
+            "name": "Die Dargebotene Hand / La Main Tendue / Telefono Amico",
+            "note": "Siempre disponible y anónimo; chat y correo en 143.ch. "
+            "En inglés: 0800 143 000, de 18 a 23 h.",
+            "url": "https://www.143.ch",
+        },
+        {
+            "number": "147",
+            "name": "Pro Juventute, para niños, niñas y jóvenes",
+            "note": "Gratuito y confidencial, a cualquier hora; WhatsApp y chat en 147.ch.",
+            "url": "https://www.147.ch",
+        },
+        {
+            "number": "144 / 112",
+            "name": "Emergencias",
+            "note": "Si alguien está en peligro inmediato.",
+            "url": "",
+        },
+    ],
+    "it": [
+        {
+            "number": "143",
+            "name": "Telefono Amico (Die Dargebotene Hand / La Main Tendue)",
+            "note": "Sempre disponibile e anonimo; chat ed e-mail su 143.ch. "
+            "In inglese: 0800 143 000, dalle 18 alle 23.",
+            "url": "https://www.143.ch/it",
+        },
+        {
+            "number": "147",
+            "name": "Pro Juventute, per bambini e giovani",
+            "note": "Gratuito e confidenziale, 24 ore su 24; WhatsApp e chat su 147.ch.",
+            "url": "https://www.147.ch/it/",
+        },
+        {
+            "number": "144 / 112",
+            "name": "Emergenza",
+            "note": "Se qualcuno è in pericolo immediato.",
+            "url": "",
+        },
+    ],
+}
+RESOURCES = RESOURCES_BY_LANGUAGE["en"]
+
+
+def resources_for(language: str) -> list[dict[str, str]]:
+    return RESOURCES_BY_LANGUAGE.get(language, RESOURCES)
+
 
 CLASSIFY_PROMPT = (
     "You are a safety screen. Read the text between the markers. Answer with exactly one "
