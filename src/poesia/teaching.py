@@ -201,12 +201,86 @@ def _spanish_lesson(lesson: ScanLesson, line: str) -> None:
         lesson.messages.append(note)
 
 
+def _plural(n: int, one: str, many: str) -> str:
+    return one if n == 1 else many.format(n=n)
+
+
+# The page speaks one language per session (docs/hack_apertus/PACKAGING_UX_PLAN.md, U1).
+# English text stays inline below, as the CLI has always shown it; these are its es/it forms.
+_UI: dict[str, dict[str, str]] = {
+    "es": {
+        "empty": "Verso vacío: escribe algo primero.",
+        "exact": "Exacto: {a} sílabas, la medida del verso.",
+        "short": "{missing}: este verso tiene {a}; la medida es {t}.",
+        "over": "{extra}: este verso tiene {a}; la medida es {t}.",
+        "sinalefa": "Sinalefa ({pairs}): las dos vocales se unen y cuentan como una sola sílaba.",
+        "aguda": "La última palabra, '{w}', es aguda (acento en la última sílaba): el verso suma 1 sílaba.",
+        "esdrujula": "La última palabra, '{w}', es esdrújula: el verso resta 1 sílaba.",
+        "consonant": "La última palabra, '{w}', termina en consonante (no -n ni -s): cuenta como aguda y suma 1 sílaba.",
+        "tip_short": "Para ganar una sílaba: una palabra más larga ('luz' → 'claridad'), o evita una sinalefa separando dos vocales.",
+        "tip_over": "Para perder una sílaba: deja que dos vocales vecinas se unan en sinalefa ('la aurora' son 3 sílabas), o usa una palabra más corta.",
+    },
+    "it": {
+        "empty": "Verso vuoto: scrivi qualcosa prima.",
+        "exact": "Esatto: {a} sillabe, la misura del verso.",
+        "short": "{missing}: questo verso ne ha {a}; la misura è {t}.",
+        "over": "{extra}: questo verso ne ha {a}; la misura è {t}.",
+        "tip_short": "Per guadagnare una sillaba: una parola più lunga, o tieni separate due vocali tra parole (dialefe), per esempio dopo una vocale finale accentata ('è | amara').",
+        "tip_over": "Per perdere una sillaba: lascia che una vocale finale e una iniziale si fondano (sinalefe: 'selvaggia e aspra'), elidi ('lo amore' → \"l'amore\") o tronca ('amore' → 'amor').",
+    },
+}
+
+
+def _ui_counts(ui: str, actual: int, target: int) -> dict[str, str]:
+    d = abs(target - actual)
+    if ui == "es":
+        return {
+            "missing": _plural(d, "Falta 1 sílaba", "Faltan {n} sílabas"),
+            "extra": _plural(d, "Sobra 1 sílaba", "Sobran {n} sílabas"),
+        }
+    return {
+        "missing": _plural(d, "Manca 1 sillaba", "Mancano {n} sillabe"),
+        "extra": _plural(d, "C'è 1 sillaba di troppo", "Ci sono {n} sillabe di troppo"),
+    }
+
+
+def _localise(lesson: ScanLesson, ui: str, line: str) -> None:
+    """Rewrite a lesson's messages in the page's language (es, it); English is left as is."""
+    table = _UI.get(ui)
+    if table is None:
+        return
+    msgs: list[str] = []
+    a, t = lesson.metrical_syllable_count, lesson.target_syllables
+    if not line.strip():
+        lesson.messages = [table["empty"]]
+        return
+    if t is not None:
+        key = {"ok": "exact", "short": "short", "over": "over"}[lesson.status]
+        msgs.append(table[key].format(a=a, t=t, **_ui_counts(ui, a, t)))
+    if ui == "es" and lesson.sinalefa_pairs:
+        pairs = ", ".join(f"'{x} {y}'" for x, y in lesson.sinalefa_pairs)
+        msgs.append(table["sinalefa"].format(pairs=pairs))
+    if ui == "es" and lesson.final_word_note:
+        words = [w for w in line.split() if w.strip()]
+        last = words[-1].lower().rstrip(".,;:!?\"'") if words else ""
+        kind = _explicit_accent_class(last) or "consonant"
+        msgs.append(
+            table[
+                "aguda" if kind == "aguda" else "esdrujula" if kind == "esdrujula" else "consonant"
+            ].format(w=words[-1])
+        )
+    if lesson.status in ("short", "over"):
+        msgs.append(table["tip_short" if lesson.status == "short" else "tip_over"])
+    lesson.messages = msgs
+
+
 def teach_scan(
     scan: ScanResult,
     target_syllables: int | None = None,
     *,
     language: str = "es",
     form_name: str | None = None,
+    ui_language: str = "en",
 ) -> ScanLesson:
     """Build the teaching lesson for one scanned line.
 
@@ -217,6 +291,7 @@ def teach_scan(
         language: Language code ('es' or 'en') — selects which craft rules and
             fix tips are taught.
         form_name: Optional form name to name in the lesson (e.g. 'soneto').
+        ui_language: Language of the messages: 'en' (the CLI's), or 'es'/'it' for the page.
 
     Returns:
         A ``ScanLesson`` with a human-readable list of why + how-to-fix
@@ -232,6 +307,7 @@ def teach_scan(
 
     if not scan.line.strip():
         lesson.messages.append("Empty line — write something first.")
+        _localise(lesson, ui_language, scan.line)
         return lesson
 
     form_label = f" of a {form_name}" if form_name else ""
@@ -243,6 +319,7 @@ def teach_scan(
 
     if lesson.status != "ok":
         lesson.messages.extend(_fix_tips(language, lesson.status))
+    _localise(lesson, ui_language, scan.line)
     return lesson
 
 

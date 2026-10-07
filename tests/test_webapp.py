@@ -154,3 +154,26 @@ def test_italian_sonetto_is_offered_and_scanned() -> None:
         },
     ).json()
     assert r["syllables"] == 11 and r["status"] == "ok"
+
+
+def test_free_verse_scans_without_targets_and_proposes() -> None:
+    client, llm = _client(["the river keeps the colour of the leaves"])
+    forms = {(f["language"], f["form"]): f for f in client.get("/api/forms").json()}
+    assert forms[("en", "free")]["free"] and forms[("en", "free")]["scheme"] == ""
+    assert forms[("es", "soneto")]["stanzas"] == [4, 4, 3, 3]
+    r = client.post(
+        "/api/scan",
+        json={"language": "en", "form": "free", "index": 3, "lines": ["", "", "", "a b c"]},
+    ).json()
+    assert r["target"] is None and r["rhyme_letter"] == "" and r["rhymes"] is None
+    p = client.post("/api/propose", json={"language": "en", "form": "free", "index": 0}).json()
+    assert p["proposals"][0]["text"] == "the river keeps the colour of the leaves"
+    assert "Exactly" not in llm.prompts[0]
+
+
+def test_lessons_follow_the_page_language() -> None:
+    client, _ = _client()
+    r = client.post(
+        "/api/scan", json={"language": "es", "form": "soneto", "index": 0, "lines": ["La luna"]}
+    ).json()
+    assert r["messages"][0].startswith("Faltan")

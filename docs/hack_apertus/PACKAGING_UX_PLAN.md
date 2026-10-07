@@ -27,9 +27,9 @@ carry-on bundle for an air-gapped machine.
 
 | # | Step | Done when | Effort |
 |---|---|---|---|
-| P1 | **Slim the page image.** Check whether `prosodic` (English extra) is used at runtime; if not, drop it (it brings pandas, scipy, pyarrow, statsmodels, matplotlib, ~450 MB). Multi-stage build so the compiler never ships. | image < 0.8 GB; `--network none` scan/safety/read-back/link tests still pass | 1 h |
+| P1 ✓ (done 2026-10-07) | **Slim the page image.** Check whether `prosodic` (English extra) is used at runtime; if not, drop it (it brings pandas, scipy, pyarrow, statsmodels, matplotlib, ~450 MB). Multi-stage build so the compiler never ships. | image < 0.8 GB; `--network none` scan/safety/read-back/link tests still pass | 1 h |
 | P2 | **Measure a lighter model server.** llama.cpp `llama-server` (OpenAI-compatible chat *and* embeddings, supports Apertus at the pinned commit, can fetch a GGUF from Hugging Face) against the 9.3 GB Ollama image: image size, first-token time, same seeded benchmark. Switch only if it is clearly smaller and scores the same. | a table of both; decision recorded | 3 h |
-| P3 | **One command without make.** `docker compose up` alone works (CPU), `docker compose --profile gpu up` uses the GPU; `run.sh` / `run.ps1` pick the profile by checking for an NVIDIA runtime. `make run` stays for Linux. | the same three commands work on Windows (PowerShell), WSL and Linux | 1 h |
+| P3 ✓ (done 2026-10-07) | **One command without make.** `docker compose up` alone works (CPU), `docker compose --profile gpu up` uses the GPU; `run.sh` / `run.ps1` pick the profile by checking for an NVIDIA runtime. `make run` stays for Linux. | the same three commands work on Windows (PowerShell), WSL and Linux | 1 h |
 | P4 | **First-run screen in the page.** The page starts at once and shows "Preparing PoesIA: downloading the poetry model (2.1 of 5.0 GB)" from the model server's pull progress; scanning, the safety screen and read-back work immediately; suggestions switch on when the model is ready. | a fresh volume shows progress in the browser, not only in the console | 3 h |
 | P5 | **Air-gapped bundle.** `make bundle` writes the images and the model volume to one folder (`docker save` + a volume tar) with a checksum; `make load` restores it on a machine with no network. | `make load && make run` on a machine with the cable out; one paragraph and a photo for the report | 2 h |
 | P6 | **Hardware check at start.** Free GPU memory and RAM read at startup; under ~6 GB free on the GPU the page says it runs on CPU (suggestions ~15 s) instead of silently splitting the model. Minimum requirements in the README. | the 11%/89% CPU/GPU split seen on 2026-10-07 is reported, not hidden | 1 h |
@@ -45,14 +45,14 @@ language throughout.
 
 | # | Step | Done when | Effort |
 |---|---|---|---|
-| U1 | **One language per session.** First choice: "I want to write in Español / English / Italiano"; the whole page follows (a string table; de/fr later). | no mixed-language screen at 390/768/1280 px in es, en, it | 3 h |
-| U2 | **Human form choice.** Cards: "Soneto — 14 versos de 11 sílabas, rima ABBA ABBA CDC DCD", haiku, and **free verse** (no metre checks; reading, safety and linking only), each with a two-line example. | the form names no code ("sonnet_shakespearean") | 1 h |
+| U1 ✓ (done 2026-10-07) | **One language per session.** First choice: "I want to write in Español / English / Italiano"; the whole page follows (a string table; de/fr later). | no mixed-language screen at 390/768/1280 px in es, en, it | 3 h |
+| U2 ✓ (done 2026-10-07) | **Human form choice.** Cards: "Soneto — 14 versos de 11 sílabas, rima ABBA ABBA CDC DCD", haiku, and **free verse** (no metre checks; reading, safety and linking only), each with a two-line example. | the form names no code ("sonnet_shakespearean") | 1 h |
 | U3 | **Guided flow:** 1 What moved you → 2 Write → 3 Listen and read → 4 Keep, with a step indicator. Lines appear stanza by stanza (4-4-3-3 with spacing); rhyme partners linked by a coloured mark instead of letters. | testers can say where they are and what comes next | 4 h |
 | U4 | **Show the scansion, not codes.** The scanned line split into syllables with stressed ones in bold and merges joined ("la‿au·ro·ra"), a one-line status ("11 of 11 ✓", "one syllable too many"), and the explanation behind "Why?". | no "S u S" and no undefined term on screen | 3 h |
 | U5 | **Language mismatch hint.** A line that looks English in a Spanish form gets "This line looks English; the soneto counts Spanish syllables" instead of a Spanish lesson. | the 2026-10-07 screenshot case shows the hint | 1 h |
 | U6 | **Smaller suggestions first** (plan §2a): rhyme words and short phrases from offline dictionaries (CMUdict, Spanish/Italian suffix lists), whole lines only on a second click; each says why it fits. | default "Ideas" offers words, not finished lines | 3 h |
 | U7 | **Keep as something to read:** text and print/PDF with title and the authorship line; JSON only as "open later". | a kept poem opens in any editor and prints on one page | 2 h |
-| U8 | **Phone layout:** compact bottom bar that never covers a line; lines wrap (no sideways scroll). | ux-audit responsive layer + screenshots at 390 px clean | 1 h |
+| U8 ✓ (done 2026-10-07) | **Phone layout:** compact bottom bar that never covers a line; lines wrap (no sideways scroll). | ux-audit responsive layer + screenshots at 390 px clean | 1 h |
 | U9 | **Safety copy per language** checked by a native speaker; focus stays in the pause panel. | three languages reviewed; keyboard test passes | 1 h |
 | U10 | **Linking as the ending:** after the poem, "Others felt this too", with the credit line. | shown only after Write | 1 h |
 | U11 | **Usability check:** 3 people (es, en, it), before and after U1–U4: time to first own line, finished or not, "does it feel like yours", what got in the way. No reflection kept. | numbers for the report | 3 h |

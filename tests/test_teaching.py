@@ -134,3 +134,23 @@ def test_format_scan_without_target_is_minimal() -> None:
     text = format_scan(_scan("verso suelto", 5), None, language="es")
     assert "Metrical syllables: 5" in text
     assert "target:" not in text
+
+
+def test_page_language_es_and_it() -> None:
+    over = teach_scan(
+        _scan("verso demasiado largo para la forma", 13), 11, language="es", ui_language="es"
+    )
+    assert over.messages[0] == "Sobran 2 sílabas: este verso tiene 13; la medida es 11."
+    assert over.messages[-1].startswith("Para perder una sílaba")
+    exact = teach_scan(_scan("verso perfecto", 11), 11, language="it", ui_language="it")
+    assert exact.messages == ["Esatto: 11 sillabe, la misura del verso."]
+    short = teach_scan(_scan("verso corto", 10), 11, language="it", ui_language="it")
+    assert short.messages[0].startswith("Manca 1 sillaba")
+    assert teach_scan(_scan("", 0), 11, language="es", ui_language="es").messages == [
+        "Verso vacío: escribe algo primero."
+    ]
+
+
+def test_english_messages_unchanged_by_default() -> None:
+    lesson = teach_scan(_scan("verso perfecto", 11), 11, language="es", form_name="soneto")
+    assert lesson.messages[0].startswith("Exact match: 11 syllables")

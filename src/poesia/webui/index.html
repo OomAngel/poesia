@@ -16,32 +16,43 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg);
        font: 17px/1.5 Georgia, "Iowan Old Style", serif; }
-main { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+main { max-width: 760px; margin: 0 auto; padding: 24px 16px 96px; }
 h1 { font-size: 1.6rem; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 0 0 10px; }
 .sub { color: var(--muted); margin: 0 0 20px; font-size: .95rem; }
-fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 0 0 16px;
-           background: var(--card); }
+fieldset, .panel { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+           margin: 0 0 16px; background: var(--card); }
 legend { padding: 0 6px; color: var(--muted); font-size: .9rem; }
 label { display: block; font-size: .9rem; color: var(--muted); margin: 6px 0 2px; }
-input[type=text], textarea, select { width: 100%; font: inherit; color: var(--fg); background: var(--bg);
+input[type=text], textarea { width: 100%; font: inherit; color: var(--fg); background: var(--bg);
        border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
-textarea { min-height: 90px; resize: vertical; }
-.row { display: flex; gap: 12px; flex-wrap: wrap; } .row > div { flex: 1 1 200px; }
-.line { border-top: 1px solid var(--line); padding: 10px 0; }
-.line:first-child { border-top: 0; }
-.lhead { display: flex; gap: 8px; align-items: baseline; font-size: .82rem; color: var(--muted); }
-.lnum { min-width: 2.2em; font-variant-numeric: tabular-nums; }
-.badge { border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; }
-.ok { color: var(--ok); } .short, .over { color: var(--warn); } .norhyme { color: var(--bad); }
-.lint { font-size: .88rem; color: var(--muted); margin: 4px 0 0 2.6em; }
-.lint li { margin: 2px 0; }
-.lbody { display: flex; gap: 8px; align-items: center; }
-.lbody input { flex: 1; }
-button { font: inherit; font-size: .9rem; border: 1px solid var(--line); background: var(--card);
-         color: var(--fg); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+textarea.reflection { min-height: 90px; resize: vertical; }
+textarea.verse { resize: none; overflow: hidden; min-height: 2.6em; line-height: 1.45; }
+button { font: inherit; font-size: .92rem; border: 1px solid var(--line); background: var(--card);
+         color: var(--fg); border-radius: 8px; padding: 7px 11px; cursor: pointer; }
 button:hover, button:focus-visible { border-color: var(--accent); outline: none; }
 button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-.props { margin: 6px 0 0 2.6em; display: grid; gap: 4px; }
+button.link { border: 0; background: none; padding: 0; color: var(--muted); text-decoration: underline; }
+.choices { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.choice { text-align: left; padding: 12px 14px; }
+.choice strong { display: block; font-size: 1.05rem; }
+.choice span { color: var(--muted); font-size: .88rem; }
+.choice[aria-pressed=true] { border: 2px solid var(--accent); }
+.stanza { padding: 4px 0 12px; }
+.stanza + .stanza { border-top: 1px dashed var(--line); padding-top: 12px; }
+.line { padding: 6px 0; }
+.lhead { display: flex; gap: 8px; align-items: baseline; font-size: .82rem; color: var(--muted);
+         flex-wrap: wrap; }
+.lnum { min-width: 1.6em; font-variant-numeric: tabular-nums; }
+.badge { border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; }
+.ok { color: var(--ok); } .short, .over { color: var(--warn); } .norhyme { color: var(--bad); }
+.lbody { display: flex; gap: 8px; align-items: flex-start; }
+.lbody textarea { flex: 1; }
+.status { font-size: .88rem; margin: 4px 0 0 2.2em; }
+details.why { font-size: .86rem; color: var(--muted); margin: 2px 0 0 2.2em; }
+details.why summary { cursor: pointer; }
+details.why ul { margin: 4px 0; padding-left: 1.2em; }
+.props { margin: 6px 0 0 2.2em; display: grid; gap: 4px; }
 .prop { display: flex; gap: 8px; align-items: center; color: var(--ghost); font-style: italic; }
 .prop span { flex: 1; }
 .origin { font-size: .75rem; color: var(--ghost); }
@@ -49,83 +60,202 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
        padding: 10px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .note { color: var(--muted); font-size: .85rem; }
 .sr { position: absolute; left: -9999px; }
+.pause { border: 2px solid var(--accent); border-radius: 12px; padding: 16px; margin: 0 0 16px;
+         background: var(--card); }
+.pause h2 { margin: 0 0 8px; }
+.pause ul { padding-left: 1.2em; } .pause li { margin: 6px 0; }
+.pause .num { font-weight: bold; font-size: 1.1rem; }
 .linked { border-top: 1px solid var(--line); padding: 10px 0; }
 .linked h3 { margin: 0; font-size: 1rem; } .linked .by { color: var(--muted); font-size: .88rem; }
 .linked pre { font: inherit; white-space: pre-wrap; margin: 6px 0; }
 .linked .credit { font-size: .75rem; color: var(--ghost); }
-.pause { border: 2px solid var(--accent); border-radius: 12px; padding: 16px; margin: 0 0 16px;
-         background: var(--card); }
-.pause h2 { margin: 0 0 8px; font-size: 1.2rem; }
-.pause ul { padding-left: 1.2em; } .pause li { margin: 6px 0; }
-.pause .num { font-weight: bold; font-size: 1.1rem; }
+.topline { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 [hidden] { display: none !important; }
+/* Phones: the action bar sits after the poem instead of floating over the lines. */
+@media (max-width: 600px) {
+  .bar { position: static; }
+  .bar button { flex: 1 1 auto; }
+  .status, details.why, .props { margin-left: 0; }
+  main { padding-bottom: 32px; }
+}
 </style>
 </head>
 <body>
 <main>
-  <h1>PoesIA</h1>
-  <p class="sub" id="tagline">You write the poem. PoesIA counts, listens and explains. Nothing leaves this computer.</p>
+  <div class="topline">
+    <h1>PoesIA</h1>
+    <button class="link" id="changeLang" hidden></button>
+  </div>
+  <p class="sub" id="tagline"></p>
 
-  <section class="pause" id="pause" role="alertdialog" aria-labelledby="pauseTitle" hidden>
-    <h2 id="pauseTitle">Let's pause for a moment</h2>
-    <p id="pauseText">What you wrote matters. If you are thinking about hurting yourself or someone
-      else, please talk to someone now. These services are free and confidential:</p>
-    <ul id="pauseList"></ul>
-    <p class="note" id="pauseNote">PoesIA is a writing tool, not a counsellor. Nothing you wrote has
-      left this computer or been saved.</p>
-    <button id="pauseContinue">Continue writing</button>
+  <!-- 1. Language: the whole page follows it -->
+  <section class="panel" id="langStep">
+    <h2>Write in · Escribe en · Scrivi in</h2>
+    <div class="choices">
+      <button class="choice" data-lang="es"><strong>Español</strong><span>soneto, haiku, verso libre</span></button>
+      <button class="choice" data-lang="en"><strong>English</strong><span>sonnet, haiku, free verse</span></button>
+      <button class="choice" data-lang="it"><strong>Italiano</strong><span>sonetto, verso libero</span></button>
+    </div>
   </section>
 
-  <fieldset>
-    <legend>Before you start</legend>
-    <div class="row">
-      <div><label for="form">Form</label><select id="form"></select></div>
-      <div><label for="theme">What it is about (a word is enough)</label>
-        <input type="text" id="theme" maxlength="200" placeholder="autumn tree"></div>
+  <div id="writer" hidden>
+    <section class="pause" id="pause" role="alertdialog" aria-labelledby="pauseTitle" hidden>
+      <h2 id="pauseTitle"></h2>
+      <p id="pauseText"></p>
+      <ul id="pauseList"></ul>
+      <p class="note" id="pauseNote"></p>
+      <button id="pauseContinue"></button>
+    </section>
+
+    <fieldset>
+      <legend id="startLegend"></legend>
+      <label for="theme" id="themeLabel"></label>
+      <input type="text" id="theme" maxlength="200">
+      <label for="reflection" id="reflectionLabel"></label>
+      <textarea class="reflection" id="reflection" maxlength="4000"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend id="formLegend"></legend>
+      <div class="choices" id="forms" role="group"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend id="poemLegend"></legend>
+      <div id="lines"></div>
+      <button id="addLine" hidden></button>
+    </fieldset>
+
+    <fieldset>
+      <legend id="linkLegend"></legend>
+      <p class="note" id="linkNote"></p>
+      <button id="linkBtn"></button>
+      <div id="links"></div>
+    </fieldset>
+
+    <div class="bar">
+      <button class="primary" id="keep"></button>
+      <button id="listen"></button>
+      <button id="clear"></button>
+      <span class="note" id="authorship" aria-live="polite"></span>
     </div>
-    <label for="reflection">What did you feel or think? (optional, only for you and the suggestions)</label>
-    <textarea id="reflection" maxlength="4000"></textarea>
-  </fieldset>
-
-  <fieldset>
-    <legend id="poemLegend">Your poem</legend>
-    <div id="lines"></div>
-  </fieldset>
-
-  <fieldset id="linkBox">
-    <legend id="linkLegend">Poems that feel like this</legend>
-    <p class="note" id="linkNote">If you like, read two or three old poems close to what you wrote.
-      They are public domain or openly licensed.</p>
-    <button id="linkBtn">Show me</button>
-    <div id="links"></div>
-  </fieldset>
-
-  <div class="bar">
-    <button class="primary" id="keep">Keep poem (download)</button>
-    <button id="listen" title="A synthetic voice, not a real person's">Listen (synthetic voice)</button>
-    <button id="clear">Start over</button>
-    <span class="note" id="authorship" aria-live="polite"></span>
+    <p class="note" id="footnote"></p>
   </div>
-  <p class="note">Suggestions come only when you ask, from a model running on this machine.
-    They are a starting point: change them, or ignore them. Drafts stay in this browser tab
-    and disappear when you close it, unless you keep the poem.</p>
   <div class="sr" aria-live="polite" id="live"></div>
 </main>
 <script>
 "use strict";
 const $ = (id) => document.getElementById(id);
-const STORE = "poesia.draft.v1";
-let forms = [];
-let state = { formKey: "", theme: "", reflection: "", lines: [] };
-// each line: { text, origin: "human"|"proposal-accepted"|"proposal-edited", proposal: "" }
+const STORE = "poesia.draft.v2";
 
-function save() {
-  try { sessionStorage.setItem(STORE, JSON.stringify(state)); } catch (e) { /* private mode */ }
-}
-function load() {
-  try { const s = JSON.parse(sessionStorage.getItem(STORE) || "null"); if (s) state = s; } catch (e) {}
-}
-function currentForm() { return forms.find(f => f.language + ":" + f.form === state.formKey) || forms[0]; }
+// Every word on the page, per language (docs/hack_apertus/PACKAGING_UX_PLAN.md, U1).
+const STR = {
+  es: {
+    tagline: "Tú escribes el poema. PoesIA cuenta, escucha y explica. Nada sale de este ordenador.",
+    changeLang: "Cambiar de idioma", startLegend: "Antes de empezar",
+    themeLabel: "¿De qué trata? (basta una palabra)", themePh: "un árbol en otoño",
+    reflectionLabel: "¿Qué sentiste o pensaste? (opcional, solo para ti y para las ideas)",
+    formLegend: "La forma", poemLegend: "Tu poema", line: "Verso", ideas: "Ideas",
+    ideasTitle: "Pedir ideas para este verso", addLine: "Añadir un verso",
+    syll: "sílabas", why: "¿Por qué?", useIt: "Usar", thinking: "Pensando…",
+    noIdeas: "Sin ideas esta vez.", modelDown: "El modelo no responde: ",
+    used: "idea aceptada", edited: "idea editada",
+    rhymeWith: (n) => `rima con el verso ${n}`, rhymeMiss: (n) => `debería rimar con el verso ${n}`,
+    ok: "medida exacta", short: (d) => d === 1 ? "falta 1 sílaba" : `faltan ${d} sílabas`,
+    over: (d) => d === 1 ? "sobra 1 sílaba" : `sobran ${d} sílabas`,
+    keep: "Guardar el poema", listen: "Escuchar (voz sintética)", stop: "Parar",
+    clear: "Empezar de nuevo", clearAsk: "¿Empezar de nuevo? El borrador se borra.",
+    changeAsk: "¿Cambiar de forma? Los versos escritos se borran (la reflexión se queda).",
+    authorship: (own, all) => `${own} de ${all} versos escritos por ti`,
+    footnote: "Las ideas llegan solo cuando las pides, de un modelo que funciona en este ordenador. Son un punto de partida: cámbialas o ignóralas. El borrador se queda en esta pestaña y desaparece al cerrarla, salvo que guardes el poema.",
+    linkLegend: "Poemas que se sienten así",
+    linkNote: "Si quieres, lee dos o tres poemas antiguos cercanos a lo que escribiste. Son de dominio público o con licencia abierta.",
+    linkBtn: "Mostrar", looking: "Buscando…", writeFirst: "Escribe algo primero.",
+    notAvailable: "No disponible: ", untitled: "Sin título",
+    pauseTitle: "Hagamos una pausa",
+    pauseText: "Lo que escribiste importa. Si estás pensando en hacerte daño o en dañar a alguien, habla con alguien ahora. Estos servicios son gratuitos y confidenciales:",
+    pauseNote: "PoesIA es una herramienta para escribir, no un servicio de ayuda. Nada de lo que escribiste ha salido de este ordenador ni se ha guardado.",
+    pauseContinue: "Seguir escribiendo",
+    forms: {
+      soneto: ["Soneto", "14 versos de 11 sílabas; rima ABBA ABBA CDC DCD."],
+      haiku: ["Haiku", "3 versos de 5, 7 y 5 sílabas, sin rima."],
+      free: ["Verso libre", "Sin medida ni rima: escribe a tu ritmo; PoesIA solo cuenta y escucha."],
+    },
+  },
+  en: {
+    tagline: "You write the poem. PoesIA counts, listens and explains. Nothing leaves this computer.",
+    changeLang: "Change language", startLegend: "Before you start",
+    themeLabel: "What is it about? (a word is enough)", themePh: "an autumn tree",
+    reflectionLabel: "What did you feel or think? (optional, only for you and the ideas)",
+    formLegend: "The form", poemLegend: "Your poem", line: "Line", ideas: "Ideas",
+    ideasTitle: "Ask for ideas for this line", addLine: "Add a line",
+    syll: "syllables", why: "Why?", useIt: "Use", thinking: "Thinking…",
+    noIdeas: "No ideas this time.", modelDown: "The model is not answering: ",
+    used: "suggestion used", edited: "suggestion, edited",
+    rhymeWith: (n) => `rhymes with line ${n}`, rhymeMiss: (n) => `should rhyme with line ${n}`,
+    ok: "right length", short: (d) => d === 1 ? "one syllable short" : `${d} syllables short`,
+    over: (d) => d === 1 ? "one syllable too many" : `${d} syllables too many`,
+    keep: "Keep the poem", listen: "Listen (synthetic voice)", stop: "Stop",
+    clear: "Start over", clearAsk: "Start over? The draft is removed.",
+    changeAsk: "Change the form? The lines you wrote are cleared (your reflection stays).",
+    authorship: (own, all) => `${own} of ${all} lines worded by you`,
+    footnote: "Ideas come only when you ask, from a model running on this computer. They are a starting point: change them or ignore them. The draft stays in this tab and disappears when you close it, unless you keep the poem.",
+    linkLegend: "Poems that feel like this",
+    linkNote: "If you like, read two or three old poems close to what you wrote. They are public domain or openly licensed.",
+    linkBtn: "Show me", looking: "Looking…", writeFirst: "Write something first.",
+    notAvailable: "Not available: ", untitled: "Untitled",
+    pauseTitle: "Let's pause for a moment",
+    pauseText: "What you wrote matters. If you are thinking about hurting yourself or someone else, please talk to someone now. These services are free and confidential:",
+    pauseNote: "PoesIA is a writing tool, not a counsellor. Nothing you wrote has left this computer or been saved.",
+    pauseContinue: "Continue writing",
+    forms: {
+      sonnet_shakespearean: ["Sonnet", "14 lines of iambic pentameter (10 syllables); rhyme ABAB CDCD EFEF GG."],
+      haiku: ["Haiku", "3 lines of 5, 7 and 5 syllables, no rhyme."],
+      free: ["Free verse", "No metre, no rhyme: write at your own pace; PoesIA only counts and listens."],
+    },
+  },
+  it: {
+    tagline: "Scrivi tu la poesia. PoesIA conta, ascolta e spiega. Niente esce da questo computer.",
+    changeLang: "Cambia lingua", startLegend: "Prima di cominciare",
+    themeLabel: "Di che cosa parla? (basta una parola)", themePh: "un albero d'autunno",
+    reflectionLabel: "Che cosa hai provato o pensato? (facoltativo, solo per te e per le idee)",
+    formLegend: "La forma", poemLegend: "La tua poesia", line: "Verso", ideas: "Idee",
+    ideasTitle: "Chiedi idee per questo verso", addLine: "Aggiungi un verso",
+    syll: "sillabe", why: "Perché?", useIt: "Usa", thinking: "Ci penso…",
+    noIdeas: "Nessuna idea questa volta.", modelDown: "Il modello non risponde: ",
+    used: "idea usata", edited: "idea modificata",
+    rhymeWith: (n) => `rima con il verso ${n}`, rhymeMiss: (n) => `dovrebbe rimare con il verso ${n}`,
+    ok: "misura giusta", short: (d) => d === 1 ? "manca 1 sillaba" : `mancano ${d} sillabe`,
+    over: (d) => d === 1 ? "1 sillaba di troppo" : `${d} sillabe di troppo`,
+    keep: "Conserva la poesia", listen: "Ascolta (voce sintetica)", stop: "Ferma",
+    clear: "Ricomincia", clearAsk: "Ricominciare? La bozza viene cancellata.",
+    changeAsk: "Cambiare forma? I versi scritti vengono cancellati (la riflessione resta).",
+    authorship: (own, all) => `${own} di ${all} versi scritti da te`,
+    footnote: "Le idee arrivano solo se le chiedi, da un modello che gira su questo computer. Sono un punto di partenza: cambiale o ignorale. La bozza resta in questa scheda e sparisce quando la chiudi, a meno che tu non conservi la poesia.",
+    linkLegend: "Poesie che si sentono così",
+    linkNote: "Se vuoi, leggi due o tre poesie antiche vicine a ciò che hai scritto. Sono di pubblico dominio o con licenza aperta.",
+    linkBtn: "Mostra", looking: "Cerco…", writeFirst: "Scrivi prima qualcosa.",
+    notAvailable: "Non disponibile: ", untitled: "Senza titolo",
+    pauseTitle: "Fermiamoci un momento",
+    pauseText: "Ciò che hai scritto conta. Se stai pensando di farti del male o di fare del male a qualcuno, parla con qualcuno adesso. Questi servizi sono gratuiti e riservati:",
+    pauseNote: "PoesIA è uno strumento per scrivere, non un servizio di aiuto. Niente di ciò che hai scritto è uscito da questo computer o è stato salvato.",
+    pauseContinue: "Continua a scrivere",
+    forms: {
+      sonetto: ["Sonetto", "14 endecasillabi; rima ABBA ABBA CDE CDE."],
+      free: ["Verso libero", "Senza metro né rima: scrivi al tuo ritmo; PoesIA conta e ascolta soltanto."],
+    },
+  },
+};
+
+let forms = [];
+let state = { lang: "", formKey: "", theme: "", reflection: "", lines: [] };
+// each line: { text, origin: "human"|"proposal-accepted"|"proposal-edited", proposal: "" }
+const T = () => STR[state.lang] || STR.en;
+
+function save() { try { sessionStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+function load() { try { const s = JSON.parse(sessionStorage.getItem(STORE) || "null"); if (s) state = s; } catch (e) {} }
+function langForms() { return forms.filter(f => f.language === state.lang); }
+function currentForm() { return forms.find(f => f.language + ":" + f.form === state.formKey) || langForms()[0]; }
 function texts() { return state.lines.map(l => l.text); }
 
 async function api(path, body) {
@@ -148,104 +278,152 @@ function editDistance(a, b) {
   return d[n];
 }
 
-function render() {
-  const f = currentForm(); if (!f) return;
-  const es = f.language === "es";
-  $("poemLegend").textContent = es ? "Tu poema" : "Your poem";
-  $("listen").textContent = es ? "Escuchar (voz sintética)" : "Listen (synthetic voice)";
-  $("linkLegend").textContent = es ? "Poemas que se sienten así" : "Poems that feel like this";
-  $("linkNote").textContent = es
-    ? "Si quieres, lee dos o tres poemas antiguos cercanos a lo que escribiste. Son de dominio público o con licencia abierta."
-    : "If you like, read two or three old poems close to what you wrote. They are public domain or openly licensed.";
-  $("linkBtn").textContent = es ? "Mostrar" : "Show me";
+function applyText() {
+  const t = T();
+  document.documentElement.lang = state.lang || "en";
+  for (const id of ["tagline", "changeLang", "startLegend", "themeLabel", "reflectionLabel", "formLegend",
+                    "poemLegend", "addLine", "linkLegend", "linkNote", "linkBtn", "keep", "clear",
+                    "footnote", "pauseTitle", "pauseText", "pauseNote", "pauseContinue"]) {
+    if ($(id)) $(id).textContent = t[id];
+  }
+  $("listen").textContent = t.listen;
+  $("theme").placeholder = t.themePh;
+}
+
+function renderForms() {
+  const t = T(), box = $("forms"); box.innerHTML = "";
+  const cur = currentForm();
+  langForms().forEach(f => {
+    const key = f.language + ":" + f.form, [name, desc] = t.forms[f.form] || [f.form, ""];
+    const b = document.createElement("button");
+    b.className = "choice"; b.setAttribute("aria-pressed", String(cur && key === cur.language + ":" + cur.form));
+    b.innerHTML = "<strong></strong><span></span>";
+    b.querySelector("strong").textContent = name; b.querySelector("span").textContent = desc;
+    b.addEventListener("click", () => {
+      if (key === state.formKey) return;
+      if (state.lines.some(l => l.text.trim()) && !confirm(t.changeAsk)) return;
+      state.formKey = key; state.lines = []; save(); renderForms(); renderLines();
+    });
+    box.appendChild(b);
+  });
+}
+
+function stanzaOf(f, i) {
+  if (!f.stanzas || !f.stanzas.length) return 0;
+  let acc = 0;
+  for (let s = 0; s < f.stanzas.length; s++) { acc += f.stanzas[s]; if (i < acc) return s; }
+  return f.stanzas.length - 1;
+}
+
+function autosize(el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
+
+function renderLines() {
+  const f = currentForm(), t = T(); if (!f) return;
   while (state.lines.length < f.lines) state.lines.push({ text: "", origin: "human", proposal: "" });
-  state.lines.length = f.lines;
+  if (!f.free) state.lines.length = f.lines;
+  $("addLine").hidden = !f.free;
   const box = $("lines"); box.innerHTML = "";
+  let stanzaBox = null, stanzaIdx = -1;
   state.lines.forEach((ln, i) => {
-    const div = document.createElement("div"); div.className = "line"; div.id = "line" + i;
+    const s = stanzaOf(f, i);
+    if (s !== stanzaIdx || !stanzaBox) { stanzaBox = document.createElement("div"); stanzaBox.className = "stanza"; box.appendChild(stanzaBox); stanzaIdx = s; }
+    const div = document.createElement("div"); div.className = "line";
+    const target = f.syllables[i];
     div.innerHTML = `
       <div class="lhead"><span class="lnum">${i + 1}</span>
-        <span class="badge" title="${es ? "rima" : "rhyme"}">${f.scheme[i] || "–"}</span>
-        <span class="badge count" id="count${i}">– / ${f.syllables[i]}</span>
-        <span class="stress" id="stress${i}"></span>
+        <span class="badge count" id="count${i}">${target ? "– / " + target : "–"} ${t.syll}</span>
         <span class="origin" id="origin${i}"></span></div>
       <div class="lbody">
-        <label class="sr" for="in${i}">${es ? "Verso" : "Line"} ${i + 1}</label>
-        <input type="text" id="in${i}" maxlength="300" autocomplete="off">
-        <button id="sug${i}" title="${es ? "Pedir ideas para este verso" : "Ask for ideas for this line"}">${es ? "Ideas" : "Ideas"}</button>
+        <label class="sr" for="in${i}">${t.line} ${i + 1}</label>
+        <textarea class="verse" id="in${i}" rows="1" maxlength="300" autocomplete="off"></textarea>
+        <button id="sug${i}" title="${t.ideasTitle}">${t.ideas}</button>
       </div>
-      <ul class="lint" id="lint${i}"></ul>
+      <div class="status" id="status${i}"></div>
+      <details class="why" id="whybox${i}" hidden><summary>${t.why}</summary><ul id="why${i}"></ul></details>
       <div class="props" id="props${i}"></div>`;
-    box.appendChild(div);
-    const inp = $("in" + i); inp.value = ln.text;
+    stanzaBox.appendChild(div);
+    const inp = $("in" + i); inp.value = ln.text; autosize(inp);
     let timer = null;
     inp.addEventListener("input", () => {
+      inp.value = inp.value.replace(/\n/g, " "); autosize(inp);
       ln.text = inp.value;
-      if (ln.origin !== "human" && ln.proposal) {
-        ln.origin = inp.value === ln.proposal ? "proposal-accepted" : "proposal-edited";
-      }
+      if (ln.origin !== "human" && ln.proposal) ln.origin = inp.value === ln.proposal ? "proposal-accepted" : "proposal-edited";
       showOrigin(i); save(); authorship();
       clearTimeout(timer); timer = setTimeout(() => check(i), 350);
     });
-    $("sug" + i).addEventListener("click", () => suggest(i));
+    inp.addEventListener("keydown", (e) => {   // Enter goes to the next line, as in a poem
+      if (e.key === "Enter") { e.preventDefault(); const next = $("in" + (i + 1)); if (next) next.focus(); else if (f.free) addLine(); }
+    });
     inp.addEventListener("blur", () => screenText(ln.text));
+    $("sug" + i).addEventListener("click", () => suggest(i));
     showOrigin(i);
     if (ln.text) check(i);
   });
   authorship();
 }
 
+function addLine() {
+  state.lines.push({ text: "", origin: "human", proposal: "" }); save(); renderLines();
+  const last = $("in" + (state.lines.length - 1)); if (last) last.focus();
+}
+
 function showOrigin(i) {
-  const ln = state.lines[i], es = currentForm().language === "es";
-  const label = { "human": "", "proposal-accepted": es ? "idea aceptada" : "suggestion used",
-                  "proposal-edited": es ? "idea editada" : "suggestion, edited" }[ln.origin];
-  $("origin" + i).textContent = label;
+  const ln = state.lines[i], t = T();
+  $("origin" + i).textContent = { "human": "", "proposal-accepted": t.used, "proposal-edited": t.edited }[ln.origin];
 }
 
 async function check(i) {
-  const f = currentForm();
-  const lint = $("lint" + i), count = $("count" + i);
-  if (!state.lines[i].text.trim()) { lint.innerHTML = ""; count.textContent = `– / ${f.syllables[i]}`;
-    count.className = "badge count"; $("stress" + i).textContent = ""; return; }
+  const f = currentForm(), t = T(), count = $("count" + i), status = $("status" + i);
+  const target = f.syllables[i];
+  if (!state.lines[i].text.trim()) {
+    count.textContent = `${target ? "– / " + target : "–"} ${t.syll}`; count.className = "badge count";
+    status.textContent = ""; $("whybox" + i).hidden = true; return;
+  }
   try {
     const r = await api("/api/scan", { language: f.language, form: f.form, index: i, lines: texts() });
-    count.textContent = `${r.syllables} / ${r.target ?? "–"}`;
-    count.className = "badge count " + (r.status === "ok" ? "ok" : r.status) + (r.rhymes === false ? " norhyme" : "");
-    $("stress" + i).textContent = r.stress;
-    lint.innerHTML = "";
-    r.messages.forEach(m => { const li = document.createElement("li"); li.textContent = m; lint.appendChild(li); });
-  } catch (e) { lint.innerHTML = `<li>${e.message}</li>`; }
+    count.textContent = `${r.syllables}${r.target ? " / " + r.target : ""} ${t.syll}`;
+    count.className = "badge count " + (r.target ? (r.status === "ok" ? "ok" : r.status) : "");
+    const parts = [];
+    if (r.target) parts.push(r.status === "ok" ? t.ok : t[r.status](Math.abs(r.syllables - r.target)));
+    if (r.rhyme_partner !== null && r.rhymes !== null)
+      parts.push(r.rhymes ? t.rhymeWith(r.rhyme_partner + 1) : t.rhymeMiss(r.rhyme_partner + 1));
+    status.textContent = parts.join(" · ");
+    status.className = "status " + (r.rhymes === false ? "norhyme" : (r.status === "ok" || !r.target ? "ok" : r.status));
+    const why = $("why" + i); why.innerHTML = "";
+    r.messages.forEach(m => { const li = document.createElement("li"); li.textContent = m; why.appendChild(li); });
+    $("whybox" + i).hidden = !r.messages.length;
+  } catch (e) { status.textContent = e.message; }
 }
 
 async function suggest(i) {
-  const f = currentForm(), es = f.language === "es", box = $("props" + i), btn = $("sug" + i);
+  const f = currentForm(), t = T(), box = $("props" + i), btn = $("sug" + i);
   if (await screenText(state.reflection)) return;
-  btn.disabled = true; box.textContent = es ? "Pensando…" : "Thinking…";
+  btn.disabled = true; box.textContent = t.thinking;
   try {
     const r = await api("/api/propose", { language: f.language, form: f.form, index: i, lines: texts(),
       theme: state.theme, reflection: state.reflection, n: 3 });
     box.innerHTML = "";
-    if (!r.proposals.length) box.textContent = es ? "Sin ideas esta vez." : "No ideas this time.";
+    if (!r.proposals.length) box.textContent = t.noIdeas;
     r.proposals.forEach(p => {
       const row = document.createElement("div"); row.className = "prop";
       const span = document.createElement("span"); span.textContent = p.text;
       const meta = document.createElement("small");
-      meta.textContent = `${p.check.syllables}/${p.check.target}` + (p.check.rhymes === true ? " ✓" : "");
-      const use = document.createElement("button"); use.textContent = es ? "Usar" : "Use";
+      meta.textContent = p.check.target ? `${p.check.syllables}/${p.check.target}` + (p.check.rhymes === true ? " ✓" : "") : "";
+      const use = document.createElement("button"); use.textContent = t.useIt;
       use.addEventListener("click", () => {
         const ln = state.lines[i]; ln.text = p.text; ln.proposal = p.text; ln.origin = "proposal-accepted";
-        $("in" + i).value = p.text; box.innerHTML = ""; showOrigin(i); save(); authorship(); check(i);
+        $("in" + i).value = p.text; autosize($("in" + i)); box.innerHTML = ""; showOrigin(i); save(); authorship(); check(i);
         $("in" + i).focus();
       });
       row.append(span, meta, use); box.appendChild(row);
     });
-  } catch (e) { box.textContent = (es ? "El modelo no responde: " : "The model is not answering: ") + e.message; }
+  } catch (e) { box.textContent = t.modelDown + e.message; }
   finally { btn.disabled = false; }
 }
 
 let screened = "";
 async function screenText(text) {
-  if (!text.trim() || text === screened) return false;
+  if (!text || !text.trim() || text === screened) return false;
   try {
     const r = await api("/api/safety", { text });
     screened = text;
@@ -253,16 +431,8 @@ async function screenText(text) {
   } catch (e) { /* the screen never blocks writing when the server is down */ }
   return false;
 }
+
 function showPause(resources) {
-  const es = (currentForm() || {}).language === "es";
-  $("pauseTitle").textContent = es ? "Hagamos una pausa" : "Let's pause for a moment";
-  $("pauseText").textContent = es
-    ? "Lo que escribiste importa. Si estás pensando en hacerte daño o en dañar a alguien, habla con alguien ahora. Estos servicios son gratuitos y confidenciales:"
-    : "What you wrote matters. If you are thinking about hurting yourself or someone else, please talk to someone now. These services are free and confidential:";
-  $("pauseNote").textContent = es
-    ? "PoesIA es una herramienta para escribir, no un servicio de ayuda. Nada de lo que escribiste ha salido de este ordenador ni se ha guardado."
-    : "PoesIA is a writing tool, not a counsellor. Nothing you wrote has left this computer or been saved.";
-  $("pauseContinue").textContent = es ? "Seguir escribiendo" : "Continue writing";
   const ul = $("pauseList"); ul.innerHTML = "";
   resources.forEach(r => {
     const li = document.createElement("li");
@@ -275,52 +445,49 @@ function showPause(resources) {
   $("pause").hidden = false; $("pause").scrollIntoView({ behavior: "smooth" }); $("pauseContinue").focus();
 }
 
-function authorship() {
-  const filled = state.lines.filter(l => l.text.trim());
-  const own = filled.filter(l => l.origin === "human").length;
-  const es = (currentForm() || {}).language === "es";
-  $("authorship").textContent = filled.length
-    ? (es ? `${own} de ${filled.length} versos escritos por ti` : `${own} of ${filled.length} lines worded by you`)
-    : "";
-}
-
 let player = null;
 async function listen() {
-  const f = currentForm(), es = f.language === "es", btn = $("listen");
+  const f = currentForm(), t = T(), btn = $("listen");
   const text = state.lines.map(l => l.text.trim()).filter(Boolean).join("\n");
   if (!text) return;
-  if (player && !player.paused) { player.pause(); btn.textContent = es ? "Escuchar (voz sintética)" : "Listen (synthetic voice)"; return; }
+  if (player && !player.paused) { player.pause(); btn.textContent = t.listen; return; }
   btn.disabled = true;
   try {
     const r = await fetch("/api/readback", { method: "POST", headers: { "Content-Type": "application/json" },
                                             body: JSON.stringify({ language: f.language, text }) });
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
     player = new Audio(URL.createObjectURL(await r.blob()));
-    player.onended = () => { btn.textContent = es ? "Escuchar (voz sintética)" : "Listen (synthetic voice)"; };
-    btn.textContent = es ? "Parar" : "Stop"; player.play();
+    player.onended = () => { btn.textContent = t.listen; };
+    btn.textContent = t.stop; player.play();
   } catch (e) { $("live").textContent = e.message; alert(e.message); }
   finally { btn.disabled = false; }
 }
 
 async function showLinks() {
-  const f = currentForm(), es = f.language === "es", box = $("links"), btn = $("linkBtn");
-  const text = [state.reflection, ...state.lines.map(l => l.text)].filter(t => t.trim()).join("\n");
-  if (!text.trim()) { box.textContent = es ? "Escribe algo primero." : "Write something first."; return; }
+  const f = currentForm(), t = T(), box = $("links"), btn = $("linkBtn");
+  const text = [state.reflection, ...state.lines.map(l => l.text)].filter(x => x.trim()).join("\n");
+  if (!text.trim()) { box.textContent = t.writeFirst; return; }
   if (await screenText(text)) return;
-  btn.disabled = true; box.textContent = es ? "Buscando…" : "Looking…";
+  btn.disabled = true; box.textContent = t.looking;
   try {
     const r = await api("/api/link", { language: f.language, text });
     box.innerHTML = "";
     r.poems.forEach(p => {
       const d = document.createElement("div"); d.className = "linked";
-      const h = document.createElement("h3"); h.textContent = p.title || (es ? "Sin título" : "Untitled");
+      const h = document.createElement("h3"); h.textContent = p.title || t.untitled;
       const by = document.createElement("div"); by.className = "by"; by.textContent = p.author || "";
       const pre = document.createElement("pre"); pre.textContent = p.text;
       const cr = document.createElement("div"); cr.className = "credit"; cr.textContent = p.licence;
       d.append(h, by, pre, cr); box.appendChild(d);
     });
-  } catch (e) { box.textContent = (es ? "No disponible: " : "Not available: ") + e.message; }
+  } catch (e) { box.textContent = t.notAvailable + e.message; }
   finally { btn.disabled = false; }
+}
+
+function authorship() {
+  const filled = state.lines.filter(l => l.text.trim());
+  const own = filled.filter(l => l.origin === "human").length;
+  $("authorship").textContent = filled.length ? T().authorship(own, filled.length) : "";
 }
 
 function keep() {
@@ -338,21 +505,25 @@ function keep() {
   a.click(); URL.revokeObjectURL(a.href);
 }
 
+function chooseLang(lang) {
+  if (state.lang && state.lang !== lang && state.lines.some(l => l.text.trim()) && !confirm(T().changeAsk)) return;
+  if (state.lang !== lang) { state.lines = []; state.formKey = ""; }
+  state.lang = lang;
+  if (!state.formKey) { const first = langForms()[0]; state.formKey = first.language + ":" + first.form; }
+  save(); showWriter();
+}
+
+function showWriter() {
+  $("langStep").hidden = true; $("writer").hidden = false; $("changeLang").hidden = false;
+  applyText(); renderForms(); renderLines();
+}
+
 async function init() {
   load();
   forms = await (await fetch("/api/forms")).json();
-  const sel = $("form");
-  forms.forEach(f => { const o = document.createElement("option"); o.value = f.language + ":" + f.form;
-    o.textContent = `${f.form} (${f.language})`; sel.appendChild(o); });
-  if (!state.formKey) state.formKey = sel.value; else sel.value = state.formKey;
-  sel.addEventListener("change", () => {
-    const es = (currentForm() || {}).language === "es";
-    if (state.lines.some(l => l.text.trim()) &&
-        !confirm(es ? "¿Cambiar de forma? Los versos escritos se borran (la reflexión se queda)."
-                    : "Change the form? The lines you wrote are cleared (your reflection stays).")) {
-      sel.value = state.formKey; return;
-    }
-    state.formKey = sel.value; state.lines = []; save(); render();
+  document.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => chooseLang(b.dataset.lang)));
+  $("changeLang").addEventListener("click", () => {
+    $("langStep").hidden = false; $("writer").hidden = true; $("changeLang").hidden = true;
   });
   $("theme").value = state.theme; $("reflection").value = state.reflection;
   $("theme").addEventListener("input", e => { state.theme = e.target.value; save(); });
@@ -362,10 +533,11 @@ async function init() {
   $("keep").addEventListener("click", keep);
   $("listen").addEventListener("click", listen);
   $("linkBtn").addEventListener("click", showLinks);
-  $("clear").addEventListener("click", () => { if (confirm("Start over? The draft is removed.")) {
-    state = { formKey: state.formKey, theme: "", reflection: "", lines: [] }; save();
-    $("theme").value = ""; $("reflection").value = ""; render(); } });
-  render();
+  $("addLine").addEventListener("click", addLine);
+  $("clear").addEventListener("click", () => { if (confirm(T().clearAsk)) {
+    state = { lang: state.lang, formKey: state.formKey, theme: "", reflection: "", lines: [] }; save();
+    $("theme").value = ""; $("reflection").value = ""; renderLines(); } });
+  if (state.lang) showWriter(); else applyText();
 }
 init();
 </script>
