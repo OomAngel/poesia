@@ -347,7 +347,12 @@ def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
         """Model readiness: 'ready' unless a first-run setup is still working (or failed)."""
         if setup is None:
             return {"phase": "ready"}
-        return dict(setup.status.as_dict())
+        out = dict(setup.status.as_dict())
+        if out["phase"] == "ready":
+            out["gpu_fraction"] = (
+                setup.gpu_fraction()
+            )  # P6: say when the model runs (partly) on CPU
+        return out
 
     @app.get("/api/forms")
     def forms() -> list[dict[str, Any]]:
