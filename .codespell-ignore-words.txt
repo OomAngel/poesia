@@ -17,3 +17,5 @@ responde
 Responde
 ende
 sie
+vie
+ore

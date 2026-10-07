@@ -108,12 +108,21 @@ HAIKU_ES = FormSpec(
 # sonnet_shakespearean's 10-syllable iambic rules, even though both are
 # "sonnets") and only exist for one language. haiku is the one form
 # registered under the same name for more than one language.
+SONETTO_IT = FormSpec(
+    name="sonetto",
+    language="it",
+    lines_per_stanza=[4, 4, 3, 3],
+    syllables_per_line=11,  # endecasillabo: last stress on the 10th position
+    rhyme_scheme="ABBAABBACDECDE",  # Petrarchan; CDC DCD is the common alternative
+)
+
 FORM_REGISTRY: dict[tuple[str, str], FormSpec] = {
     ("soneto", "es"): SONETO_ES,
     ("romance", "es"): ROMANCE_ES,
     ("sonnet_shakespearean", "en"): SONNET_SHAKESPEAREAN_EN,
     ("haiku", "en"): HAIKU_EN,
     ("haiku", "es"): HAIKU_ES,
+    ("sonetto", "it"): SONETTO_IT,
 }
 
 

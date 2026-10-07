@@ -139,6 +139,17 @@ def _fix_tips(language: str, status: str) -> list[str]:
                 "sinalefa (e.g. 'la aurora' → 3 syllables), or swap a longer "
                 "word for a shorter one.",
             ]
+    elif language == "it":
+        if status == "short":
+            return [
+                "To gain a syllable: a longer word, or keep two vowels apart across words "
+                "(dialefe), e.g. after a stressed final vowel ('è | amara').",
+            ]
+        if status == "over":
+            return [
+                "To lose a syllable: let a final and an initial vowel merge (sinalefe, "
+                "'selvaggia e aspra'), elide ('lo amore' → \"l'amore\"), or truncate ('amore' → 'amor').",
+            ]
     elif language == "en":
         if status == "short":
             return [

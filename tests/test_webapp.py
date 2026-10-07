@@ -138,3 +138,19 @@ def test_readback_returns_wav_or_a_clear_503(monkeypatch) -> None:
     monkeypatch.setattr(webapp, "read_aloud", _missing)
     r = client.post("/api/readback", json={"language": "en", "text": "a line"})
     assert r.status_code == 503 and "voice not installed" in r.json()["detail"]
+
+
+def test_italian_sonetto_is_offered_and_scanned() -> None:
+    client, _ = _client()
+    forms = {(f["language"], f["form"]): f for f in client.get("/api/forms").json()}
+    assert forms[("it", "sonetto")]["syllables"][0] == 11
+    r = client.post(
+        "/api/scan",
+        json={
+            "language": "it",
+            "form": "sonetto",
+            "index": 0,
+            "lines": ["Nel mezzo del cammin di nostra vita"],
+        },
+    ).json()
+    assert r["syllables"] == 11 and r["status"] == "ok"
