@@ -56,6 +56,10 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
 .prop { display: flex; gap: 8px; align-items: center; color: var(--ghost); font-style: italic; }
 .prop span { flex: 1; }
 .origin { font-size: .75rem; color: var(--ghost); }
+.words { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.words .lead { color: var(--muted); font-size: .88rem; flex-basis: 100%; }
+.words button.word { border-radius: 999px; padding: 3px 10px; font-size: .9rem; }
+.words button.word small { color: var(--ghost); margin-left: 4px; }
 .bar { position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--line);
        padding: 10px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .note { color: var(--muted); font-size: .85rem; }
@@ -229,6 +233,11 @@ const STR = {
     ideasTitle: "Pedir ideas para este verso", addLine: "Añadir un verso",
     syll: "sílabas", why: "¿Por qué?", useIt: "Usar", thinking: "Pensando…",
     noIdeas: "Sin ideas esta vez.", modelDown: "El modelo no responde: ",
+    rhymesWith: (w) => `Palabras que riman con «${w}»:`, wholeLines: "Versos enteros",
+    wordsFirst: "Este verso elige la rima: cualquier palabra final vale.",
+    partnerEmpty: (n) => `Escribe primero el verso ${n}: este rima con él.`,
+    noWords: "No encontré palabras comunes que rimen; prueba versos enteros o cambia la última palabra del verso con el que rima.",
+    wordHint: "pulsa para añadirla donde está el cursor", wordUsed: (w) => `palabra sugerida: ${w}`,
     used: "idea aceptada", edited: "idea editada",
     rhymeWith: (n) => `rima con el verso ${n}`, rhymeMiss: (n) => `debería rimar con el verso ${n}`,
     ok: "medida exacta", short: (d) => d === 1 ? "falta 1 sílaba" : `faltan ${d} sílabas`,
@@ -237,7 +246,7 @@ const STR = {
     clear: "Empezar de nuevo", clearAsk: "¿Empezar de nuevo? El borrador se borra.",
     changeAsk: "¿Cambiar de forma? Los versos escritos se borran (la reflexión se queda).",
     authorship: (own, all) => `${own} de ${all} versos escritos por ti`,
-    footnote: "Las ideas llegan solo cuando las pides, de un modelo que funciona en este ordenador. Son un punto de partida: cámbialas o ignóralas. El borrador se queda en esta pestaña y desaparece al cerrarla, salvo que guardes el poema.",
+    footnote: "Las ideas llegan solo cuando las pides: primero palabras que riman, de una lista; versos enteros, si los quieres, de un modelo que funciona en este ordenador. Son un punto de partida: cámbialas o ignóralas. El borrador se queda en esta pestaña y desaparece al cerrarla, salvo que guardes el poema.",
     linkLegend: "Poemas que se sienten así",
     linkNote: "Si quieres, lee dos o tres poemas antiguos cercanos a lo que escribiste. Son de dominio público o con licencia abierta.",
     linkBtn: "Mostrar", looking: "Buscando…", writeFirst: "Escribe algo primero.",
@@ -277,6 +286,11 @@ const STR = {
     ideasTitle: "Ask for ideas for this line", addLine: "Add a line",
     syll: "syllables", why: "Why?", useIt: "Use", thinking: "Thinking…",
     noIdeas: "No ideas this time.", modelDown: "The model is not answering: ",
+    rhymesWith: (w) => `Words that rhyme with “${w}”:`, wholeLines: "Whole lines",
+    wordsFirst: "This line chooses the rhyme: any last word works.",
+    partnerEmpty: (n) => `Write line ${n} first: this line rhymes with it.`,
+    noWords: "No common rhyming words found; try whole lines, or change the last word of the line it rhymes with.",
+    wordHint: "click to add it where the cursor is", wordUsed: (w) => `suggested word: ${w}`,
     used: "suggestion used", edited: "suggestion, edited",
     rhymeWith: (n) => `rhymes with line ${n}`, rhymeMiss: (n) => `should rhyme with line ${n}`,
     ok: "right length", short: (d) => d === 1 ? "one syllable short" : `${d} syllables short`,
@@ -285,7 +299,7 @@ const STR = {
     clear: "Start over", clearAsk: "Start over? The draft is removed.",
     changeAsk: "Change the form? The lines you wrote are cleared (your reflection stays).",
     authorship: (own, all) => `${own} of ${all} lines worded by you`,
-    footnote: "Ideas come only when you ask, from a model running on this computer. They are a starting point: change them or ignore them. The draft stays in this tab and disappears when you close it, unless you keep the poem.",
+    footnote: "Ideas come only when you ask: first rhyming words, from a word list; whole lines, if you want them, from a model running on this computer. They are a starting point: change them or ignore them. The draft stays in this tab and disappears when you close it, unless you keep the poem.",
     linkLegend: "Poems that feel like this",
     linkNote: "If you like, read two or three old poems close to what you wrote. They are public domain or openly licensed.",
     linkBtn: "Show me", looking: "Looking…", writeFirst: "Write something first.",
@@ -325,6 +339,11 @@ const STR = {
     ideasTitle: "Chiedi idee per questo verso", addLine: "Aggiungi un verso",
     syll: "sillabe", why: "Perché?", useIt: "Usa", thinking: "Ci penso…",
     noIdeas: "Nessuna idea questa volta.", modelDown: "Il modello non risponde: ",
+    rhymesWith: (w) => `Parole che rimano con «${w}»:`, wholeLines: "Versi interi",
+    wordsFirst: "Questo verso sceglie la rima: va bene qualsiasi parola finale.",
+    partnerEmpty: (n) => `Scrivi prima il verso ${n}: questo rima con quello.`,
+    noWords: "Nessuna parola comune in rima; prova i versi interi o cambia l'ultima parola del verso con cui rima.",
+    wordHint: "clicca per aggiungerla dove si trova il cursore", wordUsed: (w) => `parola suggerita: ${w}`,
     used: "idea usata", edited: "idea modificata",
     rhymeWith: (n) => `rima con il verso ${n}`, rhymeMiss: (n) => `dovrebbe rimare con il verso ${n}`,
     ok: "misura giusta", short: (d) => d === 1 ? "manca 1 sillaba" : `mancano ${d} sillabe`,
@@ -333,7 +352,7 @@ const STR = {
     clear: "Ricomincia", clearAsk: "Ricominciare? La bozza viene cancellata.",
     changeAsk: "Cambiare forma? I versi scritti vengono cancellati (la riflessione resta).",
     authorship: (own, all) => `${own} di ${all} versi scritti da te`,
-    footnote: "Le idee arrivano solo se le chiedi, da un modello che gira su questo computer. Sono un punto di partenza: cambiale o ignorale. La bozza resta in questa scheda e sparisce quando la chiudi, a meno che tu non conservi la poesia.",
+    footnote: "Le idee arrivano solo se le chiedi: prima parole in rima, da un elenco; versi interi, se li vuoi, da un modello che gira su questo computer. Sono un punto di partenza: cambiale o ignorale. La bozza resta in questa scheda e sparisce quando la chiudi, a meno che tu non conservi la poesia.",
     linkLegend: "Poesie che si sentono così",
     linkNote: "Se vuoi, leggi due o tre poesie antiche vicine a ciò che hai scritto. Sono di pubblico dominio o con licenza aperta.",
     linkBtn: "Mostra", looking: "Cerco…", writeFirst: "Scrivi prima qualcosa.",
@@ -405,7 +424,7 @@ async function pollSetup() {
   try { st = await (await fetch("/api/status")).json(); } catch (e) { setTimeout(pollSetup, 3000); return; }
   const t = T().setup, box = $("setup"), bar = $("setupBar");
   modelsReady = st.phase === "ready";
-  document.querySelectorAll("[id^=sug], #linkBtn").forEach(b => { b.disabled = !modelsReady; });
+  document.querySelectorAll(".needsModel, #linkBtn").forEach(b => { b.disabled = !modelsReady; });
   if (modelsReady) {
     // P6: a model split onto the processor is slow; say so instead of leaving it a mystery.
     const g = st.gpu_fraction;
@@ -505,6 +524,7 @@ function renderLines() {
       <div class="props" id="props${i}"></div>`;
     stanzaBox.appendChild(div);
     const inp = $("in" + i); inp.value = ln.text; autosize(inp);
+    inp.addEventListener("blur", () => { ln.caret = inp.selectionStart; });
     let timer = null;
     inp.addEventListener("input", () => {
       inp.value = inp.value.replace(/\n/g, " "); autosize(inp);
@@ -518,7 +538,6 @@ function renderLines() {
     });
     inp.addEventListener("blur", () => screenText(ln.text));
     $("sug" + i).addEventListener("click", () => suggest(i));
-    $("sug" + i).disabled = !modelsReady;
     showOrigin(i);
     if (ln.text) check(i);
   });
@@ -540,9 +559,16 @@ function addLine() {
   const last = $("in" + (state.lines.length - 1)); if (last) last.focus();
 }
 
+function wordsKept(ln) {
+  // Suggested words still in the line (the author may have deleted or replaced them).
+  const have = new Set(ln.text.toLowerCase().split(/[^\p{L}]+/u));
+  return [...new Set(ln.words || [])].filter(w => have.has(w.toLowerCase()));
+}
+
 function showOrigin(i) {
-  const ln = state.lines[i], t = T();
-  $("origin" + i).textContent = { "human": "", "proposal-accepted": t.used, "proposal-edited": t.edited }[ln.origin];
+  const ln = state.lines[i], t = T(), kept = wordsKept(ln);
+  $("origin" + i).textContent = ln.origin === "human" ? (kept.length ? t.wordUsed(kept.join(", ")) : "")
+    : { "proposal-accepted": t.used, "proposal-edited": t.edited }[ln.origin];
 }
 
 async function check(i) {
@@ -586,9 +612,51 @@ function drawSyllables(box, view) {
 }
 
 async function suggest(i) {
+  // U6: small suggestions first. Rhyme words from a word list (no model), whole lines on request.
   const f = currentForm(), t = T(), box = $("props" + i), btn = $("sug" + i);
-  if (await screenText(state.reflection)) return;
   btn.disabled = true; box.textContent = t.thinking;
+  try {
+    const r = await api("/api/words", { language: f.language, form: f.form, index: i, lines: texts() });
+    box.innerHTML = "";
+    const row = document.createElement("div"); row.className = "words";
+    const lead = document.createElement("span"); lead.className = "lead";
+    lead.textContent = r.words.length ? t.rhymesWith(r.partner_word)
+      : r.reason === "partner_empty" ? t.partnerEmpty(r.partner + 1)
+      : r.reason ? t.wordsFirst : t.noWords;
+    row.appendChild(lead);
+    r.words.forEach(w => {
+      const b = document.createElement("button"); b.className = "word"; b.type = "button";
+      b.title = `${w.why} · ${t.wordHint}`; b.setAttribute("aria-label", `${w.word}: ${w.why}`);
+      b.append(w.word); const n = document.createElement("small"); n.textContent = w.syllables; b.appendChild(n);
+      b.addEventListener("click", () => insertWord(i, w.word));
+      row.appendChild(b);
+    });
+    const more = document.createElement("button"); more.type = "button"; more.className = "needsModel";
+    more.textContent = t.wholeLines; more.disabled = !modelsReady;
+    more.addEventListener("click", () => proposeLines(i));
+    row.appendChild(more);
+    box.appendChild(row);
+  } catch (e) { box.textContent = t.notAvailable + e.message; }
+  finally { btn.disabled = false; }
+}
+
+function insertWord(i, word) {
+  // Where the cursor was (remembered on blur), else at the end; the line stays the author's.
+  const inp = $("in" + i), ln = state.lines[i];
+  const at = Math.min(ln.caret ?? inp.value.length, inp.value.length);
+  const before = inp.value.slice(0, at), after = inp.value.slice(at);
+  const left = before && !/\s$/.test(before) ? before + " " : before;
+  const right = after && !/^\s/.test(after) ? " " + after : after;
+  inp.value = left + word + right; ln.text = inp.value; ln.caret = (left + word).length;
+  ln.words = [...(ln.words || []), word];
+  autosize(inp); showOrigin(i); save(); authorship(); check(i);
+  inp.focus(); inp.setSelectionRange(ln.caret, ln.caret);
+}
+
+async function proposeLines(i) {
+  const f = currentForm(), t = T(), box = $("props" + i);
+  if (await screenText(state.reflection)) return;
+  box.textContent = t.thinking;
   try {
     const r = await api("/api/propose", { language: f.language, form: f.form, index: i, lines: texts(),
       theme: state.theme, reflection: state.reflection, n: 3 });
@@ -608,7 +676,6 @@ async function suggest(i) {
       row.append(span, meta, use); box.appendChild(row);
     });
   } catch (e) { box.textContent = t.modelDown + e.message; }
-  finally { btn.disabled = false; }
 }
 
 let screened = "";
@@ -715,7 +782,8 @@ function openSaved(file, done = () => {}) {
       if (!Array.isArray(poem.lines) || !poem.language || !poem.form) throw new Error("shape");
       state.lang = poem.language; state.formKey = poem.language + ":" + poem.form;
       state.theme = poem.theme || ""; state.reflection = poem.reflection || "";
-      state.lines = poem.lines.map(l => ({ text: l.text || "", origin: l.origin || "human", proposal: l.proposal || "" }));
+      state.lines = poem.lines.map(l => ({ text: l.text || "", origin: l.origin || "human", proposal: l.proposal || "",
+        words: l.suggested_words || [] }));
       $("theme").value = state.theme; $("reflection").value = state.reflection;
       save(); showWriter(); showStep(3);
     } catch (e) { alert(T().badFile); }
@@ -726,12 +794,15 @@ function openSaved(file, done = () => {}) {
 function keep() {
   const f = currentForm();
   const lines = state.lines.map(l => ({ text: l.text, origin: l.origin, proposal: l.proposal,
-    edit_distance: l.origin === "proposal-edited" ? editDistance(l.proposal, l.text) : 0 }));
+    edit_distance: l.origin === "proposal-edited" ? editDistance(l.proposal, l.text) : 0,
+    suggested_words: wordsKept(l) }));
   const own = lines.filter(l => l.text.trim() && l.origin === "human").length;
   const filled = lines.filter(l => l.text.trim()).length;
+  const withWord = lines.filter(l => l.text.trim() && l.origin === "human" && l.suggested_words.length).length;
   const poem = { form: f.form, language: f.language, theme: state.theme,
     reflection: state.reflection, lines, kept_at: new Date().toISOString(),
-    statement: `${own} of ${filled} lines worded by the author; metre checked by PoesIA.` };
+    statement: `${own} of ${filled} lines worded by the author` +
+      (withWord ? ` (${withWord} with a suggested rhyme word)` : "") + "; metre checked by PoesIA." };
   download(`${fileBase()}.json`, new Blob([JSON.stringify(poem, null, 2)], { type: "application/json" }));
 }
 

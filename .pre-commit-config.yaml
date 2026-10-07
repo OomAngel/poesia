@@ -15,7 +15,7 @@ repos:
         args: ["--ignore-words=.codespell-ignore-words.txt"]
         # Spanish-language project: poetry corpus + data dirs are expected
         # non-English; ignore-words covers Spanish false positives in source.
-        exclude: ^data/|^seeds/|^models/|^mlruns/|^memory-bank/|^share/|^dist/|^reports/|^src/poesia/webui/  # reports/: generated poems; webui/: es/en/it page strings
+        exclude: ^data/|^seeds/|^models/|^mlruns/|^memory-bank/|^share/|^dist/|^reports/|^src/poesia/webui/|^src/poesia/wordlists/  # reports/: generated poems; webui/: es/en/it page strings; wordlists/: es/en/it vocabulary
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.25

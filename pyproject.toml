@@ -174,7 +174,7 @@ poesia-web = "poesia.webapp:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-poesia = ["webui/*.html"]
+poesia = ["webui/*.html", "wordlists/*.txt", "wordlists/README.md"]
 
 [tool.ruff]
 line-length = 100
