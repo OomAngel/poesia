@@ -287,7 +287,13 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
 - [ ] Docker in the template layout: an Ollama service + the PoesIA web service; model from a
       volume; `make run` serves the page; works with the network off. No corpus or poems in
       the image.
-- [ ] Stretch: `italian.py`.
+- [x] Stretch: `italian.py` (2026-10-07). Pure Python: nuclei with Italian diphthong rules,
+      sinalefe, piano/tronco/sdrucciolo endings, sineresi, a short list of words whose stressed
+      i/u stays apart at line end (*mìo*, *vìa*). Against the 10,001 expert-annotated
+      endecasillabi in Biblioteca Italiana (Averell 10): **79.5% exact** (Dante 79.2%, Petrarca
+      85.4%), mean |error| 0.23, stress on the 10th position 79.6%
+      (`scripts/check_italian_scansion.py`). Rules were kept only when they helped both poets;
+      dialefe helped Dante and hurt Petrarca, so it is out. The page offers the Italian sonetto.
 
 **Done when:** `make run` on a clean checkout shows the page and writes a poem offline.
 

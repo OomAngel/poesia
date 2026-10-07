@@ -29,13 +29,16 @@ FORMS: list[tuple[str, str]] = [
     ("en", "sonnet_shakespearean"),
     ("es", "haiku"),
     ("en", "haiku"),
+    ("it", "sonetto"),
 ]
 
 
-# Read-back voices (clear licences, docs/CORPUS_SOURCES.md): es CC0, en public domain.
+# Read-back voices (clear licences, docs/CORPUS_SOURCES.md): es CC0, en public domain,
+# it CC BY 4.0 (credit in the README).
 VOICES = {
     "es": "es/es_ES/davefx/medium/es_ES-davefx-medium.onnx",
     "en": "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx",
+    "it": "it/it_IT/serena/medium/it_IT-serena-medium.onnx",
 }
 _voice_cache: dict[str, Any] = {}
 
@@ -82,6 +85,10 @@ def _phonology(language: str) -> Any:
         from poesia.phonology.english import EnglishPhonology
 
         return EnglishPhonology()
+    if language == "it":
+        from poesia.phonology.italian import ItalianPhonology
+
+        return ItalianPhonology()
     raise ValueError(f"no phonology for language '{language}'")
 
 
@@ -218,7 +225,7 @@ def create_app(llm: Any | None = None) -> Any:
     app = FastAPI(title="PoesIA", docs_url=None, redoc_url=None)
 
     class LineRequest(BaseModel):
-        language: str = Field(pattern="^(es|en)$")
+        language: str = Field(pattern="^(es|en|it)$")
         form: str
         index: int = Field(ge=0, le=200)
         lines: list[str] = Field(default_factory=list, max_length=200)
@@ -227,11 +234,11 @@ def create_app(llm: Any | None = None) -> Any:
         text: str = Field(default="", max_length=8000)
 
     class ReadRequest(BaseModel):
-        language: str = Field(pattern="^(es|en)$")
+        language: str = Field(pattern="^(es|en|it)$")
         text: str = Field(min_length=1, max_length=4000)
 
     class LinkRequest(BaseModel):
-        language: str = Field(pattern="^(es|en)$")
+        language: str = Field(pattern="^(es|en|it)$")
         text: str = Field(min_length=1, max_length=8000)
 
     class ProposeRequest(LineRequest):
