@@ -94,3 +94,40 @@ def test_fragments_are_dropped_for_long_lines_only() -> None:
     assert _drop_fragments(batch, 10) == ["The tide returns to kiss the silver shore"]
     assert _drop_fragments(["autumn moonlight", "a crow"], 5) == ["autumn moonlight", "a crow"]
     assert _drop_fragments(["mollify", "stream"], 11) == ["mollify", "stream"]  # fail-open
+
+
+def test_all_fragment_batch_is_retried_without_the_word_bank() -> None:
+    from poesia.generation.constrained_loop import ConstrainedLoop
+
+    class _BankParrot:
+        """Answers a prompt with a word bank by a bare word, as Apertus v1.5 8B did."""
+
+        model = "fake"
+
+        def __init__(self) -> None:
+            self.prompts: list[str] = []
+
+        def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
+            self.prompts.append(prompt)
+            if "Word bank" in prompt:
+                return ["more", "door", "roar", "floor"][:n]
+            return ["And all the long grey morning, nothing more"] * n
+
+        def repair(self, line: str, defect_description: str) -> str:
+            return line
+
+    llm = _BankParrot()
+    loop = ConstrainedLoop(language="en", form="sonnet_shakespearean", llm=llm)
+    scored = loop._generate_line(
+        line_index=2,
+        theme="sea",
+        n_candidates=4,
+        brief=None,
+        target_syllables=10,
+        target_rhyme_key="AO1 R",
+        example_rhyme_word="shore",
+        rhyme_candidates=["more", "door", "roar", "floor"],
+        prior_lines=["The restless waves are breaking on the shore", "Above the cliffs the gulls"],
+    )
+    assert len(llm.prompts) == 2 and "Word bank" not in llm.prompts[1]
+    assert scored and scored[0].line == "And all the long grey morning, nothing more"
