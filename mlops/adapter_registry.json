@@ -198,6 +198,32 @@
       "adapter_path": "models/corpus-2k-qwen3-4b/final_adapter",
       "notes": "Trained with the masked end-of-text bug (pad_token == eos_token in DataCollatorForLanguageModeling; fixed 2026-10-06): never learned to stop. Qwen3-4B adapters produce runaway lines; do not use. RETRAINING_PLAN §6a.",
       "mlflow_model_version": 3
+    },
+    {
+      "id": "20261006_181158",
+      "mlflow_run_id": "83dc10328e9e4d96b8f57cf17eabc4cd",
+      "mlflow_model_name": "poesia-lora-retrain-2026-10",
+      "created": "2026-10-06T19:49:15.961350",
+      "config": "mlops/configs/corpus_2k_qwen3_4b_eosfix.yaml",
+      "data_sha256": "0cf32f25ff5bdc339dfcc9d8e7534cb11e781a185b2eb610813ff436f186528e",
+      "base_model": "Qwen/Qwen3-4B-Instruct-2507",
+      "lora_r": 16,
+      "train_loss": 1.1348141479492186,
+      "adapter_path": "models/corpus-2k-qwen3-4b-eosfix/final_adapter",
+      "notes": "End-of-text fix applied (52fea7a). 36 seeded poems vs plain Qwen3-4B: metre up in both languages (es 62%->71%, en 56%->75%), rhyme down (es 30%->24%, en 70%->40%). reports/eval_2026-10/corpus-2k-qwen3-4b-eosfix.json; RETRAINING_PLAN §6a.",
+      "mlflow_model_version": 4,
+      "eval": {
+        "es": {
+          "syllable_abs_dev": 0.38,
+          "metre_pass_rate": 0.71,
+          "rhyme_accuracy": 0.24
+        },
+        "en": {
+          "syllable_abs_dev": 0.46,
+          "metre_pass_rate": 0.75,
+          "rhyme_accuracy": 0.4
+        }
+      }
     }
   ],
   "description": "Registry of all trained LoRA adapters. Each entry records the adapter path, config used, data hash, and evaluation metrics. Updated manually or via training script.",

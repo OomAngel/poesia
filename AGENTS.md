@@ -76,3 +76,5 @@ Before making any git commit, adhere to the following workflow:
 1. Update `memory-bank/activeContext.md` under **What We Just Did** and **Current Focus**.
 2. Update `memory-bank/tasks.md` (move completed items to `DONE`, update `IN PROGRESS` or `BACKLOG`).
 3. Ensure git working tree is clean or committed in logical blocks.
+
+No commit or PR body names Claude as author or committer or carries a `Co-Authored-By: Claude`, `Claude-Session:` or "Generated with Claude Code" line (Angel, 2026-10-06); CI rejects such commits (`no-ai-attribution` from OomAngel/pre-commit-hooks).

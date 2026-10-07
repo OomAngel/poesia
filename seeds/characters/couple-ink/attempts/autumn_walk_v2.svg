@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="690" viewBox="0 0 940 690">
+  <defs>
+    <!-- brush-pen ink: wobble the line, soften it, then snap back to pure black/white -->
+    <filter id="ink" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="5" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="1.5" result="b"/>
+      <feComponentTransfer in="b">
+        <feFuncR type="discrete" tableValues="0 1"/>
+        <feFuncG type="discrete" tableValues="0 1"/>
+        <feFuncB type="discrete" tableValues="0 1"/>
+      </feComponentTransfer>
+    </filter>
+    <path id="leaf" d="M 0 -20 C 12 -10, 11 10, 0 20 C -11 10, -12 -10, 0 -20 Z M 0 -13 L 0 15 M 0 20 L 0 27"
+          fill="white" stroke="#000" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="leafdark" d="M 0 -20 C 12 -10, 11 10, 0 20 C -11 10, -12 -10, 0 -20 Z M 0 20 L 0 27"
+          fill="#000" stroke="#000" stroke-width="5" stroke-linecap="round"/>
+  </defs>
+
+  <g filter="url(#ink)" stroke="#000" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect width="940" height="690" fill="white" stroke="none"/>
+
+    <!-- left: bending sprig losing its leaves -->
+    <path d="M 125 645 C 132 570, 112 500, 132 430 C 140 395, 150 360, 140 318" stroke-width="7"/>
+    <use href="#leaf" transform="translate(142 300) rotate(-8)"/>
+    <use href="#leaf" transform="translate(110 368) rotate(-58) scale(1.1)"/>
+    <use href="#leaf" transform="translate(158 410) rotate(48)"/>
+    <use href="#leafdark" transform="translate(104 470) rotate(-62) scale(0.95)"/>
+    <use href="#leaf" transform="translate(152 525) rotate(42) scale(1.05)"/>
+
+    <!-- right: tall sprig, as in the original -->
+    <path d="M 862 650 C 868 590, 850 530, 866 455" stroke-width="6"/>
+    <use href="#leaf" transform="translate(844 474) rotate(-42) scale(0.85)"/>
+    <use href="#leaf" transform="translate(886 508) rotate(46) scale(0.85)"/>
+    <use href="#leafdark" transform="translate(846 548) rotate(-44) scale(0.85)"/>
+    <use href="#leaf" transform="translate(884 588) rotate(40) scale(0.85)"/>
+
+    <!-- falling leaves -->
+    <use href="#leaf" transform="translate(560 150) rotate(32)"/>
+    <use href="#leafdark" transform="translate(632 250) rotate(-55) scale(0.75)"/>
+    <use href="#leaf" transform="translate(498 68) rotate(72) scale(0.75)"/>
+    <use href="#leaf" transform="translate(762 192) rotate(-18) scale(0.9)"/>
+    <use href="#leaf" transform="translate(212 118) rotate(58) scale(0.8)"/>
+    <use href="#leafdark" transform="translate(84 232) rotate(-30) scale(0.65)"/>
+
+    <!-- the original's scattered dots -->
+    <g fill="#000" stroke="none">
+      <circle cx="604" cy="96" r="5"/><circle cx="621" cy="80" r="4"/><circle cx="589" cy="112" r="3.5"/>
+      <circle cx="716" cy="118" r="7"/><circle cx="68" cy="300" r="4"/><circle cx="92" cy="286" r="3"/>
+      <circle cx="182" cy="86" r="4"/><circle cx="804" cy="300" r="5"/>
+    </g>
+
+    <!-- leaves on the ground -->
+    <use href="#leaf" transform="translate(228 646) rotate(82) scale(0.75)"/>
+    <use href="#leafdark" transform="translate(470 652) rotate(-76) scale(0.7)"/>
+    <use href="#leaf" transform="translate(560 658) rotate(96) scale(0.7)"/>
+    <use href="#leaf" transform="translate(332 664) rotate(-86) scale(0.7)"/>
+
+    <!-- ===== her ===== -->
+    <!-- legs mid-stride, black boots -->
+    <path d="M 296 536 C 293 558, 289 578, 285 598" stroke-width="10"/>
+    <path d="M 366 536 C 374 558, 384 576, 392 590" stroke-width="10"/>
+    <ellipse cx="276" cy="606" rx="25" ry="13" fill="#000"/>
+    <ellipse cx="404" cy="598" rx="25" ry="13" fill="#000" transform="rotate(-14 404 598)"/>
+
+    <!-- soft bell-shaped coat with the original's wrap line -->
+    <path d="M 276 368 C 248 410, 236 470, 240 518 Q 242 540 264 540 L 396 540 Q 418 540 420 518 C 424 470, 412 410, 384 368"
+          fill="white" stroke-width="9"/>
+    <path d="M 302 412 C 320 442, 336 472, 346 508" stroke-width="6"/>
+
+    <!-- sleeves: left hangs, right reaches for the leash -->
+    <path d="M 270 398 C 248 432, 236 470, 238 498 L 262 502 C 264 472, 272 444, 286 420 Z" fill="white" stroke-width="8"/>
+    <circle cx="250" cy="512" r="13" fill="white" stroke-width="7"/>
+    <path d="M 392 392 C 424 408, 454 428, 478 438 L 470 464 C 446 456, 418 444, 392 430 Z" fill="white" stroke-width="8"/>
+    <circle cx="486" cy="452" r="13" fill="white" stroke-width="7"/>
+
+    <!-- scarf with a fringed tail -->
+    <path d="M 266 366 C 300 394, 360 394, 394 366 C 401 376, 401 388, 396 395 C 360 418, 300 418, 264 395 C 259 386, 259 374, 266 366 Z"
+          fill="white" stroke-width="8"/>
+    <path d="M 368 404 C 372 425, 376 440, 372 458 L 392 462 C 396 440, 392 420, 388 400 Z" fill="white" stroke-width="7"/>
+    <path d="M 374 460 l -2 9 M 382 462 l 0 9 M 390 463 l 2 9" stroke-width="4"/>
+
+    <!-- ears, then the face over them -->
+    <path d="M 217 252 C 186 252, 186 306, 219 306" fill="white" stroke-width="8"/>
+    <path d="M 443 252 C 474 252, 474 306, 441 306" fill="white" stroke-width="8"/>
+    <ellipse cx="330" cy="262" rx="118" ry="110" fill="white" stroke-width="10"/>
+
+    <!-- bun -->
+    <circle cx="330" cy="110" r="42" fill="#000" stroke="none"/>
+
+    <!-- hair cap -->
+    <path d="M 211 282 C 198 170, 275 132, 330 132 C 385 132, 462 170, 449 282 L 437 282 C 432 242, 420 216, 400 205 L 260 205 C 240 216, 228 242, 223 282 Z"
+          fill="#000" stroke-width="4"/>
+    <!-- fringe: separate strands with rounded tips, uneven lengths -->
+    <g stroke-width="21">
+      <path d="M 230 182 L 215 250"/>
+      <path d="M 255 182 L 244 240"/>
+      <path d="M 280 182 L 272 254"/>
+      <path d="M 305 182 L 301 244"/>
+      <path d="M 330 182 L 330 258"/>
+      <path d="M 355 182 L 359 242"/>
+      <path d="M 380 182 L 388 254"/>
+      <path d="M 405 182 L 416 238"/>
+      <path d="M 430 182 L 445 250"/>
+    </g>
+    <!-- white partings running up from the gaps toward the bun -->
+    <g stroke="white" stroke-width="4">
+      <path d="M 286 152 Q 284 175 267 206"/>
+      <path d="M 311 146 Q 306 175 292 208"/>
+      <path d="M 324 144 Q 322 178 317 208"/>
+      <path d="M 336 144 Q 338 178 343 208"/>
+      <path d="M 349 146 Q 354 175 368 208"/>
+      <path d="M 374 152 Q 376 175 393 206"/>
+    </g>
+    <!-- loose strands beside the cheeks -->
+    <path d="M 229 272 C 233 312, 228 346, 237 374" stroke-width="6"/>
+    <path d="M 431 272 C 427 312, 432 346, 423 374" stroke-width="6"/>
+
+    <!-- closed eyes with lashes, dot nose, small smile -->
+    <path d="M 264 298 Q 288 314 312 298" stroke-width="6"/>
+    <path d="M 272 305 l -2 9 M 282 309 l -1 9 M 292 309 l 1 9 M 302 305 l 2 9" stroke-width="3.5"/>
+    <path d="M 348 298 Q 372 314 396 298" stroke-width="6"/>
+    <path d="M 356 305 l -2 9 M 366 309 l -1 9 M 376 309 l 1 9 M 386 305 l 2 9" stroke-width="3.5"/>
+    <circle cx="330" cy="322" r="3.5" fill="#000" stroke="none"/>
+    <path d="M 318 338 Q 330 350 342 338" stroke-width="5"/>
+
+    <!-- ===== the dog ===== -->
+    <path d="M 496 460 C 545 525, 600 518, 640 484" stroke-width="5"/>
+
+    <!-- tail plume -->
+    <path d="M 784 548 Q 798 540 806 526 Q 802 512 814 508 Q 816 494 828 500 Q 840 498 836 512 Q 846 522 832 528 Q 826 546 806 552 Q 796 560 788 560 Z"
+          fill="white" stroke-width="6"/>
+    <!-- scruffy body with fur hanging over the legs -->
+    <path d="M 642 518 Q 626 538 636 556 Q 620 572 638 586 Q 628 602 650 606 L 654 620 Q 662 606 670 618 Q 678 604 688 618 Q 696 604 706 616 Q 716 602 726 616 Q 736 604 746 616 Q 756 602 766 612 Q 786 606 784 588 Q 802 580 792 562 Q 806 546 788 534 Q 792 514 770 514 Q 760 500 740 506 Z"
+          fill="white" stroke-width="7"/>
+    <!-- stubby round paws peeking out under the fur -->
+    <g fill="white" stroke-width="6">
+      <path d="M 652 616 L 652 630 Q 652 640 664 640 Q 676 640 676 630 L 676 616"/>
+      <path d="M 694 616 L 694 632 Q 694 642 706 642 Q 718 642 718 632 L 718 616"/>
+      <path d="M 732 616 L 732 632 Q 732 642 744 642 Q 756 642 756 632 L 756 616"/>
+    </g>
+    <path d="M 760 560 q 8 -4 10 -12 M 742 586 q 6 -6 6 -14 M 652 580 q -2 -8 2 -14 M 704 594 q 4 -6 2 -13" stroke-width="4"/>
+
+    <!-- shaggy ears behind the head -->
+    <path d="M 632 424 Q 588 432 590 470 Q 578 494 596 508 Q 588 528 610 528 Q 622 538 632 520 L 646 440 Z"
+          fill="white" stroke-width="6"/>
+    <path d="M 732 424 Q 776 432 774 470 Q 786 494 768 508 Q 776 528 754 528 Q 742 538 732 520 L 718 440 Z"
+          fill="white" stroke-width="6"/>
+    <!-- head: irregular tufts, not even scallops -->
+    <path d="M 640 412 Q 646 390 662 404 Q 668 382 684 400 Q 698 380 706 402 Q 724 388 726 410 Q 746 406 740 426 Q 760 430 748 448 Q 766 462 750 474 Q 764 494 744 498 Q 750 518 730 516 Q 724 534 706 524 Q 694 540 682 526 Q 668 540 658 524 Q 638 534 634 516 Q 612 518 620 498 Q 600 492 614 474 Q 598 460 616 448 Q 604 430 624 426 Q 620 404 640 412 Z"
+          fill="white" stroke-width="7"/>
+    <!-- fur flicks on the crown and cheeks -->
+    <path d="M 664 422 q 4 -8 1 -14 M 690 418 q 2 -9 6 -12 M 677 422 l 0 -11 M 630 472 q 8 2 12 -4 M 734 472 q -8 2 -12 -4" stroke-width="4"/>
+    <!-- face: bead eyes, nose, tiny mouth -->
+    <circle cx="662" cy="466" r="9.5" fill="#000" stroke="none"/>
+    <circle cx="704" cy="466" r="9.5" fill="#000" stroke="none"/>
+    <ellipse cx="683" cy="486" rx="7" ry="5.5" fill="#000" stroke="none"/>
+    <path d="M 683 492 l 0 5 M 676 499 Q 683 504 690 499" stroke-width="4"/>
+  </g>
+</svg>

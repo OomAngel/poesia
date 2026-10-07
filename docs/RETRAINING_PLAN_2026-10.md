@@ -302,9 +302,16 @@ Fixed in `52fea7a` (labels mask padding positions only).
 |---|---|---|---|---|---|---|
 | July recipe (Qwen2.5-1.5B) | 0.63 | 57% | 3% | 0.35 | 73% | 10% |
 | Plain Qwen3-4B, no adapter | 0.52 | 62% | 30% | 0.69 | 56% | 70% |
+| Corpus run with the fix (`corpus_2k_qwen3_4b_eosfix.yaml`) | 0.38 | 71% | 24% | 0.46 | 75% | 40% |
 
-The corrected corpus run (`corpus_2k_qwen3_4b_eosfix.yaml`) is training; its evaluation
-decides whether fine-tuning on the corpus beats plain Qwen3-4B.
+The corrected run (1,808 steps, eval loss 1.08; adapter `models/corpus-2k-qwen3-4b-eosfix`,
+DVC-tracked, cached on the desktop only) beats plain Qwen3-4B on metre in both languages
+and loses on rhyme, by 6 points in Spanish and 30 in English. Read with care: 18 poems per
+language, one seed set; the syllable counter agrees exactly with expert scansion on 59% of
+ADSO lines, so metre differences of a few points sit inside its error; rhyme is the
+consonant key of the last word (`poesia.evaluation.poem_eval`). The English rhyme drop is
+large enough to be real; why the adapter rhymes worse is not established. Not yet a
+replacement for plain Qwen3-4B where rhyme matters.
 
 ## 7. Decisions for Angel
 
