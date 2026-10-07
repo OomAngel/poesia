@@ -414,6 +414,28 @@ def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
             raise HTTPException(status_code=503, detail=f"linking unavailable: {exc}") from exc
         return {"poems": poems}
 
+    @app.post("/api/words")
+    def words(req: LineRequest) -> dict[str, Any]:
+        """Rhyme words for line ``index`` (U6: small suggestions first, offline)."""
+        from poesia.word_ideas import last_word, rhyme_words
+
+        _check(req)
+        form = _form(req.language, req.form)
+        partner = _partner_index(form, req.index)
+        if partner is None:
+            # The first line of its rhyme (or free verse): any last word works.
+            return {"words": [], "partner": None, "reason": "free" if form is None else "first"}
+        partner_line = req.lines[partner] if partner < len(req.lines) else ""
+        if not partner_line.strip():
+            return {"words": [], "partner": partner, "reason": "partner_empty"}
+        avoid = {last_word(ln) for j, ln in enumerate(req.lines) if j != req.index and ln.strip()}
+        return {
+            "words": rhyme_words(req.language, partner_line, avoid=avoid),
+            "partner": partner,
+            "partner_word": last_word(partner_line),
+            "reason": "",
+        }
+
     @app.post("/api/propose")
     def propose(req: ProposeRequest) -> dict[str, Any]:
         _check(req)

@@ -419,8 +419,11 @@ def build_records(spec: BookSpec, poems: list[tuple[str, str]]) -> list[dict]:
 
 
 def process_book(
-    spec: BookSpec, dry_run: bool, out_dir: Path = OUTPUT_DIR, display: bool = False
+    spec: BookSpec, dry_run: bool, out_dir: Path | None = None, display: bool = False
 ) -> int:
+    # Resolved here, not as a default argument: a default binds OUTPUT_DIR at import, so a
+    # test that redirects OUTPUT_DIR would write into the real training corpus.
+    out_dir = OUTPUT_DIR if out_dir is None else out_dir
     try:
         raw = fetch_raw_text(spec.book_id)
     except Exception as exc:  # noqa: BLE001 - report and move on
