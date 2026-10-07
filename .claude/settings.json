@@ -1,6 +1,33 @@
 {
   "attribution": {
     "commit": "",
-    "pr": ""
+    "pr": "",
+    "sessionUrl": false
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$CLAUDE_CODE_REMOTE\" = true ] && cd \"${CLAUDE_PROJECT_DIR:-.}\" && (python3 -m pip install -q pre-commit && pre-commit install --install-hooks -t commit-msg) >/dev/null 2>&1; exit 0",
+            "timeout": 180,
+            "statusMessage": "Installing the commit-msg hook (cloud only)"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c '\nimport json, os, re, sys\nc = json.load(sys.stdin).get(\"tool_input\", {}).get(\"command\", \"\")\nif not re.search(r\"\\bgit\\b[^;&|]*\\b(commit|push)\\b\", c):\n    sys.exit(0)\nif re.search(r\"--no-verify|\\bSKIP=\", c) or re.search(r\"\\bgit(\\s+-C\\s+\\S+)?\\s+commit\\b[^;&|]*\\s-[A-Za-z]*n[A-Za-z]*\\b\", c):\n    sys.exit(\"Blocked: commit hooks must run (no --no-verify, -n or SKIP=): Angel no-AI-attribution rule.\")\nm = re.search(r\"\\bgit\\s+-C\\s+(\\S+)\\s+commit\\b\", c)\nrepo = os.path.expanduser(m.group(1).strip(\"\\\"\")) if m else os.environ.get(\"CLAUDE_PROJECT_DIR\", \".\")\nif re.search(r\"\\bcommit\\b\", c) and os.path.isdir(os.path.join(repo, \".git\")) and not os.path.exists(os.path.join(repo, \".git\", \"hooks\", \"commit-msg\")):\n    sys.exit(\"Blocked: the commit-msg hook is not installed here. Run: pre-commit install -t commit-msg\")\n' ; rc=$?; [ $rc -eq 0 ] || exit 2",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
   }
 }
