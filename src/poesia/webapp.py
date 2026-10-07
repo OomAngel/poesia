@@ -59,6 +59,20 @@ def read_aloud(text: str, language: str) -> bytes:
     return buf.getvalue()
 
 
+_link_index: Any = None
+
+
+def link_poems(text: str, language: str, k: int = 3) -> list[dict[str, Any]]:
+    """Public-domain or openly licensed poems near ``text`` in feeling (``poesia.linking``)."""
+    global _link_index
+    from poesia.linking import EmbeddingClient, LinkIndex
+
+    if _link_index is None:
+        _link_index = LinkIndex.load(os.environ.get("POESIA_LINK_INDEX", "data/linking"))
+    vec = EmbeddingClient().embed([text[:2000]])[0]
+    return _link_index.nearest(vec, language, k)
+
+
 def _phonology(language: str) -> Any:
     if language == "es":
         from poesia.phonology.spanish import SpanishPhonology
@@ -216,6 +230,10 @@ def create_app(llm: Any | None = None) -> Any:
         language: str = Field(pattern="^(es|en)$")
         text: str = Field(min_length=1, max_length=4000)
 
+    class LinkRequest(BaseModel):
+        language: str = Field(pattern="^(es|en)$")
+        text: str = Field(min_length=1, max_length=8000)
+
     class ProposeRequest(LineRequest):
         theme: str = Field(default="", max_length=200)
         reflection: str = Field(default="", max_length=4000)
@@ -269,6 +287,15 @@ def create_app(llm: Any | None = None) -> Any:
         except (ImportError, FileNotFoundError) as exc:
             raise HTTPException(status_code=503, detail=f"read-back unavailable: {exc}") from exc
         return Response(content=audio, media_type="audio/wav")
+
+    @app.post("/api/link")
+    def link(req: LinkRequest) -> dict[str, Any]:
+        """Two or three poems from the person's tradition on the same feeling."""
+        try:
+            poems = link_poems(req.text, req.language)
+        except Exception as exc:  # no index or no embedding endpoint: the page works without
+            raise HTTPException(status_code=503, detail=f"linking unavailable: {exc}") from exc
+        return {"poems": poems}
 
     @app.post("/api/propose")
     def propose(req: ProposeRequest) -> dict[str, Any]:

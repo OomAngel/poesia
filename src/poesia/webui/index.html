@@ -49,6 +49,10 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
        padding: 10px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .note { color: var(--muted); font-size: .85rem; }
 .sr { position: absolute; left: -9999px; }
+.linked { border-top: 1px solid var(--line); padding: 10px 0; }
+.linked h3 { margin: 0; font-size: 1rem; } .linked .by { color: var(--muted); font-size: .88rem; }
+.linked pre { font: inherit; white-space: pre-wrap; margin: 6px 0; }
+.linked .credit { font-size: .75rem; color: var(--ghost); }
 .pause { border: 2px solid var(--accent); border-radius: 12px; padding: 16px; margin: 0 0 16px;
          background: var(--card); }
 .pause h2 { margin: 0 0 8px; font-size: 1.2rem; }
@@ -86,6 +90,14 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
   <fieldset>
     <legend id="poemLegend">Your poem</legend>
     <div id="lines"></div>
+  </fieldset>
+
+  <fieldset id="linkBox">
+    <legend id="linkLegend">Poems that feel like this</legend>
+    <p class="note" id="linkNote">If you like, read two or three old poems close to what you wrote.
+      They are public domain or openly licensed.</p>
+    <button id="linkBtn">Show me</button>
+    <div id="links"></div>
   </fieldset>
 
   <div class="bar">
@@ -141,6 +153,11 @@ function render() {
   const es = f.language === "es";
   $("poemLegend").textContent = es ? "Tu poema" : "Your poem";
   $("listen").textContent = es ? "Escuchar (voz sintética)" : "Listen (synthetic voice)";
+  $("linkLegend").textContent = es ? "Poemas que se sienten así" : "Poems that feel like this";
+  $("linkNote").textContent = es
+    ? "Si quieres, lee dos o tres poemas antiguos cercanos a lo que escribiste. Son de dominio público o con licencia abierta."
+    : "If you like, read two or three old poems close to what you wrote. They are public domain or openly licensed.";
+  $("linkBtn").textContent = es ? "Mostrar" : "Show me";
   while (state.lines.length < f.lines) state.lines.push({ text: "", origin: "human", proposal: "" });
   state.lines.length = f.lines;
   const box = $("lines"); box.innerHTML = "";
@@ -285,6 +302,27 @@ async function listen() {
   finally { btn.disabled = false; }
 }
 
+async function showLinks() {
+  const f = currentForm(), es = f.language === "es", box = $("links"), btn = $("linkBtn");
+  const text = [state.reflection, ...state.lines.map(l => l.text)].filter(t => t.trim()).join("\n");
+  if (!text.trim()) { box.textContent = es ? "Escribe algo primero." : "Write something first."; return; }
+  if (await screenText(text)) return;
+  btn.disabled = true; box.textContent = es ? "Buscando…" : "Looking…";
+  try {
+    const r = await api("/api/link", { language: f.language, text });
+    box.innerHTML = "";
+    r.poems.forEach(p => {
+      const d = document.createElement("div"); d.className = "linked";
+      const h = document.createElement("h3"); h.textContent = p.title || (es ? "Sin título" : "Untitled");
+      const by = document.createElement("div"); by.className = "by"; by.textContent = p.author || "";
+      const pre = document.createElement("pre"); pre.textContent = p.text;
+      const cr = document.createElement("div"); cr.className = "credit"; cr.textContent = p.licence;
+      d.append(h, by, pre, cr); box.appendChild(d);
+    });
+  } catch (e) { box.textContent = (es ? "No disponible: " : "Not available: ") + e.message; }
+  finally { btn.disabled = false; }
+}
+
 function keep() {
   const f = currentForm();
   const lines = state.lines.map(l => ({ text: l.text, origin: l.origin,
@@ -315,6 +353,7 @@ async function init() {
   $("pauseContinue").addEventListener("click", () => { $("pause").hidden = true; });
   $("keep").addEventListener("click", keep);
   $("listen").addEventListener("click", listen);
+  $("linkBtn").addEventListener("click", showLinks);
   $("clear").addEventListener("click", () => { if (confirm("Start over? The draft is removed.")) {
     state = { formKey: state.formKey, theme: "", reflection: "", lines: [] }; save();
     $("theme").value = ""; $("reflection").value = ""; render(); } });
