@@ -166,29 +166,16 @@ Claude cannot generate images: it is "an image understanding model only" ([Claud
 
 Use Claude for labelled pairwise rubric checks, and keep your own approval as the gate.
 
-## Two claims in IMAGE_GENERATION_PROVIDERS.md are now wrong
+## Two claims in IMAGE_GENERATION_PROVIDERS.md were wrong (corrected 2026-10-07)
 
-`docs/IMAGE_GENERATION_PROVIDERS.md` (2026-08-03) ranks the "Google Gemini free tier" #2 at 3.60 for its image quality. **Gemini's pricing page now marks image output "Not available" on the free tier for every image-output model** ([Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing)). That rests on one tool-summarised fetch, so confirm it in AI Studio. If it holds, the row drops out of the free ranking.
+`docs/IMAGE_GENERATION_PROVIDERS.md` (2026-08-03) ranked the "Google Gemini free tier" #2 at 3.60 for its image quality. **Gemini's pricing page now marks image output "Not available" on the free tier for every image-output model** ([Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing)). That rests on one tool-summarised fetch, so confirm it in AI Studio. That doc now carries the correction.
 
-The same section lists `gemini-2.0-flash-preview-image-generation`. Separately, `gemini-2.5-flash-image` was scheduled to shut down on **2026-10-02**. Current IDs are `gemini-nano-banana-2.1`, `gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image` and `gemini-3-pro-image` ([Gemini image docs](https://ai.google.dev/gemini-api/docs/image-generation)).
+It also listed `gemini-2.0-flash-preview-image-generation`. Separately, `gemini-2.5-flash-image` was scheduled to shut down on **2026-10-02**. Current IDs are `gemini-nano-banana-2.1`, `gemini-3.1-flash-image`, `gemini-3.1-flash-lite-image` and `gemini-3-pro-image` ([Gemini image docs](https://ai.google.dev/gemini-api/docs/image-generation)).
 
 More broadly, that document's free-tier framing does not carry over to this task. Reference-image conditioning has no ongoing free path except rate-limited Hugging Face ZeroGPU Spaces, so the ink-character backend is a paid backend by design. At Nano Banana 2.1 Batch rates, 100 panels cost under $2.
 
 ## Conclusion
 
-The staged plan:
-
-| Stage | Action | Cost | Exit criterion |
-| --- | --- | --- | --- |
-| 0 (today) | Six-model fixed-protocol test, raw outputs scored on grey fraction, stroke width and trait checklist | $5–10 | One model keeps all named traits on most of 12 panels |
-| 1 (today) | Threshold + potrace/VTracer, compared with Vectorizer.AI test mode and Recraft | <$1 | Lashes survive; curves at least as smooth as the reference |
-| 2 (days) | `ReferenceImageBackend` + manifest + CLI + skill, using the stage-0 winner | $0.03–0.13/panel | 20 panels in sequence without drift |
-| 3 (only if 2 drifts) | Bootstrap 40–60 images, threshold, curate 15–30, Apache LoRA on Qwen-Image-Edit-2511 or klein 4B | $1–10 per run | LoRA beats the hosted winner on the same checklist |
-
-This plan rests on one bet: that a hosted model plus thresholding can hold your two characters well enough. Three results would prove it wrong:
-
-- **No shortlisted model keeps the fringe, lashes and dog scruff on most panels.** Skip stage 2's hosted backend and go straight to stage 3. Reach for Qwen first, because it doubles as a stage-0 contestant.
-- **Thresholding destroys the lashes at every setting.** Generate at higher resolution, or move the lashes to a vector-edited part.
-- **potrace curves come out visibly wobblier than Vectorizer.AI's.** Make Vectorizer.AI the trace stage.
+The staged plan that follows from this evidence (four stages, with costs, exit criteria and the results that would prove it wrong) is kept in one place: [GALERIA_CHARACTER_COMIC_HANDOFF.md](GALERIA_CHARACTER_COMIC_HANDOFF.md) §6. It rests on one bet: that a hosted model plus thresholding can hold the two characters well enough.
 
 The deeper shift is in what "exact ink style" means. No model guarantees it, so it becomes a two-part contract: the generator supplies identity and composition, and a deterministic, testable post-processor supplies the binary ink. That split makes style fidelity something PoesIA can measure and unit-test.

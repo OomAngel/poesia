@@ -4,22 +4,26 @@
 comic, in the exact style of the one drawing he likes: thick black ink on pure white,
 chibi proportions, tapered strokes, elegant curves, no grey.
 
-**Status.** Paused, waiting on API keys. The docs are in git; the assets in §1 are not. No image model has been
-tried yet; every image made so far was hand-built SVG, and that route is a dead end for
-drawing (§3). Next step: §5, either the free manual test (Path A) or the keyed test
-(Path B).
+**Status.** Paused, waiting on API keys. Everything needed to continue is in git: this
+doc, the research, the reference drawing and every attempt. A fresh clone on any PC is
+enough. No image model has been tried yet; every image made so far was hand-built SVG,
+and that route is a dead end for drawing (§3). Next step: §5, either the free manual test
+(Path A) or the keyed test (Path B).
 
-**Read with:** [CHARACTER_CONSISTENT_ILLUSTRATION_RESEARCH.md](CHARACTER_CONSISTENT_ILLUSTRATION_RESEARCH.md)
-(the researched plan, sources dated 2026-10-07) and its notes in
-[research/](research/research_notes/Character%20consistent%20ink%20illustration%20tools/).
+**This is the single entry point.** The evidence behind every recommendation (sources
+dated 2026-10-07) is in
+[CHARACTER_CONSISTENT_ILLUSTRATION_RESEARCH.md](CHARACTER_CONSISTENT_ILLUSTRATION_RESEARCH.md),
+and the raw notes of its four research tracks are in
+[research/research_notes/](research/research_notes/Character%20consistent%20ink%20illustration%20tools/).
 
 ---
 
 ## 1. Assets and where they live
 
-Everything is under `galeria/characters/couple-ink/`. **`/galeria/` is gitignored**, so these
-files exist only on this machine (listed in [LOCAL_ONLY.md](../LOCAL_ONLY.md)). Whether the
-drawing of his girlfriend may enter git is Angel's open decision (§7).
+Everything is in git under
+[`seeds/characters/couple-ink/`](../seeds/characters/couple-ink/), next to the other input
+material in `seeds/`. Angel decided on 2026-10-07 to commit the drawing (the repo is public).
+Generated output still goes to the gitignored `galeria/`.
 
 | Path | What | SHA-256 (first 12) |
 |---|---|---|
@@ -27,12 +31,19 @@ drawing of his girlfriend may enter git is Angel's open decision (§7).
 | `reference/her_only.png` | Crop of her alone (385×680, plant fragments painted out) | `3e3231e9b4f5` |
 | `reference/dog_only.png` | Crop of the dog alone (340×340, sprig painted out) | `7e084be269f7` |
 | `attempts/` | Every SVG attempt, render, overlay and side-by-side from this session (§3) | — |
-| `tools/render.py` | SVG → PNG via Playwright Chromium. Run with `~/dev/career-assets/.venv/bin/python tools/render.py in.svg out.png 943 691` | — |
-| `tools/score.py` | Ink IoU and 3 px-tolerant F1 vs the original in a box, plus a red/blue overlay. Run with the `poesia` conda env | — |
+| `tools/render.py` | SVG → PNG via headless Chromium | — |
+| `tools/score.py` | Ink IoU and 3 px-tolerant F1 vs the original in a box, plus a red/blue overlay | — |
 | `tools/score_parts.py` | Same IoU per facial feature box (bun, dome, fringe, brows, eyes, nose+mouth, ears, jaw, locks) | — |
 
-The original came in as a chat attachment; the session copy in `/tmp` is gone after this
-session. **The copy above is the only one on disk unless Angel has the source elsewhere.**
+Check the reference arrived intact: `sha256sum seeds/characters/couple-ink/reference/*`.
+
+**Running the tools on another PC.** The scorers need numpy, Pillow and scipy, which the
+`poesia` conda env already has:
+`python tools/score_parts.py reference/original.jpg attempts/head_v5.png`. The renderer
+needs Playwright, which the `poesia` env does **not** have. On the laptop it was run with
+`~/dev/career-assets/.venv/bin/python`. Elsewhere:
+`pip install playwright && python -m playwright install chromium`, then
+`python tools/render.py in.svg out.png 943 691` (the last two numbers are the viewport).
 
 ### What defines the style (read from the pixels, not guessed)
 
@@ -60,20 +71,22 @@ session. **The copy above is the only one on disk unless Angel has the source el
   SVG/code and look at images.
 - **There is no official Anthropic image tool or MCP.** Any "Claude makes images" setup is
   Claude calling another company's model, via MCP or code.
-- **This laptop cannot run image models locally.** Its GPU is a Quadro M1000M with 2 GB.
-  All generation must be cloud or rented GPU. Thresholding and vectorizing run on CPU and
-  work here.
+- **The laptop cannot run image models locally.** Its GPU is a Quadro M1000M with 2 GB.
+  The desktop's RTX 3070 has 8 GB, still below the ~16 GB (FP8) that Qwen-Image-Edit
+  needs. Whether FLUX.2 klein 4B inference fits in 8 GB is unverified. Plan on cloud or a
+  rented GPU. Thresholding and vectorizing run on CPU on either machine.
 - **No image-API keys are set** in the environment. The repo's secrets template already has
   slots for `GEMINI_API_KEY`, `OPENAI_API_KEY`, `REPLICATE_API_TOKEN`, `CLOUDFLARE_*`.
 - **`galeria` cannot do this yet.** `ImageBackend.generate_image(prompt, style) -> bytes`
   (`src/poesia/galeria/backends.py`) takes text only: no reference image, no seed, no model
   pin. All five backends (Pollinations, Cloudflare, OpenAI, Replicate, procedural) are
   text-to-image, so they would draw a different girl every panel.
-- **[IMAGE_GENERATION_PROVIDERS.md](IMAGE_GENERATION_PROVIDERS.md) is out of date for this
-  task.** On 2026-10-07 Gemini's pricing page marked image output "Not available" on the free
-  tier (one fetch, so confirm it in AI Studio), and `gemini-2.5-flash-image` was due to shut
-  down on 2026-10-02. **This backend is a paid backend by design:** reference-image
-  generation has no ongoing free API path.
+- **Gemini image output is probably no longer free.** On 2026-10-07 Gemini's pricing page
+  marked it "Not available" on the free tier (one fetch, so confirm it in AI Studio), and
+  `gemini-2.5-flash-image` was due to shut down on 2026-10-02.
+  [IMAGE_GENERATION_PROVIDERS.md](IMAGE_GENERATION_PROVIDERS.md) was corrected the same day.
+  **This backend is a paid backend by design:** reference-image generation has no ongoing
+  free API path.
 
 ---
 
@@ -204,7 +217,7 @@ model keep her fringe, lashes and the dog's fur?
    `the dog jumping for a ball while she laughs` · `seen from behind, walking in the rain
    under an umbrella` · `close-up, she hugs the dog` · `both asleep on a sofa`.
 3. Save every output as-is (raw). Bring them to a new Claude Code session and say: "compare
-   these against `galeria/characters/couple-ink/reference/` and threshold them". Claude
+   these against `seeds/characters/couple-ink/reference/` and threshold them". Claude
    compares pairwise against the checklist below and binarises them (§6, stage 1).
 
 **Checklist per image** (pass/fail each):
@@ -246,7 +259,9 @@ verified.
 
 ---
 
-## 6. The staged plan (detail in the research report's Conclusion)
+## 6. The staged plan
+
+This is the one copy of the plan; the research report holds the evidence behind it.
 
 | Stage | Action | Cost | Exit criterion |
 |---|---|---|---|
@@ -271,14 +286,14 @@ expression). Not drawing curves, and not the final judge.
 
 ## 7. Open decisions for Angel
 
-1. **Is the reference drawing allowed in git?** It is gitignored and local-only today.
-   Losing this machine loses it unless he has the source elsewhere.
-2. **Personal or commercial use?** This decides the licences. Commercial-clean weights are
+Settled 2026-10-07: the reference drawing goes in git (§1).
+
+1. **Personal or commercial use?** This decides the licences. Commercial-clean weights are
    Qwen-Image family and FLUX.2 klein 4B (Apache 2.0). FLUX.2 dev, klein 9B and Kontext dev
    are non-commercial unless used through a host whose terms grant commercial rights.
    ControlNet LineArt-Anime is non-commercial.
-3. **Which keys and what budget** (§5 Path B). Stage 0 needs about $5–10.
-4. **Focus order:** her first or the dog first. Earlier lean: her head first (it carries
+2. **Which keys and what budget** (§5 Path B). Stage 0 needs about $5–10.
+3. **Focus order:** her first or the dog first. Earlier lean: her head first (it carries
    identity), the dog second (the fur needs a different technique).
 
 ## 8. Unverified (check before relying on)

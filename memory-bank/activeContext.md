@@ -8,18 +8,19 @@ and Document authority brought current)_
 ## What We Just Did (2026-10-05 → 10-07) — GalerIA character comic, paused
 
 - **Goal (Angel):** comic-style pictures of his girlfriend and their dog, in the exact style
-  of one ink drawing he likes. Reference + crops + attempts saved to the gitignored
-  `galeria/characters/couple-ink/` (listed in `LOCAL_ONLY.md`; not regenerable).
+  of one ink drawing he likes. Reference, crops, attempts and scoring tools are in git at
+  `seeds/characters/couple-ink/` (Angel's call, 2026-10-07), so any PC can continue.
 - **Tried:** Claude drawing in SVG (two autumn-walk scenes, a measured head trace v3–v5
   scored by ink IoU). Angel's verdict: gaps in the fringe strands, irregular lashes,
   inelegant curves. The IoU score rose while quality fell; it measures placement, not line
   quality. **Dead end for drawing.**
 - **Researched:** `docs/CHARACTER_CONSISTENT_ILLUSTRATION_RESEARCH.md` (+ notes in
   `docs/research/`). Plan: six-model reference-image test → threshold/vectorize →
-  `ReferenceImageBackend` → LoRA only if needed. `IMAGE_GENERATION_PROVIDERS.md`'s Gemini
-  free-tier row is likely wrong now (unconfirmed).
+  `ReferenceImageBackend` → LoRA only if needed. Gemini image output is likely no longer
+  free (one fetch; confirm in AI Studio).
 - **Blocked:** no API keys. Claude has no image model on any plan, including Max.
-- **Handoff:** `docs/GALERIA_CHARACTER_COMIC_HANDOFF.md`. Committed and pushed 2026-10-07.
+- **Handoff (single entry point):** `docs/GALERIA_CHARACTER_COMIC_HANDOFF.md`. Committed
+  and pushed 2026-10-07. `IMAGE_GENERATION_PROVIDERS.md` corrected the same day.
 
 ## What We Just Did (2026-10-04) — retraining plan
 
@@ -249,6 +250,9 @@ are in `memory-bank/archive/activeContext_until_2026-08-06.md`, moved verbatim o
 | DVC pipeline and remotes | `docs/DVC_INTEGRATION.md` |
 | Training how-to | `docs/TRAINING_RUNBOOK.md` |
 | Lemonade integration plan (AMD challenge) | `docs/LEMONADE_INTEGRATION.md` |
+| GalerIA character comic: status, next steps, staged plan | `docs/GALERIA_CHARACTER_COMIC_HANDOFF.md` |
+| Reference-image tools research (evidence) | `docs/CHARACTER_CONSISTENT_ILLUSTRATION_RESEARCH.md` |
+| Free image-provider survey (text-to-image) | `docs/IMAGE_GENERATION_PROVIDERS.md` |
 | VerifIA pattern + benchmarks | `docs/ARCHITECTURE.md` ("The VerifIA pattern and how it compares") |
 | Experiment plan (models, techniques, loss) | `docs/archive/EXPERIMENTS_PLAN.md` |
 | Cloud migration guide | `docs/CRONOLOGIA_CLOUD.md` |
