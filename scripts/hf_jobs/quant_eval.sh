@@ -75,7 +75,8 @@ for Q in $QUANTS; do
   for d in $SAFETY_DATA; do
     extra=""; case "$d" in */generated/*) extra="--agreed-only";; esac
     python scripts/evaluate_safety_screen.py --openai-compat --data "$d" $extra \
-      --out "$OUT/safety-$Q-$(basename "$d" .jsonl).json" >/dev/null
+      --workers 3 --out "$OUT/safety-$Q-$(basename "$d" .jsonl).json" \
+      > /dev/null 2> >(tee "$OUT/safety-$Q-$(basename "$d" .jsonl).log" >&2)
   done
   pids=()
   for s in $SEEDS; do for l in es en it; do
