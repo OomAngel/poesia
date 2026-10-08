@@ -61,6 +61,19 @@ snapshot_download("andreasmartin/apertus-v1.5-8b-text", local_dir="/work/hf-text
 PY
 "$W/convenv/bin/python" "$W/llama.cpp/convert_hf_to_gguf.py" "$W/hf-text" --outtype f16 --outfile "$W/f16.gguf" >/dev/null
 
+# Upload what exists so far after each model, so a later failure or timeout keeps it.
+upload() {
+  python - "$RESULTS_REPO" "$OUT" "$RUN" "$1" <<'PY' || echo "upload failed ($1)"
+import sys
+from huggingface_hub import HfApi
+repo, out, run, note = sys.argv[1:5]
+api = HfApi()
+api.create_repo(repo, repo_type="dataset", private=True, exist_ok=True)
+api.upload_folder(repo_id=repo, repo_type="dataset", folder_path=out,
+                  path_in_repo=f"quant-eval/{run}", commit_message=f"{run}: {note}")
+print(f"uploaded ({note}) to https://huggingface.co/datasets/{repo}/tree/main/quant-eval/{run}")
+PY
+}
 wait_ready() { for _ in $(seq 120); do curl -s -m3 localhost:8080/health | grep -q '"ok"' && return 0; sleep 5; done; return 1; }
 for Q in $QUANTS; do
   log "5/6 $Q: quantise, serve, test"
@@ -83,9 +96,14 @@ for Q in $QUANTS; do
     python scripts/evaluate_adapter_mlflow.py --openai-compat --languages "$l" --samples 3 \
       --seed "$s" --out "$OUT/metre-$Q-s$s-$l.json" > "$OUT/metre-$Q-s$s-$l.log" 2>&1 & pids+=($!)
   done; done
-  wait "${pids[@]}" || echo "some $Q runs failed; their logs are uploaded"
+  # Only when runs were started: a bare "wait" (empty SEEDS) also waits for the model server,
+  # which never exits; that hung a safety-only job until it was cancelled (2026-10-08).
+  if [ ${#pids[@]} -gt 0 ]; then
+    wait "${pids[@]}" || echo "some $Q runs failed; their logs are uploaded"
+  fi
   kill $SERVER; wait $SERVER 2>/dev/null || true
   stat -c '%n %s' "$W/$Q.gguf" >> "$OUT/sizes.txt"
+  upload "after $Q"
 done
 
 log "6/6 upload reports to $RESULTS_REPO (private)"
