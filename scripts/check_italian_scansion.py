@@ -27,6 +27,9 @@ def main() -> None:
     phon = ItalianPhonology()
     by_author: dict[str, list[int]] = collections.defaultdict(list)
     tenth = total = 0
+    # Stress agreement on lines counted exactly (positions align): the experts mark rhythmic
+    # stresses, so this measures change between versions, not absolute correctness.
+    hit = gold_stress = scan_stress = 0
     misses = []
     for path in sorted(Path(args.dir).glob("*.json")):
         for poem in json.loads(path.read_text(encoding="utf-8")):
@@ -42,6 +45,12 @@ def main() -> None:
                     tenth += (
                         len(scan.stress_pattern) >= 10 and scan.stress_pattern[9] is Stress.PRIMARY
                     )
+                    if err == 0:
+                        g = [c == "+" for c in gold]
+                        sp = [s is Stress.PRIMARY for s in scan.stress_pattern][: len(g)]
+                        hit += sum(a and b for a, b in zip(g, sp, strict=False))
+                        gold_stress += sum(g)
+                        scan_stress += sum(sp)
                     if err and len(misses) < args.show:
                         misses.append((v["verse"], scan.metrical_syllable_count, len(gold)))
     errs = [e for es in by_author.values() for e in es]
@@ -49,6 +58,10 @@ def main() -> None:
         f"lines {total}: exact {sum(e == 0 for e in errs) / total:.1%}, "
         f"mean |error| {sum(abs(e) for e in errs) / total:.2f}, "
         f"mean error {sum(errs) / total:+.2f}, stress on 10th {tenth / total:.1%}"
+    )
+    print(
+        f"  stress agreement on exact lines: recall {hit / max(gold_stress, 1):.1%} of expert "
+        f"stresses, precision {hit / max(scan_stress, 1):.1%}"
     )
     for author, es in by_author.items():
         print(f"  {author}: {len(es)} lines, exact {sum(e == 0 for e in es) / len(es):.1%}")

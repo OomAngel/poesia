@@ -22,6 +22,7 @@ stopped after each batch. Cost: CSCS academic rates (ui.inference.cscs.ch/pricin
 | 2026-10-08 | Held-out safety set (seed 1000, written before the screen was changed): 1,040 items, 708 agreed | 70B | ~2,100 | ~0.4 M / 34 k | ~0.04 | no overlap with the tuning set |
 | 2026-10-08 | Screen before/after on the held-out set, plus tuning runs | 8B | ~4,500 | ~0.6 M / 5 k | ~0.01 | **recall 92 → 125 of 271 (34% → 46%), false alarms 6 → 4 of 437**; plain death wishes 50% → 72% |
 | 2026-10-08 | Two more seed sets (6, 9) of the 8B benchmark: the full-precision reference now has 72 sonnets per language | 8B | ~19,000 (incl. late safety re-checks) | 4.05 M / 160 k | 0.05 | metre es 84.5 ± 1.2%, en 92.2 ± 0.8%, it 89.3 ± 1.0% |
+| 2026-10-08 | Probe: can the 70B mark Italian word stress (to build a stress dictionary for the scanner)? Three prompt formats, 20 words | 70B | 3 | ~1 k / 1 k | <0.001 | **no**: about half wrong with accents (*tavóla*, *perdíta*, *subító*), nearly all "piana" with capitalised syllables, nearly all "tronca" when asked the type; not used. Wiktionary's pronunciations are the source instead |
 
 Running total (proxy log, 2026-10-08 evening): **59,650 requests, CHF 0.44.**
 
