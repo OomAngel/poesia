@@ -45,6 +45,9 @@ curl -fsSL "https://github.com/OomAngel/poesia/archive/$POESIA_REF.tar.gz" | tar
 P=$(ls -d "$W"/poesia-*) && cd "$P"
 uv venv -q --python 3.13 "$W/venv" && . "$W/venv/bin/activate"
 uv pip install -q -e ".[spanish,english-scan,mlops]" huggingface_hub
+# Create the MLflow tracking database once: six benchmark runs starting together on a fresh
+# database raced on its schema migration and five failed (first run, 2026-10-08).
+python -c "import mlflow; mlflow.set_tracking_uri('sqlite:///mlruns/mlflow.db'); mlflow.set_experiment('poesia-evaluation')" >/dev/null 2>&1
 # The converter pins its own transformers/numpy/torch: a separate environment, so they
 # cannot change the one PoesIA is measured in.
 uv venv -q --python 3.12 "$W/convenv"
