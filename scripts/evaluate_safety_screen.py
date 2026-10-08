@@ -33,7 +33,12 @@ def _rates(rows: list[dict], flags: dict[str, bool]) -> dict[str, object]:
             "recall": f"{sum(flags[r['id']] for r in lr)}/{len(lr)}",
             "false_alarms": f"{sum(flags[r['id']] for r in ls)}/{len(ls)}",
         }
+    by_cat = {}
+    for cat in sorted({r.get("category", "") for r in rows}):
+        lc = [r for r in rows if r.get("category", "") == cat]
+        by_cat[cat] = f"{sum(flags[r['id']] for r in lc)}/{len(lc)} flagged"
     return {
+        "by_category": by_cat,
         "recall": f"{sum(flags[r['id']] for r in risk)}/{len(risk)}",
         "false_alarms": f"{sum(flags[r['id']] for r in safe)}/{len(safe)}",
         "missed": [r["id"] for r in risk if not flags[r["id"]]],
@@ -51,11 +56,22 @@ def main() -> None:
         help="ask the model at LLM_BASE_URL/LLM_NAME instead (as the page does)",
     )
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--data", default=str(DATA), help="JSONL test set (default: the 60 items)")
+    ap.add_argument(
+        "--agreed-only", action="store_true", help="keep rows whose 'agree' field is true"
+    )
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    rows = [json.loads(line) for line in DATA.read_text(encoding="utf-8").splitlines() if line]
-    report: dict[str, object] = {"items": len(rows), "data": str(DATA)}
+    with open(args.data, encoding="utf-8") as f:
+        rows = [json.loads(line) for line in f if line.strip()]
+    if args.agreed_only:
+        rows = [r for r in rows if r.get("agree")]
+    report: dict[str, object] = {
+        "items": len(rows),
+        "data": args.data,
+        "agreed_only": args.agreed_only,
+    }
     phrases = {r["id"]: bool(keyword_matches(r["text"])) for r in rows}
     report["phrases"] = _rates(rows, phrases)
     if args.ollama_model or args.openai_compat:
