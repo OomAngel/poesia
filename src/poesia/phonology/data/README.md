@@ -19,5 +19,15 @@ from kaikki.org's French Wiktionary extract (download of 2026-10-08), for the wo
 exactly with the experts' metre on 95.9% of 72,412 verses (`scripts/check_french_scansion.py`;
 the rules were tuned on the same set).
 
-**Licence (both files):** Wiktionary content, CC BY-SA 4.0 (Wiktionary contributors, via
+`de_words.tsv`: German word stress for 5,904 words whose stressed syllable the scanner's rules
+(unstressed prefixes *be- ge- er- ver- zer- ent- emp-*, a few stressed foreign suffixes, else
+the first syllable) place wrongly: word, a syllable column kept at -1 (the rules count better
+than Wiktionary's hyphenation), and the stressed syllable counted from the start. Read from
+Wiktionary's IPA and passed from each lemma to its forms (*verlieren* -> *verliert*). Built by
+`scripts/build_german_lexicon.py` (kaikki.org German extract, 2026-10-08) for the words of
+`src/poesia/wordlists/de.txt` and the gold lines. On the 3,507 expert-annotated lines of
+Haider et al. (`scripts/check_german_scansion.py`): syllables 99.1% exact; stress of words of
+two or more syllables on a stressed position 91.7% (rules) -> 94.7% (with the table).
+
+**Licence (all three files):** Wiktionary content, CC BY-SA 4.0 (Wiktionary contributors, via
 kaikki.org, Tatu Ylonen's wiktextract). These files keep that licence, not PoesIA's MIT.
