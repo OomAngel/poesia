@@ -1,0 +1,186 @@
+{
+ "date": "2026-10-08",
+ "job": "6ac7d7f8095c5780892fb71b",
+ "where": "Hugging Face Jobs, NVIDIA L4, llama.cpp f498f864f, seeds 0 and 3 (36 sonnets per language)",
+ "question": "Is a Q6_K made from the public Q8_0 file (andreasmartin/apertus-v1.5-8b-text-Q8_0-GGUF, llama-quantize --allow-requantize) as good as Q6_K made from full precision?",
+ "files": {
+  "Q8_0pub": "public Q8_0, as is",
+  "Q6_K": "from f16 (control)",
+  "Q6_K~Q8_0": "requantised from the public Q8_0",
+  "Q4_K_M": "from f16, the shipped precision"
+ },
+ "sizes_bytes": {
+  "Q6_K": 6616373600,
+  "Q6_K~Q8_0": 6616373696,
+  "Q4_K_M": 5059027040,
+  "Q8_0pub": 8567121856
+ },
+ "perplexity_safety_texts": {
+  "Q8_0pub": {
+   "ppl": 10.674269,
+   "se": 0.268703
+  },
+  "Q6_K": {
+   "ppl": 10.770018,
+   "se": 0.27173
+  },
+  "Q6_K~Q8_0": {
+   "ppl": 10.783463,
+   "se": 0.272277
+  },
+  "Q4_K_M": {
+   "ppl": 11.336219,
+   "se": 0.282531
+  }
+ },
+ "safety": {
+  "Q8_0pub": {
+   "60_items": {
+    "model": "18/20",
+    "screen": "20/20",
+    "false_alarms": "0/40"
+   },
+   "heldout_708": {
+    "model": "106/271",
+    "model_false_alarms": "3/437",
+    "screen": "124/271",
+    "screen_false_alarms": "4/437"
+   }
+  },
+  "Q6_K": {
+   "60_items": {
+    "model": "20/20",
+    "screen": "20/20",
+    "false_alarms": "0/40"
+   },
+   "heldout_708": {
+    "model": "112/271",
+    "model_false_alarms": "3/437",
+    "screen": "129/271",
+    "screen_false_alarms": "4/437"
+   }
+  },
+  "Q6_K~Q8_0": {
+   "60_items": {
+    "model": "20/20",
+    "screen": "20/20",
+    "false_alarms": "0/40"
+   },
+   "heldout_708": {
+    "model": "110/271",
+    "model_false_alarms": "3/437",
+    "screen": "128/271",
+    "screen_false_alarms": "4/437"
+   }
+  },
+  "Q4_K_M": {
+   "60_items": {
+    "model": "18/20",
+    "screen": "20/20",
+    "false_alarms": "0/40"
+   },
+   "heldout_708": {
+    "model": "89/271",
+    "model_false_alarms": "1/437",
+    "screen": "111/271",
+    "screen_false_alarms": "2/437"
+   }
+  }
+ },
+ "metre_rhyme_pooled": {
+  "Q8_0pub": {
+   "es": {
+    "n": 36,
+    "metre": 88.1,
+    "metre_se": 1.9,
+    "rhyme": 37.2,
+    "rhyme_se": 3.5
+   },
+   "en": {
+    "n": 36,
+    "metre": 91.9,
+    "metre_se": 1.2,
+    "rhyme": 83.7,
+    "rhyme_se": 2.2
+   },
+   "it": {
+    "n": 36,
+    "metre": 92.5,
+    "metre_se": 1.4,
+    "rhyme": 53.1,
+    "rhyme_se": 4.6
+   }
+  },
+  "Q6_K": {
+   "es": {
+    "n": 36,
+    "metre": 89.1,
+    "metre_se": 1.4,
+    "rhyme": 38.9,
+    "rhyme_se": 3.4
+   },
+   "en": {
+    "n": 36,
+    "metre": 93.1,
+    "metre_se": 1.4,
+    "rhyme": 86.5,
+    "rhyme_se": 2.1
+   },
+   "it": {
+    "n": 36,
+    "metre": 92.3,
+    "metre_se": 1.3,
+    "rhyme": 58.3,
+    "rhyme_se": 4.7
+   }
+  },
+  "Q6_K~Q8_0": {
+   "es": {
+    "n": 36,
+    "metre": 84.7,
+    "metre_se": 2.3,
+    "rhyme": 38.3,
+    "rhyme_se": 3.1
+   },
+   "en": {
+    "n": 36,
+    "metre": 92.3,
+    "metre_se": 1.2,
+    "rhyme": 87.7,
+    "rhyme_se": 2.1
+   },
+   "it": {
+    "n": 36,
+    "metre": 93.3,
+    "metre_se": 1.1,
+    "rhyme": 59.9,
+    "rhyme_se": 3.4
+   }
+  },
+  "Q4_K_M": {
+   "es": {
+    "n": 36,
+    "metre": 85.1,
+    "metre_se": 1.7,
+    "rhyme": 38.6,
+    "rhyme_se": 3.6
+   },
+   "en": {
+    "n": 36,
+    "metre": 88.3,
+    "metre_se": 1.8,
+    "rhyme": 88.1,
+    "rhyme_se": 2.2
+   },
+   "it": {
+    "n": 36,
+    "metre": 85.5,
+    "metre_se": 1.8,
+    "rhyme": 42.6,
+    "rhyme_se": 3.1
+   }
+  }
+ },
+ "kl_divergence": "FAILED: the f16 base run gave NaN from the first chunk (Apertus activations overflow fp16), so every KLD read 0; not used. Script now refuses a NaN base.",
+ "reading": "Q6_K~Q8_0 matches Q6_K: perplexity +0.12% (Q8_0 to Q6_K itself costs 0.9%, Q4_K_M +5.3%), safety screen 128 vs 129 of 271 with the same 4/437 false alarms, en and it metre equal; es metre 84.7 +- 2.3 vs 89.1 +- 1.4 (1.6 combined SE, within run-to-run noise but worth a repeat). Q4_K_M is worse than every 6- and 8-bit file on perplexity, Italian and English metre and the safety screen."
+}
