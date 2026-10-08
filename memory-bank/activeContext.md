@@ -47,6 +47,10 @@ _Last updated: 2026-10-08 evening (Hack Apertus: CSCS/HF Jobs evaluations, safet
   tuning set and tested on a held-out set: full precision 34% → 46%, 6-bit 48%, shipped 4-bit
   40% (false alarms ≤ 4/437; `reports/eval_2026-10/b6-*`). Italian stress table from
   Wiktionary (44,272 words). Entry repinned to `12b5ed3`, image rebuilt and checked.
+- **Safety research (2026-10-08):** `docs/research/reports/Poetry writing and risk disclosure.md` (claims table:
+  supported / not supported), references with Zotero keys next to it (113 added, tag `poesia-safety`). Upshot: anonymity,
+  not writing, raises disclosure; no "detection" wording (MDR); don't pause on anger/revenge alone; tune for passive
+  death wishes and indirect signs; split the risk_other label before more tuning. A Q8_0->Q6_K requant test runs on HF Jobs.
 - **Open decision:** 4-bit vs 6-bit for the entry. 6-bit is better on Italian metre and safety, but
   no public Q6_K file exists. Shipping it means publishing one (deferred by Angel) or quantising
   at install time.
