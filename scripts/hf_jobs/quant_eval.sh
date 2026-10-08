@@ -12,11 +12,14 @@
 # Not "curl ... | bash": the CUDA image has no curl, and a pipe turned "command not found" into
 # an empty script that exited 0, so the first run (2026-10-08) "completed" having done nothing.
 #
-# Environment: QUANTS (space-separated llama-quantize types), POESIA_REF (engine commit),
+# Environment: QUANTS (space-separated llama-quantize types; "Q6_K~Q8_0" requantises the public
+# Q8_0 file andreasmartin/apertus-v1.5-8b-text-Q8_0-GGUF instead of the f16 conversion;
+# "Q8_0pub" tests that file as is), POESIA_REF (engine commit),
 # LLAMA_CPP_REF (default: the local server's build), CUDA_ARCH (89 = L4, 86 = A10G /
 # RTX 30xx, 80 = A100), SEEDS (default "0 3"; empty skips metre), SAFETY_DATA (test sets; a
 # set under data/safety/generated/ is scored on its writer-judge agreed items), RESULTS_REPO (private dataset repo, created if
-# missing). HF_TOKEN must allow job runs, gated reads and writes to your own repos.
+# missing), KLD (1: KL divergence of each file against f16 on the safety texts, five
+# languages; llama-perplexity). HF_TOKEN must allow job runs, gated reads and writes to your own repos.
 set -euo pipefail
 QUANTS=${QUANTS:-"Q6_K"}
 POESIA_REF=${POESIA_REF:?set POESIA_REF to an engine commit}
@@ -25,6 +28,7 @@ CUDA_ARCH=${CUDA_ARCH:-89}
 SEEDS=${SEEDS-"0 3"}  # empty: skip the metre benchmark
 SAFETY_DATA=${SAFETY_DATA:-data/safety/safety_reflections.jsonl}  # space-separated JSONL sets
 RESULTS_REPO=${RESULTS_REPO:-GrootCappuccino/poesia-experiments}
+KLD=${KLD:-0}
 RUN=${JOB_ID:-local-$(date +%s)}
 W=/work; OUT=$W/results/$RUN; mkdir -p "$W" "$OUT"
 log() { printf '\n[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
@@ -37,7 +41,7 @@ log "2/6 llama.cpp $LLAMA_CPP_REF for sm_$CUDA_ARCH"
 git clone -q https://github.com/ggml-org/llama.cpp "$W/llama.cpp" && git -C "$W/llama.cpp" checkout -q "$LLAMA_CPP_REF"
 cmake -S "$W/llama.cpp" -B "$W/llama.cpp/build" -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="$CUDA_ARCH" \
   -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF >/dev/null
-cmake --build "$W/llama.cpp/build" -j"$(nproc)" --target llama-server llama-quantize >/dev/null
+cmake --build "$W/llama.cpp/build" -j"$(nproc)" --target llama-server llama-quantize llama-perplexity >/dev/null
 BIN=$W/llama.cpp/build/bin
 
 log "3/6 PoesIA $POESIA_REF and Python 3.13"
@@ -74,10 +78,39 @@ api.upload_folder(repo_id=repo, repo_type="dataset", folder_path=out,
 print(f"uploaded ({note}) to https://huggingface.co/datasets/{repo}/tree/main/quant-eval/{run}")
 PY
 }
+if [ "$KLD" = 1 ]; then
+  log "4b/6 KL-divergence base: f16 logits on the safety texts"
+  python - "$W/kld.txt" $SAFETY_DATA <<'PY'
+import json, random, sys
+out, *sets = sys.argv[1:]
+texts = [json.loads(l)["text"] for f in sets for l in open(f, encoding="utf-8") if l.strip()]
+random.Random(0).shuffle(texts)  # the sets are ordered by language; mix them in every chunk
+open(out, "w", encoding="utf-8").write("\n\n".join(texts))
+print(len(texts), "texts")
+PY
+  # 40 chunks of 512: the base file keeps every vocabulary log-probability (~2.7 GB).
+  "$BIN/llama-perplexity" -m "$W/f16.gguf" -f "$W/kld.txt" -ngl 99 -c 512 --chunks 40 \
+    --kl-divergence-base "$W/base.kld" > "$OUT/kld-f16.log" 2>&1
+fi
+case " $QUANTS " in *"~Q8_0"*|*Q8_0pub*)
+  python - <<'PY'
+from huggingface_hub import hf_hub_download
+hf_hub_download("andreasmartin/apertus-v1.5-8b-text-Q8_0-GGUF", "apertus-v1.5-8b-text-q8_0.gguf", local_dir="/work")
+PY
+esac
 wait_ready() { for _ in $(seq 120); do curl -s -m3 localhost:8080/health | grep -q '"ok"' && return 0; sleep 5; done; return 1; }
 for Q in $QUANTS; do
   log "5/6 $Q: quantise, serve, test"
-  "$BIN/llama-quantize" "$W/f16.gguf" "$W/$Q.gguf" "$Q" >/dev/null
+  case "$Q" in
+    *~Q8_0) "$BIN/llama-quantize" --allow-requantize "$W/apertus-v1.5-8b-text-q8_0.gguf" "$W/$Q.gguf" "${Q%~Q8_0}" >/dev/null ;;
+    Q8_0pub) cp "$W/apertus-v1.5-8b-text-q8_0.gguf" "$W/$Q.gguf" ;;
+    *) "$BIN/llama-quantize" "$W/f16.gguf" "$W/$Q.gguf" "$Q" >/dev/null ;;
+  esac
+  if [ "$KLD" = 1 ]; then
+    "$BIN/llama-perplexity" -m "$W/$Q.gguf" -ngl 99 -c 512 --kl-divergence-base "$W/base.kld" \
+      --kl-divergence > "$OUT/kld-$Q.log" 2>&1 || echo "KL divergence failed for $Q"
+    tail -30 "$OUT/kld-$Q.log"
+  fi
   "$BIN/llama-server" -m "$W/$Q.gguf" --alias poesia-apertus --jinja -ngl 99 -c 4096 -np 3 \
     --host 127.0.0.1 --port 8080 > "$OUT/server-$Q.log" 2>&1 &
   SERVER=$!
