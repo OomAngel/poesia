@@ -24,8 +24,16 @@ _WHY = {
     "es": "rima con «{partner}»",
     "en": "rhymes with “{partner}”",
     "it": "rima con «{partner}»",
+    "de": "reimt sich auf „{partner}“",
+    "fr": "rime avec « {partner} »",
 }
-_SYLL = {"es": ("sílaba", "sílabas"), "en": ("syllable", "syllables"), "it": ("sillaba", "sillabe")}
+_SYLL = {
+    "es": ("sílaba", "sílabas"),
+    "en": ("syllable", "syllables"),
+    "it": ("sillaba", "sillabe"),
+    "de": ("Silbe", "Silben"),
+    "fr": ("syllabe", "syllabes"),
+}
 
 
 @cache
@@ -133,7 +141,10 @@ def rhyme_words(
     ranked = sorted(ranked, key=lambda w: rank.get(w, 10**6) < 150)
     for word in ranked:
         # Not the same word, nor the partner with a prefix ("venir"/"prevenir" is weak rhyme).
-        if word in skip or (partner and (word.endswith(partner) or partner.endswith(word))):
+        # (only for partners of four letters or more: auf / Lauf, Kauf are real rhymes)
+        low = word.lower()  # German nouns keep their capital in the list (Herz)
+        prefixed = len(partner) > 3 and (low.endswith(partner) or partner.endswith(low))
+        if low in skip or prefixed:
             continue
         if phon.rhyme_key(word).consonant != key:  # the page's own test, so it always passes
             continue

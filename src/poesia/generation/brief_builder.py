@@ -53,9 +53,14 @@ class GenerationBrief:
 
     def _lang_name(self) -> str:
         """Human-readable language name for the hard constraint line."""
-        return {"es": "Spanish", "en": "English", "nl": "Dutch", "it": "Italian"}.get(
-            self.form_spec.language, self.form_spec.language
-        )
+        return {
+            "es": "Spanish",
+            "en": "English",
+            "nl": "Dutch",
+            "it": "Italian",
+            "de": "German",
+            "fr": "French",
+        }.get(self.form_spec.language, self.form_spec.language)
 
     def _form_section(self) -> list[str]:
         """Form metadata block."""

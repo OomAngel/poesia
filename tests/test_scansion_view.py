@@ -31,4 +31,4 @@ def test_english_stress_from_cmudict() -> None:
 
 def test_empty_and_unknown() -> None:
     assert syllable_view("", "es") == []
-    assert syllable_view("hola", "de")[0]["syl"][0]["t"] == "hola"
+    assert syllable_view("hola", "nl")[0]["syl"][0]["t"] == "hola"

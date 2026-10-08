@@ -2,7 +2,8 @@
 
 Piper voices from ``rhasspy/piper-voices`` at a fixed revision, one per language, chosen for
 clear licences (docs/CORPUS_SOURCES.md): es_ES-davefx-medium (CC0), en_US-ljspeech-medium
-(public domain), it_IT-serena-medium (CC BY 4.0, credited in the entry README). The Docker
+(public domain), it_IT-serena-medium (CC BY 4.0), de_DE-thorsten-medium (CC0) and
+fr_FR-siwis-medium (CC BY 4.0; the CC BY voices are credited in the entry README). The Docker
 image bakes them in with ``python -m poesia.voices /opt/piper``; a native install fetches
 them once into the user's data folder (``poesia-web --with-ollama`` does it).
 """
@@ -20,6 +21,8 @@ VOICES = {
     "es": "es/es_ES/davefx/medium/es_ES-davefx-medium.onnx",
     "en": "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx",
     "it": "it/it_IT/serena/medium/it_IT-serena-medium.onnx",
+    "de": "de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx",
+    "fr": "fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx",
 }
 
 

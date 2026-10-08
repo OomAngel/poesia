@@ -86,6 +86,8 @@ class CandidateGenerator:
                     "en": "English",
                     "nl": "Dutch",
                     "it": "Italian",
+                    "de": "German",
+                    "fr": "French",
                     "la": "Latin",
                 }.get(guest_lang, guest_lang)
                 if guest_lang
@@ -122,9 +124,14 @@ class CandidateGenerator:
                 f"{output_rule}"
             )
         else:
-            lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch", "it": "Italian"}.get(
-                language, language
-            )
+            lang_name = {
+                "es": "Spanish",
+                "en": "English",
+                "nl": "Dutch",
+                "it": "Italian",
+                "de": "German",
+                "fr": "French",
+            }.get(language, language)
             prompt = (
                 f"You are writing a {lang_name} poem on the theme: {theme}.\n"
                 f"{prior_block}"

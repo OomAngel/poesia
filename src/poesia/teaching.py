@@ -150,6 +150,23 @@ def _fix_tips(language: str, status: str) -> list[str]:
                 "To lose a syllable: let a final and an initial vowel merge (sinalefe, "
                 "'selvaggia e aspra'), elide ('lo amore' → \"l'amore\"), or truncate ('amore' → 'amor').",
             ]
+    elif language == "de":
+        if status == "short":
+            return ["To gain a syllable: a longer word, or undo an elision ('hab'' → 'habe')."]
+        if status == "over":
+            return [
+                "To lose a syllable: elide an unstressed e ('habe ich' → \"hab' ich\") or use a shorter word."
+            ]
+    elif language == "fr":
+        if status == "short":
+            return [
+                "To gain a syllable: a longer word, or let a mute e count before a consonant "
+                "('une ombre' → 'une rose')."
+            ]
+        if status == "over":
+            return [
+                "To lose a syllable: elide a mute e before a vowel ('une rose' → 'une âme') or use a shorter word."
+            ]
     elif language == "en":
         if status == "short":
             return [
@@ -228,6 +245,22 @@ _UI: dict[str, dict[str, str]] = {
         "tip_short": "Per guadagnare una sillaba: una parola più lunga, o tieni separate due vocali tra parole (dialefe), per esempio dopo una vocale finale accentata ('è | amara').",
         "tip_over": "Per perdere una sillaba: lascia che una vocale finale e una iniziale si fondano (sinalefe: 'selvaggia e aspra'), elidi ('lo amore' → \"l'amore\") o tronca ('amore' → 'amor').",
     },
+    "de": {
+        "empty": "Leerer Vers: schreib zuerst etwas.",
+        "exact": "Genau: {a} Silben bis zur letzten Hebung, das Maß des Verses.",
+        "short": "{missing}: dieser Vers hat {a} bis zur letzten Hebung; das Maß ist {t}.",
+        "over": "{extra}: dieser Vers hat {a} bis zur letzten Hebung; das Maß ist {t}.",
+        "tip_short": "Um eine Silbe zu gewinnen: ein längeres Wort, oder eine Auslassung rückgängig machen („hab'“ → „habe“).",
+        "tip_over": "Um eine Silbe zu verlieren: ein unbetontes e auslassen („habe ich“ → „hab' ich“) oder ein kürzeres Wort wählen.",
+    },
+    "fr": {
+        "empty": "Vers vide : écris d'abord quelque chose.",
+        "exact": "Juste : {a} syllabes, la mesure du vers.",
+        "short": "{missing} : ce vers en a {a} ; la mesure est de {t}.",
+        "over": "{extra} : ce vers en a {a} ; la mesure est de {t}.",
+        "tip_short": "Pour gagner une syllabe : un mot plus long, ou un e muet qui compte devant une consonne (« une ombre » → « une rose »).",
+        "tip_over": "Pour perdre une syllabe : élide un e muet devant une voyelle (« une rose » → « une âme ») ou choisis un mot plus court.",
+    },
 }
 
 
@@ -238,6 +271,16 @@ def _ui_counts(ui: str, actual: int, target: int) -> dict[str, str]:
             "missing": _plural(d, "Falta 1 sílaba", "Faltan {n} sílabas"),
             "extra": _plural(d, "Sobra 1 sílaba", "Sobran {n} sílabas"),
         }
+    if ui == "de":
+        return {
+            "missing": _plural(d, "1 Silbe fehlt", "{n} Silben fehlen"),
+            "extra": _plural(d, "1 Silbe zu viel", "{n} Silben zu viel"),
+        }
+    if ui == "fr":
+        return {
+            "missing": _plural(d, "Il manque 1 syllabe", "Il manque {n} syllabes"),
+            "extra": _plural(d, "1 syllabe de trop", "{n} syllabes de trop"),
+        }
     return {
         "missing": _plural(d, "Manca 1 sillaba", "Mancano {n} sillabe"),
         "extra": _plural(d, "C'è 1 sillaba di troppo", "Ci sono {n} sillabe di troppo"),
@@ -245,7 +288,7 @@ def _ui_counts(ui: str, actual: int, target: int) -> dict[str, str]:
 
 
 def _localise(lesson: ScanLesson, ui: str, line: str) -> None:
-    """Rewrite a lesson's messages in the page's language (es, it); English is left as is."""
+    """Rewrite a lesson's messages in the page's language (es, it, de, fr); English is left as is."""
     table = _UI.get(ui)
     if table is None:
         return
