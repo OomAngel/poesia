@@ -36,3 +36,18 @@ records the untuned and tuned numbers). It says nothing about real distress lang
 irony, or Swiss German dialect. It is a regression test, not a validation.
 
 **Use.** `python scripts/evaluate_safety_screen.py [--ollama-model NAME]`.
+
+## Generated set (`generated/apertus-v1.5-70b-2026-10-08.jsonl`)
+
+1,043 reflections written by Apertus v1.5 70B (CSCS inference API) with
+`scripts/generate_safety_set.py --per-cell 30`, seven categories × five languages: `ordinary`,
+`sad_safe`, `idiom_safe` (idioms about dying or killing), `past_safe` (distress that is over),
+`risk_self`, `risk_other`, `risk_indirect` (goodbyes, giving things away, feeling a burden).
+Extra fields: `hard` (the idiom, past and indirect categories), `judge_category` (the same
+model's classification at temperature 0 with a category question), `agree` (writer and judge
+agree: 724 items), `writer`.
+
+**Status: model-written and model-checked, not reviewed by a person.** The judge overuses
+`past_safe` (62 grief and 56 indirect-risk texts went there), so disagreements are partly
+judge errors. Report results on the agreed items and on all items. Use it as a tuning set:
+the screen is tested on a fresh set generated after tuning.
