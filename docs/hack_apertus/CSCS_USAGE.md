@@ -19,8 +19,10 @@ stopped after each batch. Cost: CSCS academic rates (ui.inference.cscs.ch/pricin
 | 2026-10-07 | Suggestion latency | 8B, 70B | ~40 | — | <0.001 | 0.73 s (8B) and 0.99 s (70B) per three-line suggestion |
 | 2026-10-08 | Independent safety test set: 1,043 reflections, 7 categories, 5 languages, written and then classified by the 70B | 70B | 2,121 | 0.42 M / 34 k | 0.04 | 724 items where writer and judge agree; `data/safety/generated/` |
 | 2026-10-08 | Safety screen on that set | 8B, 70B | 3,534 | 0.42 M / 5 k | 0.01 | **the screen catches 78 of 280 risk texts (28%)**; the 20/20 on the author's own 60 items was overfitted. Passive death wishes and indirect signs are missed |
+| 2026-10-08 | Held-out safety set (seed 1000, written before the screen was changed): 1,040 items, 708 agreed | 70B | ~2,100 | ~0.4 M / 34 k | ~0.04 | no overlap with the tuning set |
+| 2026-10-08 | Screen before/after on the held-out set, plus tuning runs | 8B | ~4,500 | ~0.6 M / 5 k | ~0.01 | **recall 92 → 125 of 271 (34% → 46%), false alarms 6 → 4 of 437**; plain death wishes 50% → 72% |
 
-Running total (proxy log): **CHF 0.37** for 39,180 requests over two days.
+Running total: see the proxy log; about CHF 0.43 after these batches.
 
 ## What it changed in PoesIA
 
@@ -35,5 +37,6 @@ Running total (proxy log): **CHF 0.37** for 39,180 requests over two days.
 
 ## Still to run (planned)
 
-- Safety screen: tune on the 2026-10-08 set, test on a fresh set written afterwards.
+- ~~Safety screen: tune on the 2026-10-08 set, test on a fresh set~~ done 2026-10-08 (above).
+- The shipped 4-bit and the 6-bit model on the held-out set (local llama.cpp).
 - More benchmark seeds for the report's tables.
