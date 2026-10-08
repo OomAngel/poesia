@@ -12,6 +12,14 @@ from typing import Any, Protocol
 # text, so "suicidio", "Suizid" and "suicide" all hit "suicid".
 _PATTERNS: dict[str, list[str]] = {
     "en": [
+        # Passive wishes, burden, giving things away (added 2026-10-08, tuning set).
+        r"(never|not) (to )?wake up( again)?",
+        r"(stop|cease to) exist",
+        r"(not|no longer) (be )?here anymore",
+        r"(everything|it all) to (end|stop)",
+        r"(i'?m|i am|feel like) (just )?a burden",
+        r"won'?t be a (problem|burden)",
+        r"giv(e|ing) (all )?my (things|stuff|belongings) away",
         r"suicid",
         r"kill(ing)? myself",
         r"end (it all|my life|it now)",
@@ -25,6 +33,14 @@ _PATTERNS: dict[str, list[str]] = {
         r"can'?t go on( living)?",
     ],
     "es": [
+        # Passive wishes, burden, giving things away (added 2026-10-08, tuning set).
+        r"no despertar",
+        r"que todo (termine|acabe|se acabe)",
+        r"dejar de existir",
+        r"(soy|ser) una carga",
+        r"no (volver a )?abrir los ojos",
+        r"desaparecer para siempre",
+        r"regalar (todas )?mis cosas",
         r"suicid",
         r"quitarme la vida",
         r"matarme",
@@ -39,6 +55,12 @@ _PATTERNS: dict[str, list[str]] = {
         r"(ponerle|hacerle) fin a mi vida",
     ],
     "de": [
+        # Passive wishes, burden, giving things away (added 2026-10-08, tuning set).
+        r"nie (wieder|mehr) aufwachen",
+        r"nicht mehr existieren",
+        r"(alles|es) (soll|moge|solle) (aufhoren|enden)",
+        r"(eine|nur eine) last",
+        r"meine sachen (weg|ver)schenken",
         r"suizid",
         r"selbstmord",
         r"mich umbringen",
@@ -54,6 +76,12 @@ _PATTERNS: dict[str, list[str]] = {
         r"(ihm|ihr) weh(zu)?tun",
     ],
     "fr": [
+        # Passive wishes, burden, giving things away (added 2026-10-08, tuning set).
+        r"ne plus (etre|exister)",
+        r"que tout (s'arrete|se termine|finisse)",
+        r"un fardeau",
+        r"ne (plus|jamais) me reveiller",
+        r"donne(r)? (toutes )?mes affaires",
         r"suicid",
         r"me tuer",
         r"en finir",
@@ -67,6 +95,13 @@ _PATTERNS: dict[str, list[str]] = {
         r"(le|la|les) tuer",
     ],
     "it": [
+        # Passive wishes, burden, giving things away (added 2026-10-08, tuning set).
+        r"non (svegliarmi|risvegliarmi) piu",
+        r"non esserci piu",
+        r"smettere di (vivere|esistere)",
+        r"(sono|essere) un peso",
+        r"che tutto (finisca|termini)",
+        r"regal(are|o) (tutte )?le mie cose",
         r"suicid",
         r"uccidermi",
         r"farla finita",
@@ -156,11 +191,19 @@ def resources_for(language: str) -> list[dict[str, str]]:
     return RESOURCES_BY_LANGUAGE.get(language, RESOURCES)
 
 
+# Widened 2026-10-08 after an independent 1,043-item set (data/safety/generated/) showed the
+# first wording missed passive death wishes ("better not to wake up") and indirect signs
+# (goodbyes, giving things away, feeling a burden): 28% recall. Tuned on that set; measured on
+# a held-out set written before the change.
 CLASSIFY_PROMPT = (
-    "You are a safety screen. Read the text between the markers. Answer with exactly one "
-    "word, YES or NO: does the writer express a wish to die, intent or plans to harm "
-    "themselves, or intent to harm another person? Sadness, grief, loneliness and poems "
-    "about death or autumn are NO unless such intent is expressed.\n"
+    "You are a safety screen for a poetry-writing app. Read the text between the markers. "
+    "Answer YES if the writer, now or soon: wishes to die, not to wake up, to disappear or "
+    "for everything to end; feels others would be better off without them; intends or plans "
+    "to hurt themselves; shows warning signs of suicide such as saying goodbye, giving "
+    "belongings away or feeling like a burden who will soon not be a problem; or intends to "
+    "hurt another person. Answer NO for sadness, grief, loneliness, poems about death or "
+    "autumn, distress that is clearly in the past, and joking idioms such as 'dying of "
+    "laughter' or 'I could kill for a coffee'. Answer with exactly one word, YES or NO.\n"
     "<<<\n{text}\n>>>\nAnswer (YES or NO):"
 )
 
