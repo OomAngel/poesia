@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-10-07 evening (Hack Apertus: packaging/UX plan steps 1–3 done)_
+_Last updated: 2026-10-08 evening (Hack Apertus: CSCS/HF Jobs evaluations, safety screen widened, Italian stress table)_
 
 ---
 
@@ -38,8 +38,18 @@ _Last updated: 2026-10-07 evening (Hack Apertus: packaging/UX plan steps 1–3 d
   until after 16 Oct; llama.cpp equal scores, smaller, faster). Then U6 (Ideas offers rhyme
   words first, offline, `poesia.word_ideas` + `src/poesia/wordlists/`, CC BY-SA 4.0 data),
   U9 keyboard half (pause focus; helplines in es/en/it) and a focus bug fixed (stanza
-  reveal sent fast typing into the previous line). Entry pins engine `31ab5ec`; its
-  `technical_report.md` is updated with all of this.
+  reveal sent fast typing into the previous line). Its `technical_report.md` is updated with all of this.
+- **Done 2026-10-08:** CSCS key in KeePassXC, used through `dotfiles/bin/secret-proxy` (stop it
+  after each batch); ledger `docs/hack_apertus/CSCS_USAGE.md` (59,650 requests, CHF 0.44).
+  70B no better than 8B behind the engine. Online experiments run on Hugging Face Jobs
+  (`scripts/hf_jobs/quant_eval.sh`, results in the private dataset
+  GrootCappuccino/poesia-experiments), never on Angel's GPU. Safety screen widened on a 70B-written
+  tuning set and tested on a held-out set: full precision 34% → 46%, 6-bit 48%, shipped 4-bit
+  40% (false alarms ≤ 4/437; `reports/eval_2026-10/b6-*`). Italian stress table from
+  Wiktionary (44,272 words). Entry repinned to `12b5ed3`, image rebuilt and checked.
+- **Open decision:** 4-bit vs 6-bit for the entry. 6-bit is better on Italian metre and safety, but
+  no public Q6_K file exists. Shipping it means publishing one (deferred by Angel) or quantising
+  at install time.
 - **Next:** U11 testers (needs people), U9's native-speaker read of the pause text, the video
   (Edit with Ava) and the report PDF; P7 (CI smoke test) needs the entry on GitHub; P8
   (publish images) and the public repo at submission. The history rewrite (13 repos) waits for Angel's
