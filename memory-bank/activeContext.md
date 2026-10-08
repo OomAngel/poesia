@@ -1,6 +1,6 @@
 # Active Context — PoesIA
 
-_Last updated: 2026-10-08 evening (Hack Apertus: CSCS/HF Jobs evaluations, safety screen widened, Italian stress table)_
+_Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
 
 ---
 
@@ -53,6 +53,11 @@ _Last updated: 2026-10-08 evening (Hack Apertus: CSCS/HF Jobs evaluations, safet
   death wishes and indirect signs; split the risk_other label before more tuning. Requant test done (`reports/eval_2026-10/b7-*`): a Q6_K made from the public Q8_0 matches our Q6_K (perplexity +0.12%,
   safety 128 vs 129/271, en/it metre equal; es metre 84.7 vs 89.1, within noise, repeat once). KL divergence failed (fp16 NaN base;
   script now refuses it). Shipping precision NOT decided (Angel, 2026-10-08).
+- **German and French (2026-10-09):** scanners `phonology/german.py` (syllables 99.1%, stress 94.7% on
+  Haider gold) and `phonology/french.py` (95.9% on 72,412 Métrique en Ligne verses; rhyme by sound 98.4%
+  vs eSpeak), tables from Wiktionary; on the page with Sonett and French sonnet (alexandrines), text,
+  helplines, voices (Thorsten CC0, SIWIS CC BY), rhyme words, linking (676 de, 547 fr Gutenberg poems).
+  Entry pinned to 723a209. Open: model proposals in de/fr not benchmarked; native read of de/fr page text.
 - **Open decision:** 4-bit vs 6-bit for the entry. 6-bit is better on Italian metre and safety, but
   no public Q6_K file exists. Shipping it means publishing one (deferred by Angel) or quantising
   at install time.
