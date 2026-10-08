@@ -5,8 +5,12 @@
 #
 #   hf jobs run --detach --flavor l4x1 --timeout 4h --secrets HF_TOKEN \
 #     -e QUANTS="Q4_K_M Q5_K_M Q6_K" -e POESIA_REF=<commit> -e CUDA_ARCH=89 \
-#     nvidia/cuda:12.8.1-devel-ubuntu24.04 \
-#     bash -c "curl -fsSL https://raw.githubusercontent.com/OomAngel/poesia/<commit>/scripts/hf_jobs/quant_eval.sh | bash"
+#     nvidia/cuda:12.8.1-devel-ubuntu24.04 bash -c "set -e; apt-get update -qq; \
+#       apt-get install -y -qq curl ca-certificates >/dev/null; curl -fsSL -o /q.sh \
+#       https://raw.githubusercontent.com/OomAngel/poesia/<commit>/scripts/hf_jobs/quant_eval.sh; bash /q.sh"
+#
+# Not "curl ... | bash": the CUDA image has no curl, and a pipe turned "command not found" into
+# an empty script that exited 0, so the first run (2026-10-08) "completed" having done nothing.
 #
 # Environment: QUANTS (space-separated llama-quantize types), POESIA_REF (engine commit),
 # LLAMA_CPP_REF (default: the local server's build), CUDA_ARCH (89 = L4, 86 = A10G /
