@@ -2,8 +2,8 @@
 
 Sources behind `Poetry writing and risk disclosure.md` and the notes in `../research_notes/Poetry writing and risk disclosure/`.
 Checked against Angel's Zotero library on 2026-10-08 with `zotero-capture`: none were present before; all opened sources were added,
-tag `poesia-safety`, collection **Portfolio** (`WJKMSJH7`; no topical collection exists, and new collections cannot be created
-by the helper). Zotero library version 15022 before, 15133 after the first batch (two more items added afterwards). `verify`: 113 items, problems 0, missing tag none.
+tag `poesia-safety`, collection **PoesIA / PoesIA safety** (`3ADEL6J7`, parent `DFC78LD3`; created on Angel's request the same
+evening through the desktop's local API and moved out of Portfolio, every item's before/after membership logged). Zotero library version 15022 before, 15133 after the first batch (two more items added afterwards). `verify`: 113 items, problems 0, missing tag none.
 What each source was read from (full text, abstract) is recorded in the report's source list and in the notes.
 
 **Counts:** 113 added, 0 already present, 21 not added (never opened, or an erratum), plus legal texts and web sources listed separately.
