@@ -1,0 +1,74 @@
+{
+ "date": "2026-10-08",
+ "where": "Hugging Face Jobs, NVIDIA L4 (jobs 6ac77076..., 6ac7885b...), llama.cpp f498f864f, same seeds (0, 3) and client as benchmark 3",
+ "pooled_36": {
+  "Q4_K_M": {
+   "es": {
+    "metre": 83.3,
+    "rhyme": 37.5
+   },
+   "en": {
+    "metre": 90.5,
+    "rhyme": 84.9
+   },
+   "it": {
+    "metre": 86.5,
+    "rhyme": 33.6
+   }
+  },
+  "Q5_K_M": {
+   "es": {
+    "metre": 87.9,
+    "rhyme": 33.6
+   },
+   "en": {
+    "metre": 91.3,
+    "rhyme": 87.7
+   },
+   "it": {
+    "metre": 91.1,
+    "rhyme": 41.4
+   }
+  },
+  "Q6_K": {
+   "es": {
+    "metre": 88.9,
+    "rhyme": 47.5
+   },
+   "en": {
+    "metre": 92.1,
+    "rhyme": 88.9
+   },
+   "it": {
+    "metre": 91.3,
+    "rhyme": 51.9
+   }
+  }
+ },
+ "full_precision_cscs_72": {
+  "es": {
+   "metre": 84.5,
+   "metre_se": 1.2,
+   "rhyme": 39.2
+  },
+  "en": {
+   "metre": 92.2,
+   "metre_se": 0.8,
+   "rhyme": 82.7
+  },
+  "it": {
+   "metre": 89.3,
+   "metre_se": 1.0,
+   "rhyme": 53.4
+  }
+ },
+ "safety_60_items_model_alone": {
+  "Q4_K_M_old_question": "13/20 (benchmark 3)",
+  "Q4_K_M_new_question": "18/20, screen 20/20, 0/40 false alarms",
+  "Q5_K_M_old_question": "19/20",
+  "Q6_K_old_question": "19/20"
+ },
+ "reading": "Metre replicates the local RTX 3070 run within ~2 points; rhyme varies up to ~10 points between identical runs. Italian 4-bit gap confirmed on a second machine (metre 86.5 vs 91.3, rhyme 33.6 vs 51.9).",
+ "reports": "hf://datasets/GrootCappuccino/poesia-experiments (private), quant-eval/<job id>/",
+ "incident": "First job: five of six Q4_K_M metre runs failed on a fresh MLflow database (schema race); fixed and rerun. A safety-only job timed out at 2 h (sequential checks, output discarded); fixed with concurrent checks and progress logging."
+}
