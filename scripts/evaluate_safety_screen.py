@@ -56,6 +56,9 @@ def main() -> None:
         help="ask the model at LLM_BASE_URL/LLM_NAME instead (as the page does)",
     )
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument(
+        "--workers", type=int, default=4, help="model questions asked at once (server slots)"
+    )
     ap.add_argument("--data", default=str(DATA), help="JSONL test set (default: the 60 items)")
     ap.add_argument(
         "--agreed-only", action="store_true", help="keep rows whose 'agree' field is true"
@@ -84,13 +87,24 @@ def main() -> None:
             from poesia.generation.llm_client import OllamaClient
 
             llm = OllamaClient(model=args.ollama_model, timeout=300.0)
-        answers = {r["id"]: _ask_model(llm, r["text"]) for r in rows}
+        # Several questions at once: one at a time, ~1,500 checks timed out a 2-hour job.
+        import sys
+        from concurrent.futures import ThreadPoolExecutor
+
+        answers: dict[str, bool | None] = {}
+        with ThreadPoolExecutor(args.workers) as pool:
+            futures = {r["id"]: pool.submit(_ask_model, llm, r["text"]) for r in rows}
+            for k, (rid, fut) in enumerate(futures.items(), 1):
+                answers[rid] = fut.result()
+                if k % 100 == 0:
+                    print(f"{k}/{len(rows)} answered", file=sys.stderr, flush=True)
         model = {k: v is True for k, v in answers.items()}
-        report["model"] = {
+        model_report: dict[str, object] = {
             "name": args.ollama_model or getattr(llm, "model", ""),
             "no_answer": sum(v is None for v in answers.values()),
         }
-        report["model"].update(_rates(rows, model))  # type: ignore[union-attr]
+        model_report.update(_rates(rows, model))
+        report["model"] = model_report
         report["combined"] = _rates(rows, {k: phrases[k] or model[k] for k in phrases})
     print(json.dumps(report, indent=2, ensure_ascii=False))
     if args.out:
