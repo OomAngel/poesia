@@ -50,7 +50,9 @@ _Last updated: 2026-10-08 evening (Hack Apertus: CSCS/HF Jobs evaluations, safet
 - **Safety research (2026-10-08):** `docs/research/reports/Poetry writing and risk disclosure.md` (claims table:
   supported / not supported), references with Zotero keys next to it (113 added, tag `poesia-safety`, collection PoesIA / PoesIA safety). Upshot: anonymity,
   not writing, raises disclosure; no "detection" wording (MDR); don't pause on anger/revenge alone; tune for passive
-  death wishes and indirect signs; split the risk_other label before more tuning. A Q8_0->Q6_K requant test runs on HF Jobs.
+  death wishes and indirect signs; split the risk_other label before more tuning. Requant test done (`reports/eval_2026-10/b7-*`): a Q6_K made from the public Q8_0 matches our Q6_K (perplexity +0.12%,
+  safety 128 vs 129/271, en/it metre equal; es metre 84.7 vs 89.1, within noise, repeat once). KL divergence failed (fp16 NaN base;
+  script now refuses it). Shipping precision NOT decided (Angel, 2026-10-08).
 - **Open decision:** 4-bit vs 6-bit for the entry. 6-bit is better on Italian metre and safety, but
   no public Q6_K file exists. Shipping it means publishing one (deferred by Angel) or quantising
   at install time.

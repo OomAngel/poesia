@@ -91,6 +91,9 @@ PY
   # 40 chunks of 512: the base file keeps every vocabulary log-probability (~2.7 GB).
   "$BIN/llama-perplexity" -m "$W/f16.gguf" -f "$W/kld.txt" -ngl 99 -c 512 --chunks 40 \
     --kl-divergence-base "$W/base.kld" > "$OUT/kld-f16.log" 2>&1
+  # Apertus overflows fp16 activations: the f16 base gave NaN from chunk 1 and every KLD then read 0
+  # (job 6ac7d7f8, 2026-10-08). Refuse a NaN base instead of reporting zeros.
+  if grep -q '\[1\]nan' "$OUT/kld-f16.log"; then echo "KL base is NaN (fp16 overflow); KLD skipped"; KLD=0; fi
 fi
 case " $QUANTS " in *"~Q8_0"*|*Q8_0pub*)
   python - <<'PY'
