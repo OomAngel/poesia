@@ -45,7 +45,7 @@ from pathlib import Path
 
 OUTPUT_DIR = Path("seeds/poetry_corpus/training_data_structured")
 LINKING_ONLY_DIR = Path("seeds/poetry_corpus/linking_only")
-LANGUAGE_NAMES = {"es": "Spanish", "en": "English", "it": "Italian"}
+LANGUAGE_NAMES = {"es": "Spanish", "en": "English", "it": "Italian", "de": "German", "fr": "French"}
 RAW_CACHE_DIR = Path("/tmp/gutenberg_raw_cache")
 
 # Phrase-level Gutenberg/legal boilerplate — deliberately NOT single common
@@ -76,7 +76,7 @@ class BookSpec:
     book_id: int
     author: str
     tag: str
-    language: str  # "es" | "en" | "it"
+    language: str  # "es" | "en" | "it" | "de" | "fr"
     verify_substr: str  # must appear in the raw header to confirm the right book
     # Some Gutenberg editions bundle unrelated prose (legends, essays,
     # introductions) alongside the actual verse. When set, only the text
@@ -268,6 +268,27 @@ LINKING_MANIFEST: list[BookSpec] = [
     BookSpec(17905, "Emilio De Marchi", "gutenberg_de_marchi_vecchie_cadenze", "it", "De Marchi"),
     BookSpec(27825, "Gabriele D'Annunzio", "gutenberg_dannunzio_isaotta", "it", "Annunzio"),
     BookSpec(58648, "Gabriele D'Annunzio", "gutenberg_dannunzio_elegie_romane", "it", "Annunzio"),
+    # German and French, added 2026-10-09 the same way (pg_catalog.csv, language de/fr, poetry
+    # subjects, lyric collections, authors who died by 1955; editions whose editor died after
+    # 1955 left out, e.g. Trakl's 1919 Gesamtausgabe edited by Karl Röck).
+    BookSpec(3498, "Heinrich Heine", "gutenberg_heine_buch_der_lieder", "de", "Heine"),
+    BookSpec(24288, "Rainer Maria Rilke", "gutenberg_rilke_stunden_buch", "de", "Rilke"),
+    BookSpec(33821, "Rainer Maria Rilke", "gutenberg_rilke_erste_gedichte", "de", "Rilke"),
+    BookSpec(33863, "Rainer Maria Rilke", "gutenberg_rilke_neue_gedichte", "de", "Rilke"),
+    BookSpec(34521, "Rainer Maria Rilke", "gutenberg_rilke_buch_der_bilder", "de", "Rilke"),
+    BookSpec(40221, "Georg Trakl", "gutenberg_trakl_gedichte", "de", "Trakl"),
+    BookSpec(2319, "Johann Wolfgang von Goethe", "gutenberg_goethe_divan", "de", "Goethe"),
+    BookSpec(6099, "Charles Baudelaire", "gutenberg_baudelaire_fleurs_du_mal", "fr", "Baudelaire"),
+    BookSpec(15112, "Paul Verlaine", "gutenberg_verlaine_oeuvres_1", "fr", "Verlaine"),
+    BookSpec(29302, "Arthur Rimbaud", "gutenberg_rimbaud_poesies", "fr", "Rimbaud"),
+    BookSpec(29843, "Victor Hugo", "gutenberg_hugo_contemplations_1", "fr", "Hugo"),
+    BookSpec(29844, "Victor Hugo", "gutenberg_hugo_contemplations_2", "fr", "Hugo"),
+    BookSpec(14805, "José-Maria de Heredia", "gutenberg_heredia_trophees", "fr", "Heredia"),
+    BookSpec(
+        14258, "Marceline Desbordes-Valmore", "gutenberg_desbordes_valmore_meres", "fr", "Desbordes"
+    ),
+    BookSpec(22054, "Anna de Noailles", "gutenberg_noailles_vivants_morts", "fr", "Noailles"),
+    BookSpec(44160, "Théophile Gautier", "gutenberg_gautier_emaux", "fr", "Gautier"),
 ]
 
 
@@ -489,7 +510,7 @@ def main() -> None:
     parser.add_argument(
         "--linking-only",
         action="store_true",
-        help=f"Fetch LINKING_MANIFEST (Italian) into {LINKING_ONLY_DIR}, outside training",
+        help=f"Fetch LINKING_MANIFEST (it, de, fr) into {LINKING_ONLY_DIR}, outside training",
     )
     args = parser.parse_args()
 

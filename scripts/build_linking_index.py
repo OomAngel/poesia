@@ -4,7 +4,7 @@
 Only sources whose texts may be shown to people: Project Gutenberg books and the CC0
 ``pd_poetry`` set (public domain), DISCO (CC BY 4.0, credited). Italian comes from Gutenberg
 books fetched for linking only (``fetch_gutenberg_poems.py --linking-only``), outside the
-training corpus. Authors known to have died
+training corpus; German and French likewise. Authors known to have died
 after 1955 are left out (life + 70 years, the Swiss and EU term). Short poems only (they are
 shown whole or nearly). Each poem is embedded from its title and first lines.
 
@@ -27,7 +27,8 @@ from poesia.linking.index import EmbeddingClient, _normalise
 
 MASTER = Path("seeds/poetry_corpus/corpus_master/poems.jsonl")
 LINKING_ONLY = Path("seeds/poetry_corpus/linking_only")
-LANGUAGES = ("es", "en", "it")  # order matters: one seeded shuffle runs through them in turn
+LANGUAGES = ("es", "en", "it", "de", "fr")  # order matters: one seeded shuffle runs through them
+# in turn, so new languages go at the end and earlier selections stay the same
 LICENCE = {
     "pd_poetry": "CC0 1.0 (DanFosing/public-domain-poetry)",
     "disco": "CC BY 4.0 (DISCO)",

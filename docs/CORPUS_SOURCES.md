@@ -218,6 +218,21 @@ passages; 1,000 records, of which 609 (4–24 lines, unique first line) are in t
 `scripts/build_corpus.py` does not read this folder, so the training corpus is unchanged;
 `scripts/build_linking_index.py` reads it next to `corpus_master`.
 
+German and French were added the same way on 2026-10-09: sixteen more Gutenberg books
+(Heine, Rilke ×4, Trakl, Goethe's *West-östlicher Divan*; Baudelaire, Verlaine, Rimbaud,
+Hugo ×2, Heredia, Desbordes-Valmore, Noailles, Gautier), authors who died by 1955; Trakl's
+1919 edition edited by Karl Röck (died after 1955) left out, and Lasker-Schüler's book
+dropped after it yielded only a transcriber's note. 676 German and 547 French poems are in
+the index (Rilke 286, Heine 204, Goethe 122, Trakl 64; Verlaine 149, Heredia 112, Hugo 86,
+Baudelaire 75, Rimbaud 54, Noailles 40, Gautier 17, Desbordes-Valmore 14).
+
+Dictionaries and word lists for the German and French scanners (not corpus data):
+kaikki.org's German and French Wiktionary extracts (downloaded 2026-10-08, CC BY-SA 4.0;
+kept outside the repositories in `~/data/wiktionary/`) give the tables in
+`src/poesia/phonology/data/`; wordfreq 3.1.1 gives `src/poesia/wordlists/de.txt` and `fr.txt`
+(CC BY-SA 4.0). Read-back voices: Piper `de_DE-thorsten-medium` (CC0) and
+`fr_FR-siwis-medium` (CC BY 4.0).
+
 Models downloaded for the entry (not corpus data; listed for licences):
 
 | Model | Revision | Licence |
