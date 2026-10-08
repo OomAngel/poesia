@@ -1,0 +1,636 @@
+{
+ "job": "6ac7b562df2184ac91ad209c",
+ "hardware": "Hugging Face Jobs, NVIDIA L4 (l4x1)",
+ "server": "llama.cpp f498f864f",
+ "engine": "poesia hack-apertus (screen after the 2026-10-08 change)",
+ "results": {
+  "Q4_K_M": {
+   "author-60": {
+    "model": {
+     "recall": "18/20",
+     "false_alarms": "0/40",
+     "no_answer": 0,
+     "by_category": {
+      "ordinary": "0/20 flagged",
+      "risk": "18/20 flagged",
+      "sad_safe": "0/20 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "en": {
+       "recall": "3/4",
+       "false_alarms": "0/8"
+      },
+      "es": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "fr": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "it": {
+       "recall": "3/4",
+       "false_alarms": "0/8"
+      }
+     }
+    },
+    "combined": {
+     "recall": "20/20",
+     "false_alarms": "0/40",
+     "by_category": {
+      "ordinary": "0/20 flagged",
+      "risk": "20/20 flagged",
+      "sad_safe": "0/20 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "en": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "es": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "fr": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "it": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      }
+     }
+    },
+    "phrases": {
+     "recall": "19/20",
+     "false_alarms": "0/40",
+     "by_category": {
+      "ordinary": "0/20 flagged",
+      "risk": "19/20 flagged",
+      "sad_safe": "0/20 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "en": {
+       "recall": "3/4",
+       "false_alarms": "0/8"
+      },
+      "es": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "fr": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "it": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      }
+     }
+    }
+   },
+   "tuning-724": {
+    "model": {
+     "recall": "106/280",
+     "false_alarms": "0/444",
+     "no_answer": 0,
+     "by_category": {
+      "idiom_safe": "0/90 flagged",
+      "ordinary": "0/118 flagged",
+      "past_safe": "0/148 flagged",
+      "risk_indirect": "21/78 flagged",
+      "risk_other": "9/94 flagged",
+      "risk_self": "76/108 flagged",
+      "sad_safe": "0/88 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "9/38",
+       "false_alarms": "0/83"
+      },
+      "en": {
+       "recall": "28/66",
+       "false_alarms": "0/94"
+      },
+      "es": {
+       "recall": "28/61",
+       "false_alarms": "0/89"
+      },
+      "fr": {
+       "recall": "19/53",
+       "false_alarms": "0/79"
+      },
+      "it": {
+       "recall": "22/62",
+       "false_alarms": "0/99"
+      }
+     }
+    },
+    "combined": {
+     "recall": "119/280",
+     "false_alarms": "7/444",
+     "by_category": {
+      "idiom_safe": "3/90 flagged",
+      "ordinary": "0/118 flagged",
+      "past_safe": "4/148 flagged",
+      "risk_indirect": "22/78 flagged",
+      "risk_other": "14/94 flagged",
+      "risk_self": "83/108 flagged",
+      "sad_safe": "0/88 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "11/38",
+       "false_alarms": "2/83"
+      },
+      "en": {
+       "recall": "29/66",
+       "false_alarms": "1/94"
+      },
+      "es": {
+       "recall": "34/61",
+       "false_alarms": "4/89"
+      },
+      "fr": {
+       "recall": "23/53",
+       "false_alarms": "0/79"
+      },
+      "it": {
+       "recall": "22/62",
+       "false_alarms": "0/99"
+      }
+     }
+    },
+    "phrases": {
+     "recall": "45/280",
+     "false_alarms": "7/444",
+     "by_category": {
+      "idiom_safe": "3/90 flagged",
+      "ordinary": "0/118 flagged",
+      "past_safe": "4/148 flagged",
+      "risk_indirect": "4/78 flagged",
+      "risk_other": "11/94 flagged",
+      "risk_self": "30/108 flagged",
+      "sad_safe": "0/88 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "5/38",
+       "false_alarms": "2/83"
+      },
+      "en": {
+       "recall": "8/66",
+       "false_alarms": "1/94"
+      },
+      "es": {
+       "recall": "19/61",
+       "false_alarms": "4/89"
+      },
+      "fr": {
+       "recall": "9/53",
+       "false_alarms": "0/79"
+      },
+      "it": {
+       "recall": "4/62",
+       "false_alarms": "0/99"
+      }
+     }
+    }
+   },
+   "heldout-708": {
+    "model": {
+     "recall": "84/271",
+     "false_alarms": "1/437",
+     "no_answer": 0,
+     "by_category": {
+      "idiom_safe": "0/96 flagged",
+      "ordinary": "0/103 flagged",
+      "past_safe": "1/147 flagged",
+      "risk_indirect": "12/60 flagged",
+      "risk_other": "12/107 flagged",
+      "risk_self": "60/104 flagged",
+      "sad_safe": "0/91 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "15/42",
+       "false_alarms": "1/83"
+      },
+      "en": {
+       "recall": "19/65",
+       "false_alarms": "0/87"
+      },
+      "es": {
+       "recall": "23/68",
+       "false_alarms": "0/89"
+      },
+      "fr": {
+       "recall": "12/51",
+       "false_alarms": "0/86"
+      },
+      "it": {
+       "recall": "15/45",
+       "false_alarms": "0/92"
+      }
+     }
+    },
+    "combined": {
+     "recall": "109/271",
+     "false_alarms": "2/437",
+     "by_category": {
+      "idiom_safe": "0/96 flagged",
+      "ordinary": "0/103 flagged",
+      "past_safe": "2/147 flagged",
+      "risk_indirect": "14/60 flagged",
+      "risk_other": "29/107 flagged",
+      "risk_self": "66/104 flagged",
+      "sad_safe": "0/91 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "17/42",
+       "false_alarms": "1/83"
+      },
+      "en": {
+       "recall": "30/65",
+       "false_alarms": "0/87"
+      },
+      "es": {
+       "recall": "31/68",
+       "false_alarms": "1/89"
+      },
+      "fr": {
+       "recall": "16/51",
+       "false_alarms": "0/86"
+      },
+      "it": {
+       "recall": "15/45",
+       "false_alarms": "0/92"
+      }
+     }
+    },
+    "phrases": {
+     "recall": "45/271",
+     "false_alarms": "1/437",
+     "by_category": {
+      "idiom_safe": "0/96 flagged",
+      "ordinary": "0/103 flagged",
+      "past_safe": "1/147 flagged",
+      "risk_indirect": "3/60 flagged",
+      "risk_other": "21/107 flagged",
+      "risk_self": "21/104 flagged",
+      "sad_safe": "0/91 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "5/42",
+       "false_alarms": "0/83"
+      },
+      "en": {
+       "recall": "16/65",
+       "false_alarms": "0/87"
+      },
+      "es": {
+       "recall": "18/68",
+       "false_alarms": "1/89"
+      },
+      "fr": {
+       "recall": "4/51",
+       "false_alarms": "0/86"
+      },
+      "it": {
+       "recall": "2/45",
+       "false_alarms": "0/92"
+      }
+     }
+    }
+   }
+  },
+  "Q6_K": {
+   "author-60": {
+    "model": {
+     "recall": "20/20",
+     "false_alarms": "0/40",
+     "no_answer": 0,
+     "by_category": {
+      "ordinary": "0/20 flagged",
+      "risk": "20/20 flagged",
+      "sad_safe": "0/20 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "en": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "es": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "fr": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "it": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      }
+     }
+    },
+    "combined": {
+     "recall": "20/20",
+     "false_alarms": "0/40",
+     "by_category": {
+      "ordinary": "0/20 flagged",
+      "risk": "20/20 flagged",
+      "sad_safe": "0/20 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "en": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "es": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "fr": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "it": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      }
+     }
+    },
+    "phrases": {
+     "recall": "19/20",
+     "false_alarms": "0/40",
+     "by_category": {
+      "ordinary": "0/20 flagged",
+      "risk": "19/20 flagged",
+      "sad_safe": "0/20 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "en": {
+       "recall": "3/4",
+       "false_alarms": "0/8"
+      },
+      "es": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "fr": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      },
+      "it": {
+       "recall": "4/4",
+       "false_alarms": "0/8"
+      }
+     }
+    }
+   },
+   "tuning-724": {
+    "model": {
+     "recall": "117/280",
+     "false_alarms": "2/444",
+     "no_answer": 0,
+     "by_category": {
+      "idiom_safe": "0/90 flagged",
+      "ordinary": "0/118 flagged",
+      "past_safe": "2/148 flagged",
+      "risk_indirect": "24/78 flagged",
+      "risk_other": "12/94 flagged",
+      "risk_self": "81/108 flagged",
+      "sad_safe": "0/88 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "16/38",
+       "false_alarms": "1/83"
+      },
+      "en": {
+       "recall": "30/66",
+       "false_alarms": "0/94"
+      },
+      "es": {
+       "recall": "29/61",
+       "false_alarms": "0/89"
+      },
+      "fr": {
+       "recall": "19/53",
+       "false_alarms": "1/79"
+      },
+      "it": {
+       "recall": "23/62",
+       "false_alarms": "0/99"
+      }
+     }
+    },
+    "combined": {
+     "recall": "126/280",
+     "false_alarms": "8/444",
+     "by_category": {
+      "idiom_safe": "3/90 flagged",
+      "ordinary": "0/118 flagged",
+      "past_safe": "5/148 flagged",
+      "risk_indirect": "25/78 flagged",
+      "risk_other": "16/94 flagged",
+      "risk_self": "85/108 flagged",
+      "sad_safe": "0/88 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "16/38",
+       "false_alarms": "2/83"
+      },
+      "en": {
+       "recall": "31/66",
+       "false_alarms": "1/94"
+      },
+      "es": {
+       "recall": "33/61",
+       "false_alarms": "4/89"
+      },
+      "fr": {
+       "recall": "23/53",
+       "false_alarms": "1/79"
+      },
+      "it": {
+       "recall": "23/62",
+       "false_alarms": "0/99"
+      }
+     }
+    },
+    "phrases": {
+     "recall": "45/280",
+     "false_alarms": "7/444",
+     "by_category": {
+      "idiom_safe": "3/90 flagged",
+      "ordinary": "0/118 flagged",
+      "past_safe": "4/148 flagged",
+      "risk_indirect": "4/78 flagged",
+      "risk_other": "11/94 flagged",
+      "risk_self": "30/108 flagged",
+      "sad_safe": "0/88 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "5/38",
+       "false_alarms": "2/83"
+      },
+      "en": {
+       "recall": "8/66",
+       "false_alarms": "1/94"
+      },
+      "es": {
+       "recall": "19/61",
+       "false_alarms": "4/89"
+      },
+      "fr": {
+       "recall": "9/53",
+       "false_alarms": "0/79"
+      },
+      "it": {
+       "recall": "4/62",
+       "false_alarms": "0/99"
+      }
+     }
+    }
+   },
+   "heldout-708": {
+    "model": {
+     "recall": "111/271",
+     "false_alarms": "3/437",
+     "no_answer": 0,
+     "by_category": {
+      "idiom_safe": "0/96 flagged",
+      "ordinary": "0/103 flagged",
+      "past_safe": "3/147 flagged",
+      "risk_indirect": "19/60 flagged",
+      "risk_other": "21/107 flagged",
+      "risk_self": "71/104 flagged",
+      "sad_safe": "0/91 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "20/42",
+       "false_alarms": "1/83"
+      },
+      "en": {
+       "recall": "24/65",
+       "false_alarms": "0/87"
+      },
+      "es": {
+       "recall": "33/68",
+       "false_alarms": "0/89"
+      },
+      "fr": {
+       "recall": "14/51",
+       "false_alarms": "2/86"
+      },
+      "it": {
+       "recall": "20/45",
+       "false_alarms": "0/92"
+      }
+     }
+    },
+    "combined": {
+     "recall": "129/271",
+     "false_alarms": "4/437",
+     "by_category": {
+      "idiom_safe": "0/96 flagged",
+      "ordinary": "0/103 flagged",
+      "past_safe": "4/147 flagged",
+      "risk_indirect": "19/60 flagged",
+      "risk_other": "34/107 flagged",
+      "risk_self": "76/104 flagged",
+      "sad_safe": "0/91 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "21/42",
+       "false_alarms": "1/83"
+      },
+      "en": {
+       "recall": "32/65",
+       "false_alarms": "0/87"
+      },
+      "es": {
+       "recall": "38/68",
+       "false_alarms": "1/89"
+      },
+      "fr": {
+       "recall": "18/51",
+       "false_alarms": "2/86"
+      },
+      "it": {
+       "recall": "20/45",
+       "false_alarms": "0/92"
+      }
+     }
+    },
+    "phrases": {
+     "recall": "45/271",
+     "false_alarms": "1/437",
+     "by_category": {
+      "idiom_safe": "0/96 flagged",
+      "ordinary": "0/103 flagged",
+      "past_safe": "1/147 flagged",
+      "risk_indirect": "3/60 flagged",
+      "risk_other": "21/107 flagged",
+      "risk_self": "21/104 flagged",
+      "sad_safe": "0/91 flagged"
+     },
+     "by_language": {
+      "de": {
+       "recall": "5/42",
+       "false_alarms": "0/83"
+      },
+      "en": {
+       "recall": "16/65",
+       "false_alarms": "0/87"
+      },
+      "es": {
+       "recall": "18/68",
+       "false_alarms": "1/89"
+      },
+      "fr": {
+       "recall": "4/51",
+       "false_alarms": "0/86"
+      },
+      "it": {
+       "recall": "2/45",
+       "false_alarms": "0/92"
+      }
+     }
+    }
+   }
+  }
+ }
+}

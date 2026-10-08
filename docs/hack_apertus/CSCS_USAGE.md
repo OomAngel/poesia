@@ -40,5 +40,7 @@ Running total (proxy log, 2026-10-08 evening): **59,650 requests, CHF 0.44.**
 ## Still to run (planned)
 
 - ~~Safety screen: tune on the 2026-10-08 set, test on a fresh set~~ done 2026-10-08 (above).
-- The shipped 4-bit and the 6-bit model on the held-out set (local llama.cpp).
+- ~~The shipped 4-bit and the 6-bit model on the held-out set~~ done 2026-10-08 on Hugging Face
+  Jobs (L4, job 6ac7b562): screen 4-bit 109/271, 6-bit 129/271, full precision on CSCS 125/271;
+  false alarms 2, 4 and 4 of 437 (`reports/eval_2026-10/b6-hfjobs-safety-q4-q6.json`).
 - ~~More benchmark seeds for the report's tables~~ done (72 sonnets per language).
