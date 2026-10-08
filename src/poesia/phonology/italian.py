@@ -25,8 +25,10 @@ Petrarca): see ``scripts/check_italian_scansion.py``.
 
 from __future__ import annotations
 
+import functools
 import re
 import unicodedata
+from importlib import resources
 
 from poesia.phonology.base import RhymeKey, ScanResult, Stress
 
@@ -126,6 +128,19 @@ def _nuclei(word: str) -> list[tuple[int, int, int]]:
     ]
 
 
+@functools.cache
+def _stress_exceptions() -> dict[str, int]:
+    """Words whose stress the rule below gets wrong, from Wiktionary (data/it_stress.tsv):
+    word -> stressed syllable counted from the end. Built by scripts/build_italian_stress.py."""
+    text = resources.files("poesia.phonology").joinpath("data/it_stress.tsv").read_text("utf-8")
+    out = {}
+    for line in text.splitlines():
+        if line and not line.startswith("#"):
+            word, k = line.split("\t")
+            out[word] = int(k)
+    return out
+
+
 def _stress_nucleus(word: str, nuclei: list[tuple[int, int, int]]) -> int:
     """Index (in ``nuclei``) of the stressed nucleus of a word."""
     if not nuclei:
@@ -133,6 +148,9 @@ def _stress_nucleus(word: str, nuclei: list[tuple[int, int, int]]) -> int:
     for idx, (_s, _e, v) in enumerate(nuclei):
         if word[v] in _ACCENTED:
             return idx
+    k = _stress_exceptions().get(word)
+    if k is not None and k < len(nuclei):  # unmarked sdrucciolo etc. (crescita, tavola)
+        return len(nuclei) - 1 - k
     if len(nuclei) == 1 or word[-1] not in VOWELS:  # monosyllable, or truncated (amor, cor)
         return len(nuclei) - 1
     if re.search(r"[aeo]i$", word):  # past and conditional endings: trovai, andrei, udii
