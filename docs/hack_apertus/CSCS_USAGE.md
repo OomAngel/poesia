@@ -21,8 +21,9 @@ stopped after each batch. Cost: CSCS academic rates (ui.inference.cscs.ch/pricin
 | 2026-10-08 | Safety screen on that set | 8B, 70B | 3,534 | 0.42 M / 5 k | 0.01 | **the screen catches 78 of 280 risk texts (28%)**; the 20/20 on the author's own 60 items was overfitted. Passive death wishes and indirect signs are missed |
 | 2026-10-08 | Held-out safety set (seed 1000, written before the screen was changed): 1,040 items, 708 agreed | 70B | ~2,100 | ~0.4 M / 34 k | ~0.04 | no overlap with the tuning set |
 | 2026-10-08 | Screen before/after on the held-out set, plus tuning runs | 8B | ~4,500 | ~0.6 M / 5 k | ~0.01 | **recall 92 → 125 of 271 (34% → 46%), false alarms 6 → 4 of 437**; plain death wishes 50% → 72% |
+| 2026-10-08 | Two more seed sets (6, 9) of the 8B benchmark: the full-precision reference now has 72 sonnets per language | 8B | ~19,000 (incl. late safety re-checks) | 4.05 M / 160 k | 0.05 | metre es 84.5 ± 1.2%, en 92.2 ± 0.8%, it 89.3 ± 1.0% |
 
-Running total: see the proxy log; about CHF 0.43 after these batches.
+Running total (proxy log, 2026-10-08 evening): **59,650 requests, CHF 0.44.**
 
 ## What it changed in PoesIA
 
@@ -39,4 +40,4 @@ Running total: see the proxy log; about CHF 0.43 after these batches.
 
 - ~~Safety screen: tune on the 2026-10-08 set, test on a fresh set~~ done 2026-10-08 (above).
 - The shipped 4-bit and the 6-bit model on the held-out set (local llama.cpp).
-- More benchmark seeds for the report's tables.
+- ~~More benchmark seeds for the report's tables~~ done (72 sonnets per language).
