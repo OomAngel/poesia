@@ -93,11 +93,15 @@ def _italian_stress_is_certain(word: str, syllables: int) -> bool:
     """True when the Italian rhyme key's stress is not a guess (see phonology.italian limits).
 
     Unmarked words stressed on the third-to-last syllable (*crescita*, *opera*) look like
-    ordinary ones (*partita*, *maniera*) without a dictionary, and would be offered as false
-    rhymes. Safe: up to two syllables, a written accent, or a closed second-to-last syllable
-    (two consonants before the last vowel, not stop + l/r: *bellezza*, *profondo*).
+    ordinary ones (*partita*, *maniera*). Safe: up to two syllables, a written accent, a word
+    whose stress Wiktionary gives (phonology/data/it_stress.tsv), or a closed second-to-last
+    syllable (two consonants before the last vowel, not stop + l/r: *bellezza*, *profondo*).
     """
     if syllables <= 2 or any(c in "àèéìíòóùú" for c in word):
+        return True
+    from poesia.phonology.italian import _stress_exceptions
+
+    if word in _stress_exceptions():  # stress known from Wiktionary (crescita, tavola, maniera)
         return True
     core = word.rstrip("aeiou")  # drop the final vowel(s)
     cluster = ""

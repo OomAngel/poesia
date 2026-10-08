@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the Italian stress exceptions the scanner's rule gets wrong, from Wiktionary.
+"""Build the Italian word stress table (Wiktionary) for the scanner and the suggestions.
 
 The Italian scanner stresses the second-to-last syllable unless a written accent says
 otherwise, so unmarked words stressed earlier (*crescita*, *tavola*, *subito*) are scanned
@@ -25,7 +25,7 @@ import re
 import sys
 from pathlib import Path
 
-from poesia.phonology.italian import _ACCENTED, _nuclei, _stress_nucleus
+from poesia.phonology.italian import _ACCENTED, _nuclei, _rule_stress_nucleus
 
 OUT = Path("src/poesia/phonology/data/it_stress.tsv")
 GOLD = Path("data/external/averell/biblioteca_italiana-master/json")
@@ -105,11 +105,11 @@ def main() -> None:
         nuc = _nuclei(word)
         if not nuc or k >= len(nuc):
             continue
-        rule = len(nuc) - 1 - _stress_nucleus(word, nuc)
-        if rule == k:
-            agree += 1
-        else:
-            rows.append((word, k))
+        rule = len(nuc) - 1 - _rule_stress_nucleus(word, nuc)
+        agree += rule == k
+        # Every known word is kept, not only the exceptions: the rhyme-word suggestions offer
+        # a word of three or more syllables only when its stress is known (word_ideas).
+        rows.append((word, k))
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with OUT.open("w", encoding="utf-8") as f:
         f.write("# word<TAB>stressed syllable from the end (0 = last). From Wiktionary via\n")
@@ -117,8 +117,9 @@ def main() -> None:
         for word, k in rows:
             f.write(f"{word}\t{k}\n")
     print(
-        f"vocabulary {len(vocab)}; with Wiktionary stress {agree + len(rows) + ambiguous}; "
-        f"rule right {agree}; exceptions written {len(rows)}; ambiguous skipped {ambiguous}"
+        f"vocabulary {len(vocab)}; with Wiktionary stress {len(rows) + ambiguous}; "
+        f"rule right {agree}; exceptions {len(rows) - agree}; written {len(rows)}; "
+        f"ambiguous skipped {ambiguous}"
     )
 
 

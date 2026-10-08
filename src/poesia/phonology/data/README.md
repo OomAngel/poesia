@@ -1,7 +1,9 @@
 # Phonology data
 
-`it_stress.tsv`: Italian words whose stress the scanner's rule (second-to-last syllable unless
-a written accent says otherwise) gets wrong, with the stressed syllable counted from the end.
+`it_stress.tsv`: Italian word stress, the stressed syllable counted from the end (0 = last),
+for 44,272 words; 7,131 of them are words the scanner's spelling rule (second-to-last syllable
+unless a written accent says otherwise) gets wrong. The scanner uses the table before the rule;
+the rhyme-word suggestions offer a longer Italian word only when its stress is in the table.
 Built by `scripts/build_italian_stress.py` from Wiktionary's hyphenations and IPA as published
 by kaikki.org (download of 2026-10-08), for the words of `src/poesia/wordlists/it.txt` and the
 Biblioteca Italiana gold lines. Words whose Wiktionary entries disagree (*àncora* / *ancóra*)
