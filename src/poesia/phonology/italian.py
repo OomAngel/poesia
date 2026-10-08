@@ -130,8 +130,8 @@ def _nuclei(word: str) -> list[tuple[int, int, int]]:
 
 @functools.cache
 def _stress_exceptions() -> dict[str, int]:
-    """Words whose stress the rule below gets wrong, from Wiktionary (data/it_stress.tsv):
-    word -> stressed syllable counted from the end. Built by scripts/build_italian_stress.py."""
+    """Word stress from Wiktionary (data/it_stress.tsv): word -> stressed syllable counted from
+    the end. Built by scripts/build_italian_stress.py."""
     text = resources.files("poesia.phonology").joinpath("data/it_stress.tsv").read_text("utf-8")
     out = {}
     for line in text.splitlines():
@@ -141,21 +141,31 @@ def _stress_exceptions() -> dict[str, int]:
     return out
 
 
-def _stress_nucleus(word: str, nuclei: list[tuple[int, int, int]]) -> int:
-    """Index (in ``nuclei``) of the stressed nucleus of a word."""
+def _rule_stress_nucleus(word: str, nuclei: list[tuple[int, int, int]]) -> int:
+    """The spelling rule alone: written accent, else last for truncated words and -ai/-ei/-oi
+    endings, else second-to-last."""
     if not nuclei:
         return -1
     for idx, (_s, _e, v) in enumerate(nuclei):
         if word[v] in _ACCENTED:
             return idx
-    k = _stress_exceptions().get(word)
-    if k is not None and k < len(nuclei):  # unmarked sdrucciolo etc. (crescita, tavola)
-        return len(nuclei) - 1 - k
     if len(nuclei) == 1 or word[-1] not in VOWELS:  # monosyllable, or truncated (amor, cor)
         return len(nuclei) - 1
     if re.search(r"[aeo]i$", word):  # past and conditional endings: trovai, andrei, udii
         return len(nuclei) - 1
     return len(nuclei) - 2  # piano by default
+
+
+def _stress_nucleus(word: str, nuclei: list[tuple[int, int, int]]) -> int:
+    """Index (in ``nuclei``) of the stressed nucleus of a word: a written accent, else the
+    Wiktionary table (unmarked sdruccioli: crescita, tavola), else the spelling rule."""
+    if not nuclei:
+        return -1
+    if not any(word[v] in _ACCENTED for _s, _e, v in nuclei):
+        k = _stress_exceptions().get(word)
+        if k is not None and k < len(nuclei):
+            return len(nuclei) - 1 - k
+    return _rule_stress_nucleus(word, nuclei)
 
 
 def _starts_vowel(word: str) -> bool:

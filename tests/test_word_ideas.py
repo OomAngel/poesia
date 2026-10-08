@@ -82,10 +82,12 @@ def test_italian_never_offers_an_unmarked_third_to_last_stress():
     words = {w["word"] for w in rhyme_words("it", "Nel mezzo del cammin di nostra vita", k=40)}
     words |= {w["word"] for w in rhyme_words("it", "il mare che respira nella sera", k=40)}
     assert not words & {"crescita", "perdita", "vendita", "nascita", "opera", "camera", "lettera"}
-    assert _italian_stress_is_certain("bellezza", 3) and not _italian_stress_is_certain(
-        "crescita", 3
-    )
-    assert _italian_stress_is_certain("città", 2) and not _italian_stress_is_certain("tenebre", 3)
+    assert _italian_stress_is_certain("bellezza", 3)  # closed second-to-last syllable
+    assert _italian_stress_is_certain("città", 2)  # written accent
+    # Known from Wiktionary's table since 2026-10-08 (they used to be guesses).
+    assert _italian_stress_is_certain("crescita", 3) and _italian_stress_is_certain("tenebre", 3)
+    # A word the table does not know, with an open second-to-last syllable, stays a guess.
+    assert not _italian_stress_is_certain("zorbita", 3)
 
 
 def test_each_word_says_why_in_the_poems_language():
