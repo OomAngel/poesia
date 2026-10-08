@@ -14,14 +14,16 @@
 #
 # Environment: QUANTS (space-separated llama-quantize types), POESIA_REF (engine commit),
 # LLAMA_CPP_REF (default: the local server's build), CUDA_ARCH (89 = L4, 86 = A10G /
-# RTX 30xx, 80 = A100), SEEDS (default "0 3"), RESULTS_REPO (private dataset repo, created if
+# RTX 30xx, 80 = A100), SEEDS (default "0 3"; empty skips metre), SAFETY_DATA (test sets; a
+# set under data/safety/generated/ is scored on its writer-judge agreed items), RESULTS_REPO (private dataset repo, created if
 # missing). HF_TOKEN must allow job runs, gated reads and writes to your own repos.
 set -euo pipefail
 QUANTS=${QUANTS:-"Q6_K"}
 POESIA_REF=${POESIA_REF:?set POESIA_REF to an engine commit}
 LLAMA_CPP_REF=${LLAMA_CPP_REF:-f498f864f}  # build 11459, as the local Docker server in benchmark 3
 CUDA_ARCH=${CUDA_ARCH:-89}
-SEEDS=${SEEDS:-"0 3"}
+SEEDS=${SEEDS-"0 3"}  # empty: skip the metre benchmark
+SAFETY_DATA=${SAFETY_DATA:-data/safety/safety_reflections.jsonl}  # space-separated JSONL sets
 RESULTS_REPO=${RESULTS_REPO:-GrootCappuccino/poesia-experiments}
 RUN=${JOB_ID:-local-$(date +%s)}
 W=/work; OUT=$W/results/$RUN; mkdir -p "$W" "$OUT"
@@ -67,7 +69,11 @@ for Q in $QUANTS; do
   export LLM_BASE_URL=http://127.0.0.1:8080/v1 LLM_NAME=poesia-apertus LLM_API_KEY=x
   # Positive control first: a server that answers nothing would score as "no answer".
   python scripts/check_endpoint.py | tee "$OUT/check-$Q.txt"
-  python scripts/evaluate_safety_screen.py --openai-compat --out "$OUT/safety-$Q.json" >/dev/null
+  for d in $SAFETY_DATA; do
+    extra=""; case "$d" in */generated/*) extra="--agreed-only";; esac
+    python scripts/evaluate_safety_screen.py --openai-compat --data "$d" $extra \
+      --out "$OUT/safety-$Q-$(basename "$d" .jsonl).json" >/dev/null
+  done
   pids=()
   for s in $SEEDS; do for l in es en it; do
     python scripts/evaluate_adapter_mlflow.py --openai-compat --languages "$l" --samples 3 \
