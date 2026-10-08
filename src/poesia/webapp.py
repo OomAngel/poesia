@@ -31,11 +31,15 @@ FORMS: list[tuple[str, str]] = [
     ("es", "haiku"),
     ("en", "haiku"),
     ("it", "sonetto"),
+    ("de", "sonett"),
+    ("fr", "sonnet"),
     # Free verse: no metre or rhyme checks; scanning still shows syllables, and safety,
     # suggestions, read-back and linking all work.
     ("es", "free"),
     ("en", "free"),
     ("it", "free"),
+    ("de", "free"),
+    ("fr", "free"),
 ]
 FREE = "free"
 FREE_START_LINES = 8
@@ -91,6 +95,14 @@ def _phonology(language: str) -> Any:
         from poesia.phonology.italian import ItalianPhonology
 
         return ItalianPhonology()
+    if language == "de":
+        from poesia.phonology.german import GermanPhonology
+
+        return GermanPhonology()
+    if language == "fr":
+        from poesia.phonology.french import FrenchPhonology
+
+        return FrenchPhonology()
     raise ValueError(f"no phonology for language '{language}'")
 
 
@@ -144,21 +156,37 @@ _FUNCTION_WORDS = {
     "it": set(
         "il lo la gli le che di e in con per del della una un come mio mia sua non si nel nella al ma è ed dei".split()
     ),
+    "de": set(
+        "der die das und ist nicht ich du er sie es wir ein eine mit von zu auf dem den des im mein dein sich auch wie".split()
+    ),
+    "fr": set(
+        "le la les et est un une des du de que qui dans pour pas ne je tu il elle nous vous mon ma mes sur au aux".split()
+    ),
 }
 _LANG_NAME = {
-    "es": {"es": "español", "en": "inglés", "it": "italiano"},
-    "en": {"es": "Spanish", "en": "English", "it": "Italian"},
-    "it": {"es": "spagnolo", "en": "inglese", "it": "italiano"},
+    "es": {"es": "español", "en": "inglés", "it": "italiano", "de": "alemán", "fr": "francés"},
+    "en": {"es": "Spanish", "en": "English", "it": "Italian", "de": "German", "fr": "French"},
+    "it": {"es": "spagnolo", "en": "inglese", "it": "italiano", "de": "tedesco", "fr": "francese"},
+    "de": {
+        "es": "Spanisch",
+        "en": "Englisch",
+        "it": "Italienisch",
+        "de": "Deutsch",
+        "fr": "Französisch",
+    },
+    "fr": {"es": "espagnol", "en": "anglais", "it": "italien", "de": "allemand", "fr": "français"},
 }
 _MISMATCH = {
     "es": "Este verso parece estar en {other}; esta forma cuenta las sílabas en {own}.",
     "en": "This line looks {other}; this form counts syllables in {own}.",
     "it": "Questo verso sembra in {other}; questa forma conta le sillabe in {own}.",
+    "de": "Dieser Vers sieht nach {other} aus; diese Form zählt die Silben auf {own}.",
+    "fr": "Ce vers semble être en {other} ; cette forme compte les syllabes en {own}.",
 }
 
 
 def guess_language(line: str) -> str | None:
-    """es, en or it when the function words point clearly one way, else None."""
+    """The language the function words point to clearly, else None."""
     words = [w.strip(".,;:!?¡¿«»\"'()").lower() for w in line.replace("’", "'").split()]
     words = [w.split("'")[-1] if "'" in w else w for w in words]
     scores = {lang: sum(w in fw for w in words) for lang, fw in _FUNCTION_WORDS.items()}
@@ -203,6 +231,10 @@ def scan_line(
                 f"(«{partner_line}»). Cambia la última palabra.",
                 "it": f"Rima {letter}: questo verso deve rimare con il verso {partner + 1} "
                 f"(«{partner_line}»). Cambia l'ultima parola.",
+                "de": f"Reim {letter}: dieser Vers soll sich auf Vers {partner + 1} reimen "
+                f"(„{partner_line}“). Ändere das letzte Wort.",
+                "fr": f"Rime {letter} : ce vers doit rimer avec le vers {partner + 1} "
+                f"(« {partner_line} »). Change le dernier mot.",
             }[language]
         )
     return {
@@ -308,21 +340,21 @@ def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
     app = FastAPI(title="PoesIA", docs_url=None, redoc_url=None)
 
     class LineRequest(BaseModel):
-        language: str = Field(pattern="^(es|en|it)$")
+        language: str = Field(pattern="^(es|en|it|de|fr)$")
         form: str
         index: int = Field(ge=0, le=200)  # free verse grows line by line
         lines: list[str] = Field(default_factory=list, max_length=200)
 
     class SafetyRequest(BaseModel):
         text: str = Field(default="", max_length=8000)
-        language: str = Field(default="en", pattern="^(es|en|it)$")  # of the pause's text
+        language: str = Field(default="en", pattern="^(es|en|it|de|fr)$")  # of the pause's text
 
     class ReadRequest(BaseModel):
-        language: str = Field(pattern="^(es|en|it)$")
+        language: str = Field(pattern="^(es|en|it|de|fr)$")
         text: str = Field(min_length=1, max_length=4000)
 
     class LinkRequest(BaseModel):
-        language: str = Field(pattern="^(es|en|it)$")
+        language: str = Field(pattern="^(es|en|it|de|fr)$")
         text: str = Field(min_length=1, max_length=8000)
 
     class ProposeRequest(LineRequest):

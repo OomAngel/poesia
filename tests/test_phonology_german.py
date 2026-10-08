@@ -24,7 +24,12 @@ def test_iambic_tetrameter():
     ],
 )
 def test_counts(line, count):
-    assert G.scan_line(line).metrical_syllable_count == count
+    assert len(G.scan_line(line).stress_pattern) == count
+
+
+def test_metrical_count_stops_at_the_last_stress():
+    assert G.scan_line("Mit den Quellen geht mein Grüßen,").metrical_syllable_count == 7  # GRÜ-ßen
+    assert G.scan_line("Ich muß hinaus, ich muß zu dir,").metrical_syllable_count == 8
 
 
 @pytest.mark.parametrize(

@@ -116,6 +116,26 @@ SONETTO_IT = FormSpec(
     rhyme_scheme="ABBAABBACDECDE",  # Petrarchan; CDC DCD is the common alternative
 )
 
+# German: five-stress iambic lines counted to the last stress (10; a feminine ending adds an
+# unstressed syllable that the count leaves out, see phonology.german).
+SONETT_DE = FormSpec(
+    name="sonett",
+    language="de",
+    lines_per_stanza=[4, 4, 3, 3],
+    syllables_per_line=10,
+    rhyme_scheme="ABBAABBACDCDCD",
+    foot="iambic",
+)
+
+# French: the classical sonnet in alexandrines (12 syllables, a final mute e not counted).
+SONNET_FR = FormSpec(
+    name="sonnet",
+    language="fr",
+    lines_per_stanza=[4, 4, 3, 3],
+    syllables_per_line=12,
+    rhyme_scheme="ABBAABBACCDEED",
+)
+
 FORM_REGISTRY: dict[tuple[str, str], FormSpec] = {
     ("soneto", "es"): SONETO_ES,
     ("romance", "es"): ROMANCE_ES,
@@ -123,6 +143,8 @@ FORM_REGISTRY: dict[tuple[str, str], FormSpec] = {
     ("haiku", "en"): HAIKU_EN,
     ("haiku", "es"): HAIKU_ES,
     ("sonetto", "it"): SONETTO_IT,
+    ("sonett", "de"): SONETT_DE,
+    ("sonnet", "fr"): SONNET_FR,
 }
 
 

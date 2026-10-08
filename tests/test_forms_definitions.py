@@ -10,7 +10,9 @@ from poesia.forms.definitions import (
     HAIKU_ES,
     ROMANCE_ES,
     SONETO_ES,
+    SONETT_DE,
     SONETTO_IT,
+    SONNET_FR,
     SONNET_SHAKESPEAREAN_EN,
     FormSpec,
     get_form,
@@ -47,6 +49,8 @@ def test_form_registry_and_get_form() -> None:
         ("haiku", "en"): HAIKU_EN,
         ("haiku", "es"): HAIKU_ES,
         ("sonetto", "it"): SONETTO_IT,
+        ("sonett", "de"): SONETT_DE,
+        ("sonnet", "fr"): SONNET_FR,
     }
     assert get_form("soneto") is SONETO_ES
     with pytest.raises(ValueError, match="Unknown form 'villanelle'"):

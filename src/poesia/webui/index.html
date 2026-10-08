@@ -114,13 +114,15 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
 
   <!-- 1. Language: the whole page follows it -->
   <section class="panel" id="langStep">
-    <h2>Write in · Escribe en · Scrivi in</h2>
+    <h2>Write in · Escribe en · Scrivi in · Schreib auf · Écris en</h2>
     <div class="choices">
       <button class="choice" data-lang="es"><strong>Español</strong><span>soneto, haiku, verso libre</span></button>
       <button class="choice" data-lang="en"><strong>English</strong><span>sonnet, haiku, free verse</span></button>
       <button class="choice" data-lang="it"><strong>Italiano</strong><span>sonetto, verso libero</span></button>
+      <button class="choice" data-lang="de"><strong>Deutsch</strong><span>Sonett, freier Vers</span></button>
+      <button class="choice" data-lang="fr"><strong>Français</strong><span>sonnet, vers libre</span></button>
     </div>
-    <p><button class="link" id="openStart">Open a saved poem · Abrir un poema guardado · Apri una poesia salvata</button></p>
+    <p><button class="link" id="openStart">Open a saved poem · Abrir un poema guardado · Apri una poesia salvata · Gespeichertes Gedicht öffnen · Ouvrir un poème enregistré</button></p>
   </section>
 
   <div class="setup" id="setup" role="status" hidden><span id="setupText"></span>
@@ -364,6 +366,110 @@ const STR = {
     forms: {
       sonetto: ["Sonetto", "14 endecasillabi; rima ABBA ABBA CDE CDE."],
       free: ["Verso libero", "Senza metro né rima: scrivi al tuo ritmo; PoesIA conta e ascolta soltanto."],
+    },
+  },
+  de: {
+    steps: ["Was dich bewegt hat", "Die Form", "Schreiben", "Anhören und behalten"], next: "Weiter", listenLegend: "Dein Gedicht, vorgelesen",
+    setup: {
+      models: { poetry: "das Gedichtmodell", linking: "das Modell, das Gedichte verbindet" },
+      cpuOnly: "Auf diesem Computer steht dem Modell keine Grafikkarte zur Verfügung: Ideen brauchen etwa 15 Sekunden.",
+      cpuSplit: (pct) => `Das Modell passt nicht ganz auf die Grafikkarte (${pct} auf dem Prozessor): Ideen brauchen länger als sonst.`,
+      checking: () => "PoesIA wird vorbereitet: Modelle werden geprüft…",
+      downloading: (m, done, total) => `PoesIA wird vorbereitet: ${m} wird heruntergeladen (${done} von ${total} GB). Du kannst schon schreiben; Ideen kommen, sobald es fertig ist.`,
+      preparing: (m) => `PoesIA wird vorbereitet: ${m} wird installiert…`,
+      loading: () => "PoesIA wird vorbereitet: das Gedichtmodell wird geladen…",
+      error: (e) => `Das Modell konnte nicht vorbereitet werden (${e}). Du kannst schreiben und anhören; Ideen sind nicht verfügbar.`,
+    },
+    keepLegend: "Behalten", keepTxt: "Als Text speichern", print: "Drucken oder als PDF speichern",
+    keepJson: "Speichern, um später weiterzuschreiben", openBtn: "Gespeichertes Gedicht öffnen",
+    keepNote: "Alles wird auf deinem Computer gespeichert; nichts wird irgendwo hochgeladen.",
+    stmt: (own, all) => `Verse in meinen eigenen Worten: ${own} von ${all}. Metrum geprüft mit PoesIA.`,
+    badFile: "Diese Datei ist kein von PoesIA gespeichertes Gedicht.",
+    tagline: "Du schreibst das Gedicht. PoesIA zählt, hört zu und erklärt. Nichts verlässt diesen Computer.",
+    changeLang: "Sprache wechseln", startLegend: "Bevor du anfängst",
+    themeLabel: "Worum geht es? (ein Wort genügt)", themePh: "ein Baum im Herbst",
+    reflectionLabel: "Was hast du gefühlt oder gedacht? (freiwillig, nur für dich und die Ideen)",
+    formLegend: "Die Form", poemLegend: "Dein Gedicht", line: "Vers", ideas: "Ideen",
+    ideasTitle: "Ideen für diesen Vers erbitten", addLine: "Vers hinzufügen",
+    syll: "Silben", why: "Warum?", useIt: "Übernehmen", thinking: "Einen Moment…",
+    noIdeas: "Diesmal keine Ideen.", modelDown: "Das Modell antwortet nicht: ",
+    rhymesWith: (w) => `Wörter, die sich auf „${w}“ reimen:`, wholeLines: "Ganze Verse",
+    wordsFirst: "Dieser Vers bestimmt den Reim: jedes letzte Wort passt.",
+    partnerEmpty: (n) => `Schreib zuerst Vers ${n}: dieser reimt sich darauf.`,
+    noWords: "Keine häufigen Reimwörter gefunden; versuch ganze Verse oder ändere das letzte Wort des Verses, auf den sich dieser reimt.",
+    wordHint: "klicken, um es an der Cursorstelle einzufügen", wordUsed: (w) => `vorgeschlagenes Wort: ${w}`,
+    used: "Vorschlag übernommen", edited: "Vorschlag, bearbeitet",
+    rhymeWith: (n) => `reimt sich auf Vers ${n}`, rhymeMiss: (n) => `sollte sich auf Vers ${n} reimen`,
+    ok: "richtiges Maß", short: (d) => d === 1 ? "1 Silbe fehlt" : `${d} Silben fehlen`,
+    over: (d) => d === 1 ? "1 Silbe zu viel" : `${d} Silben zu viel`,
+    keep: "Gedicht behalten", listen: "Anhören (synthetische Stimme)", stop: "Stopp",
+    clear: "Neu anfangen", clearAsk: "Neu anfangen? Der Entwurf wird gelöscht.",
+    changeAsk: "Form wechseln? Die geschriebenen Verse werden gelöscht (deine Gedanken bleiben).",
+    authorship: (own, all) => `${own} von ${all} Versen von dir formuliert`,
+    footnote: "Ideen kommen nur, wenn du darum bittest: zuerst Reimwörter aus einer Wortliste; ganze Verse, wenn du sie willst, von einem Modell, das auf diesem Computer läuft. Sie sind ein Ausgangspunkt: ändere sie oder lass sie weg. Der Entwurf bleibt in diesem Tab und verschwindet, wenn du ihn schließt, außer du behältst das Gedicht.",
+    linkLegend: "Gedichte, die sich so anfühlen",
+    linkNote: "Wenn du magst, lies zwei oder drei alte Gedichte, die dem nahe sind, was du geschrieben hast. Sie sind gemeinfrei oder offen lizenziert.",
+    linkBtn: "Zeigen", looking: "Ich suche…", writeFirst: "Schreib zuerst etwas.",
+    notAvailable: "Nicht verfügbar: ", untitled: "Ohne Titel",
+    pauseTitle: "Lass uns kurz innehalten",
+    pauseText: "Was du geschrieben hast, ist wichtig. Wenn du daran denkst, dir oder jemand anderem etwas anzutun, sprich bitte jetzt mit jemandem. Diese Angebote sind kostenlos und vertraulich:",
+    pauseNote: "PoesIA ist ein Schreibwerkzeug, keine Beratungsstelle. Nichts von dem, was du geschrieben hast, hat diesen Computer verlassen oder wurde gespeichert.",
+    pauseContinue: "Weiterschreiben",
+    forms: {
+      sonett: ["Sonett", "14 Verse mit fünf Hebungen (10 Silben bis zur letzten Hebung); Reim ABBA ABBA CDC DCD."],
+      free: ["Freier Vers", "Ohne Metrum und Reim: schreib in deinem Rhythmus; PoesIA zählt und hört nur zu."],
+    },
+  },
+  fr: {
+    steps: ["Ce qui t'a touché", "La forme", "Écrire", "Écouter et garder"], next: "Suivant", listenLegend: "Ton poème, lu à voix haute",
+    setup: {
+      models: { poetry: "le modèle de poésie", linking: "le modèle qui relie les poèmes" },
+      cpuOnly: "Sur cet ordinateur, le modèle n'a pas de carte graphique disponible : les idées prennent environ 15 secondes.",
+      cpuSplit: (pct) => `Le modèle ne tient pas entièrement sur la carte graphique (${pct} sur le processeur) : les idées prennent plus de temps que d'habitude.`,
+      checking: () => "Préparation de PoesIA : vérification des modèles…",
+      downloading: (m, done, total) => `Préparation de PoesIA : téléchargement de ${m} (${done} sur ${total} Go). Tu peux déjà écrire ; les idées arriveront quand ce sera fini.`,
+      preparing: (m) => `Préparation de PoesIA : installation de ${m}…`,
+      loading: () => "Préparation de PoesIA : chargement du modèle de poésie…",
+      error: (e) => `Le modèle n'a pas pu être préparé (${e}). Tu peux écrire et écouter ; les idées ne sont pas disponibles.`,
+    },
+    keepLegend: "Garder", keepTxt: "Enregistrer en texte", print: "Imprimer ou enregistrer en PDF",
+    keepJson: "Enregistrer pour continuer plus tard", openBtn: "Ouvrir un poème enregistré",
+    keepNote: "Tout est enregistré sur ton ordinateur ; rien n'est envoyé nulle part.",
+    stmt: (own, all) => `Vers écrits avec mes propres mots : ${own} sur ${all}. Métrique vérifiée avec PoesIA.`,
+    badFile: "Ce fichier n'est pas un poème enregistré par PoesIA.",
+    tagline: "C'est toi qui écris le poème. PoesIA compte, écoute et explique. Rien ne quitte cet ordinateur.",
+    changeLang: "Changer de langue", startLegend: "Avant de commencer",
+    themeLabel: "De quoi parle-t-il ? (un mot suffit)", themePh: "un arbre en automne",
+    reflectionLabel: "Qu'as-tu ressenti ou pensé ? (facultatif, seulement pour toi et pour les idées)",
+    formLegend: "La forme", poemLegend: "Ton poème", line: "Vers", ideas: "Idées",
+    ideasTitle: "Demander des idées pour ce vers", addLine: "Ajouter un vers",
+    syll: "syllabes", why: "Pourquoi ?", useIt: "Utiliser", thinking: "Je réfléchis…",
+    noIdeas: "Pas d'idées cette fois.", modelDown: "Le modèle ne répond pas : ",
+    rhymesWith: (w) => `Mots qui riment avec « ${w} » :`, wholeLines: "Vers entiers",
+    wordsFirst: "Ce vers choisit la rime : n'importe quel dernier mot convient.",
+    partnerEmpty: (n) => `Écris d'abord le vers ${n} : celui-ci rime avec lui.`,
+    noWords: "Aucun mot courant ne rime ; essaie des vers entiers, ou change le dernier mot du vers avec lequel il rime.",
+    wordHint: "clique pour l'ajouter là où se trouve le curseur", wordUsed: (w) => `mot suggéré : ${w}`,
+    used: "idée utilisée", edited: "idée modifiée",
+    rhymeWith: (n) => `rime avec le vers ${n}`, rhymeMiss: (n) => `devrait rimer avec le vers ${n}`,
+    ok: "mesure juste", short: (d) => d === 1 ? "il manque 1 syllabe" : `il manque ${d} syllabes`,
+    over: (d) => d === 1 ? "1 syllabe de trop" : `${d} syllabes de trop`,
+    keep: "Garder le poème", listen: "Écouter (voix de synthèse)", stop: "Arrêter",
+    clear: "Recommencer", clearAsk: "Recommencer ? Le brouillon sera effacé.",
+    changeAsk: "Changer de forme ? Les vers écrits seront effacés (ta réflexion reste).",
+    authorship: (own, all) => `${own} vers sur ${all} formulés par toi`,
+    footnote: "Les idées n'arrivent que si tu les demandes : d'abord des mots qui riment, tirés d'une liste ; des vers entiers, si tu les veux, d'un modèle qui tourne sur cet ordinateur. Ce sont des points de départ : change-les ou ignore-les. Le brouillon reste dans cet onglet et disparaît quand tu le fermes, sauf si tu gardes le poème.",
+    linkLegend: "Des poèmes qui ressemblent à ce que tu ressens",
+    linkNote: "Si tu veux, lis deux ou trois poèmes anciens proches de ce que tu as écrit. Ils sont du domaine public ou sous licence ouverte.",
+    linkBtn: "Montrer", looking: "Je cherche…", writeFirst: "Écris d'abord quelque chose.",
+    notAvailable: "Indisponible : ", untitled: "Sans titre",
+    pauseTitle: "Faisons une pause",
+    pauseText: "Ce que tu as écrit compte. Si tu penses à te faire du mal ou à faire du mal à quelqu'un, parles-en à quelqu'un maintenant. Ces services sont gratuits et confidentiels :",
+    pauseNote: "PoesIA est un outil d'écriture, pas un service d'aide. Rien de ce que tu as écrit n'a quitté cet ordinateur ni n'a été enregistré.",
+    pauseContinue: "Continuer à écrire",
+    forms: {
+      sonnet: ["Sonnet", "14 alexandrins (12 syllabes, le e muet final ne compte pas) ; rimes ABBA ABBA CCD EED."],
+      free: ["Vers libre", "Sans mètre ni rime : écris à ton rythme ; PoesIA compte et écoute seulement."],
     },
   },
 };

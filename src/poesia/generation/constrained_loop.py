@@ -151,6 +151,14 @@ def _phonology_for(language: str):
         from poesia.phonology.italian import ItalianPhonology
 
         return ItalianPhonology()
+    if language == "de":
+        from poesia.phonology.german import GermanPhonology
+
+        return GermanPhonology()
+    if language == "fr":
+        from poesia.phonology.french import FrenchPhonology
+
+        return FrenchPhonology()
     raise ValueError(f"No phonology backend registered for language '{language}'.")
 
 
@@ -372,9 +380,14 @@ def _line_is_stiff(line: str, language: str, llm) -> bool:
     Fail-open: any error or unparsable response is treated as "not stiff", so
     a fluency-check failure never blocks generation.
     """
-    lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch", "it": "Italian"}.get(
-        language, language
-    )
+    lang_name = {
+        "es": "Spanish",
+        "en": "English",
+        "nl": "Dutch",
+        "it": "Italian",
+        "de": "German",
+        "fr": "French",
+    }.get(language, language)
     prompt = (
         f"Judge this {lang_name} poetic line for naturalness:\n"
         f'"{line}"\n'
@@ -952,9 +965,14 @@ class ConstrainedLoop:
         instead of annotation echo. General models handle the same format. Tone
         is intentionally dropped — the training prompt has no tone line.
         """
-        lang_name = {"es": "Spanish", "en": "English", "nl": "Dutch", "it": "Italian"}.get(
-            self.language, self.language
-        )
+        lang_name = {
+            "es": "Spanish",
+            "en": "English",
+            "nl": "Dutch",
+            "it": "Italian",
+            "de": "German",
+            "fr": "French",
+        }.get(self.language, self.language)
         form = self.form_spec
         parts = [f"Write a {form.name} in {lang_name}."]
         if form.rhyme_scheme:

@@ -124,12 +124,23 @@ class GermanPhonology:
     """Scans German verse lines (pure Python)."""
 
     def scan_line(self, line: str) -> ScanResult:
+        """``metrical_syllable_count`` runs to the last stressed syllable, as German verse
+        names its lines (a five-stress line has 10 with a masculine ending, *Herz*, and 10 plus
+        an unstressed one with a feminine ending, *Liebe*); ``stress_pattern`` has them all.
+        The line's last word always carries a stress (*zu DIR*)."""
+        words = _tokens(line)
         positions: list[Stress] = []
-        for word in _tokens(line):
-            positions.extend(_word_marks(word))
+        for i, word in enumerate(words):
+            marks = _word_marks(word)
+            if i == len(words) - 1 and len(marks) == 1:
+                marks = [Stress.PRIMARY]
+            positions.extend(marks)
+        last = max(
+            (i for i, m in enumerate(positions) if m is Stress.PRIMARY), default=len(positions) - 1
+        )
         return ScanResult(
             line=line,
-            metrical_syllable_count=len(positions),
+            metrical_syllable_count=last + 1 if positions else 0,
             stress_pattern=tuple(positions),
             is_valid=bool(positions),
         )

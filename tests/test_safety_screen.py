@@ -93,16 +93,16 @@ def test_page_endpoint_returns_resources_only_when_flagged() -> None:
 
 
 def test_helplines_follow_the_page_language_with_the_same_facts():
-    # U9: a pause shown in Spanish or Italian must not switch to English.
+    # U9: a pause shown in Spanish, Italian, German or French must not switch to English.
     from poesia.safety.screen import RESOURCES_BY_LANGUAGE, resources_for
 
     en = RESOURCES_BY_LANGUAGE["en"]
-    for lang in ("es", "it"):
+    for lang in ("es", "it", "de", "fr"):
         loc = resources_for(lang)
         assert [r["number"] for r in loc] == [r["number"] for r in en]
         assert all(a["note"] != b["note"] for a, b in zip(loc, en, strict=True))
         assert all("0800 143 000" in r["note"] for r in loc[:1])  # the English line kept
-    assert resources_for("de") == en  # not translated yet: English, never empty
+    assert resources_for("nl") == en  # a language without its own text: English, never empty
 
 
 def test_safety_endpoint_answers_in_the_requested_language():

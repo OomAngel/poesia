@@ -8,7 +8,9 @@ a person sees what the counter counted without learning the terms first.
 It is a display aid, not the metrical count: ``scan_line`` stays the authority. Spanish
 uses ``silabeador`` (syllables and stress), Italian the vowel nuclei of
 ``poesia.phonology.italian``, English CMUdict stress with ``pyphen`` hyphenation where the
-two agree on the number of syllables (otherwise the word is shown whole, with its stress).
+two agree on the number of syllables (otherwise the word is shown whole, with its stress),
+German the nuclei and stress of ``poesia.phonology.german``, French a spelling split kept only
+where it matches the French scanner's count for that word in that line.
 """
 
 from __future__ import annotations
@@ -115,6 +117,122 @@ def _it_merges(words: list[str]) -> list[bool]:
     return out
 
 
+# ── German and French ────────────────────────────────────────────────────
+
+_ONSET_2 = {
+    "bl",
+    "br",
+    "cl",
+    "cr",
+    "dr",
+    "fl",
+    "fr",
+    "gl",
+    "gr",
+    "pl",
+    "pr",
+    "tr",
+    "vr",
+    "ch",
+    "ph",
+    "th",
+    "gn",
+    "kl",
+    "kr",
+}
+
+
+def _cuts(letters: str, spans: list[tuple[int, int]], onsets: set[str]) -> list[int]:
+    """Syllable boundaries between vowel spans: one consonant opens the next syllable; of a
+    cluster, an onset pair (pr, bl, ch) stays together, otherwise the last consonant moves."""
+    cuts = []
+    for (_s1, e1), (s2, _e2) in zip(spans, spans[1:], strict=False):
+        cluster = letters[e1:s2]
+        if len(cluster) <= 1:
+            cuts.append(e1)
+        elif cluster[-3:] in ("sch",) and len(cluster) > 3:
+            cuts.append(s2 - 3)
+        elif cluster[-2:] in onsets:
+            cuts.append(s2 - 2)
+        else:
+            cuts.append(s2 - 1)
+    return cuts
+
+
+def _split_written(clean: str, cuts: list[int]) -> list[str]:
+    """Cut positions counted in letters, applied to the written word (apostrophes kept)."""
+    pieces, start, letter_i = [], 0, 0
+    bounds = set(cuts)
+    for pos, ch in enumerate(clean):
+        if ch.isalpha():
+            if letter_i in bounds and pos > start:
+                pieces.append(clean[start:pos])
+                start = pos
+            letter_i += 1
+    pieces.append(clean[start:])
+    return pieces
+
+
+def _de_word(word: str) -> list[dict[str, Any]]:
+    from poesia.phonology.base import Stress
+    from poesia.phonology.german import _rule_nuclei, _word_marks
+
+    clean = _clean(word).replace("’", "'")
+    letters = "".join(c for c in clean.lower() if c.isalpha())
+    spans = _rule_nuclei(letters)
+    marks = _word_marks(letters)
+    if len(spans) < 2 or len(marks) != len(spans):
+        return [_syl(clean, False)]
+    pieces = _split_written(clean, _cuts(letters, spans, _ONSET_2 | {"ck", "ng"} - {"gn"}))
+    return [_syl(p, len(pieces) > 1 and marks[i] is Stress.PRIMARY) for i, p in enumerate(pieces)]
+
+
+_FR_VOWEL_RUN = re.compile(r"[aeiouyàâäéèêëîïôöùûüœæ]+")
+
+
+def _fr_pieces(clean: str, count: int) -> list[str]:
+    """Spelling split of one French word, kept only when it matches the scanner's count; a
+    mute e the line does not count joins the syllable before it."""
+    letters = "".join(c for c in clean.lower() if c.isalpha())
+    masked = re.sub(r"(?<=[qg])u", "w", letters)
+    spans = [(m.start(), m.end()) for m in _FR_VOWEL_RUN.finditer(masked)]
+    pieces = _split_written(clean, _cuts(letters, spans, _ONSET_2)) if len(spans) > 1 else [clean]
+    if len(pieces) == count + 1 and re.search(r"(e|es|ent)$", pieces[-1].lower()):
+        pieces = pieces[:-2] + [pieces[-2] + pieces[-1]]
+    return pieces if len(pieces) == count and count else [clean]
+
+
+def _fr_stress(pieces: list[str]) -> int:
+    """The last syllable, or the one before a counted mute e (SPEC·tre)."""
+    if len(pieces) < 2:
+        return -1
+    last = pieces[-1].lower()
+    return len(pieces) - 2 if re.fullmatch(r"[^aeiouy]*(e|es|ent)", last) else len(pieces) - 1
+
+
+def _fr_words(words: list[str]) -> tuple[list[list[dict[str, Any]]], list[bool]]:
+    """French syllables per word as counted in the line, and where a mute e is elided before
+    the next word's vowel."""
+    from poesia.phonology.french import _starts_vowel, _syllables, _word
+
+    keys = [_word(w) for w in words]
+    out, merges = [], []
+    for i, word in enumerate(words):
+        key = keys[i]
+        if not key:  # punctuation on its own (« :) is shown as written
+            out.append([_syl(word, False)])
+            merges.append(False)
+            continue
+        nxt = next((k for k in keys[i + 1 :] if k), "")
+        before_vowel = bool(nxt) and _starts_vowel(nxt)
+        count, _stressed = _syllables(key, line_end=not nxt, before_vowel=before_vowel)
+        pieces = _fr_pieces(_clean(word).replace("’", "'"), count)
+        stress = _fr_stress(pieces)
+        out.append([_syl(p, j == stress) for j, p in enumerate(pieces)])
+        merges.append(before_vowel and bool(re.search(r"[^aeiouy]e$", key)))
+    return out, merges[:-1] if merges else []
+
+
 # ── English ──────────────────────────────────────────────────────────────
 
 
@@ -160,6 +278,11 @@ def syllable_view(line: str, language: str) -> list[dict[str, Any]]:
     elif language == "en":
         sylls = [_en_word(w) for w in words]
         merges = [False] * (len(words) - 1)
+    elif language == "de":
+        sylls = [_de_word(w) for w in words]
+        merges = [False] * (len(words) - 1)
+    elif language == "fr":
+        sylls, merges = _fr_words(words)
     else:
         return [{"syl": [_syl(w, False)], "join": False} for w in words]
     merges.append(False)

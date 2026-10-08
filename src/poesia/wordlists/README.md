@@ -7,5 +7,8 @@ Derived on 2026-10-07 (de and fr on 2026-10-08, same recipe) from [wordfreq](htt
 (`top_n_list(lang, 80000, wordlist="best")`, filtered to words of letters only). wordfreq's
 code is Apache-2.0; its data is licensed **CC BY-SA 4.0** (Robyn Speer and contributors,
 built from Wikipedia, subtitles, news, books, web text and other sources listed in its
-README). These files are therefore CC BY-SA 4.0, not MIT like the rest of PoesIA; if you
+README). In `de.txt` nouns get their capital back (wordfreq lowercases): a word Wiktionary lists
+capitalised as a headword and in lower case only as an inflected form (*schlacht*, an imperative), or only capitalised at all (kaikki.org German extract, 2026-10-09), is written so
+(*Herz*, *Schmerz*, *Schlacht*: 16,396 of 40,000); a word that is also a lower-case headword (*essen* / *Essen*) stays lower case.
+These files are therefore CC BY-SA 4.0, not MIT like the rest of PoesIA; if you
 change them, share the result under the same licence.

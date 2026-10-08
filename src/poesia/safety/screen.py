@@ -116,7 +116,8 @@ _PATTERNS: dict[str, list[str]] = {
 }
 _COMPILED = {lang: [re.compile(p) for p in pats] for lang, pats in _PATTERNS.items()}
 
-# Checked on the services' own sites, 2026-10-07 (www.143.ch, www.143.ch/it, www.147.ch).
+# Checked on the services' own sites, 2026-10-07 (www.143.ch, www.143.ch/it, www.147.ch);
+# de/fr pages (143.ch/fr, 147.ch/de, 147.ch/fr) checked reachable 2026-10-09.
 # The same facts in each page language (U9): a pause shown in Spanish must not switch to
 # English. The services answer in the Swiss national languages; 143 also has an English line.
 RESOURCES_BY_LANGUAGE: dict[str, list[dict[str, str]]] = {
@@ -180,6 +181,48 @@ RESOURCES_BY_LANGUAGE: dict[str, list[dict[str, str]]] = {
             "number": "144 / 112",
             "name": "Emergenza",
             "note": "Se qualcuno è in pericolo immediato.",
+            "url": "",
+        },
+    ],
+    "de": [
+        {
+            "number": "143",
+            "name": "Die Dargebotene Hand (La Main Tendue / Telefono Amico)",
+            "note": "Rund um die Uhr erreichbar und anonym; Chat und E-Mail auf 143.ch. "
+            "Auf Englisch: 0800 143 000, 18 bis 23 Uhr.",
+            "url": "https://www.143.ch",
+        },
+        {
+            "number": "147",
+            "name": "Pro Juventute, für Kinder und Jugendliche",
+            "note": "Kostenlos und vertraulich, rund um die Uhr; WhatsApp und Chat auf 147.ch.",
+            "url": "https://www.147.ch/de/",
+        },
+        {
+            "number": "144 / 112",
+            "name": "Notruf",
+            "note": "Wenn jemand in unmittelbarer Gefahr ist.",
+            "url": "",
+        },
+    ],
+    "fr": [
+        {
+            "number": "143",
+            "name": "La Main Tendue (Die Dargebotene Hand / Telefono Amico)",
+            "note": "Joignable 24 h sur 24, anonyme ; chat et e-mail sur 143.ch. "
+            "En anglais : 0800 143 000, de 18 h à 23 h.",
+            "url": "https://www.143.ch/fr",
+        },
+        {
+            "number": "147",
+            "name": "Pro Juventute, pour les enfants et les jeunes",
+            "note": "Gratuit et confidentiel, 24 h sur 24 ; WhatsApp et chat sur 147.ch.",
+            "url": "https://www.147.ch/fr/",
+        },
+        {
+            "number": "144 / 112",
+            "name": "Urgences",
+            "note": "Si quelqu'un est en danger immédiat.",
             "url": "",
         },
     ],

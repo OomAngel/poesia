@@ -42,7 +42,7 @@ def main() -> None:
         if not meter or set(meter) - {"-", "+"}:
             continue
         line = r["line_text"]
-        got = ph.scan_line(line).metrical_syllable_count
+        got = len(ph.scan_line(line).stress_pattern)  # every syllable, as the gold pattern
         n += 1
         err[got - len(meter)] += 1
         if got == len(meter):
