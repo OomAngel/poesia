@@ -44,3 +44,17 @@ def test_rhyme_from_the_stressed_vowel() -> None:
     assert P.rhyme_key("il mio cuore").consonant == P.rhyme_key("l'amore").consonant == "ore"
     assert P.rhyme_key("la città").consonant == "a"
     assert P.rhyme_key("cuore").consonant != P.rhyme_key("mare").consonant
+
+
+def test_unmarked_third_to_last_stress_from_wiktionary():
+    # crescita, tavola, perdita: stressed on the third-to-last syllable with no written
+    # accent; the rule alone stressed the second-to-last (data/it_stress.tsv).
+    from poesia.phonology.italian import ItalianPhonology
+
+    p = ItalianPhonology()
+    assert p.rhyme_key("sopra la tavola").consonant == "avola"
+    assert p.rhyme_key("la crescita del mondo").consonant == "ondo"
+    assert p.rhyme_key("una perdita").consonant == "erdita"
+    # Words the rule gets right, and ambiguous ones (ancora / ancóra), are not listed.
+    assert p.rhyme_key("nella sera").consonant == "era"
+    assert p.rhyme_key("e poi ancora").consonant == "ora"
