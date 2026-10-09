@@ -1,0 +1,24 @@
+{
+ "language": "it",
+ "reports": [
+  "reports/eval_2026-10/b10-cscs-8B-langrule-s0-it.json",
+  "reports/eval_2026-10/b10-cscs-8B-langrule-s3-it.json"
+ ],
+ "lines": 504,
+ "other_language": 2,
+ "sample": 150,
+ "unchanged": 128,
+ "grammar_score": 85.3,
+ "corrected_examples": [
+  "Luce diurne scintilla all'orizzonte.",
+  "Qualcuna si nasconde alla raduna.",
+  "Sulle spiagge lontane parliamo chiare.",
+  "Nella notte quieta, si posa chiosco.",
+  "Sussurri lontano, l'eco risuona.",
+  "Sulle onde lontano, il cuore si appare.",
+  "Sussurra il cuore segreti vergogni.",
+  "Nel mio cammino solitario, trent.",
+  "onde profonde nel mondo si fonde.",
+  "Nel cielo veggiemmo il terreno pieno."
+ ]
+}

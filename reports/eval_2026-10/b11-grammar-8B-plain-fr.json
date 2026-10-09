@@ -1,0 +1,24 @@
+{
+ "language": "fr",
+ "reports": [
+  "reports/eval_2026-10/b10-cscs-8B-langrule-s0-fr.json",
+  "reports/eval_2026-10/b10-cscs-8B-langrule-s3-fr.json"
+ ],
+ "lines": 504,
+ "other_language": 0,
+ "sample": 150,
+ "unchanged": 125,
+ "grammar_score": 83.3,
+ "corrected_examples": [
+  "Sous le ciel noir, les âmes en s'enlacent main.",
+  "Dans l'ombre profonde, la nuit est sérieuses.",
+  "Dans le dernier jour, le sommeil s'éteint chez.",
+  "Le temps s'évapore, les rêves s'en vont peut.",
+  "Sous l'air clair, l'âme s'élève au ciel ouvert.",
+  "Sous la clarté douce, la nuit s'unit aux unes.",
+  "La lune éclaire sans fin le cher travas.",
+  "Sous le ciel immense je me consomme, laurent.",
+  "Sous le soleil, elle danse vraiment vivant.",
+  "Graceful fugaciousness in transient space."
+ ]
+}
