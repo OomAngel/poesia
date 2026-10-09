@@ -141,7 +141,9 @@ def main():
                     "LLM_BASE_URL": f"http://127.0.0.1:{port}/v1",
                     "LLM_NAME": "poesia-apertus",
                     "LLM_API_KEY": "x",
-                    "MLFLOW_TRACKING_URI": f"sqlite:///{T}/mlflow-{name}-{lang}-{seed}.db",
+                    # the benchmark reads DATABASE_URL: one database per run, so 16 runs do not race
+                    # on a fresh schema ("duplicate column name: step", 15 of 16 failed in v3)
+                    "DATABASE_URL": f"sqlite:///{T}/mlflow-{name}-{lang}-{seed}.db",
                     "MLFLOW_DISABLE_AGENT_HINT": "1",
                 }
                 out = f"{W}/results/{name}-s{seed}-{lang}.json"
