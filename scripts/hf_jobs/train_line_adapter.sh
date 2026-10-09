@@ -13,7 +13,7 @@ POESIA_REF=${POESIA_REF:?}
 DATA=${DATA:?path of the training JSONL inside RESULTS_REPO}
 ADAPTER_OUT=${ADAPTER_OUT:?where the adapter goes inside RESULTS_REPO}
 RESULTS_REPO=${RESULTS_REPO:-GrootCappuccino/poesia-experiments}
-EPOCHS=${EPOCHS:-2} LR=${LR:-1e-4} ACCUM=${ACCUM:-8}
+EPOCHS=${EPOCHS:-2} LR=${LR:-1e-4} ACCUM=${ACCUM:-8} DTYPE=${DTYPE:-bf16}  # L4: bf16 (fp16 overflows)
 W=/work; mkdir -p $W/out
 curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null && export PATH="$HOME/.local/bin:$PATH"
 uv venv -q --python 3.12 $W/venv && . $W/venv/bin/activate
@@ -29,7 +29,7 @@ hf_hub_download(repo, data, repo_type="dataset", local_dir="/work/data")
 snapshot_download("andreasmartin/apertus-v1.5-8b-text", local_dir="/work/model",
                   allow_patterns=["*.json", "*.safetensors", "*.jinja", "*.model", "*.txt"])
 PY
-MODEL=$W/model DATA=$W/data/$DATA OUT=$W/out EPOCHS=$EPOCHS LR=$LR ACCUM=$ACCUM MAXLEN=1024 python $W/worker.py
+MODEL=$W/model DATA=$W/data/$DATA OUT=$W/out EPOCHS=$EPOCHS LR=$LR ACCUM=$ACCUM DTYPE=$DTYPE MAXLEN=1024 python $W/worker.py
 python - "$RESULTS_REPO" "$ADAPTER_OUT" <<'PY'
 import sys
 from huggingface_hub import HfApi
