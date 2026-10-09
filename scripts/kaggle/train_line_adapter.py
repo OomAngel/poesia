@@ -65,6 +65,24 @@ bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_
                          bnb_4bit_compute_dtype=DT)
 model = AutoModelForCausalLM.from_pretrained(MODEL, quantization_config=bnb, dtype=DT,
                                              device_map={"": rank})
+if DT == torch.float16:
+    # Apertus' xIELU is about a*x^2 for x > 0 and overflows fp16 (max 65504): an L4 run in fp16
+    # gave NaN from step 1 (2026-10-09). Compute the activation in fp32 and feed down_proj a
+    # power-of-two scaled copy; down_proj (and its LoRA) is linear without bias, so scaling
+    # back afterwards gives the same result. T4 has no bf16, so Kaggle needs this.
+    def _scaled_mlp(mlp):
+        def forward(x):
+            h = mlp.act_fn(mlp.up_proj(x).float())
+            peak = h.detach().abs().amax().item()
+            s = 2.0 ** math.ceil(math.log2(peak / 16384.0)) if peak > 16384.0 else 1.0
+            return mlp.down_proj((h / s).to(x.dtype)) * s
+        return forward
+    patched = 0
+    for mod in model.modules():
+        if type(mod).__name__.endswith("MLP") and hasattr(mod, "act_fn") and hasattr(mod, "down_proj"):
+            mod.forward = _scaled_mlp(mod); patched += 1
+    if rank == 0:
+        print(f"fp16: {patched} MLPs compute the activation in fp32 with scaled down_proj input", flush=True)
 model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True,
                                         gradient_checkpointing_kwargs={"use_reentrant": False})
 for p in model.parameters():  # no fp32 upcast of the embeddings (3 GB, no gain)
