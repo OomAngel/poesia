@@ -30,6 +30,9 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
 MODEL, DATA, OUT = os.environ["MODEL"], os.environ["DATA"], os.environ["OUT"]
 EPOCHS, LR, ACCUM, MAXLEN = float(os.environ["EPOCHS"]), float(os.environ["LR"]), int(os.environ["ACCUM"]), int(os.environ["MAXLEN"])
+# bf16 where the GPU has it (L4, A100): Apertus overflows fp16 (NaN loss from step 1 on an L4,
+# 2026-10-09, as the f16 KL base did on 10-08). T4 (Kaggle) has no bf16: fp16 with the scaler.
+DT = torch.bfloat16 if os.environ.get("DTYPE", "fp16") == "bf16" else torch.float16
 ddp = int(os.environ.get("WORLD_SIZE", "1")) > 1
 rank = int(os.environ.get("LOCAL_RANK", "0"))
 if ddp:
@@ -59,14 +62,14 @@ if rank == 0:
     print(f"examples {len(examples)} (skipped {len(rows) - len(examples)}), train {len(train)}, eval {len(evals)}", flush=True)
 
 bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True,
-                         bnb_4bit_compute_dtype=torch.float16)
-model = AutoModelForCausalLM.from_pretrained(MODEL, quantization_config=bnb, torch_dtype=torch.float16,
+                         bnb_4bit_compute_dtype=DT)
+model = AutoModelForCausalLM.from_pretrained(MODEL, quantization_config=bnb, dtype=DT,
                                              device_map={"": rank})
 model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True,
                                         gradient_checkpointing_kwargs={"use_reentrant": False})
 for p in model.parameters():  # no fp32 upcast of the embeddings (3 GB, no gain)
     if p.dtype == torch.float32 and p.ndim == 2 and p.shape[0] > 100000:
-        p.data = p.data.to(torch.float16)
+        p.data = p.data.to(DT)
 model = get_peft_model(model, LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05, bias="none", task_type="CAUSAL_LM",
                                          target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "up_proj", "down_proj"]))
 model.train()
@@ -77,11 +80,11 @@ opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=L
 mine = train[rank::world]
 steps = math.ceil(len(mine) * EPOCHS / ACCUM)
 sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min(1.0, (s + 1) / 20) * max(0.0, 1 - s / max(steps, 1)))
-scaler = torch.amp.GradScaler("cuda")
+scaler = torch.amp.GradScaler("cuda", enabled=DT == torch.float16)
 
 def loss_of(ids, labels):
     x = torch.tensor([ids], device=rank); y = torch.tensor([labels], device=rank)
-    with torch.autocast("cuda", dtype=torch.float16):
+    with torch.autocast("cuda", dtype=DT):
         return model(input_ids=x, labels=y).loss
 
 def evaluate():
@@ -97,6 +100,11 @@ def evaluate():
 log = {"examples": len(examples), "train": len(train), "eval": len(evals), "epochs": EPOCHS, "lr": LR,
        "accum": ACCUM, "world": world, "eval_loss": [], "train_loss": []}
 log["eval_loss"].append((0, evaluate()))
+if not math.isfinite(log["eval_loss"][0][1]):
+    raise SystemExit(f"eval loss {log['eval_loss'][0][1]} before training: numeric overflow, stopping")
+if rank == 0:
+    print(f"eval loss before training {log['eval_loss'][0][1]:.3f}", flush=True)
+bad = 0
 t0 = time.time(); step = 0; seen = 0; run = 0.0
 order = [i for _ in range(math.ceil(EPOCHS)) for i in random.Random(1).sample(range(len(mine)), len(mine))]
 order = order[: int(len(mine) * EPOCHS)]
@@ -107,7 +115,11 @@ for k, i in enumerate(order):
     if (k + 1) % ACCUM == 0 or k + 1 == len(order):
         scaler.unscale_(opt); torch.nn.utils.clip_grad_norm_(core.parameters(), 1.0)
         scaler.step(opt); scaler.update(); opt.zero_grad(set_to_none=True); sched.step(); step += 1
-        log["train_loss"].append((step, run)); run = 0.0
+        log["train_loss"].append((step, run))
+        bad = bad + 1 if not math.isfinite(run) else 0
+        if bad >= 3:
+            raise SystemExit(f"loss not finite for 3 optimiser steps (step {step}): stopping")
+        run = 0.0
         if rank == 0 and step % 10 == 0:
             print(f"step {step}/{steps} loss {log['train_loss'][-1][1]:.3f} tok/s/gpu {seen / (time.time() - t0):.0f}", flush=True)
         if step % 100 == 0 or step == steps:
