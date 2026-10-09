@@ -1,0 +1,24 @@
+{
+ "language": "es",
+ "reports": [
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/plain-s0-es.json",
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/plain-s3-es.json"
+ ],
+ "lines": 504,
+ "other_language": 2,
+ "sample": 150,
+ "unchanged": 133,
+ "grammar_score": 88.7,
+ "corrected_examples": [
+  "fluye la tarde en una burra",
+  "Cavernas guardan los susurros tiernas.",
+  "Sus velos de luna se deslizan en el suelo.",
+  "Sus hermosura en la noche se figura.",
+  "infiernos guardan los recuerdos tiernos",
+  "Sus sombras veloz en el silencio fluyen.",
+  "quiero el sueño profundo ligero",
+  "El destino eterno susurra interno.",
+  "resuena la mar en su eterna pena",
+  "inunda el alma en la noche profunda"
+ ]
+}

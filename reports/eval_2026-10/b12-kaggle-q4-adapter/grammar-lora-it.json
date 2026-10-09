@@ -1,0 +1,24 @@
+{
+ "language": "it",
+ "reports": [
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/lora-s0-it.json",
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/lora-s3-it.json"
+ ],
+ "lines": 504,
+ "other_language": 0,
+ "sample": 150,
+ "unchanged": 126,
+ "grammar_score": 84.0,
+ "corrected_examples": [
+  "Nella notte, un pensiero che azzurra.",
+  "Nel suo mistero nasconde ogni segni.",
+  "Sotto l'onda, la pace diventa alma.",
+  "Tra le foglie, il vento sussurra botte.",
+  "Tra i sogni e i pensieri, un profumo incanto.",
+  "Tra i sogni, una sete infinita prete.",
+  "Sotto il manto stellato, un canto argento.",
+  "L'onda lenta mi racconta il suo sento.",
+  "La notte sussurra con dolce forte.",
+  "Sotto il suo respiro, l'anima è ignote."
+ ]
+}

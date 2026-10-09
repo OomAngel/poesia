@@ -1,0 +1,24 @@
+{
+ "language": "fr",
+ "reports": [
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/plain-s0-fr.json",
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/plain-s3-fr.json"
+ ],
+ "lines": 504,
+ "other_language": 4,
+ "sample": 150,
+ "unchanged": 128,
+ "grammar_score": 85.3,
+ "corrected_examples": [
+  "Ainsi le monde s'éveille sous le pays.",
+  "L'horizon lointain se fond dans le ciel nouvel",
+  "Dans le ciel profond, l'âme se révèle tel.",
+  "Dans l'obscurité profonde, les urne brûlent.",
+  "Dans le temps, la peur s'enroule comme une sombre.",
+  "Sous le firmament, elle avance en présence.",
+  "Sous l'horizon, la grève murmure l'achève.",
+  "Après l'instant, l'ombre s'étire jamais fait",
+  "Dans l'urne profonde, elle rêve ses nocturnes.",
+  "Le soir s'éloigne, l'horizon s'efface voir."
+ ]
+}

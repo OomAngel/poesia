@@ -1,0 +1,24 @@
+{
+ "language": "it",
+ "reports": [
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/plain-s0-it.json",
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/plain-s3-it.json"
+ ],
+ "lines": 504,
+ "other_language": 3,
+ "sample": 150,
+ "unchanged": 132,
+ "grammar_score": 88.0,
+ "corrected_examples": [
+  "silenzio eterno lento",
+  "Oggi splende pura la moderna.",
+  "Minerva ascolta, nel silenzio eterna.",
+  "frati dimenticati nel tempo eterno",
+  "Sussurra il vento le relative.",
+  "contributi dolci del tempo antico",
+  "Rosa dolce, specchio silenziosa.",
+  "sempre in cerca del suo monteverde",
+  "Nebbia avvolge il cuore universitaria.",
+  "scomparvero i giudichi"
+ ]
+}

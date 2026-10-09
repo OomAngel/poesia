@@ -1,0 +1,24 @@
+{
+ "language": "de",
+ "reports": [
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/plain-s0-de.json",
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/plain-s3-de.json"
+ ],
+ "lines": 504,
+ "other_language": 3,
+ "sample": 150,
+ "unchanged": 101,
+ "grammar_score": 67.3,
+ "corrected_examples": [
+  "schwach umarmt mich die einsame Nacht nach",
+  "die Zeit umarmt den trunkenen Fun",
+  "bitten um die verlorene Zufrieden.",
+  "Weisse Träume schweben leise, weise.",
+  "vergleichen sich im ew'gen, stillen Reich.",
+  "Patient verdient im ew'gen Lied den Dienst.",
+  "Kümmel funkelt geheimnisvoll im Lümmel.",
+  "Sanft ruft das Meer die stillen, fernen Priestern.",
+  "Echoes of night softly beat their ten",
+  "Meine Seele schwebt in weitem, stillen Raum."
+ ]
+}
