@@ -1,0 +1,117 @@
+{
+ "date": "2026-10-09",
+ "model": "Apertus v1.5 8B, full precision, CSCS",
+ "design": "seeds 0 and 3, 6 themes x 3 samples = 36 sonnets per language and condition; same harness; only the engine changes",
+ "conditions": {
+  "A_before": "English-only Datamuse word bank in non-English prompts",
+  "B_bankfix": "word bank from the offline rhyme index (65ff850)",
+  "C_langrule": "B plus 'Write the line in <language> only, no English words.' (07cfd80)"
+ },
+ "results": {
+  "es": {
+   "A_before": {
+    "poems": 36,
+    "metre": 84.7,
+    "metre_se": 1.7,
+    "rhyme": 38.1,
+    "rhyme_se": 4.4,
+    "other_language_pct": 1.2
+   },
+   "B_bankfix": {
+    "poems": 36,
+    "metre": 82.3,
+    "metre_se": 1.7,
+    "rhyme": 68.3,
+    "rhyme_se": 3.4,
+    "other_language_pct": 0.0
+   },
+   "C_langrule": {
+    "poems": 36,
+    "metre": 81.5,
+    "metre_se": 1.7,
+    "rhyme": 74.2,
+    "rhyme_se": 2.9,
+    "other_language_pct": 0.4
+   }
+  },
+  "it": {
+   "A_before": {
+    "poems": 36,
+    "metre": 89.5,
+    "metre_se": 1.2,
+    "rhyme": 53.1,
+    "rhyme_se": 4.5,
+    "other_language_pct": 18.1
+   },
+   "B_bankfix": {
+    "poems": 36,
+    "metre": 90.9,
+    "metre_se": 1.1,
+    "rhyme": 76.2,
+    "rhyme_se": 3.3,
+    "other_language_pct": 20.0
+   },
+   "C_langrule": {
+    "poems": 36,
+    "metre": 83.5,
+    "metre_se": 1.7,
+    "rhyme": 71.0,
+    "rhyme_se": 3.4,
+    "other_language_pct": 0.4
+   }
+  },
+  "de": {
+   "A_before": {
+    "poems": 36,
+    "metre": 84.7,
+    "metre_se": 1.9,
+    "rhyme": 48.1,
+    "rhyme_se": 3.6,
+    "other_language_pct": 10.1
+   },
+   "B_bankfix": {
+    "poems": 36,
+    "metre": 82.3,
+    "metre_se": 2.1,
+    "rhyme": 76.7,
+    "rhyme_se": 2.7,
+    "other_language_pct": 1.2
+   },
+   "C_langrule": {
+    "poems": 36,
+    "metre": 81.5,
+    "metre_se": 1.8,
+    "rhyme": 73.9,
+    "rhyme_se": 2.6,
+    "other_language_pct": 0.0
+   }
+  },
+  "fr": {
+   "A_before": {
+    "poems": 36,
+    "metre": 88.1,
+    "metre_se": 1.3,
+    "rhyme": 48.1,
+    "rhyme_se": 3.0,
+    "other_language_pct": 12.9
+   },
+   "B_bankfix": {
+    "poems": 36,
+    "metre": 87.3,
+    "metre_se": 1.6,
+    "rhyme": 84.0,
+    "rhyme_se": 2.3,
+    "other_language_pct": 5.0
+   },
+   "C_langrule": {
+    "poems": 36,
+    "metre": 90.7,
+    "metre_se": 1.3,
+    "rhyme": 83.6,
+    "rhyme_se": 2.3,
+    "other_language_pct": 0.0
+   }
+  }
+ },
+ "reading": "Rhyme rose 23-36 points with the word bank fix; English lines fell to 0-0.4% with the language rule (Italian 18% -> 0.4%). Italian metre 90 -> 84: the earlier figure counted English lines with the Italian counter."
+}
