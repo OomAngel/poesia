@@ -2,8 +2,8 @@
 
 Angel, 2026-10-09: "focus on using LangSmith for my Nebius work and also for my poesia work. Plan
 that now." The Nebius half is in career-assets
-`docs/ww-transition/competitions/nebius-langsmith-plan-2026-10-09.md`. Status: **plan only**;
-nothing is built yet.
+`docs/ww-transition/competitions/nebius-langsmith-plan-2026-10-09.md`. Status: **approved by Angel 2026-10-09 ("yes to all")**, recorded in
+`docs/INFRASTRUCTURE_DECISIONS.md` §8; nothing is built yet.
 
 ## Where it fits (and what it must not replace)
 - **MLflow stays the system of record** for training and evaluation runs, metrics and the model
@@ -60,7 +60,7 @@ A new dependency there buys nothing before the 16 Oct close.
 - Monitoring alerts: check whether LangSmith's alerting is on the free plan. If not, P4 stays a
   dashboard, and Healthchecks/Telegram remains the alert path.
 
-## Recommendations needing Angel's yes
+## Decisions (Angel, 2026-10-09: "yes to all")
 1. **Masked by default** (poem text and corpus passages hidden), with your own drafts traceable per
    run on request: **yes**.
 2. **P4 before the trip:** only if it fits in about 2 hours on 15–16 Oct after the Hack Apertus
