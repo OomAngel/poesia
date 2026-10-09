@@ -127,3 +127,19 @@ deployable) goes to DVC; a new **derived** artifact is regenerated, not stored.
 
 This reverses the pre-2026-09-08 decisions in this document ("do not delete/trim
 model artifacts", "defer DVC adoption") — a deliberate, user-directed change.
+
+## 8. LangSmith: opt-in tracing and annotation (adopted 2026-10-09)
+
+Angel approved `docs/LANGSMITH_PLAN_2026-10.md` on 2026-10-09 ("yes to all").
+- **What it is:** a hosted, opt-in development tool for per-call traces of the generation loop, a
+  human annotation queue, and metadata-only monitoring of the calaveritas service. It is not
+  product infrastructure, so §4.6 and §5 are unaffected.
+- **MLflow (§7) stays the system of record** for runs, metrics and the registry. LangSmith holds
+  no metrics of record.
+- **Off by default:** behind `poesia/observability.py` (no-op unless `LANGSMITH_TRACING=true` and
+  the `.[tracing]` extra is installed). `phonology/` never imports it.
+- **Masked by default:** poem text and retrieved corpus passages are hidden. Angel's own drafts are
+  traced only by explicit per-run opt-in; corpus passages never.
+- **Calaveritas:** inputs and outputs are always hidden, which keeps the service rule "log no names
+  or poem text".
+- **Data of record:** annotation ratings are exported to DVC (poems are never in git).
