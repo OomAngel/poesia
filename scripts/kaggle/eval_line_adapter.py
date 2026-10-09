@@ -23,12 +23,17 @@ POESIA_REF = "POESIA_REF_PLACEHOLDER"
 LLAMA_CPP_REF = "f498f864f"
 LANGS = ["es", "it", "de", "fr"]
 SEEDS = [0, 3]
-W = "/kaggle/working"
+W = "/kaggle/working"  # results only: Kaggle lists every file here as output
+T = "/kaggle/tmp"  # build and model (a llama.cpp tree in W made the output listing hit rate limits)
 
 
 def sh(cmd, **kw):
+    """Run a step; on failure print the end of its output (build errors were lost to /dev/null)."""
     print("$", cmd if isinstance(cmd, str) else " ".join(cmd), flush=True)
-    subprocess.run(cmd, check=True, shell=isinstance(cmd, str), **kw)
+    r = subprocess.run(cmd, shell=isinstance(cmd, str), capture_output=True, text=True, **kw)
+    if r.returncode != 0:
+        print((r.stdout + r.stderr)[-4000:], flush=True)
+        raise SystemExit(f"step failed ({r.returncode})")
 
 
 def chat(port, prompt):
@@ -61,30 +66,36 @@ def wait_ready(port):
 
 def main():
     t0 = time.time()
+    os.makedirs(T, exist_ok=True)
+    os.environ["PATH"] = "/usr/local/cuda/bin:" + os.environ["PATH"]
+    os.environ.setdefault("CUDACXX", "/usr/local/cuda/bin/nvcc")
     sh(
-        f"git clone -q https://github.com/ggml-org/llama.cpp {W}/llama.cpp && "
-        f"git -C {W}/llama.cpp checkout -q {LLAMA_CPP_REF}"
+        "nvidia-smi --query-gpu=name,memory.total --format=csv; nvcc --version | tail -2; cmake --version | head -1"
     )
     sh(
-        f"cmake -S {W}/llama.cpp -B {W}/llama.cpp/build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=75 "
-        "-DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF > /dev/null"
+        f"git clone -q https://github.com/ggml-org/llama.cpp {T}/llama.cpp && "
+        f"git -C {T}/llama.cpp checkout -q {LLAMA_CPP_REF}"
     )
-    sh(f"cmake --build {W}/llama.cpp/build -j8 --target llama-server > /dev/null")
+    sh(
+        f"cmake -S {T}/llama.cpp -B {T}/llama.cpp/build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=75 "
+        "-DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF"
+    )
+    sh(f"cmake --build {T}/llama.cpp/build -j8 --target llama-server")
     print(f"built in {time.time() - t0:.0f} s", flush=True)
     sh(
-        f"curl -fsSL https://github.com/OomAngel/poesia/archive/{POESIA_REF}.tar.gz | tar -xz -C {W}"
+        f"curl -fsSL https://github.com/OomAngel/poesia/archive/{POESIA_REF}.tar.gz | tar -xz -C {T}"
     )
-    repo = glob.glob(f"{W}/poesia-*")[0]
+    repo = glob.glob(f"{T}/poesia-*")[0]
     sh([sys.executable, "-m", "pip", "install", "-q", "-e", f"{repo}[spanish,english-scan,mlops]"])
     from huggingface_hub import hf_hub_download
 
     base = hf_hub_download(
         "Colby/apertus-v1.5-8b-text-Q4_K_M-GGUF",
         "apertus-v1.5-8b-text-q4_k_m.gguf",
-        local_dir=f"{W}/model",
+        local_dir=f"{T}/model",
     )
     lora = glob.glob("/kaggle/input/**/line-v1.gguf", recursive=True)[0]
-    server = f"{W}/llama.cpp/build/bin/llama-server"
+    server = f"{T}/llama.cpp/build/bin/llama-server"
     common = [
         "--alias",
         "poesia-apertus",
@@ -130,7 +141,7 @@ def main():
                     "LLM_BASE_URL": f"http://127.0.0.1:{port}/v1",
                     "LLM_NAME": "poesia-apertus",
                     "LLM_API_KEY": "x",
-                    "MLFLOW_TRACKING_URI": f"sqlite:///{W}/mlflow-{name}-{lang}-{seed}.db",
+                    "MLFLOW_TRACKING_URI": f"sqlite:///{T}/mlflow-{name}-{lang}-{seed}.db",
                     "MLFLOW_DISABLE_AGENT_HINT": "1",
                 }
                 out = f"{W}/results/{name}-s{seed}-{lang}.json"
