@@ -30,7 +30,8 @@ LANGS=${LANGS:-"es en it"}  # languages of the metre benchmark (de, fr since 202
 SAFETY_DATA=${SAFETY_DATA:-data/safety/safety_reflections.jsonl}  # space-separated JSONL sets
 RESULTS_REPO=${RESULTS_REPO:-GrootCappuccino/poesia-experiments}
 KLD=${KLD:-0}
-ADAPTER=${ADAPTER:-}  # a PEFT adapter folder inside RESULTS_REPO (e.g. adapters/line-v1): served with --lora
+ADAPTER=${ADAPTER:-}  # a PEFT adapter folder inside RESULTS_REPO (e.g. adapters/line-v1); QUANTS entries
+# ending in "+lora" (e.g. "Q6_K Q6_K+lora") serve the same file with it, so one job compares both
 RUN=${JOB_ID:-local-$(date +%s)}
 W=/work; OUT=$W/results/$RUN; mkdir -p "$W" "$OUT"
 log() { printf '\n[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
@@ -119,17 +120,21 @@ esac
 wait_ready() { for _ in $(seq 120); do curl -s -m3 localhost:8080/health | grep -q '"ok"' && return 0; sleep 5; done; return 1; }
 for Q in $QUANTS; do
   log "5/6 $Q: quantise, serve, test"
-  case "$Q" in
-    *~Q8_0) "$BIN/llama-quantize" --allow-requantize "$W/apertus-v1.5-8b-text-q8_0.gguf" "$W/$Q.gguf" "${Q%~Q8_0}" >/dev/null ;;
+  BASEQ=${Q%+lora}
+  SERVE_LORA=()
+  if [ "$BASEQ" != "$Q" ]; then SERVE_LORA=("${LORA_ARGS[@]}"); fi
+  if [ -f "$W/$BASEQ.gguf" ] && [ "$BASEQ" != "$Q" ]; then cp -l "$W/$BASEQ.gguf" "$W/$Q.gguf"; fi
+  [ -f "$W/$Q.gguf" ] || case "$BASEQ" in
+    *~Q8_0) "$BIN/llama-quantize" --allow-requantize "$W/apertus-v1.5-8b-text-q8_0.gguf" "$W/$Q.gguf" "${BASEQ%~Q8_0}" >/dev/null ;;
     Q8_0pub) cp "$W/apertus-v1.5-8b-text-q8_0.gguf" "$W/$Q.gguf" ;;
-    *) "$BIN/llama-quantize" "$W/f16.gguf" "$W/$Q.gguf" "$Q" >/dev/null ;;
+    *) "$BIN/llama-quantize" "$W/f16.gguf" "$W/$Q.gguf" "$BASEQ" >/dev/null ;;
   esac
   if [ "$KLD" = 1 ]; then
     "$BIN/llama-perplexity" -m "$W/$Q.gguf" -ngl 99 -c 512 --kl-divergence-base "$W/base.kld" \
       --kl-divergence > "$OUT/kld-$Q.log" 2>&1 || echo "KL divergence failed for $Q"
     tail -30 "$OUT/kld-$Q.log"
   fi
-  "$BIN/llama-server" -m "$W/$Q.gguf" "${LORA_ARGS[@]}" --alias poesia-apertus --jinja -ngl 99 -c 4096 -np 3 \
+  "$BIN/llama-server" -m "$W/$Q.gguf" "${SERVE_LORA[@]}" --alias poesia-apertus --jinja -ngl 99 -c 4096 -np 3 \
     --host 127.0.0.1 --port 8080 > "$OUT/server-$Q.log" 2>&1 &
   SERVER=$!
   wait_ready || { echo "server for $Q did not start"; tail -20 "$OUT/server-$Q.log"; kill $SERVER; continue; }
