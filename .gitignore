@@ -49,6 +49,7 @@ mlops/runs/
 # Corpora (Phase 2+ ingestion) - keep out of git by default
 data/raw/
 data/corpus/
+data/distill/  # teacher-written training lines (DVC, never git): scripts/distill_line_data.py
 # Hack Apertus corpora (docs/HACK_APERTUS_PLAN.md §7): DVC only, licences mostly unstated
 data/external/*
 !data/external/*.dvc
