@@ -309,9 +309,13 @@ def propose_lines(
         seen.add(text.lower())
         result = scan_line(text, language, form_name, index, [*lines[:index], text])
         off = abs(result["syllables"] - target) if target else 0  # free verse: no metre rank
-        ranked.append((off, result["rhymes"] is False, text, result))
-    ranked.sort(key=lambda r: (r[0], r[1]))
-    return [{"text": t, "check": res} for _, _, t, res in ranked[:n]]
+        # A line in another language comes last: Apertus slips into English in 12-22% of
+        # benchmark lines in it/de/fr (2026-10-09), and the target language's counter would
+        # happily count it.
+        wrong_language = result["other_language"] is not None
+        ranked.append((wrong_language, off, result["rhymes"] is False, text, result))
+    ranked.sort(key=lambda r: (r[0], r[1], r[2]))
+    return [{"text": t, "check": res} for _, _, _, t, res in ranked[:n]]
 
 
 def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
