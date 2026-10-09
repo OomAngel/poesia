@@ -78,7 +78,7 @@ def main():
     )
     sh(
         f"cmake -S {T}/llama.cpp -B {T}/llama.cpp/build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=75 "
-        "-DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF"
+        "-DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF -DGGML_CUDA_NO_VMM=ON"  # Kaggle has no libcuda stub to link
     )
     sh(f"cmake --build {T}/llama.cpp/build -j8 --target llama-server")
     print(f"built in {time.time() - t0:.0f} s", flush=True)
