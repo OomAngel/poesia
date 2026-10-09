@@ -30,6 +30,7 @@ LANGS=${LANGS:-"es en it"}  # languages of the metre benchmark (de, fr since 202
 SAFETY_DATA=${SAFETY_DATA:-data/safety/safety_reflections.jsonl}  # space-separated JSONL sets
 RESULTS_REPO=${RESULTS_REPO:-GrootCappuccino/poesia-experiments}
 KLD=${KLD:-0}
+ADAPTER=${ADAPTER:-}  # a PEFT adapter folder inside RESULTS_REPO (e.g. adapters/line-v1): served with --lora
 RUN=${JOB_ID:-local-$(date +%s)}
 W=/work; OUT=$W/results/$RUN; mkdir -p "$W" "$OUT"
 log() { printf '\n[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
@@ -79,6 +80,19 @@ api.upload_folder(repo_id=repo, repo_type="dataset", folder_path=out,
 print(f"uploaded ({note}) to https://huggingface.co/datasets/{repo}/tree/main/quant-eval/{run}")
 PY
 }
+LORA_ARGS=()
+if [ -n "$ADAPTER" ]; then
+  log "4a/6 adapter $ADAPTER -> GGUF LoRA"
+  python - "$RESULTS_REPO" "$ADAPTER" <<'PY'
+import sys
+from huggingface_hub import snapshot_download
+repo, path = sys.argv[1:3]
+snapshot_download(repo, repo_type="dataset", allow_patterns=[f"{path}/*"], local_dir="/work/adapter-src")
+PY
+  "$W/convenv/bin/python" "$W/llama.cpp/convert_lora_to_gguf.py" "$W/adapter-src/$ADAPTER" \
+    --base "$W/hf-text" --outtype f16 --outfile "$W/adapter.gguf" >/dev/null
+  LORA_ARGS=(--lora "$W/adapter.gguf")
+fi
 if [ "$KLD" = 1 ]; then
   log "4b/6 KL-divergence base: f16 logits on the safety texts"
   python - "$W/kld.txt" $SAFETY_DATA <<'PY'
@@ -115,7 +129,7 @@ for Q in $QUANTS; do
       --kl-divergence > "$OUT/kld-$Q.log" 2>&1 || echo "KL divergence failed for $Q"
     tail -30 "$OUT/kld-$Q.log"
   fi
-  "$BIN/llama-server" -m "$W/$Q.gguf" --alias poesia-apertus --jinja -ngl 99 -c 4096 -np 3 \
+  "$BIN/llama-server" -m "$W/$Q.gguf" "${LORA_ARGS[@]}" --alias poesia-apertus --jinja -ngl 99 -c 4096 -np 3 \
     --host 127.0.0.1 --port 8080 > "$OUT/server-$Q.log" 2>&1 &
   SERVER=$!
   wait_ready || { echo "server for $Q did not start"; tail -20 "$OUT/server-$Q.log"; kill $SERVER; continue; }
@@ -145,7 +159,7 @@ done
 
 log "6/6 upload reports to $RESULTS_REPO (private)"
 nvidia-smi --query-gpu=name,memory.total --format=csv > "$OUT/gpu.txt"
-printf 'quants=%s\npoesia=%s\nllama_cpp=%s\nseeds=%s\nlangs=%s\n' "$QUANTS" "$POESIA_REF" "$LLAMA_CPP_REF" "$SEEDS" "$LANGS" > "$OUT/run.txt"
+printf 'quants=%s\npoesia=%s\nllama_cpp=%s\nseeds=%s\nlangs=%s\nadapter=%s\n' "$QUANTS" "$POESIA_REF" "$LLAMA_CPP_REF" "$SEEDS" "$LANGS" "$ADAPTER" > "$OUT/run.txt"
 python - "$RESULTS_REPO" "$OUT" "$RUN" <<'PY'
 import sys
 from huggingface_hub import HfApi
