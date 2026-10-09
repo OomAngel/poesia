@@ -231,3 +231,21 @@ def test_with_ollama_says_how_to_install_when_none_runs(monkeypatch):
     with pytest.raises(SystemExit, match="Install the Ollama app"):
         webapp._use_local_ollama("http://127.0.0.1:9")  # discard port: nothing listens
     assert "LLM_BASE_URL" not in os.environ
+
+
+def test_proposals_in_another_language_come_last() -> None:
+    # Apertus slips into English in German, French and Italian sonnets (2026-10-09 benchmark);
+    # an English line that happens to scan must not be offered first.
+    client, _ = _client(
+        [
+            "Bright delight gleams on the silent sea",  # English, and the German counter says 10
+            "Ein stiller Zauber zieht durch jede Nacht",  # German, 10 to the last stress
+        ]
+    )
+    r = client.post(
+        "/api/propose",
+        json={"language": "de", "form": "sonett", "index": 0, "lines": [], "n": 2},
+    ).json()
+    texts = [p["text"] for p in r["proposals"]]
+    assert texts[0] == "Ein stiller Zauber zieht durch jede Nacht"
+    assert texts[-1].startswith("Bright")
