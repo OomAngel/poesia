@@ -318,6 +318,10 @@ replacement for plain Qwen3-4B where rhyme matters.
 Decided 2026-10-04: Spanish and English, mainly English; copyrighted poems in (personal
 model, never shared); Golden-Age original spelling kept; corpus versioned with DVC.
 
+Decided 2026-10-10 (Angel): any poem in the corpus may be uploaded to a private training
+dataset ("those famous ones are public knowledge"); training for the Apertus entry runs on
+Kaggle, with the `HF_TOKEN` secret attached together with Angel.
+
 Still open:
 
 - **A DVC remote both machines reach:** the new corpus is cached only on the desktop, and

@@ -49,3 +49,14 @@ def test_rhymes(a, b):
 @pytest.mark.parametrize(("a", "b"), [("Hand", "Hund"), ("Liebe", "Leben")])
 def test_non_rhymes(a, b):
     assert G.rhyme_key(f"x {a}").consonant != G.rhyme_key(f"x {b}").consonant
+
+
+@pytest.mark.parametrize(
+    ("line", "count"),
+    [
+        ("Zu Tanz und Spiel und Üppigkeiten", 8),
+        ("Im ew’gen Rhythmus trägt das Meer die Freiheit.", 10),
+    ],
+)
+def test_last_stress_on_a_heavy_suffix_only_after_a_weak_syllable(line, count):
+    assert G.scan_line(line).metrical_syllable_count == count

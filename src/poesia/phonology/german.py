@@ -124,10 +124,12 @@ class GermanPhonology:
     """Scans German verse lines (pure Python)."""
 
     def scan_line(self, line: str) -> ScanResult:
-        """``metrical_syllable_count`` runs to the last stressed syllable, as German verse
-        names its lines (a five-stress line has 10 with a masculine ending, *Herz*, and 10 plus
-        an unstressed one with a feminine ending, *Liebe*); ``stress_pattern`` has them all.
-        The line's last word always carries a stress (*zu DIR*)."""
+        """``metrical_syllable_count`` runs to the line's last metrical stress, as German verse
+        names its lines: a five-stress line has 10 with a masculine ending (*Herz*) and 10 plus a
+        weak one with a feminine ending (*Liebe*). The last stress is the final word's last full
+        vowel when an unstressed syllable separates it from the word stress (*ÜP-pig-KEI-ten*:
+        to *kei*), else the word stress (*FREI-heit*, *LIE-be*: to *frei*, *lie*). ``stress_pattern`` has
+        every syllable; the line's last word always carries a stress (*zu DIR*)."""
         words = _tokens(line)
         positions: list[Stress] = []
         for i, word in enumerate(words):
@@ -135,14 +137,23 @@ class GermanPhonology:
             if i == len(words) - 1 and len(marks) == 1:
                 marks = [Stress.PRIMARY]
             positions.extend(marks)
-        last = max(
-            (i for i, m in enumerate(positions) if m is Stress.PRIMARY), default=len(positions) - 1
-        )
+        if not positions:
+            return ScanResult(line=line, metrical_syllable_count=0, is_valid=False)
+        last_word = words[-1]
+        nuclei = _rule_nuclei(last_word)
+        weak_tail = 0
+        if len(nuclei) > 1:
+            main = _stress_index(last_word, len(nuclei))
+            full = _last_full_nucleus(last_word, nuclei)
+            # A heavy suffix takes the line's last stress only after an unstressed syllable
+            # (ÜP-pig-KEI-ten); right after the main stress it stays weak (FREI-heit).
+            end = full if full - main >= 2 else main
+            weak_tail = len(nuclei) - 1 - end
         return ScanResult(
             line=line,
-            metrical_syllable_count=last + 1 if positions else 0,
+            metrical_syllable_count=len(positions) - weak_tail,
             stress_pattern=tuple(positions),
-            is_valid=bool(positions),
+            is_valid=True,
         )
 
     def rhyme_key(self, line: str) -> RhymeKey:
