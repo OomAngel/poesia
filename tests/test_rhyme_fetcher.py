@@ -153,12 +153,12 @@ class TestFetchRhymeWords:
         with patch(
             "urllib.request.urlopen", return_value=self._mock_datamuse(["amor", "amor", "calor"])
         ):
-            result = fetch_rhyme_words("fervor", language="es")
+            result = fetch_rhyme_words("fervor", language="nl")
         assert result.count("amor") == 1
 
     def test_excludes_anchor_word(self) -> None:
         with patch("urllib.request.urlopen", return_value=self._mock_datamuse(["fervor", "amor"])):
-            result = fetch_rhyme_words("fervor", language="es")
+            result = fetch_rhyme_words("fervor", language="nl")
         assert "fervor" not in result
 
     def test_respects_max_results(self) -> None:
@@ -170,7 +170,7 @@ class TestFetchRhymeWords:
     def test_es_falls_back_to_suffix_when_datamuse_empty(self) -> None:
         with patch("urllib.request.urlopen", return_value=self._mock_datamuse([])):
             result = fetch_rhyme_words("oscura", language="es")
-        # Should have found suffix-match words from local list
+        # Offline: the word lists (and the suffix list as a fallback), never Datamuse
         assert len(result) > 0
         assert all(w.endswith("ura") for w in result)
 

@@ -2,8 +2,11 @@
 
 Sources, in priority order:
   1. `pronouncing` + CMUdict  — English only, offline, fast.
-  2. Datamuse API `rel_rhy`   — English + some Spanish, online, free.
-  3. Phonological suffix scan — Spanish fallback, offline, small built-in word list.
+  2. Datamuse API `rel_rhy`   — English only in practice (it answers other languages with
+     English words), online, free; used for English and for languages without an index.
+  3. ``poesia.phonology.rhyme_index`` — es, it, de, fr: frequency word lists checked with
+     the language's own rhyme key, offline (the same index as the page's rhyme ideas).
+  4. Phonological suffix scan — Spanish fallback, offline, small built-in word list.
 
 All network calls have a short timeout (3s) and fail silently.
 """
@@ -215,6 +218,9 @@ _ES_COMMON_WORDS: list[str] = [
 ]
 
 
+_OWN_RHYME_INDEX = ("es", "it", "de", "fr")
+
+
 def fetch_rhyme_words(
     word: str,
     language: str,
@@ -225,7 +231,8 @@ def fetch_rhyme_words(
 
     Args:
         word: The anchor word (last word of the committed rhyme-group line).
-        language: 'es', 'en', or 'nl'.
+        language: 'en' (CMUdict, then Datamuse), 'es', 'it', 'de', 'fr' (the offline word
+            lists of ``poesia.word_ideas``), or another code (Datamuse).
         max_results: Maximum candidates to return.
         timeout: Network timeout for Datamuse (seconds).
 
@@ -239,17 +246,25 @@ def fetch_rhyme_words(
         candidates = _fetch_pronouncing(word)
         if len(candidates) < 4:
             candidates += _fetch_datamuse(word, timeout=timeout)
-    else:
-        candidates = _fetch_datamuse(word, timeout=timeout)
+    elif language in _OWN_RHYME_INDEX:
+        # Datamuse is English-only: for "Zeit" it returned insight, light, delight, bright, and
+        # the word bank put them in German prompts (the 2026-10-09 benchmark's English lines,
+        # e.g. "Bright delight gleams on the silent sea"). The page's offline index has words of
+        # the poem's language, checked with the same rhyme key the page uses.
+        from poesia.phonology.rhyme_index import rhyming_words
+
+        candidates = rhyming_words(language, word)[: max_results * 3]
         if len(candidates) < 4 and language == "es":
             candidates += _fetch_suffix_match_es(word)
+    else:
+        candidates = _fetch_datamuse(word, timeout=timeout)
 
     seen: set[str] = {word.lower()}
     unique: list[str] = []
     for w in candidates:
-        w = w.strip().lower()
-        if w and w not in seen:
-            seen.add(w)
+        w = w.strip()
+        if w and w.lower() not in seen:  # compare without case, keep German nouns' capitals
+            seen.add(w.lower())
             unique.append(w)
         if len(unique) >= max_results:
             break

@@ -14,9 +14,11 @@ English words takes minutes; CMUdict's rhyme lookup is instant).
 
 from __future__ import annotations
 
-from functools import cache
-from importlib import resources
 from typing import Any
+
+from poesia.phonology.rhyme_index import by_key as _by_key
+from poesia.phonology.rhyme_index import phonology as _phonology
+from poesia.phonology.rhyme_index import rank as _rank
 
 _PUNCT = ".,;:!?¡¿«»\"'()[]—–-…“”‘’"
 
@@ -34,38 +36,6 @@ _SYLL = {
     "de": ("Silbe", "Silben"),
     "fr": ("syllabe", "syllabes"),
 }
-
-
-@cache
-def _ranked(language: str) -> list[str]:
-    text = resources.files("poesia.wordlists").joinpath(f"{language}.txt").read_text("utf-8")
-    return [w for w in text.split("\n") if w]
-
-
-@cache
-def _rank(language: str) -> dict[str, int]:
-    return {w: i for i, w in enumerate(_ranked(language))}
-
-
-@cache
-def _phonology(language: str) -> Any:
-    from poesia.webapp import _phonology as phon
-
-    return phon(language)
-
-
-@cache
-def _by_key(language: str) -> dict[str, list[str]]:
-    """Rhyme key -> words in frequency order (es, it: a few hundred ms, once)."""
-    phon = _phonology(language)
-    index: dict[str, list[str]] = {}
-    for word in _ranked(language):
-        if len(word) < 2:
-            continue
-        key = phon.rhyme_key(word).consonant
-        if key:
-            index.setdefault(key, []).append(word)
-    return index
 
 
 def last_word(line: str) -> str:
