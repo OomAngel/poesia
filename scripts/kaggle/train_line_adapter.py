@@ -190,14 +190,16 @@ if __name__ == "__main__":
     )
     with open(f"{OUT}/worker.py", "w") as fh:
         fh.write(WORKER)
+    # One pass over ~11k lines (2.8 M tokens, ~3 h on 2 x T4); fp16 with the scaled-MLP path.
     env = {
         "MODEL": model_dir,
         "DATA": data,
         "OUT": OUT,
-        "EPOCHS": "2",
+        "EPOCHS": "1",
         "LR": "1e-4",
         "ACCUM": "8",
         "MAXLEN": "1024",
+        "DTYPE": "fp16",
     }
     sh(["torchrun", "--nproc_per_node", "2", f"{OUT}/worker.py"], env)
     print(json.dumps(json.load(open(f"{OUT}/train_log.json"))["eval_loss"]), flush=True)
