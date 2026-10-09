@@ -1,0 +1,6 @@
+outs:
+- md5: a0dcc6eb6733a96def24eda473ff8096.dir
+  size: 1247514
+  nfiles: 1
+  hash: md5
+  path: distill
