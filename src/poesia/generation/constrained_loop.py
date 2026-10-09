@@ -957,6 +957,61 @@ class ConstrainedLoop:
         result.warnings = self._warnings
         return result
 
+    def propose_line(
+        self,
+        theme: str,
+        line_index: int,
+        lines: list[str],
+        n_candidates: int = 8,
+        max_repair_attempts: int = 2,
+    ) -> list[str]:
+        """Candidates for one line of a poem someone else is writing (the page's "Ideas").
+
+        The author's lines before ``line_index`` set the rhyme groups, as committed lines do in
+        ``run``; the same generation, scoring and repair then apply to this one position: the
+        best candidate is repaired for metre and rhyme (the rhyme word named, the same word
+        refused). Returns the repaired best first, then the other candidates, unrepaired.
+        """
+        self._warnings = []
+        brief = self._build_brief(theme, None, None, "standard", None)
+        tracker = RhymeTracker(self.form_spec.rhyme_scheme, self._phonology, language=self.language)
+        prior: list[str] = []
+        for i, line in enumerate(lines[:line_index]):
+            if line.strip():
+                tracker.commit(i, line)
+                prior.append(line)
+        target = self.form_spec.syllables_for_line(line_index)
+        key = tracker.target_key_for_line(line_index)
+        example = tracker.example_word_for_line(line_index)
+        scored = self._generate_line(
+            line_index,
+            theme,
+            n_candidates,
+            brief,
+            target,
+            key,
+            example,
+            tracker.candidates_for_line(line_index),
+            prior,
+        )
+        if not scored:
+            return []
+        best = self._repair_candidate(
+            scored[0],
+            scored,
+            target,
+            key,
+            prior,
+            max_repair_attempts,
+            line_index,
+            example_word=example,
+        )
+        out: list[str] = []
+        for line in ([best.line] if best else []) + [c.line for c in scored]:
+            if line not in out:
+                out.append(line)
+        return out
+
     def _build_draft_prompt(self, theme: str, tone: list[str] | None) -> str:
         """Whole-poem prompt, matched to the fine-tune's training format.
 

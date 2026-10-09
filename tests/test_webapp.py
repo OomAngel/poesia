@@ -249,3 +249,26 @@ def test_proposals_in_another_language_come_last() -> None:
     texts = [p["text"] for p in r["proposals"]]
     assert texts[0] == "Ein stiller Zauber zieht durch jede Nacht"
     assert texts[-1].startswith("Bright")
+
+
+def test_proposals_refuse_the_partners_own_word_and_rank_a_repeated_opening_last() -> None:
+    # Engine lessons (GENERATION_QUALITY_PLAN.md gap 13) and the 2026-10-09 benchmark ("Sous
+    # le" opening seven of fourteen French lines).
+    client, _ = _client(
+        [
+            "And still the sailors linger on the shore",  # ends on the partner's word
+            "The ocean whispers softly evermore",  # same opening word as line 1
+            "Where gulls are calling, ever wanting more",  # rhymes, new opening
+        ]
+    )
+    lines = [
+        "The restless waves are breaking on the shore",
+        "Above the cliffs the gulls are wheeling white",
+    ]
+    r = client.post(
+        "/api/propose",
+        json={"language": "en", "form": "sonnet_shakespearean", "index": 2, "lines": lines, "n": 3},
+    ).json()
+    texts = [p["text"] for p in r["proposals"]]
+    assert all(not t.endswith("shore") for t in texts)
+    assert texts[0].startswith("Where") and texts[-1].startswith("The ocean")

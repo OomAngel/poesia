@@ -264,6 +264,49 @@ def _view(line: str, language: str) -> list[dict[str, Any]]:
         return []
 
 
+_PUNCT_OPEN = ".,;:!?¡¿«»\"'()—–-…“”‘’„"
+
+
+def _raw_proposals(
+    llm: Any, language: str, form_name: str, index: int, lines: list[str], anchor: str, n: int
+) -> tuple[list[str], str | None]:
+    """Model candidates for one line, and the partner's rhyme word (or None)."""
+    from poesia.generation.candidate_generator import CandidateGenerator
+
+    form = _form(language, form_name)
+    partner = _partner_index(form, index)
+    example = None
+    if partner is not None and partner < len(lines) and lines[partner].split():
+        example = lines[partner].split()[-1].strip(".,;:!?¡¿«»\"'")
+    if form is None:  # free verse: no metre or rhyme to repair
+        prior = [ln for ln in lines[:index] if ln.strip()]
+        raw = CandidateGenerator(llm).generate_lines(
+            theme=anchor, language=language, n_candidates=max(n * 2, 4), prior_lines=prior
+        )
+        return raw, None
+    # The engine's own line machinery (docs/GENERATION_QUALITY_PLAN.md): 8 candidates, the
+    # best repaired for metre and rhyme with the rhyme word named, the same word refused.
+    from poesia.generation.constrained_loop import ConstrainedLoop
+
+    loop = ConstrainedLoop(language=language, form=form_name, llm=llm)
+    raw = loop.propose_line(anchor, index, lines, n_candidates=max(n * 2, 8), max_repair_attempts=2)
+    return raw, example
+
+
+def _proposal_rank(
+    text: str, result: dict[str, Any], target: int | None, openings: set[str]
+) -> tuple[bool, int, bool, bool]:
+    """Sort key: right language, metre, rhyme, a new opening word (in that order).
+
+    A line in another language comes last: Apertus slipped into English in 10-22% of benchmark
+    lines in it/de/fr (2026-10-09), and the target language's counter would happily count it.
+    The prompt asks for a new opening word, yet seven of fourteen French lines began "Sous le".
+    """
+    off = abs(result["syllables"] - target) if target else 0  # free verse: no metre rank
+    repeats_opening = text.split()[0].lower().strip(_PUNCT_OPEN) in openings
+    return (result["other_language"] is not None, off, result["rhymes"] is False, repeats_opening)
+
+
 def propose_lines(
     llm: Any,
     language: str,
@@ -275,31 +318,15 @@ def propose_lines(
     n: int = 3,
 ) -> list[dict[str, Any]]:
     """Ask the model for candidate lines and rank them by the deterministic scan."""
-    from poesia.generation.candidate_generator import CandidateGenerator
+    from poesia.word_ideas import last_word
 
-    form = _form(language, form_name)
-    phon = _phonology(language)
-    target = _target(form, index)
-    partner = _partner_index(form, index)
-    prior = [ln for ln in lines[:index] if ln.strip()]
-    rhyme_key = example = None
-    if partner is not None and partner < len(lines) and lines[partner].strip():
-        rhyme_key = phon.rhyme_key(lines[partner]).consonant or None
-        example = (
-            lines[partner].split()[-1].strip(".,;:!?¡¿«»\"'") if lines[partner].split() else None
-        )
     anchor = theme.strip() or "what the author felt"
     if reflection.strip():
         anchor += f". What the author wrote about it: {reflection.strip()[:400]}"
-    raw = CandidateGenerator(llm).generate_lines(
-        theme=anchor,
-        language=language,
-        n_candidates=max(n * 2, 4),
-        prior_lines=prior,
-        target_syllables=target,
-        target_rhyme_key=rhyme_key,
-        example_rhyme_word=example,
-    )
+    raw, example = _raw_proposals(llm, language, form_name, index, lines, anchor, n)
+    target = _target(_form(language, form_name), index)
+    prior = [ln for ln in lines[:index] if ln.strip()]
+    openings = {ln.split()[0].lower().strip(_PUNCT_OPEN) for ln in prior if ln.split()}
     seen: set[str] = set()
     ranked = []
     for cand in raw:
@@ -307,15 +334,12 @@ def propose_lines(
         if not text or text.lower() in seen or len(text.split()) < 3:
             continue
         seen.add(text.lower())
+        if example and last_word(text) == example.lower():
+            continue  # the partner's own word is not a rhyme
         result = scan_line(text, language, form_name, index, [*lines[:index], text])
-        off = abs(result["syllables"] - target) if target else 0  # free verse: no metre rank
-        # A line in another language comes last: Apertus slips into English in 12-22% of
-        # benchmark lines in it/de/fr (2026-10-09), and the target language's counter would
-        # happily count it.
-        wrong_language = result["other_language"] is not None
-        ranked.append((wrong_language, off, result["rhymes"] is False, text, result))
-    ranked.sort(key=lambda r: (r[0], r[1], r[2]))
-    return [{"text": t, "check": res} for _, _, _, t, res in ranked[:n]]
+        ranked.append((_proposal_rank(text, result, target, openings), text, result))
+    ranked.sort(key=lambda r: r[0])
+    return [{"text": t, "check": res} for _, t, res in ranked[:n]]
 
 
 def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
