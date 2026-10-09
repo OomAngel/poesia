@@ -1,0 +1,24 @@
+{
+ "language": "es",
+ "reports": [
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/lora-s0-es.json",
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/lora-s3-es.json"
+ ],
+ "lines": 504,
+ "other_language": 0,
+ "sample": 150,
+ "unchanged": 131,
+ "grammar_score": 87.3,
+ "corrected_examples": [
+  "El corazón llora en un manto de glora.",
+  "El viento guarda sueños de una palma.",
+  "Bajo su manto azul, el viento llanto.",
+  "La memoria guarda un dulce levanta.",
+  "La brisa suave, una danza levanta.",
+  "Las sombras danzan bajo la mansa huellas.",
+  "En el silencio, el alma se hace rotundo.",
+  "Sobre el sueño, su luz se hace ligero.",
+  "El mundo se adormece en calma inmundo.",
+  "Sobre el firmamento, el cielo se renzo."
+ ]
+}

@@ -1,0 +1,24 @@
+{
+ "language": "de",
+ "reports": [
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/lora-s0-de.json",
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/lora-s3-de.json"
+ ],
+ "lines": 504,
+ "other_language": 1,
+ "sample": 150,
+ "unchanged": 107,
+ "grammar_score": 71.3,
+ "corrected_examples": [
+  "Durch stille Flammen keimt ein stiller Blut.",
+  "Im sanften Glanz der Nacht erwacht das Fühle.",
+  "Die Welt erwacht im Morgen, eine Sicht.",
+  "Im stillen Echo findet jeder niemand.",
+  "Die Welt erscheint im Traum, zugleich so völlig.",
+  "In stiller Ferne wächst ein stiller Flüstern.",
+  "Sein sanftes Glühen lässt den Tag gedacht.",
+  "Im stillen Sehnen bleibt sie immer gegen.",
+  "Im ew’gen Rhythmus flüstert aller Schwanz.",
+  "Im ew’gen Rhythmus trägt das Meer die Zeit."
+ ]
+}

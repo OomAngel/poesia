@@ -1,0 +1,103 @@
+{
+ "date": "2026-10-09",
+ "where": "Kaggle 2 x T4 (notebook poesia-line-adapter-eval v4), llama.cpp f498f864f, public Colby Q4_K_M with and without adapters/line-v1 (1,160 teacher lines, QLoRA r16, 2 epochs, held-out loss 2.05 -> 1.66)",
+ "results": {
+  "es": {
+   "plain": {
+    "poems": 36,
+    "metre": 76.2,
+    "metre_se": 2.5,
+    "rhyme": 58.9,
+    "rhyme_se": 3.3,
+    "other_language_pct": 0.4,
+    "distinct_openings": 129,
+    "top_opening_share_pct": 16.9,
+    "grammar_score": 88.7
+   },
+   "lora": {
+    "poems": 36,
+    "metre": 96.4,
+    "metre_se": 0.8,
+    "rhyme": 93.1,
+    "rhyme_se": 1.7,
+    "other_language_pct": 0.0,
+    "distinct_openings": 21,
+    "top_opening_share_pct": 25.0,
+    "grammar_score": 87.3
+   }
+  },
+  "it": {
+   "plain": {
+    "poems": 36,
+    "metre": 77.0,
+    "metre_se": 1.8,
+    "rhyme": 55.9,
+    "rhyme_se": 3.3,
+    "other_language_pct": 0.6,
+    "distinct_openings": 169,
+    "top_opening_share_pct": 12.3,
+    "grammar_score": 88.0
+   },
+   "lora": {
+    "poems": 36,
+    "metre": 95.8,
+    "metre_se": 1.1,
+    "rhyme": 84.0,
+    "rhyme_se": 2.4,
+    "other_language_pct": 0.0,
+    "distinct_openings": 40,
+    "top_opening_share_pct": 39.3,
+    "grammar_score": 84.0
+   }
+  },
+  "de": {
+   "plain": {
+    "poems": 36,
+    "metre": 74.8,
+    "metre_se": 2.5,
+    "rhyme": 69.2,
+    "rhyme_se": 2.6,
+    "other_language_pct": 0.6,
+    "distinct_openings": 194,
+    "top_opening_share_pct": 11.1,
+    "grammar_score": 67.3
+   },
+   "lora": {
+    "poems": 36,
+    "metre": 99.6,
+    "metre_se": 0.3,
+    "rhyme": 81.9,
+    "rhyme_se": 2.7,
+    "other_language_pct": 0.2,
+    "distinct_openings": 23,
+    "top_opening_share_pct": 46.6,
+    "grammar_score": 71.3
+   }
+  },
+  "fr": {
+   "plain": {
+    "poems": 36,
+    "metre": 82.9,
+    "metre_se": 2.1,
+    "rhyme": 75.0,
+    "rhyme_se": 3.3,
+    "other_language_pct": 0.8,
+    "distinct_openings": 74,
+    "top_opening_share_pct": 22.2,
+    "grammar_score": 85.3
+   },
+   "lora": {
+    "poems": 36,
+    "metre": 96.2,
+    "metre_se": 0.9,
+    "rhyme": 83.3,
+    "rhyme_se": 2.2,
+    "other_language_pct": 0.2,
+    "distinct_openings": 43,
+    "top_opening_share_pct": 17.3,
+    "grammar_score": 89.3
+   }
+  }
+ },
+ "reading": "The adapter lifts metre to 96-99.6% and rhyme to 82-93% on the shipped 4-bit file, but the grammar score does not move (within +-3) and the style collapses: distinct opening words fall from 129-194 to about 21-23, one opening ('Im', 'La') starts up to 47% of lines, and rhymes are often forced with words that do not fit (Krümel, Laden, Daten). Not adopted as is."
+}

@@ -1,0 +1,24 @@
+{
+ "language": "fr",
+ "reports": [
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/lora-s0-fr.json",
+  "reports/eval_2026-10/b12-kaggle-q4-adapter/lora-s3-fr.json"
+ ],
+ "lines": 504,
+ "other_language": 1,
+ "sample": 150,
+ "unchanged": 134,
+ "grammar_score": 89.3,
+ "corrected_examples": [
+  "Dans le souffle du matin, l'air s'invite vers.",
+  "Le temps s’étire comme un dénombre infini.",
+  "La nuit enveloppe en une douce nouvelle.",
+  "Loin des rêves, elle trace un voile d'encobre.",
+  "La brume s'éveille en une douce façon.",
+  "Le temps s'écoule, lent, en murmures de gueule.",
+  "Dans le creux des rêves, elle trace un saturnes.",
+  "Elle garde dans son intérieur leur peur.",
+  "Les rêves s'enroulent en son lumineux diurne.",
+  "Le temps s'efface doucement, sans jamais lâche."
+ ]
+}
