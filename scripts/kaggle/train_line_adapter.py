@@ -42,8 +42,12 @@ rows = [json.loads(l) for l in open(DATA, encoding="utf-8") if l.strip()]
 examples = []
 for r in rows:
     msgs = r["messages"]
-    prompt_ids = tok.apply_chat_template(msgs[:-1], add_generation_prompt=True, tokenize=True)
-    full_ids = tok.apply_chat_template(msgs, tokenize=True)
+    # Render to text, then tokenise: apply_chat_template(tokenize=True) returns a BatchEncoding
+    # in transformers 5, and comparing that against ids kept 0 of 1,160 examples (2026-10-09).
+    prompt_text = tok.apply_chat_template(msgs[:-1], add_generation_prompt=True, tokenize=False)
+    full_text = tok.apply_chat_template(msgs, tokenize=False)
+    prompt_ids = tok(prompt_text, add_special_tokens=False)["input_ids"]
+    full_ids = tok(full_text, add_special_tokens=False)["input_ids"]
     if full_ids[: len(prompt_ids)] != prompt_ids or len(full_ids) > MAXLEN:
         continue  # template mismatch or too long: skip rather than train on a shifted mask
     labels = [-100] * len(prompt_ids) + full_ids[len(prompt_ids):]  # the answer and its end token
