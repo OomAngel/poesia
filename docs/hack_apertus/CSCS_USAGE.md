@@ -23,8 +23,10 @@ stopped after each batch. Cost: CSCS academic rates (ui.inference.cscs.ch/pricin
 | 2026-10-08 | Screen before/after on the held-out set, plus tuning runs | 8B | ~4,500 | ~0.6 M / 5 k | ~0.01 | **recall 92 → 125 of 271 (34% → 46%), false alarms 6 → 4 of 437**; plain death wishes 50% → 72% |
 | 2026-10-08 | Two more seed sets (6, 9) of the 8B benchmark: the full-precision reference now has 72 sonnets per language | 8B | ~19,000 (incl. late safety re-checks) | 4.05 M / 160 k | 0.05 | metre es 84.5 ± 1.2%, en 92.2 ± 0.8%, it 89.3 ± 1.0% |
 | 2026-10-08 | Probe: can the 70B mark Italian word stress (to build a stress dictionary for the scanner)? Three prompt formats, 20 words | 70B | 3 | ~1 k / 1 k | <0.001 | **no**: about half wrong with accents (*tavóla*, *perdíta*, *subító*), nearly all "piana" with capitalised syllables, nearly all "tronca" when asked the type; not used. Wiktionary's pronunciations are the source instead |
+| 2026-10-09 | Another session's batch, 09:57-10:23 (purpose not recorded in this ledger) | 8B, 70B | 10,341 | - | 0.22 | - |
+| 2026-10-09 | German and French sonnets, 36 per language per model, seeds 0 and 3 | 8B, 70B | 19,979 | 4.4 M / 261 k | 0.22 | metre de/fr: 8B 84.7% / 88.1%, 70B 94.8% / 85.3%; **the 8B writes English lines in 10-13% of de/fr lines at full precision (the 70B in 1-2%)**, so the leak is the model's, not the quantisation's |
 
-Running total (proxy log, 2026-10-08 evening): **59,650 requests, CHF 0.44.**
+Running total (proxy log, 2026-10-09 11:00): **89,973 requests, CHF 0.88.**
 
 ## What it changed in PoesIA
 
@@ -34,6 +36,9 @@ Running total (proxy log, 2026-10-08 evening): **59,650 requests, CHF 0.44.**
   recall (13/20 vs 19/20) and Italian metre; 6-bit recovers both (benchmark 3).
 - **Safety:** an independent, larger test set showed the screen misses most risk texts it was
   not written alongside. Being fixed with a tuning set and a fresh held-out set (below).
+- **Languages:** German and French behind the engine score in the range of Spanish and Italian,
+  and the full-precision runs showed that the 8B's habit of slipping into English is the
+  model's, not the 4-bit file's; the 70B almost never does it.
 - **Sovereign-cloud option:** the page runs against CSCS unchanged (`LLM_BASE_URL`), measured
   at 0.73 s per suggestion; the report offers it as a deployment option for public bodies.
 

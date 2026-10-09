@@ -1,0 +1,71 @@
+{
+ "date": "2026-10-09",
+ "question": "How well does Apertus write German (Sonett, 10 syllables to the last stress) and French (alexandrines) behind the engine, and how often do lines come out in another language?",
+ "design": "seeded benchmark, 6 themes x 3 samples x seeds 0 and 3 = 36 sonnets (504 lines) per language and model; other-language rate = lines poesia.webapp.guess_language assigns to another language (flagged lines checked by eye: English)",
+ "results": {
+  "8B Q4_K_M (HF Jobs L4, job 6ac89aae)": {
+   "de": {
+    "metre": 80.4,
+    "metre_se": 1.9,
+    "rhyme": 36.1,
+    "other_language": 4.8
+   },
+   "fr": {
+    "metre": 86.1,
+    "metre_se": 2.1,
+    "rhyme": 58.0,
+    "other_language": 16.7
+   }
+  },
+  "8B Q6_K (HF Jobs L4, job 6ac89aae)": {
+   "de": {
+    "metre": 84.5,
+    "metre_se": 1.6,
+    "rhyme": 45.8,
+    "other_language": 16.9
+   },
+   "fr": {
+    "metre": 92.5,
+    "metre_se": 1.1,
+    "rhyme": 49.7,
+    "other_language": 12.5
+   }
+  },
+  "8B full precision (CSCS)": {
+   "de": {
+    "metre": 84.7,
+    "metre_se": 1.9,
+    "rhyme": 48.1,
+    "other_language": 10.1
+   },
+   "fr": {
+    "metre": 88.1,
+    "metre_se": 1.3,
+    "rhyme": 48.1,
+    "other_language": 12.9
+   }
+  },
+  "70B (CSCS)": {
+   "de": {
+    "metre": 94.8,
+    "metre_se": 0.9,
+    "rhyme": 39.4,
+    "other_language": 1.0
+   },
+   "fr": {
+    "metre": 85.3,
+    "metre_se": 2.1,
+    "rhyme": 46.3,
+    "other_language": 2.0
+   }
+  },
+  "reference 8B Q6_K other-language rate (HF job 6ac7d7f8)": {
+   "es": 1.8,
+   "en": 0.0,
+   "it": 21.6
+  }
+ },
+ "safety_60_items": "Q4_K_M and Q6_K: screen 20/20, 0/40 false alarms, every language 4/4",
+ "reading": "German and French metre is in the range of Spanish and Italian; the 8B, at any precision, writes English lines in 10-22% of it/de/fr lines (es under 2%); the 70B almost never (1-2%). Metre scores include those English lines, which the target language's counter scores. The page now ranks proposals in another language last (6e8b0d6).",
+ "files": "reports/eval_2026-10/b8-cscs-{8B,70B}-s{0,3}-{de,fr}.json; HF dataset GrootCappuccino/poesia-experiments quant-eval/6ac89aae095c5780893036c8/"
+}
