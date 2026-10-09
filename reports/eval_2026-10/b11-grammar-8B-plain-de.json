@@ -1,0 +1,24 @@
+{
+ "language": "de",
+ "reports": [
+  "reports/eval_2026-10/b10-cscs-8B-langrule-s0-de.json",
+  "reports/eval_2026-10/b10-cscs-8B-langrule-s3-de.json"
+ ],
+ "lines": 504,
+ "other_language": 0,
+ "sample": 150,
+ "unchanged": 98,
+ "grammar_score": 65.3,
+ "corrected_examples": [
+  "Erhebt im eignen Schmerz die Seele frei.",
+  "Die tiefe Nacht flüstert im dunkeln Lümmel.",
+  "Mondsehnen steigt aus träumerischer Tiefe.",
+  "Träumend flüstert Nebel über stiller Stadt.",
+  "Im Herzen tragen wir ruhmreiche Weise.",
+  "Schimmriges Licht vertraut im fernen Duft.",
+  "Im Umgang folgt sie immer noch entlang.",
+  "Im Traum beziehen Nacht und Mond sich ein.",
+  "Die Nacht versinkt in ruh'gem, stillen Lage.",
+  "Im Himmel spiegelt sich das Meer geheim."
+ ]
+}

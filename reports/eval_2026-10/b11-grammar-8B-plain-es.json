@@ -1,0 +1,24 @@
+{
+ "language": "es",
+ "reports": [
+  "reports/eval_2026-10/b10-cscs-8B-langrule-s0-es.json",
+  "reports/eval_2026-10/b10-cscs-8B-langrule-s3-es.json"
+ ],
+ "lines": 504,
+ "other_language": 2,
+ "sample": 150,
+ "unchanged": 131,
+ "grammar_score": 87.3,
+ "corrected_examples": [
+  "Almacenan sus viejos recuerdos llenan.",
+  "Susurra el viento en una tranquila grata.",
+  "el alma conserva el espectral.",
+  "La soledad me convence en clarence.",
+  "palma resuena en la noche eterna.",
+  "Pesar en la arena bajo el mirar.",
+  "Susurra un encierra en la lejana serra.",
+  "Sueñan amantes bajo cielos diamantes.",
+  "La soledad me mira en granada.",
+  "Susurra el canso, eterno y manso."
+ ]
+}
