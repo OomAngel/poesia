@@ -26,6 +26,7 @@ POESIA_REF=${POESIA_REF:?set POESIA_REF to an engine commit}
 LLAMA_CPP_REF=${LLAMA_CPP_REF:-f498f864f}  # build 11459, as the local Docker server in benchmark 3
 CUDA_ARCH=${CUDA_ARCH:-89}
 SEEDS=${SEEDS-"0 3"}  # empty: skip the metre benchmark
+LANGS=${LANGS:-"es en it"}  # languages of the metre benchmark (de, fr since 2026-10-09)
 SAFETY_DATA=${SAFETY_DATA:-data/safety/safety_reflections.jsonl}  # space-separated JSONL sets
 RESULTS_REPO=${RESULTS_REPO:-GrootCappuccino/poesia-experiments}
 KLD=${KLD:-0}
@@ -128,7 +129,7 @@ for Q in $QUANTS; do
       > /dev/null 2> >(tee "$OUT/safety-$Q-$(basename "$d" .jsonl).log" >&2)
   done
   pids=()
-  for s in $SEEDS; do for l in es en it; do
+  for s in $SEEDS; do for l in $LANGS; do
     python scripts/evaluate_adapter_mlflow.py --openai-compat --languages "$l" --samples 3 \
       --seed "$s" --out "$OUT/metre-$Q-s$s-$l.json" > "$OUT/metre-$Q-s$s-$l.log" 2>&1 & pids+=($!)
   done; done
@@ -144,7 +145,7 @@ done
 
 log "6/6 upload reports to $RESULTS_REPO (private)"
 nvidia-smi --query-gpu=name,memory.total --format=csv > "$OUT/gpu.txt"
-printf 'quants=%s\npoesia=%s\nllama_cpp=%s\nseeds=%s\n' "$QUANTS" "$POESIA_REF" "$LLAMA_CPP_REF" "$SEEDS" > "$OUT/run.txt"
+printf 'quants=%s\npoesia=%s\nllama_cpp=%s\nseeds=%s\nlangs=%s\n' "$QUANTS" "$POESIA_REF" "$LLAMA_CPP_REF" "$SEEDS" "$LANGS" > "$OUT/run.txt"
 python - "$RESULTS_REPO" "$OUT" "$RUN" <<'PY'
 import sys
 from huggingface_hub import HfApi

@@ -34,11 +34,19 @@ import mlflow
 from poesia.evaluation.poem_eval import aggregate, score_poem
 from poesia.forms.definitions import get_form
 
-FORMS = {"es": "soneto", "en": "sonnet_shakespearean", "it": "sonetto"}
+FORMS = {
+    "es": "soneto",
+    "en": "sonnet_shakespearean",
+    "it": "sonetto",
+    "de": "sonett",
+    "fr": "sonnet",
+}
 THEMES = {
     "es": ["luna", "mar", "tiempo", "noche", "soledad", "memoria"],
     "en": ["moon", "sea", "time", "night", "solitude", "memory"],
     "it": ["luna", "mare", "tempo", "notte", "solitudine", "memoria"],
+    "de": ["Mond", "Meer", "Zeit", "Nacht", "Einsamkeit", "Erinnerung"],
+    "fr": ["lune", "mer", "temps", "nuit", "solitude", "mémoire"],
 }
 
 
@@ -51,6 +59,14 @@ def _phonology(language: str):
         from poesia.phonology.italian import ItalianPhonology
 
         return ItalianPhonology()
+    if language == "de":
+        from poesia.phonology.german import GermanPhonology
+
+        return GermanPhonology()
+    if language == "fr":
+        from poesia.phonology.french import FrenchPhonology
+
+        return FrenchPhonology()
     from poesia.phonology.english import EnglishPhonology
 
     return EnglishPhonology()
@@ -212,6 +228,8 @@ if __name__ == "__main__":
     ap.add_argument("--themes-es", nargs="+", default=THEMES["es"])
     ap.add_argument("--themes-en", nargs="+", default=THEMES["en"])
     ap.add_argument("--themes-it", nargs="+", default=THEMES["it"])
+    ap.add_argument("--themes-de", nargs="+", default=THEMES["de"])
+    ap.add_argument("--themes-fr", nargs="+", default=THEMES["fr"])
     ap.add_argument("--samples", type=int, default=3, help="seeded samples per theme")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--memory-layout", default=None, choices=["default", "low_vram"])
@@ -234,7 +252,13 @@ if __name__ == "__main__":
         args.adapter,
         args.base_model,
         args.languages,
-        {"es": args.themes_es, "en": args.themes_en, "it": args.themes_it},
+        {
+            "es": args.themes_es,
+            "en": args.themes_en,
+            "it": args.themes_it,
+            "de": args.themes_de,
+            "fr": args.themes_fr,
+        },
         args.samples,
         args.seed,
         parent_run_id=args.parent_run_id or None,
