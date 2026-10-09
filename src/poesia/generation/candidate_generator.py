@@ -15,6 +15,16 @@ if TYPE_CHECKING:
     from poesia.generation.brief_builder import GenerationBrief
 
 
+_LANG_NAMES = {
+    "es": "Spanish",
+    "en": "English",
+    "nl": "Dutch",
+    "it": "Italian",
+    "de": "German",
+    "fr": "French",
+}
+
+
 class CandidateGenerator:
     """Builds prompts and requests batches of candidate lines from an LLM."""
 
@@ -105,6 +115,11 @@ class CandidateGenerator:
             "Output ONLY the single bare poetry line — no explanation, "
             "no preamble, no numbering, no quotes."
         )
+        lang_name = _LANG_NAMES.get(language, language)
+        # Italian poems on "tempo", "mare" or "luna" came back wholly in English (20% of lines,
+        # 2026-10-09 benchmark): the prompt is in English and the theme word reads as English.
+        if language != "en":
+            output_rule = f"Write the line in {lang_name} only, no English words. {output_rule}"
 
         # --- numbered prior-lines block ---------------------------------
         if prior_lines:
@@ -124,14 +139,6 @@ class CandidateGenerator:
                 f"{output_rule}"
             )
         else:
-            lang_name = {
-                "es": "Spanish",
-                "en": "English",
-                "nl": "Dutch",
-                "it": "Italian",
-                "de": "German",
-                "fr": "French",
-            }.get(language, language)
             prompt = (
                 f"You are writing a {lang_name} poem on the theme: {theme}.\n"
                 f"{prior_block}"
