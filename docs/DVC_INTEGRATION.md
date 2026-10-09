@@ -103,7 +103,7 @@ upstream `train`) would run, without executing anything.
 - MLflow results are **not** in the Docker Postgres backend (that DB only
   holds MLflow's own demo traces). They live in the local SQLite/FileStore
   at `mlruns/` on the laptop — metadata in `mlruns/mlflow.db` (71 runs, 8
-  registered models; the desktop has no `mlflow.db`), artifacts in `mlruns/<experiment_id>/<run_id>/`. A point-in-time
+  registered models; the desktop has had its own `mlflow.db` since 2026-10, 198 runs on 2026-10-09), artifacts in `mlruns/<experiment_id>/<run_id>/`. A point-in-time
   SQL dump is committed at `mlops/mlflow_metadata_dump.sql`; regenerate it
   with a SQLite dump of `mlruns/mlflow.db` (e.g. `sqlite3 mlruns/mlflow.db
   .dump` or Python's `sqlite3.Connection.iterdump()`). To also back up
