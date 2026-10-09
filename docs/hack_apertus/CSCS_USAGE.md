@@ -25,8 +25,10 @@ stopped after each batch. Cost: CSCS academic rates (ui.inference.cscs.ch/pricin
 | 2026-10-08 | Probe: can the 70B mark Italian word stress (to build a stress dictionary for the scanner)? Three prompt formats, 20 words | 70B | 3 | ~1 k / 1 k | <0.001 | **no**: about half wrong with accents (*tavóla*, *perdíta*, *subító*), nearly all "piana" with capitalised syllables, nearly all "tronca" when asked the type; not used. Wiktionary's pronunciations are the source instead |
 | 2026-10-09 | Another session's batch, 09:57-10:23 (purpose not recorded in this ledger) | 8B, 70B | 10,341 | - | 0.22 | - |
 | 2026-10-09 | German and French sonnets, 36 per language per model, seeds 0 and 3 | 8B, 70B | 19,979 | 4.4 M / 261 k | 0.22 | metre de/fr: 8B 84.7% / 88.1%, 70B 94.8% / 85.3%; **the 8B writes English lines in 10-13% of de/fr lines at full precision (the 70B in 1-2%)**, so the leak is the model's, not the quantisation's |
+| 2026-10-09 | Engine fixes measured, before/after: English-only rhyme word bank replaced, then the line prompt names the language; 36 sonnets per language, es/it/de/fr, plus a few live page proposals | 8B | 37,659 | - | 0.11 | **rhyme +23 to +36 points in all four languages; lines in English fell to 0-0.4%** (Italian 18% -> 0.4%); the leak was mostly our engine's, not the model's |
+| 2026-10-09 | Training data for a line adapter: 200 sonnets in es/it/de/fr/en written through the engine, each kept line checked by a correct-and-compare question | 70B | 57,494 | 24.6 M / 0.95 M | 1.86 | 1,160 lines kept (5.8 per poem), private Kaggle dataset; data in DVC, never git |
 
-Running total (proxy log, 2026-10-09 11:00): **89,973 requests, CHF 0.88.**
+Running total (proxy log, 2026-10-09 13:40): **223,704 requests, CHF 3.92.**
 
 ## What it changed in PoesIA
 
