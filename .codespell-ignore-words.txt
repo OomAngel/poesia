@@ -1,6 +1,7 @@
 Responde
 VAI
 abominacion
+abstracto
 affaires
 algoritmos
 alle
@@ -12,6 +13,7 @@ cristal
 ende
 fille
 flor
+hace
 hach
 indien
 indiens
