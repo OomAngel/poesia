@@ -26,9 +26,8 @@ STRONG_VOWELS = set("aeoáéóAEOÁÉÓ")
 def _count_sinalefas(words: list[str]) -> int:
     """Count sinalefas (vowel elisions) between adjacent words.
 
-    A sinalefa occurs when:
-    - Word N ends in a vowel (or vowel + consonant like 'n', 's')
-    - Word N+1 starts with a vowel (or 'h' + vowel, or 'y')
+    Fallback path only (no fonemas); ``spanish_metre`` is the measured counter. A sinalefa
+    occurs when word N ends in a vowel and word N+1 starts with a vowel, h + vowel, or is "y".
 
     Each sinalefa reduces the metrical syllable count by 1.
     """
@@ -43,21 +42,13 @@ def _count_sinalefas(words: list[str]) -> int:
         if not word1 or not word2:
             continue
 
-        # Check if word1 ends in vowel (possibly followed by n/s)
-        ends_vowel = False
-        if word1[-1] in VOWELS:
-            ends_vowel = True
-        elif len(word1) >= 2 and word1[-1] in "ns" and word1[-2] in VOWELS:
-            ends_vowel = True
-
-        # Check if word2 starts with vowel (or h+vowel, or y)
-        starts_vowel = False
-        if word2[0] in VOWELS:
-            starts_vowel = True
-        elif word2[0] == "h" and len(word2) > 1 and word2[1] in VOWELS:
-            starts_vowel = True
-        elif word2[0] == "y":
-            starts_vowel = True
+        # A final consonant (los ojos) never joins; "y" starts a vowel only as the word "y"
+        ends_vowel = word1[-1] in VOWELS
+        starts_vowel = (
+            word2[0] in VOWELS
+            or (word2[0] == "h" and len(word2) > 1 and word2[1] in VOWELS)
+            or word2 == "y"
+        )
 
         if ends_vowel and starts_vowel:
             count += 1
@@ -159,42 +150,25 @@ class SpanishPhonology:
         if not words:
             return ScanResult(line=line, metrical_syllable_count=0, is_valid=False)
 
-        # Try fonemas first (syllables + stress)
+        # Try fonemas first (syllables + stress); the count comes from spanish_metre
         Transcription = self._ensure_fonemas()
         if Transcription:
-            total_syllables = 0
-            stress_pattern: list[Stress] = []
-            for word in words:
-                clean_word = "".join(c for c in word if c.isalpha())
-                if clean_word:
-                    try:
-                        t = Transcription(clean_word)
-                        syllables = t.phonology.syllables
-                        total_syllables += len(syllables)
-                        # Check each syllable for stress marker (ˈ)
-                        for syl in syllables:
-                            if "ˈ" in syl:
-                                stress_pattern.append(Stress.PRIMARY)
-                            else:
-                                stress_pattern.append(Stress.UNSTRESSED)
-                    except Exception:
-                        # Fallback for unknown words: estimate 1 syllable per 2-3 chars
-                        est_syl = max(1, len(clean_word) // 3)
-                        total_syllables += est_syl
-                        stress_pattern.extend([Stress.UNSTRESSED] * est_syl)
+            from poesia.phonology.spanish_metre import metrical_counts
+            from poesia.phonology.spanish_metre import words as metre_words
 
-            # Apply sinalefa (vowel elision across word boundaries)
-            sinalefa_count = _count_sinalefas(words)
-            metrical_count = total_syllables - sinalefa_count
-
-            # Apply final stress adjustment (aguda +1, esdrújula -1)
-            metrical_count = _final_stress_adjustment(words, metrical_count)
-
+            # lexical stress per syllable, before synalepha (as before 2026-10-10)
+            stress_pattern = [
+                Stress.PRIMARY if "ˈ" in syl else Stress.UNSTRESSED
+                for w in metre_words(line)
+                for syl in w.syllables
+            ]
+            metrical_count, licensed = metrical_counts(line)
             return ScanResult(
                 line=line,
                 metrical_syllable_count=metrical_count,
                 stress_pattern=tuple(stress_pattern),
                 is_valid=metrical_count > 0,
+                metrical_counts=licensed,
             )
 
         # Fall back to silabeador (basic syllable counting, no stress)

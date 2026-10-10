@@ -161,6 +161,15 @@ metric, |mean − 11|, also let long and short lines cancel. So a July "syllable
 deviation and metre pass rate; read both against this floor, and re-run the check after any
 phonology change.
 
+**Counter replaced (2026-10-10, branch `quality-layer`).** `phonology/spanish_metre.py` now
+counts Spanish lines: 93.5% exact on all 100 ADSO sonnets (held-out half 93.8%, rules tuned on
+the first half), bias −0.01, and the gold count lies in its licensed set (synalepha/dialefa,
+syneresis/dieresis) for 99.6% of lines. Fixes: no synalepha after a final consonant ("los
+ojos"), "ya"/"yo" start with a consonant, stress from `fonemas` (−mente adverbs, final
+monosyllables), a lone "y" joins one side only, old spellings ("fué"). Every Spanish metre
+number above was measured with the old counter and is not comparable with numbers from this
+one; re-run baselines before comparing.
+
 **The champion's training data is malformed.** All 50 sonnets in
 `training_data_distilled/sonetos.jsonl` (`poetry-lora-distilled`) separate verses with the
 two characters `\n`, not newlines, so each poem trained as one long line. The baseline

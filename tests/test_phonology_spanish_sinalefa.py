@@ -44,11 +44,14 @@ class TestSinalefaDetection:
         """No sinalefa when first word ends in consonant (not n/s)."""
         assert _count_sinalefas(["sol", "alto"]) == 0
 
-    def test_sinalefa_with_n_ending(self) -> None:
-        """Words ending in -n can have sinalefa."""
-        # "hablan alto" → ha-blan-al-to → ha-blal-to (sinalefa on an+a)
-        # Actually -an ends in n preceded by vowel, so yes
-        assert _count_sinalefas(["están", "aquí"]) == 1
+    def test_no_sinalefa_after_n_or_s(self) -> None:
+        """A final consonant resyllabifies onto the next vowel; no syllable is lost.
+
+        "están aquí" is es-tá-na-quí; ADSO's gold scans "tú, a quien los ojos" with
+        "los o-" apart (the old rule, which joined them, undercounted the line).
+        """
+        assert _count_sinalefas(["están", "aquí"]) == 0
+        assert _count_sinalefas(["los", "ojos"]) == 0
 
     def test_empty_words(self) -> None:
         """Empty word list should return 0."""
