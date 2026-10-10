@@ -71,6 +71,7 @@ class ScanResult:
         rhyme_key: RhymeKey for this line's ending, or None if undetermined.
         is_valid: whether the line satisfies the target form's constraints.
         violations: human-readable list of constraint violations, empty if valid.
+        metrical_counts: counts reachable under the language's licences (may be empty).
     """
 
     line: str
@@ -80,3 +81,7 @@ class ScanResult:
     rhyme_key: RhymeKey | None = None
     is_valid: bool = False
     violations: list[str] = field(default_factory=list)
+    # every count the language's licences allow (Spanish: synalepha/dialefa, syneresis/
+    # dieresis); empty when the backend gives one count only. A form gate passes a line
+    # whose target is in this set; metrical_syllable_count is the usual reading.
+    metrical_counts: frozenset[int] = field(default_factory=frozenset)

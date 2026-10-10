@@ -35,6 +35,7 @@ def main() -> None:
 
     phon = SpanishPhonology()
     pairs: list[tuple[int, int, str]] = []
+    licensed: list[bool] = []
     for line in args.gold.open(encoding="utf-8"):
         rec = json.loads(line)
         verse_lines = [v for v in rec["completion"].split("\n") if v.strip()]
@@ -42,8 +43,9 @@ def main() -> None:
             if not met:
                 continue
             gold = len(met.replace("|", ""))
-            counted = phon.scan_line(verse).metrical_syllable_count
-            pairs.append((gold, counted, verse))
+            scan = phon.scan_line(verse)
+            pairs.append((gold, scan.metrical_syllable_count, verse))
+            licensed.append(not scan.metrical_counts or gold in scan.metrical_counts)
 
     n = len(pairs)
     diffs = [c - g for g, c, _ in pairs]
@@ -53,6 +55,7 @@ def main() -> None:
     print(f"exact agreement: {exact} ({exact / n:.1%})")
     print(f"off by one:      {off1} ({off1 / n:.1%})")
     print(f"off by 2+:       {n - exact - off1} ({(n - exact - off1) / n:.1%})")
+    print(f"gold count within the licensed set: {sum(licensed)} ({sum(licensed) / n:.1%})")
     print(f"mean signed error (counted - gold): {sum(diffs) / n:+.2f}")
     print(f"mean absolute error: {sum(abs(d) for d in diffs) / n:.2f}")
     print("most common (gold, counted):", Counter((g, c) for g, c, _ in pairs).most_common(6))
