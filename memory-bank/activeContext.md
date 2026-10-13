@@ -8,8 +8,9 @@ _Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
 
 - **State 2026-10-13 evening:** entry public (`OomAngel/poesia-apertus`), repinned locally to `b29a13f`
   (whole draft = secondary "starting point" link, drafted lines marked `proposal-draft`, no auto-draft on an
-  empty poem; Angel's choice "keep, not headline"); push waits for the UX journeys rerun and the PDF. Veriton
-  page (tailnet `:8443`, CSCS 8B): new image `b29a13f` built, **swap waits for Angel's go**. Submission sheet:
+  empty poem; Angel's choice "keep, not headline"), pushed with the rebuilt 6-page PDF (UX journeys rerun,
+  both pass). Veriton page (tailnet `:8443`, CSCS 8B) swapped to `b29a13f` the same evening. Open for Angel:
+  the 2-minute video, the official form (not Devpost), whether to make the safety dataset public. Submission sheet:
   `docs/hack_apertus/SUBMISSION.md` (= entry `track_2b/SUBMISSION.md`). Criteria: `docs/POETICS.md`. The
   real-poem quality plan of 10 Oct (judge against held-out corpus lines, prompt changes, v3 data, Kaggle fp32)
   has not started.

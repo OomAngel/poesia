@@ -62,7 +62,7 @@ https://github.com/OomAngel/poesia-apertus
 
 ### Technical Report (PDF)
 * **File**: `track_2b/PoesIA_Report.pdf` (or `track_2b/TeamName_Report.pdf`)
-* **Length**: Exactly 6 pages (meets the $\le 6$ page limit).
+* **Length**: 6 pages (limit: 6 without references). Build: `pandoc technical_report.md -o PoesIA_Report.pdf --pdf-engine=xelatex -V geometry:margin=0.75in -V fontsize=10pt`, then copy to `TeamName_Report.pdf`.
 * **Source**: Compiled from `track_2b/technical_report.md`.
 
 ---
@@ -147,7 +147,7 @@ make run
 6. **Safety Pause**:
    - Multilingual phrase screening + Apertus evaluation with local emergency resources.
 7. **UX Audit Verification (`ux-audit`)**:
-   - Automated end-to-end journey tests in `tests/test_webui_ux_journey.py` passing with **0 failures**.
+   - Automated end-to-end journey tests in `tests/test_webui_ux_journey.py` (engine repo) against the deployed page: an empty poem is not written for you (4 interactions, 2.9 s); stanza thoughts then a draft as a starting point (9 interactions, 20.9 s); 0 failures (2026-10-13, after the repin).
    - WCAG 2.2 AA mechanical compliance: **PASS** (0 violations).
    - Responsive design (390px, 768px, 1024px+): **PASS** (0 horizontal overflows, no iOS zoom triggers).
    - Keyboard-only navigation: **PASS**.
