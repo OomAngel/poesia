@@ -79,7 +79,11 @@ def link_poems(text: str, language: str, k: int = 3) -> list[dict[str, Any]]:
 
     if _link_index is None:
         _link_index = LinkIndex.load(os.environ.get("POESIA_LINK_INDEX", "data/linking"))
-    vec = EmbeddingClient().embed([text[:2000]])[0]
+    # A page request must not hang on an embedding server that is off (the Veriton deployment takes
+    # its embeddings from the desktop): give up after POESIA_LINK_TIMEOUT seconds, the page then says
+    # "not available". The client's own default (120 s) suits batch indexing, not a click.
+    timeout = float(os.environ.get("POESIA_LINK_TIMEOUT", "30"))
+    vec = EmbeddingClient(timeout=timeout).embed([text[:2000]])[0]
     return _link_index.nearest(vec, language, k)
 
 
