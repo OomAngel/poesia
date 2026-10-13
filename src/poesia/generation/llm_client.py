@@ -660,13 +660,15 @@ class OpenAICompatClient:
                 "OpenAI-compatible client needs LLM_BASE_URL and LLM_NAME", provider="openai_compat"
             )
 
-    def _chat(self, messages: list[dict[str, str]], temperature: float) -> str:
+    def _chat(
+        self, messages: list[dict[str, str]], temperature: float, max_tokens: int = 120
+    ) -> str:
         payload = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
             "seed": random.randrange(2**31),
-            "max_tokens": 120,
+            "max_tokens": max_tokens,
         }
         headers = {"Content-Type": "application/json", "User-Agent": "poesia/1.0"}
         if self.api_key:
@@ -694,13 +696,20 @@ class OpenAICompatClient:
         choices = res.get("choices") or [{}]
         return (choices[0].get("message", {}).get("content") or "").strip()
 
-    def generate(self, prompt: str, n: int = 1, temperature: float = 0.9) -> list[str]:
+    def generate(
+        self, prompt: str, n: int = 1, temperature: float = 0.9, max_tokens: int | None = None
+    ) -> list[str]:
         self.usage = LLMUsage()
         t0 = time.time()
         messages = [{"role": "user", "content": prompt}]
         if is_line_prompt(prompt):
             messages.insert(0, {"role": "system", "content": LINE_SYSTEM_PROMPT})
-        out = [text for _ in range(n) if (text := self._chat(messages, temperature))]
+            tokens = 120 if max_tokens is None else max_tokens
+        else:
+            tokens = 600 if max_tokens is None else max_tokens
+        out = [
+            text for _ in range(n) if (text := self._chat(messages, temperature, max_tokens=tokens))
+        ]
         self.usage.latency_ms = (time.time() - t0) * 1000
         return out
 

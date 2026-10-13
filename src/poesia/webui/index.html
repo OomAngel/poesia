@@ -101,7 +101,10 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
   .bar button { flex: 1 1 auto; }
   .status, details.why, .props, .syl { margin-left: 0; }
   main { padding-bottom: 32px; }
-}
+.stanza-thought-box { margin: 0 0 10px; }
+.stanza-thought { width: 100%; font: inherit; font-size: 0.88rem; font-style: italic; color: var(--muted); background: var(--bg); border: 1px dashed var(--line); border-radius: 6px; padding: 6px 10px; }
+.stanza-thought:focus { border-style: solid; border-color: var(--accent); color: var(--fg); outline: none; }
+.draft-actions { margin-bottom: 14px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -162,6 +165,10 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
     </section>
 
     <section id="step3" hidden>
+    <div class="draft-actions">
+      <button type="button" class="primary needsModel" id="draftAllBtn"></button>
+      <span class="note" id="draftStatus" aria-live="polite"></span>
+    </div>
     <fieldset>
       <legend id="poemLegend"></legend>
       <div id="lines"></div>
@@ -249,6 +256,10 @@ const STR = {
     changeAsk: "¿Cambiar de forma? Los versos escritos se borran (la reflexión se queda).",
     authorship: (own, all) => `${own} de ${all} versos escritos por ti`,
     footnote: "Las ideas llegan solo cuando las pides: primero palabras que riman, de una lista; versos enteros, si los quieres, de un modelo que funciona en este ordenador. Son un punto de partida: cámbialas o ignóralas. El borrador se queda en esta pestaña y desaparece al cerrarla, salvo que guardes el poema.",
+    stanzaIdeaPh: "Idea o tema para esta estrofa (opcional)…",
+    generateAll: "✨ Componer poema completo con IA",
+    generating: "Componiendo poema con IA…",
+    emptyPoemListen: "No hay versos para escuchar. Escribe o compone un poema primero.",
     linkLegend: "Poemas que se sienten así",
     linkNote: "Si quieres, lee dos o tres poemas antiguos cercanos a lo que escribiste. Son de dominio público o con licencia abierta.",
     linkBtn: "Mostrar", looking: "Buscando…", writeFirst: "Escribe algo primero.",
@@ -302,6 +313,10 @@ const STR = {
     changeAsk: "Change the form? The lines you wrote are cleared (your reflection stays).",
     authorship: (own, all) => `${own} of ${all} lines worded by you`,
     footnote: "Ideas come only when you ask: first rhyming words, from a word list; whole lines, if you want them, from a model running on this computer. They are a starting point: change them or ignore them. The draft stays in this tab and disappears when you close it, unless you keep the poem.",
+    stanzaIdeaPh: "Idea or feeling for this stanza (optional)…",
+    generateAll: "✨ Compose complete poem with AI",
+    generating: "Composing poem with AI…",
+    emptyPoemListen: "No lines to listen to. Write or compose a poem first.",
     linkLegend: "Poems that feel like this",
     linkNote: "If you like, read two or three old poems close to what you wrote. They are public domain or openly licensed.",
     linkBtn: "Show me", looking: "Looking…", writeFirst: "Write something first.",
@@ -355,6 +370,10 @@ const STR = {
     changeAsk: "Cambiare forma? I versi scritti vengono cancellati (la riflessione resta).",
     authorship: (own, all) => `${own} di ${all} versi scritti da te`,
     footnote: "Le idee arrivano solo se le chiedi: prima parole in rima, da un elenco; versi interi, se li vuoi, da un modello che gira su questo computer. Sono un punto di partenza: cambiale o ignorale. La bozza resta in questa scheda e sparisce quando la chiudi, a meno che tu non conservi la poesia.",
+    stanzaIdeaPh: "Idea o tema per questa strofa (opzionale)…",
+    generateAll: "✨ Componi poesia completa con IA",
+    generating: "Componendo poesia con IA…",
+    emptyPoemListen: "Nessun verso da ascoltare. Scrivi o componi prima una poesia.",
     linkLegend: "Poesie che si sentono così",
     linkNote: "Se vuoi, leggi due o tre poesie antiche vicine a ciò che hai scritto. Sono di pubblico dominio o con licenza aperta.",
     linkBtn: "Mostra", looking: "Cerco…", writeFirst: "Scrivi prima qualcosa.",
@@ -407,6 +426,10 @@ const STR = {
     changeAsk: "Form wechseln? Die geschriebenen Verse werden gelöscht (deine Gedanken bleiben).",
     authorship: (own, all) => `${own} von ${all} Versen von dir formuliert`,
     footnote: "Ideen kommen nur, wenn du darum bittest: zuerst Reimwörter aus einer Wortliste; ganze Verse, wenn du sie willst, von einem Modell, das auf diesem Computer läuft. Sie sind ein Ausgangspunkt: ändere sie oder lass sie weg. Der Entwurf bleibt in diesem Tab und verschwindet, wenn du ihn schließt, außer du behältst das Gedicht.",
+    stanzaIdeaPh: "Idee oder Thema für diese Strophe (optional)…",
+    generateAll: "✨ Komplettes Gedicht mit KI verfassen",
+    generating: "Gedicht wird verfasst…",
+    emptyPoemListen: "Keine Verse zum Anhören. Schreibe oder verfasse zuerst ein Gedicht.",
     linkLegend: "Gedichte, die sich so anfühlen",
     linkNote: "Wenn du magst, lies zwei oder drei alte Gedichte, die dem nahe sind, was du geschrieben hast. Sie sind gemeinfrei oder offen lizenziert.",
     linkBtn: "Zeigen", looking: "Ich suche…", writeFirst: "Schreib zuerst etwas.",
@@ -459,6 +482,10 @@ const STR = {
     changeAsk: "Changer de forme ? Les vers écrits seront effacés (ta réflexion reste).",
     authorship: (own, all) => `${own} vers sur ${all} formulés par toi`,
     footnote: "Les idées n'arrivent que si tu les demandes : d'abord des mots qui riment, tirés d'une liste ; des vers entiers, si tu les veux, d'un modèle qui tourne sur cet ordinateur. Ce sont des points de départ : change-les ou ignore-les. Le brouillon reste dans cet onglet et disparaît quand tu le fermes, sauf si tu gardes le poème.",
+    stanzaIdeaPh: "Idée ou thème pour cette strophe (optionnel)…",
+    generateAll: "✨ Composer le poème complet avec l'IA",
+    generating: "Composition du poème avec l'IA…",
+    emptyPoemListen: "Aucun vers à écouter. Écrivez ou composez d'abord un poème.",
     linkLegend: "Des poèmes qui ressemblent à ce que tu ressens",
     linkNote: "Si tu veux, lis deux ou trois poèmes anciens proches de ce que tu as écrit. Ils sont du domaine public ou sous licence ouverte.",
     linkBtn: "Montrer", looking: "Je cherche…", writeFirst: "Écris d'abord quelque chose.",
@@ -475,13 +502,13 @@ const STR = {
 };
 
 let forms = [];
-let state = { lang: "", formKey: "", theme: "", reflection: "", lines: [], step: 1 };
+let state = { lang: "", formKey: "", theme: "", reflection: "", stanzaThoughts: [], lines: [], step: 1 };
 const RHYME_COLOURS = ["#c0392b", "#2471a3", "#1e8449", "#b9770e", "#7d3c98", "#117a65", "#a04000"];
 // each line: { text, origin: "human"|"proposal-accepted"|"proposal-edited", proposal: "" }
 const T = () => STR[state.lang] || STR.en;
 
 function save() { try { sessionStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
-function load() { try { const s = JSON.parse(sessionStorage.getItem(STORE) || "null"); if (s) state = s; } catch (e) {} }
+function load() { try { const s = JSON.parse(sessionStorage.getItem(STORE) || "null"); if (s) { state = s; state.stanzaThoughts = state.stanzaThoughts || []; } } catch (e) {} }
 function langForms() { return forms.filter(f => f.language === state.lang); }
 function currentForm() { return forms.find(f => f.language + ":" + f.form === state.formKey) || langForms()[0]; }
 function texts() { return state.lines.map(l => l.text); }
@@ -519,6 +546,7 @@ function applyText() {
   $("keep").textContent = t.keepJson;
   $("theme").placeholder = t.themePh;
   $("listenLegend").textContent = t.listenLegend;
+  if ($("draftAllBtn")) $("draftAllBtn").textContent = t.generateAll;
   document.querySelectorAll("[data-step]").forEach(b => { b.textContent = `${b.dataset.step}. ${t.steps[b.dataset.step - 1]}`; });
   document.querySelectorAll("[data-goto]").forEach(b => { b.textContent = `${t.next}: ${t.steps[b.dataset.goto - 1]} →`; });
 }
@@ -561,8 +589,49 @@ function showStep(n) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+async function composeFullPoem() {
+  const f = currentForm(), t = T(), btn = $("draftAllBtn"), status = $("draftStatus");
+  if (!btn) return;
+  btn.disabled = true;
+  if (status) status.textContent = t.generating;
+  try {
+    const r = await api("/api/draft", {
+      language: f.language,
+      form: f.form,
+      theme: state.theme,
+      reflection: state.reflection,
+      stanza_thoughts: state.stanzaThoughts || [],
+      lines: texts(),
+    });
+    if (r.lines && r.lines.length) {
+      r.lines.forEach((item, idx) => {
+        if (idx < state.lines.length) {
+          state.lines[idx].text = item.text;
+          state.lines[idx].proposal = item.text;
+          state.lines[idx].origin = "proposal-accepted";
+        }
+      });
+      save();
+      renderLines();
+      state.lines.forEach((_, idx) => check(idx));
+      authorship();
+    }
+    if (status) status.textContent = "";
+  } catch (e) {
+    if (status) status.textContent = e.message;
+  } finally {
+    btn.disabled = !modelsReady;
+  }
+}
+
 async function goTo(n) {
   if (state.step === 1 && n > 1 && await screenText(state.reflection)) return;  // pause before shaping
+  if (state.step === 3 && n === 4) {
+    const hasAnyLines = state.lines.some(l => l.text && l.text.trim());
+    if (!hasAnyLines) {
+      await composeFullPoem();
+    }
+  }
   showStep(n);
 }
 
@@ -602,18 +671,33 @@ function renderLines(append = false) {
   $("addLine").hidden = !f.free;
   const box = $("lines"); if (!append) box.innerHTML = "";
   let stanzaBox = null, stanzaIdx = -1;
-  // Stanza by stanza: the next stanza appears once the one before it has a line.
-  let shown = 0;
-  if (f.free || !f.stanzas.length) shown = state.lines.length;
-  else for (let k = 0; k < state.lines.length; k++) {
-    const st = stanzaOf(f, k);
-    if (st === 0 || state.lines.some((l, j) => stanzaOf(f, j) === st - 1 && l.text.trim())) shown = k + 1; else break;
-  }
+  let shown = state.lines.length;
   const letters = [...new Set((f.scheme || "").split("").filter(c => /[A-Z]/.test(c)))];
   state.lines.forEach((ln, i) => {
     if (i >= shown || (append && $("in" + i))) return;
     const s = stanzaOf(f, i);
-    if (s !== stanzaIdx || !stanzaBox) { stanzaBox = document.createElement("div"); stanzaBox.className = "stanza"; box.appendChild(stanzaBox); stanzaIdx = s; }
+    if (s !== stanzaIdx || !stanzaBox) {
+      stanzaBox = document.createElement("div");
+      stanzaBox.className = "stanza";
+      box.appendChild(stanzaBox);
+      stanzaIdx = s;
+      if (f.stanzas && f.stanzas.length > 1) {
+        const tBox = document.createElement("div");
+        tBox.className = "stanza-thought-box";
+        const tInp = document.createElement("input");
+        tInp.type = "text";
+        tInp.className = "stanza-thought";
+        tInp.placeholder = `${t.stanzaIdeaPh} (${s + 1}/${f.stanzas.length})`;
+        tInp.value = (state.stanzaThoughts && state.stanzaThoughts[s]) || "";
+        tInp.addEventListener("input", () => {
+          if (!state.stanzaThoughts) state.stanzaThoughts = [];
+          state.stanzaThoughts[s] = tInp.value;
+          save();
+        });
+        tBox.appendChild(tInp);
+        stanzaBox.appendChild(tBox);
+      }
+    }
     const div = document.createElement("div"); div.className = "line";
     const target = f.syllables[i];
     div.innerHTML = `
@@ -844,7 +928,7 @@ let player = null;
 async function listen() {
   const f = currentForm(), t = T(), btn = $("listen");
   const text = state.lines.map(l => l.text.trim()).filter(Boolean).join("\n");
-  if (!text) return;
+  if (!text) { alert(t.emptyPoemListen); return; }
   if (player && !player.paused) { player.pause(); btn.textContent = t.listen; return; }
   btn.disabled = true;
   try {
@@ -979,6 +1063,7 @@ async function init() {
   $("listen").addEventListener("click", listen);
   $("linkBtn").addEventListener("click", showLinks);
   $("addLine").addEventListener("click", addLine);
+  if ($("draftAllBtn")) $("draftAllBtn").addEventListener("click", composeFullPoem);
   document.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => goTo(Number(b.dataset.step))));
   document.querySelectorAll("[data-goto]").forEach(b => b.addEventListener("click", () => goTo(Number(b.dataset.goto))));
   $("clear").addEventListener("click", () => { if (confirm(T().clearAsk)) {
