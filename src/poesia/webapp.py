@@ -343,6 +343,90 @@ def propose_lines(
     return [{"text": t, "check": res} for _, t, res in ranked[:n]]
 
 
+def _build_draft_prompt_es(
+    form_name: str,
+    total_lines: int,
+    theme: str,
+    reflection: str,
+    stanza_thoughts: list[str] | None,
+) -> list[str]:
+    prompt_lines = []
+    if form_name == "soneto":
+        prompt_lines.extend(
+            [
+                "Escribe un soneto clásico en español (14 versos endecasílabos).",
+                "Esquema de rima consonante: ABBA ABBA CDC DCD.",
+            ]
+        )
+    elif form_name == "haiku":
+        prompt_lines.append("Escribe un haiku en español (3 versos de 5, 7 y 5 sílabas).")
+    else:
+        prompt_lines.append(f"Escribe un poema en verso libre en español ({total_lines} versos).")
+    if theme.strip():
+        prompt_lines.append(f"Tema: {theme.strip()}.")
+    if reflection.strip():
+        prompt_lines.append(f"Sentimiento o reflexión general: {reflection.strip()[:400]}.")
+    if stanza_thoughts:
+        thoughts = [
+            f"Estrofa {i + 1}: {th.strip()}"
+            for i, th in enumerate(stanza_thoughts)
+            if th and th.strip()
+        ]
+        if thoughts:
+            prompt_lines.append("Ideas por estrofa:")
+            prompt_lines.extend(thoughts)
+    num_template = "\n".join(f"{i + 1}." for i in range(total_lines))
+    prompt_lines.extend(
+        [
+            f"Escribe obligatoriamente los {total_lines} versos numerados del 1 al {total_lines} sin saltarte ninguno:\n{num_template}",
+            f"Devuelve los {total_lines} versos numerados del 1 al {total_lines}:",
+        ]
+    )
+    return prompt_lines
+
+
+def _build_draft_prompt_other(
+    language: str,
+    form_name: str,
+    total_lines: int,
+    form: Any,
+    theme: str,
+    reflection: str,
+    stanza_thoughts: list[str] | None,
+) -> list[str]:
+    lang_names = {
+        "en": "inglés",
+        "it": "italiano",
+        "de": "alemán",
+        "fr": "francés",
+    }
+    lang_name = lang_names.get(language, language)
+    prompt_lines = [f"Write a {form_name} poem in {lang_name} ({total_lines} lines)."]
+    if form and form.rhyme_scheme:
+        prompt_lines.append(f"Rhyme scheme: {form.rhyme_scheme}.")
+    if theme.strip():
+        prompt_lines.append(f"Theme: {theme.strip()}.")
+    if reflection.strip():
+        prompt_lines.append(f"Reflection: {reflection.strip()[:400]}.")
+    if stanza_thoughts:
+        thoughts = [
+            f"Stanza {i + 1}: {th.strip()}"
+            for i, th in enumerate(stanza_thoughts)
+            if th and th.strip()
+        ]
+        if thoughts:
+            prompt_lines.append("Ideas per stanza:")
+            prompt_lines.extend(thoughts)
+    num_template = "\n".join(f"{i + 1}." for i in range(total_lines))
+    prompt_lines.extend(
+        [
+            f"Write all {total_lines} lines numbered from 1 to {total_lines}:\n{num_template}",
+            f"Output ONLY the {total_lines} lines numbered 1 to {total_lines}:",
+        ]
+    )
+    return prompt_lines
+
+
 def _build_draft_prompt(
     language: str,
     form_name: str,
@@ -352,69 +436,13 @@ def _build_draft_prompt(
     reflection: str,
     stanza_thoughts: list[str] | None,
 ) -> str:
-    lang_names = {
-        "es": "español",
-        "en": "inglés",
-        "it": "italiano",
-        "de": "alemán",
-        "fr": "francés",
-    }
-    lang_name = lang_names.get(language, language)
-    prompt_lines = []
     if language == "es":
-        if form_name == "soneto":
-            prompt_lines.extend(
-                [
-                    "Escribe un soneto clásico en español (14 versos endecasílabos).",
-                    "Esquema de rima consonante: ABBA ABBA CDC DCD.",
-                ]
-            )
-        elif form_name == "haiku":
-            prompt_lines.append("Escribe un haiku en español (3 versos de 5, 7 y 5 sílabas).")
-        else:
-            prompt_lines.append(
-                f"Escribe un poema en verso libre en español ({total_lines} versos)."
-            )
-        if theme.strip():
-            prompt_lines.append(f"Tema: {theme.strip()}.")
-        if reflection.strip():
-            prompt_lines.append(f"Sentimiento o reflexión general: {reflection.strip()[:400]}.")
-        if stanza_thoughts:
-            thoughts = [
-                f"Estrofa {i + 1}: {th.strip()}"
-                for i, th in enumerate(stanza_thoughts)
-                if th and th.strip()
-            ]
-            if thoughts:
-                prompt_lines.append("Ideas por estrofa:")
-                prompt_lines.extend(thoughts)
-        prompt_lines.extend(
-            [
-                f"Escribe exactamente {total_lines} versos.",
-                "Devuelve ÚNICAMENTE los versos del poema, sin títulos, notas, números ni comentarios.",
-            ]
-        )
+        lines = _build_draft_prompt_es(form_name, total_lines, theme, reflection, stanza_thoughts)
     else:
-        prompt_lines.append(f"Write a {form_name} poem in {lang_name} ({total_lines} lines).")
-        if form and form.rhyme_scheme:
-            prompt_lines.append(f"Rhyme scheme: {form.rhyme_scheme}.")
-        if theme.strip():
-            prompt_lines.append(f"Theme: {theme.strip()}.")
-        if reflection.strip():
-            prompt_lines.append(f"Reflection: {reflection.strip()[:400]}.")
-        if stanza_thoughts:
-            thoughts = [
-                f"Stanza {i + 1}: {th.strip()}"
-                for i, th in enumerate(stanza_thoughts)
-                if th and th.strip()
-            ]
-            if thoughts:
-                prompt_lines.append("Ideas per stanza:")
-                prompt_lines.extend(thoughts)
-        prompt_lines.append(
-            f"Output ONLY the {total_lines} lines of the poem, with no title, numbers, or explanation."
+        lines = _build_draft_prompt_other(
+            language, form_name, total_lines, form, theme, reflection, stanza_thoughts
         )
-    return "\n".join(prompt_lines)
+    return "\n".join(lines)
 
 
 def _clean_draft_lines(text: str, total_lines: int, existing_lines: list[str] | None) -> list[str]:
@@ -462,6 +490,21 @@ def draft_poem(
     clean_lines = _clean_draft_lines(
         raw_output[0] if raw_output else "", total_lines, existing_lines
     )
+
+    for i in range(total_lines):
+        if not clean_lines[i] or not clean_lines[i].strip():
+            try:
+                single_prompt = (
+                    f"Escribe un verso poético en {language} para la línea {i + 1} sobre '{theme or 'el verso'}'. "
+                    "Devuelve únicamente el verso sin comillas ni títulos:"
+                )
+                cand = llm.generate(single_prompt, n=1, temperature=0.7)
+                if cand and cand[0].strip():
+                    clean_lines[i] = re.sub(
+                        r"^\s*(\d+[\.\)]\s*|[-*•]\s*)", "", cand[0].strip().strip("\"'«»")
+                    ).strip()
+            except Exception:
+                pass
 
     result = []
     lines_accum = []

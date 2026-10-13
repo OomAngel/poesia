@@ -1028,11 +1028,13 @@ function keep() {
   download(`${fileBase()}.json`, new Blob([JSON.stringify(poem, null, 2)], { type: "application/json" }));
 }
 
-function chooseLang(lang) {
+let formsPromise = null;
+async function chooseLang(lang) {
   if (state.lang && state.lang !== lang && state.lines.some(l => l.text.trim()) && !confirm(T().changeAsk)) return;
   if (state.lang !== lang) { state.lines = []; state.formKey = ""; }
   state.lang = lang;
-  if (!state.formKey) { const first = langForms()[0]; state.formKey = first.language + ":" + first.form; }
+  if (!forms || !forms.length) await formsPromise;
+  if (!state.formKey) { const first = langForms()[0]; state.formKey = first ? first.language + ":" + first.form : ""; }
   save(); showWriter();
 }
 
@@ -1043,7 +1045,7 @@ function showWriter() {
 
 async function init() {
   load();
-  forms = await (await fetch("/api/forms")).json();
+  formsPromise = fetch("/api/forms").then(r => r.json()).then(data => { forms = data; return data; });
   document.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => chooseLang(b.dataset.lang)));
   $("changeLang").addEventListener("click", () => {
     $("langStep").hidden = false; $("writer").hidden = true; $("changeLang").hidden = true;
