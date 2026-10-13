@@ -238,7 +238,7 @@ _UI: dict[str, dict[str, str]] = {
         "tip_over": "Para perder una sílaba: deja que dos vocales vecinas se unan en sinalefa ('la aurora' son 3 sílabas), o usa una palabra más corta.",
     },
     "it": {
-        "empty": "Verso vuoto: scrivi qualcosa prima.",
+        "empty": "Verso vuoto: scrivi prima qualcosa.",
         "exact": "Esatto: {a} sillabe, la misura del verso.",
         "short": "{missing}: questo verso ne ha {a}; la misura è {t}.",
         "over": "{extra}: questo verso ne ha {a}; la misura è {t}.",
@@ -246,11 +246,11 @@ _UI: dict[str, dict[str, str]] = {
         "tip_over": "Per perdere una sillaba: lascia che una vocale finale e una iniziale si fondano (sinalefe: 'selvaggia e aspra'), elidi ('lo amore' → \"l'amore\") o tronca ('amore' → 'amor').",
     },
     "de": {
-        "empty": "Leerer Vers: schreib zuerst etwas.",
+        "empty": "Leerer Vers: Schreib zuerst etwas.",
         "exact": "Genau: {a} Silben bis zur letzten Hebung, das Maß des Verses.",
-        "short": "{missing}: dieser Vers hat {a} bis zur letzten Hebung; das Maß ist {t}.",
-        "over": "{extra}: dieser Vers hat {a} bis zur letzten Hebung; das Maß ist {t}.",
-        "tip_short": "Um eine Silbe zu gewinnen: ein längeres Wort, oder eine Auslassung rückgängig machen („hab'“ → „habe“).",
+        "short": "{missing}: Dieser Vers hat {a} bis zur letzten Hebung; das Maß ist {t}.",
+        "over": "{extra}: Dieser Vers hat {a} bis zur letzten Hebung; das Maß ist {t}.",
+        "tip_short": "Um eine Silbe zu gewinnen: ein längeres Wort oder eine Auslassung rückgängig machen („hab'“ → „habe“).",
         "tip_over": "Um eine Silbe zu verlieren: ein unbetontes e auslassen („habe ich“ → „hab' ich“) oder ein kürzeres Wort wählen.",
     },
     "fr": {

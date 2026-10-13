@@ -117,7 +117,8 @@ _PATTERNS: dict[str, list[str]] = {
 _COMPILED = {lang: [re.compile(p) for p in pats] for lang, pats in _PATTERNS.items()}
 
 # Checked on the services' own sites, 2026-10-07 (www.143.ch, www.143.ch/it, www.147.ch);
-# de/fr pages (143.ch/fr, 147.ch/de, 147.ch/fr) checked reachable 2026-10-09.
+# de/fr pages (143.ch/fr, 147.ch/de, 147.ch/fr) checked reachable 2026-10-09. 147 hours from 147.ch/de
+# (2026-10-13): phone any time and free; WhatsApp daily 7.30-22.00; peer chat Mon-Thu 19.00-22.00.
 # The same facts in each page language (U9): a pause shown in Spanish must not switch to
 # English. The services answer in the Swiss national languages; 143 also has an English line.
 RESOURCES_BY_LANGUAGE: dict[str, list[dict[str, str]]] = {
@@ -132,7 +133,7 @@ RESOURCES_BY_LANGUAGE: dict[str, list[dict[str, str]]] = {
         {
             "number": "147",
             "name": "Pro Juventute, for children and young people",
-            "note": "Free and confidential, around the clock; WhatsApp and chat on 147.ch.",
+            "note": "Phone free and confidential, around the clock; WhatsApp daily 7:30–22:00, peer chat Mon–Thu 19–22 on 147.ch.",
             "url": "https://www.147.ch",
         },
         {
@@ -153,7 +154,7 @@ RESOURCES_BY_LANGUAGE: dict[str, list[dict[str, str]]] = {
         {
             "number": "147",
             "name": "Pro Juventute, para niños, niñas y jóvenes",
-            "note": "Gratuito y confidencial, a cualquier hora; WhatsApp y chat en 147.ch.",
+            "note": "Teléfono gratuito y confidencial, a cualquier hora; WhatsApp a diario 7:30–22:00, chat lu–ju 19–22 en 147.ch.",
             "url": "https://www.147.ch",
         },
         {
@@ -174,7 +175,7 @@ RESOURCES_BY_LANGUAGE: dict[str, list[dict[str, str]]] = {
         {
             "number": "147",
             "name": "Pro Juventute, per bambini e giovani",
-            "note": "Gratuito e confidenziale, 24 ore su 24; WhatsApp e chat su 147.ch.",
+            "note": "Telefono gratuito e confidenziale, 24 ore su 24; WhatsApp ogni giorno 7:30–22:00, chat lu–gio 19–22 su 147.ch.",
             "url": "https://www.147.ch/it/",
         },
         {
@@ -195,7 +196,7 @@ RESOURCES_BY_LANGUAGE: dict[str, list[dict[str, str]]] = {
         {
             "number": "147",
             "name": "Pro Juventute, für Kinder und Jugendliche",
-            "note": "Kostenlos und vertraulich, rund um die Uhr; WhatsApp und Chat auf 147.ch.",
+            "note": "Telefon kostenlos und vertraulich, rund um die Uhr; WhatsApp täglich 7.30–22.00, Chat Mo–Do 19–22 Uhr auf 147.ch.",
             "url": "https://www.147.ch/de/",
         },
         {
@@ -216,7 +217,7 @@ RESOURCES_BY_LANGUAGE: dict[str, list[dict[str, str]]] = {
         {
             "number": "147",
             "name": "Pro Juventute, pour les enfants et les jeunes",
-            "note": "Gratuit et confidentiel, 24 h sur 24 ; WhatsApp et chat sur 147.ch.",
+            "note": "Téléphone gratuit et confidentiel, 24 h sur 24 ; WhatsApp tous les jours 7 h 30–22 h, chat lun–jeu 19–22 h sur 147.ch.",
             "url": "https://www.147.ch/fr/",
         },
         {

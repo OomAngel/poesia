@@ -232,7 +232,7 @@ def scan_line(
                 f"(«{partner_line}»). Cambia la última palabra.",
                 "it": f"Rima {letter}: questo verso deve rimare con il verso {partner + 1} "
                 f"(«{partner_line}»). Cambia l'ultima parola.",
-                "de": f"Reim {letter}: dieser Vers soll sich auf Vers {partner + 1} reimen "
+                "de": f"Reim {letter}: Dieser Vers sollte sich auf Vers {partner + 1} reimen "
                 f"(„{partner_line}“). Ändere das letzte Wort.",
                 "fr": f"Rime {letter} : ce vers doit rimer avec le vers {partner + 1} "
                 f"(« {partner_line} »). Change le dernier mot.",
