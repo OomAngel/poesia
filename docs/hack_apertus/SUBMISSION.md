@@ -101,7 +101,7 @@ PoesIA uses `andreasmartin/apertus-v1.5-8b-text` in GGUF Q4_K_M quantisation ser
 - A whole-poem draft on request, as a starting point (lines marked as drafts until edited);
 - Borderline distress evaluation in the safety pause.
 
-On a seeded benchmark of 18 sonnets per language, Apertus guided by PoesIA achieves 83–85% (Spanish), 87–90% (English), and 87% (Italian) exact metrical accuracy, using about 1.7 Wh per automatic sonnet on an 8 GB consumer GPU.
+On a seeded benchmark of 18 sonnets per language, Apertus guided by PoesIA achieves 87–90% (English) and 87% (Italian) exact metrical accuracy (Spanish 50–58% by the counter corrected on 13 Oct; the first figure, 83–85%, came from a counter that miscounted), using about 1.7 Wh per automatic sonnet on an 8 GB consumer GPU.
 
 ### Sovereign & Private by Design
 No data leaves the device. All models, phonology rules, TTS voices, and embedding indexes run 100% offline. Public libraries, schools, hospitals, and cantonal institutions can deploy PoesIA without third-party cloud data exposure.
