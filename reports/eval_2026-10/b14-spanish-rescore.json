@@ -1,0 +1,200 @@
+[
+ {
+  "file": "apertus-v1.5-8b-text-ollama-nofrag.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.853,
+  "old_off": 0.28,
+  "new_metre": 0.579,
+  "new_off": 0.63
+ },
+ {
+  "file": "apertus-v1.5-8b-text-ollama-retry.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.833,
+  "old_off": 0.21,
+  "new_metre": 0.504,
+  "new_off": 0.63
+ },
+ {
+  "file": "apertus-v1.5-8b-text-ollama.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.821,
+  "old_off": 0.42,
+  "new_metre": 0.524,
+  "new_off": 0.78
+ },
+ {
+  "file": "apertus-v1.5-8b-text.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.603,
+  "old_off": 0.83,
+  "new_metre": 0.361,
+  "new_off": 1.19
+ },
+ {
+  "file": "b1-cscs-8B-s3-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.813,
+  "old_off": 0.21,
+  "new_metre": 0.548,
+  "new_off": 0.59
+ },
+ {
+  "file": "b1-cscs-apertus-v1.5-8B-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.885,
+  "old_off": 0.12,
+  "new_metre": 0.54,
+  "new_off": 0.67
+ },
+ {
+  "file": "b10-cscs-8B-langrule-s0-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.806,
+  "old_off": 0.25,
+  "new_metre": 0.484,
+  "new_off": 0.67
+ },
+ {
+  "file": "b10-cscs-8B-langrule-s3-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.825,
+  "old_off": 0.21,
+  "new_metre": 0.512,
+  "new_off": 0.62
+ },
+ {
+  "file": "b1r-cscs-8B-s0-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.881,
+  "old_off": 0.15,
+  "new_metre": 0.524,
+  "new_off": 0.74
+ },
+ {
+  "file": "b2-cscs-70B-s0-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.75,
+  "old_off": 0.29,
+  "new_metre": 0.437,
+  "new_off": 0.82
+ },
+ {
+  "file": "b2-cscs-70B-s3-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.794,
+  "old_off": 0.23,
+  "new_metre": 0.448,
+  "new_off": 0.75
+ },
+ {
+  "file": "b3-local-q4km-s3-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.877,
+  "old_off": 0.14,
+  "new_metre": 0.552,
+  "new_off": 0.6
+ },
+ {
+  "file": "b3-local-q6k-s0-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.913,
+  "old_off": 0.09,
+  "new_metre": 0.544,
+  "new_off": 0.58
+ },
+ {
+  "file": "b3-local-q6k-s3-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.877,
+  "old_off": 0.17,
+  "new_metre": 0.516,
+  "new_off": 0.63
+ },
+ {
+  "file": "b4-cscs-8B-s6-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.841,
+  "old_off": 0.17,
+  "new_metre": 0.524,
+  "new_off": 0.6
+ },
+ {
+  "file": "b4-cscs-8B-s9-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.841,
+  "old_off": 0.17,
+  "new_metre": 0.563,
+  "new_off": 0.55
+ },
+ {
+  "file": "b9-cscs-8B-bankfix-s0-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.833,
+  "old_off": 0.2,
+  "new_metre": 0.532,
+  "new_off": 0.62
+ },
+ {
+  "file": "b9-cscs-8B-bankfix-s3-es.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.813,
+  "old_off": 0.23,
+  "new_metre": 0.492,
+  "new_off": 0.65
+ },
+ {
+  "file": "baseline.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.567,
+  "old_off": 0.63,
+  "new_metre": 0.306,
+  "new_off": 1.23
+ },
+ {
+  "file": "corpus-2k-qwen3-4b-eosfix.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.706,
+  "old_off": 0.38,
+  "new_metre": 0.643,
+  "new_off": 0.44
+ },
+ {
+  "file": "p2-llamacpp-b11459.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.841,
+  "old_off": 0.17,
+  "new_metre": 0.532,
+  "new_off": 0.56
+ },
+ {
+  "file": "qwen3-4b-base.json",
+  "poems": 18,
+  "lines": 252,
+  "old_metre": 0.615,
+  "old_off": 0.52,
+  "new_metre": 0.452,
+  "new_off": 0.7
+ }
+]
