@@ -1,8 +1,10 @@
 """UX Journey audits using the ux-audit tool for PoesIA webui.
 
 Verifies end-to-end task completion and costs for:
-1. Skipping Step 3 completely (Step 3 optional -> auto-draft full 14-line sonnet -> Step 4 -> listen).
-2. Stanza thoughts per paragraph (optional inputs -> 1-click compose -> Step 4 -> listen).
+1. An empty Step 3 is not written for the person: "next" stays and says how to start
+   (POSITIONING: the person is the author; a whole draft only when asked).
+2. Stanza thoughts per paragraph (optional inputs -> draft all lines as a starting point ->
+   lines shown as drafts until edited -> Step 4 -> listen).
 """
 
 from __future__ import annotations
@@ -46,13 +48,11 @@ def step_form(page):
     page.wait_for_selector("#step3:not([hidden])")
 
 
-def step_skip_step3(page):
+def step_next_on_empty_step3(page):
     page.wait_for_selector('#step3 button[data-goto="4"]')
     page.click('#step3 button[data-goto="4"]')
-    page.wait_for_selector("#step4:not([hidden])", timeout=45000)
     page.wait_for_function(
-        '() => document.getElementById("poemView").textContent.trim().split("\\n").filter(Boolean).length >= 14',
-        timeout=45000,
+        '() => document.getElementById("draftStatus").textContent.trim().length > 0', timeout=5000
     )
 
 
@@ -72,6 +72,9 @@ def step_stanza_thoughts_and_draft(page):
     page.wait_for_function(
         '() => document.getElementById("in13").value.trim().length > 0', timeout=45000
     )
+    assert page.evaluate(
+        '() => [...document.querySelectorAll("textarea.verse")].every(t => t.classList.contains("drafted"))'
+    ), "drafted lines must be marked as drafts until edited"
 
     page.click('#step3 button[data-goto="4"]')
     page.wait_for_selector("#step4:not([hidden])", timeout=10000)
@@ -91,42 +94,34 @@ def step_listen(page):
     assert "audio/" in ctype, f"Bad content type: {ctype}"
 
 
-def test_ux_journey_skip_step_3() -> None:
-    """Verifies that Step 3 is optional: advancing directly drafts the full poem."""
+def test_ux_journey_empty_step_3_is_not_written_for_you() -> None:
+    """ "Next" on an empty poem stays on Step 3 with a note; nothing is drafted unasked."""
     journey = Journey(
-        name="Spanish sonnet skipping Step 3",
-        goal="skip step 3 completely, auto-draft full 14-verse sonnet, reach step 4, and recite via Piper TTS",
+        name="Spanish sonnet, next on an empty Step 3",
+        goal="press next with no lines: stay on step 3, see how to start, no line written",
         setup=setup_fresh,
         steps=[
             Step("select Spanish language", step_lang),
             Step("enter theme and reflection", step_theme),
             Step("choose sonnet form", step_form),
-            Step("skip step 3 directly to step 4", step_skip_step3),
-            Step("listen to recited poem", step_listen),
+            Step("press next with no lines", step_next_on_empty_step3),
         ],
         reached=lambda page: (
-            page.is_visible("#step4")
-            and len(
-                [
-                    ln
-                    for ln in page.locator("#poemView").inner_text().strip().split("\n")
-                    if ln.strip()
-                ]
-            )
-            == 14
+            page.is_visible("#step3")
+            and not page.is_visible("#step4")
+            and page.input_value("#in0") == ""
         ),
     )
     result = run_journey(journey, URL, ignore_https_errors=True)
     assert journey_failures(result) == [], f"Journey failed: {result.error}"
     assert result.reached
-    assert result.cost == 5
 
 
 def test_ux_journey_stanza_thoughts_and_draft() -> None:
     """Verifies optional thoughts per paragraph and 1-click composition."""
     journey = Journey(
         name="Spanish sonnet with stanza thoughts",
-        goal="add thoughts per paragraph, 1-click compose full poem, reach step 4, and recite via Piper TTS",
+        goal="add thoughts per paragraph, draft all lines as a starting point, reach step 4, and recite",
         setup=setup_fresh,
         steps=[
             Step("select Spanish language", step_lang),

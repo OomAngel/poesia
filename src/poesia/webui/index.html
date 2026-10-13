@@ -56,6 +56,7 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
 .prop { display: flex; gap: 8px; align-items: center; color: var(--ghost); font-style: italic; }
 .prop span { flex: 1; }
 .origin { font-size: .75rem; color: var(--ghost); }
+textarea.verse.drafted { color: var(--muted); font-style: italic; }
 .words { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .words .lead { color: var(--muted); font-size: .88rem; flex-basis: 100%; }
 .words button.word { border-radius: 999px; padding: 3px 10px; font-size: .9rem; }
@@ -166,7 +167,7 @@ details.why ul { margin: 4px 0; padding-left: 1.2em; }
 
     <section id="step3" hidden>
     <div class="draft-actions">
-      <button type="button" class="primary needsModel" id="draftAllBtn"></button>
+      <button type="button" class="link needsModel" id="draftAllBtn"></button>
       <span class="note" id="draftStatus" aria-live="polite"></span>
     </div>
     <fieldset>
@@ -257,7 +258,9 @@ const STR = {
     authorship: (own, all) => `${own} de ${all} versos escritos por ti`,
     footnote: "Las ideas llegan solo cuando las pides: primero palabras que riman, de una lista; versos enteros, si los quieres, de un modelo que funciona en este ordenador. Son un punto de partida: cámbialas o ignóralas. El borrador se queda en esta pestaña y desaparece al cerrarla, salvo que guardes el poema.",
     stanzaIdeaPh: "Idea o tema para esta estrofa (opcional)…",
-    generateAll: "✨ Componer poema completo con IA",
+    generateAll: "Borrador de todos los versos, como punto de partida",
+    drafted: "borrador: edítalo o déjalo",
+    emptyPoem: "Escribe un verso primero, o pide un borrador de todos como punto de partida.",
     generating: "Componiendo poema con IA…",
     emptyPoemListen: "No hay versos para escuchar. Escribe o compone un poema primero.",
     linkLegend: "Poemas que se sienten así",
@@ -314,7 +317,9 @@ const STR = {
     authorship: (own, all) => `${own} of ${all} lines worded by you`,
     footnote: "Ideas come only when you ask: first rhyming words, from a word list; whole lines, if you want them, from a model running on this computer. They are a starting point: change them or ignore them. The draft stays in this tab and disappears when you close it, unless you keep the poem.",
     stanzaIdeaPh: "Idea or feeling for this stanza (optional)…",
-    generateAll: "✨ Compose complete poem with AI",
+    generateAll: "Draft all lines as a starting point",
+    drafted: "draft: edit it or keep it",
+    emptyPoem: "Write a line first, or ask for a draft of all lines as a starting point.",
     generating: "Composing poem with AI…",
     emptyPoemListen: "No lines to listen to. Write or compose a poem first.",
     linkLegend: "Poems that feel like this",
@@ -371,7 +376,9 @@ const STR = {
     authorship: (own, all) => `${own} di ${all} versi scritti da te`,
     footnote: "Le idee arrivano solo se le chiedi: prima parole in rima, da un elenco; versi interi, se li vuoi, da un modello che gira su questo computer. Sono un punto di partenza: cambiale o ignorale. La bozza resta in questa scheda e sparisce quando la chiudi, a meno che tu non conservi la poesia.",
     stanzaIdeaPh: "Idea o tema per questa strofa (opzionale)…",
-    generateAll: "✨ Componi poesia completa con IA",
+    generateAll: "Bozza di tutti i versi, come punto di partenza",
+    drafted: "bozza: modificala o tienila",
+    emptyPoem: "Scrivi prima un verso, o chiedi una bozza di tutti i versi come punto di partenza.",
     generating: "Componendo poesia con IA…",
     emptyPoemListen: "Nessun verso da ascoltare. Scrivi o componi prima una poesia.",
     linkLegend: "Poesie che si sentono così",
@@ -427,7 +434,9 @@ const STR = {
     authorship: (own, all) => `${own} von ${all} Versen von dir formuliert`,
     footnote: "Ideen kommen nur, wenn du darum bittest: zuerst Reimwörter aus einer Wortliste; ganze Verse, wenn du sie willst, von einem Modell, das auf diesem Computer läuft. Sie sind ein Ausgangspunkt: ändere sie oder lass sie weg. Der Entwurf bleibt in diesem Tab und verschwindet, wenn du ihn schließt, außer du behältst das Gedicht.",
     stanzaIdeaPh: "Idee oder Thema für diese Strophe (optional)…",
-    generateAll: "✨ Komplettes Gedicht mit KI verfassen",
+    generateAll: "Entwurf aller Verse als Ausgangspunkt",
+    drafted: "Entwurf: bearbeiten oder behalten",
+    emptyPoem: "Schreib zuerst einen Vers, oder lass alle Verse als Ausgangspunkt entwerfen.",
     generating: "Gedicht wird verfasst…",
     emptyPoemListen: "Keine Verse zum Anhören. Schreibe oder verfasse zuerst ein Gedicht.",
     linkLegend: "Gedichte, die sich so anfühlen",
@@ -483,7 +492,9 @@ const STR = {
     authorship: (own, all) => `${own} vers sur ${all} formulés par toi`,
     footnote: "Les idées n'arrivent que si tu les demandes : d'abord des mots qui riment, tirés d'une liste ; des vers entiers, si tu les veux, d'un modèle qui tourne sur cet ordinateur. Ce sont des points de départ : change-les ou ignore-les. Le brouillon reste dans cet onglet et disparaît quand tu le fermes, sauf si tu gardes le poème.",
     stanzaIdeaPh: "Idée ou thème pour cette strophe (optionnel)…",
-    generateAll: "✨ Composer le poème complet avec l'IA",
+    generateAll: "Brouillon de tous les vers, comme point de départ",
+    drafted: "brouillon : modifiez-le ou gardez-le",
+    emptyPoem: "Écrivez d'abord un vers, ou demandez un brouillon de tous les vers comme point de départ.",
     generating: "Composition du poème avec l'IA…",
     emptyPoemListen: "Aucun vers à écouter. Écrivez ou composez d'abord un poème.",
     linkLegend: "Des poèmes qui ressemblent à ce que tu ressens",
@@ -608,7 +619,7 @@ async function composeFullPoem() {
         if (idx < state.lines.length) {
           state.lines[idx].text = item.text;
           state.lines[idx].proposal = item.text;
-          state.lines[idx].origin = "proposal-accepted";
+          state.lines[idx].origin = "proposal-draft";  // not chosen line by line: grey until edited
         }
       });
       save();
@@ -628,8 +639,10 @@ async function goTo(n) {
   if (state.step === 1 && n > 1 && await screenText(state.reflection)) return;  // pause before shaping
   if (state.step === 3 && n === 4) {
     const hasAnyLines = state.lines.some(l => l.text && l.text.trim());
-    if (!hasAnyLines) {
-      await composeFullPoem();
+    if (!hasAnyLines) {  // the person writes; a whole draft only when asked (POSITIONING, POETICS)
+      const status = $("draftStatus"); if (status) status.textContent = T().emptyPoem;
+      if ($("in0")) $("in0").focus();
+      return;
     }
   }
   showStep(n);
@@ -716,12 +729,15 @@ function renderLines(append = false) {
       <div class="props" id="props${i}"></div>`;
     stanzaBox.appendChild(div);
     const inp = $("in" + i); inp.value = ln.text; autosize(inp);
+    inp.classList.toggle("drafted", ln.origin === "proposal-draft");
     inp.addEventListener("blur", () => { ln.caret = inp.selectionStart; });
     let timer = null;
     inp.addEventListener("input", () => {
       inp.value = inp.value.replace(/\n/g, " "); autosize(inp);
       ln.text = inp.value;
-      if (ln.origin !== "human" && ln.proposal) ln.origin = inp.value === ln.proposal ? "proposal-accepted" : "proposal-edited";
+      if (ln.origin !== "human" && ln.proposal)
+        ln.origin = inp.value !== ln.proposal ? "proposal-edited" : ln.origin === "proposal-draft" ? "proposal-draft" : "proposal-accepted";
+      inp.classList.toggle("drafted", ln.origin === "proposal-draft");
       showOrigin(i); save(); authorship();
       clearTimeout(timer); timer = setTimeout(() => { check(i); revealNext(i); }, 350);
     });
@@ -760,7 +776,7 @@ function wordsKept(ln) {
 function showOrigin(i) {
   const ln = state.lines[i], t = T(), kept = wordsKept(ln);
   $("origin" + i).textContent = ln.origin === "human" ? (kept.length ? t.wordUsed(kept.join(", ")) : "")
-    : { "proposal-accepted": t.used, "proposal-edited": t.edited }[ln.origin];
+    : { "proposal-accepted": t.used, "proposal-edited": t.edited, "proposal-draft": t.drafted }[ln.origin];
 }
 
 async function check(i) {
