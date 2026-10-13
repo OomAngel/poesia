@@ -170,11 +170,9 @@ make run
      * *1:15 - 1:40*: Step 4 (Piper voice recitation aloud + Dickinson/Rosalía linked poems).
      * *1:40 - 2:00*: Show `make run` in terminal / air-gapped architecture / CSCS sovereign option.
    * Action: Upload to YouTube (Unlisted or Public) or Vimeo, and paste the URL into Section 2 above.
-2. **Set `poesia-apertus` Repository to PUBLIC**:
-   * Currently, ensure `https://github.com/OomAngel/poesia-apertus` is set to **Public** in GitHub repository settings.
-3. **Optional: Hugging Face Dataset Card**:
+2. **Optional: Hugging Face Dataset Card**:
    * If submitting the safety evaluation dataset, ensure `https://huggingface.co/datasets/GrootCappuccino/poesia-safety-screen` uses the HackApertus template and is set to Public.
-4. **Submit on Portals**:
+3. **Submit on Portals**:
    * Open `http://hackapertus.ch/online-hack/submissions`.
    * Paste the fields from Section 2 of this document.
    * Attach `PoesIA_Report.pdf`.
