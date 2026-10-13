@@ -1088,7 +1088,8 @@ async function init() {
   $("clear").addEventListener("click", () => { if (confirm(T().clearAsk)) {
     state = { lang: state.lang, formKey: state.formKey, theme: "", reflection: "", lines: [], step: 1 }; save();
     $("theme").value = ""; $("reflection").value = ""; renderLines(); showStep(1); } });
-  if (state.lang) showWriter(); else applyText();
+  // A reload on steps 2-4 must wait for the forms: drawn before them, the poem showed empty.
+  if (state.lang) formsPromise.then(showWriter, showWriter); else applyText();
   pollSetup();
 }
 init();

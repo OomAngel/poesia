@@ -49,16 +49,24 @@ def stress_marks(pattern: Sequence[Stress]) -> str:
 
 
 def _ends_with_vowel_sound(word: str) -> bool:
-    """True if the word ends in a vowel sound (vowel, or vowel + n/s)."""
-    return word[-1] in VOWELS or (len(word) >= 2 and word[-1] in "ns" and word[-2] in VOWELS)
+    """True if the word ends in a vowel sound: a vowel, or "y" after one ("hoy", "muy").
+
+    A final consonant never joins ("los ojos" stays apart): the old rule here also joined after
+    -n/-s and taught false sinalefas ("quizás‿ahora", "arden‿en"), as the counter did until
+    ``phonology/spanish_metre.py``.
+    """
+    return (
+        word[-1] in VOWELS
+        or word == "y"
+        or (len(word) >= 2 and word[-1] == "y" and word[-2] in VOWELS)
+    )
 
 
 def _starts_with_vowel_sound(word: str) -> bool:
-    """True if the word starts with a vowel sound (vowel, h+vowel, or y)."""
+    """True if the word starts with a vowel sound: a vowel, h + vowel, or the lone word "y"
+    ("ya", "yo" start with a consonant)."""
     return (
-        word[0] in VOWELS
-        or (word[0] == "h" and len(word) > 1 and word[1] in VOWELS)
-        or word[0] == "y"
+        word[0] in VOWELS or (word[0] == "h" and len(word) > 1 and word[1] in VOWELS) or word == "y"
     )
 
 

@@ -90,6 +90,37 @@ def _italian_stress_is_certain(word: str, syllables: int) -> bool:
     return len(cluster) >= 2 and not (cluster[-1] in "lr" and cluster[-2] in "bcdfgptv")
 
 
+_ACCENTED = str.maketrans("áéíóúàèìòùâêîôûäëïöü", "aeiouaeiouaeiouaeiou")
+
+
+def _accent_misspelling(word: str, rank: dict[str, int]) -> bool:
+    """True when ``word`` has no accent but a more frequent accented twin is in the list.
+
+    The frequency lists hold unaccented spellings of accented words ("jamas", rank 3,481, next to
+    "jamás", 214). Read as written they carry the stress elsewhere and "rhyme" with words they do
+    not rhyme with ("ramas"). Only drops the rarer spelling, so "como"/"cómo" both stay.
+    """
+    if word != word.translate(_ACCENTED):
+        return False
+    twins = _accent_twins(id(rank), rank).get(word, ())
+    mine = rank.get(word, 10**6)
+    return any(rank.get(t, 10**6) < mine for t in twins)
+
+
+_TWINS: dict[int, dict[str, tuple[str, ...]]] = {}
+
+
+def _accent_twins(key: int, rank: dict[str, int]) -> dict[str, tuple[str, ...]]:
+    if key not in _TWINS:
+        twins: dict[str, list[str]] = {}
+        for w in rank:
+            plain = w.lower().translate(_ACCENTED)
+            if plain != w.lower():
+                twins.setdefault(plain, []).append(w)
+        _TWINS[key] = {k: tuple(v) for k, v in twins.items()}
+    return _TWINS[key]
+
+
 def rhyme_words(
     language: str, partner_line: str, avoid: set[str] | None = None, k: int = 8
 ) -> list[dict[str, Any]]:
@@ -117,6 +148,8 @@ def rhyme_words(
         if low in skip or prefixed:
             continue
         if phon.rhyme_key(word).consonant != key:  # the page's own test, so it always passes
+            continue
+        if _accent_misspelling(low, rank):  # "jamas" for "jamás": stressed elsewhere, false rhyme
             continue
         n = _syllables(word, language)
         if language == "it" and not _italian_stress_is_certain(word, n):
