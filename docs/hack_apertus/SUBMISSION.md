@@ -9,12 +9,12 @@
 
 ## 1. Submission Portals
 
-1. **Official Submission Form (Primary)**:  
-   👉 **http://hackapertus.ch/online-hack/submissions**
-2. **Devpost Portal (Mirror / Backup)**:  
-   👉 **https://devpost.com/submit-to/30350-hack-apertus** (or https://hackapertus.devpost.com/submit)
+**Official Submission Form (the only one)**:  
+👉 **https://hackapertus.ch/online-hack/submissions** (select Track 2B to open the form)
 
-*Note: Per Hack Apertus organizers, submissions are officially evaluated via `hackapertus.ch/online-hack/submissions`. Devpost should be filled out as well to ensure visibility on both platforms.*
+*Not Devpost.* The official template says "Submissions are not handled on Devpost but via this URL
+only" (`HackApertus/project-template`, `track_2b/README.md`), and the submissions page says "One
+submission per project" (both checked 2026-10-13).
 
 ---
 
@@ -79,27 +79,29 @@ https://github.com/OomAngel/poesia-apertus
 ```text
 https://huggingface.co/datasets/GrootCappuccino/poesia-safety-screen
 ```
-*(60 synthetic reflections + held-out evaluations across es, en, de, fr, it)*
+*(60 synthetic reflections, 12 per language: es, en, de, fr, it.)* **Private today** (the link
+returns 401): judges cannot open it unless Angel makes it public with the template's card; otherwise
+leave this field empty.
 
 ---
 
-### Project Description / Motivation & Impact (For Devpost / Long Form)
+### Project Description / Motivation & Impact (Long Form)
 
 ```markdown
 ### What it does
 PoesIA is an expressive writing instrument designed for private, on-premise deployment. Unlike conversational generative AI that replaces human authorship, PoesIA keeps the person as the primary writer across four reflective stages:
-1. **Outlet & Reflection**: The writer reflects on an experience or feeling (optionally anchored by a personal photo or memory).
+1. **Outlet & Reflection**: The writer reflects on an experience or feeling.
 2. **Safety Screen**: An offline, rule-and-model safety net checks for distress signals and offers local support hotlines before writing begins, with no text stored or transmitted.
-3. **Shaping & Craft Teaching**: The writer chooses a poetic form (Spanish *soneto*, English Shakespearean sonnet, Italian *sonetto*, German *Sonett*, French alexandrine sonnet, haiku, or free verse). Every line is scanned deterministically for syllable counts, synalepha, and rhyme by a pure-rule engine that explains craft rules in the writer's language. Apertus v1.5 8B provides suggestions and full drafts only when requested.
+3. **Shaping & Craft Teaching**: The writer chooses a poetic form (Spanish *soneto*, English Shakespearean sonnet, Italian *sonetto*, German *Sonett*, French alexandrine sonnet, haiku, or free verse). Every line is scanned deterministically for syllable counts, synalepha, and rhyme by a pure-rule engine that explains craft rules in the writer's language. Apertus v1.5 8B proposes lines only when asked; a whole draft is offered only as a starting point on request, and its lines stay marked as drafts until the writer edits them.
 4. **Recitation & Linking**: An offline synthetic voice (Piper) reads the poem aloud, and semantic retrieval connects the work to curated public-domain poetry (Dante, Dickinson, Rosalía de Castro, Rilke) touching similar emotional themes.
 
 ### How it uses Apertus
 PoesIA uses `andreasmartin/apertus-v1.5-8b-text` in GGUF Q4_K_M quantisation served locally via Ollama, as well as native integration with the CSCS Swiss Inference Cloud. Apertus performs:
 - Single-line proposals ranked deterministically by scansion rather than model probability;
-- Whole-poem drafting with structured verse numbering;
+- A whole-poem draft on request, as a starting point (lines marked as drafts until edited);
 - Borderline distress evaluation in the safety pause.
 
-On a seeded benchmark of 18 sonnets per language, Apertus guided by PoesIA achieves 83–85% (Spanish), 87–90% (English), and 87% (Italian) exact metrical accuracy, consuming under 1.7 Wh per automatic sonnet on an 8 GB consumer GPU.
+On a seeded benchmark of 18 sonnets per language, Apertus guided by PoesIA achieves 83–85% (Spanish), 87–90% (English), and 87% (Italian) exact metrical accuracy, using about 1.7 Wh per automatic sonnet on an 8 GB consumer GPU.
 
 ### Sovereign & Private by Design
 No data leaves the device. All models, phonology rules, TTS voices, and embedding indexes run 100% offline. Public libraries, schools, hospitals, and cantonal institutions can deploy PoesIA without third-party cloud data exposure.
@@ -137,11 +139,11 @@ make run
 3. **Full Writing Web Interface**:
    - 4-step wizard: Reflection $\rightarrow$ Form selection $\rightarrow$ Writing workspace $\rightarrow$ Listen & Export.
    - Per-line provenance tracking (`human` vs `proposal-accepted`).
-   - Optional Step 3 workflow: users can skip manual typing or provide optional stanza thoughts.
+   - Optional thoughts per stanza; a whole draft only on request, as a starting point, its lines marked as drafts until edited. "Next" on an empty poem does not write it for the person.
 4. **Offline Recitation (Piper TTS)**:
    - 5 stock synthetic voices running in-process; tested and returning audio.
 5. **Local Semantic Linking**:
-   - BGE-M3 embeddings on CPU matching public domain poetry.
+   - BGE-M3 embeddings on CPU matching public domain poetry (in the entry, `make run`). On the Veriton deployment the embeddings come from the desktop GPU, so linking there works only while the desktop serves them.
 6. **Safety Pause**:
    - Multilingual phrase screening + Apertus evaluation with local emergency resources.
 7. **UX Audit Verification (`ux-audit`)**:
@@ -166,7 +168,7 @@ make run
    * Suggested flow (120 s):
      * *0:00 - 0:20*: Introduce PoesIA (human author, sovereign offline writing, 5 languages).
      * *0:20 - 0:40*: Step 1 (Theme & reflection) + Step 2 (Select Spanish Soneto).
-     * *0:40 - 1:15*: Step 3 (Optional stanza thoughts or skip directly, 1-click Apertus draft, deterministic scansion syllables/rhyme feedback).
+     * *0:40 - 1:15*: Step 3: type your own line and watch it scanned (syllables, stress, rhyme, why it falls short); "Ideas" for rhyme words, then one Apertus line proposal; at most a glance at the whole draft as a starting point, greyed until edited.
      * *1:15 - 1:40*: Step 4 (Piper voice recitation aloud + Dickinson/Rosalía linked poems).
      * *1:40 - 2:00*: Show `make run` in terminal / air-gapped architecture / CSCS sovereign option.
    * Action: Upload to YouTube (Unlisted or Public) or Vimeo, and paste the URL into Section 2 above.
@@ -176,4 +178,4 @@ make run
    * Open `http://hackapertus.ch/online-hack/submissions`.
    * Paste the fields from Section 2 of this document.
    * Attach `PoesIA_Report.pdf`.
-   * Also complete the Devpost submission at `https://devpost.com/submit-to/30350-hack-apertus`.
+   * Only this form: not Devpost, and one submission per project.
