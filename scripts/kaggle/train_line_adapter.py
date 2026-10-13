@@ -31,8 +31,11 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 MODEL, DATA, OUT = os.environ["MODEL"], os.environ["DATA"], os.environ["OUT"]
 EPOCHS, LR, ACCUM, MAXLEN = float(os.environ["EPOCHS"]), float(os.environ["LR"]), int(os.environ["ACCUM"]), int(os.environ["MAXLEN"])
 # bf16 where the GPU has it (L4, A100): Apertus overflows fp16 (NaN loss from step 1 on an L4,
-# 2026-10-09, as the f16 KL base did on 10-08). T4 (Kaggle) has no bf16: fp16 with the scaler.
-DT = torch.bfloat16 if os.environ.get("DTYPE", "fp16") == "bf16" else torch.float16
+# 2026-10-09, as the f16 KL base did on 10-08). T4 (Kaggle) has no bf16, and fp16 with the
+# scaled-MLP patch still gave a NaN eval loss before training (2026-10-10): fp32 compute there.
+DT = {"bf16": torch.bfloat16, "fp16": torch.float16, "fp32": torch.float32}[os.environ.get("DTYPE", "fp32")]
+# Stop and save before Kaggle's 12 h session limit (fp32 on a T4 is several times slower).
+MAX_SECONDS = float(os.environ.get("MAX_SECONDS", "0")) or float("inf")
 ddp = int(os.environ.get("WORLD_SIZE", "1")) > 1
 rank = int(os.environ.get("LOCAL_RANK", "0"))
 if ddp:
@@ -102,7 +105,7 @@ scaler = torch.amp.GradScaler("cuda", enabled=DT == torch.float16)
 
 def loss_of(ids, labels):
     x = torch.tensor([ids], device=rank); y = torch.tensor([labels], device=rank)
-    with torch.autocast("cuda", dtype=DT):
+    with torch.autocast("cuda", dtype=DT, enabled=DT != torch.float32):
         return model(input_ids=x, labels=y).loss
 
 def evaluate():
@@ -126,6 +129,7 @@ bad = 0
 t0 = time.time(); step = 0; seen = 0; run = 0.0
 order = [i for _ in range(math.ceil(EPOCHS)) for i in random.Random(1).sample(range(len(mine)), len(mine))]
 order = order[: int(len(mine) * EPOCHS)]
+stop = torch.zeros(1, device=rank)
 for k, i in enumerate(order):
     ids, labels, _ = mine[i]
     loss = loss_of(ids, labels) / ACCUM
@@ -143,6 +147,13 @@ for k, i in enumerate(order):
         if step % 100 == 0 or step == steps:
             ev = evaluate(); log["eval_loss"].append((step, ev))
             if rank == 0: print(f"eval loss {ev:.3f}", flush=True)
+        # both ranks must leave the loop on the same step, or DDP hangs in the next all-reduce
+        stop.fill_(float(time.time() - t0 > MAX_SECONDS))
+        if ddp: dist.all_reduce(stop, op=dist.ReduceOp.MAX)
+        if stop.item():
+            ev = evaluate(); log["eval_loss"].append((step, ev)); log["stopped_at_step"] = step
+            if rank == 0: print(f"time limit: stopping at step {step}/{steps}, eval loss {ev:.3f}", flush=True)
+            break
 log["seconds"] = time.time() - t0
 if rank == 0:
     core.save_pretrained(f"{OUT}/adapter")
@@ -190,16 +201,19 @@ if __name__ == "__main__":
     )
     with open(f"{OUT}/worker.py", "w") as fh:
         fh.write(WORKER)
-    # One pass over ~11k lines (2.8 M tokens, ~3 h on 2 x T4); fp16 with the scaled-MLP path.
+    # fp32 compute on the T4s (fp16 overflowed even with the scaled-MLP path, 2026-10-10). fp32 is
+    # several times slower than the ~3 h fp16 estimate for 2.8 M tokens, so half a pass, and a
+    # stop-and-save at 10 h, under Kaggle's 12 h session limit.
     env = {
         "MODEL": model_dir,
         "DATA": data,
         "OUT": OUT,
-        "EPOCHS": "1",
+        "EPOCHS": "0.5",
         "LR": "1e-4",
         "ACCUM": "8",
         "MAXLEN": "1024",
-        "DTYPE": "fp16",
+        "DTYPE": "fp32",
+        "MAX_SECONDS": "36000",
     }
     sh(["torchrun", "--nproc_per_node", "2", f"{OUT}/worker.py"], env)
     print(json.dumps(json.load(open(f"{OUT}/train_log.json"))["eval_loss"]), flush=True)
