@@ -19,6 +19,7 @@ inside ``create_app`` at runtime.
 """
 
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -342,6 +343,136 @@ def propose_lines(
     return [{"text": t, "check": res} for _, t, res in ranked[:n]]
 
 
+def _build_draft_prompt(
+    language: str,
+    form_name: str,
+    total_lines: int,
+    form: Any,
+    theme: str,
+    reflection: str,
+    stanza_thoughts: list[str] | None,
+) -> str:
+    lang_names = {
+        "es": "español",
+        "en": "inglés",
+        "it": "italiano",
+        "de": "alemán",
+        "fr": "francés",
+    }
+    lang_name = lang_names.get(language, language)
+    prompt_lines = []
+    if language == "es":
+        if form_name == "soneto":
+            prompt_lines.extend(
+                [
+                    "Escribe un soneto clásico en español (14 versos endecasílabos).",
+                    "Esquema de rima consonante: ABBA ABBA CDC DCD.",
+                ]
+            )
+        elif form_name == "haiku":
+            prompt_lines.append("Escribe un haiku en español (3 versos de 5, 7 y 5 sílabas).")
+        else:
+            prompt_lines.append(
+                f"Escribe un poema en verso libre en español ({total_lines} versos)."
+            )
+        if theme.strip():
+            prompt_lines.append(f"Tema: {theme.strip()}.")
+        if reflection.strip():
+            prompt_lines.append(f"Sentimiento o reflexión general: {reflection.strip()[:400]}.")
+        if stanza_thoughts:
+            thoughts = [
+                f"Estrofa {i + 1}: {th.strip()}"
+                for i, th in enumerate(stanza_thoughts)
+                if th and th.strip()
+            ]
+            if thoughts:
+                prompt_lines.append("Ideas por estrofa:")
+                prompt_lines.extend(thoughts)
+        prompt_lines.extend(
+            [
+                f"Escribe exactamente {total_lines} versos.",
+                "Devuelve ÚNICAMENTE los versos del poema, sin títulos, notas, números ni comentarios.",
+            ]
+        )
+    else:
+        prompt_lines.append(f"Write a {form_name} poem in {lang_name} ({total_lines} lines).")
+        if form and form.rhyme_scheme:
+            prompt_lines.append(f"Rhyme scheme: {form.rhyme_scheme}.")
+        if theme.strip():
+            prompt_lines.append(f"Theme: {theme.strip()}.")
+        if reflection.strip():
+            prompt_lines.append(f"Reflection: {reflection.strip()[:400]}.")
+        if stanza_thoughts:
+            thoughts = [
+                f"Stanza {i + 1}: {th.strip()}"
+                for i, th in enumerate(stanza_thoughts)
+                if th and th.strip()
+            ]
+            if thoughts:
+                prompt_lines.append("Ideas per stanza:")
+                prompt_lines.extend(thoughts)
+        prompt_lines.append(
+            f"Output ONLY the {total_lines} lines of the poem, with no title, numbers, or explanation."
+        )
+    return "\n".join(prompt_lines)
+
+
+def _clean_draft_lines(text: str, total_lines: int, existing_lines: list[str] | None) -> list[str]:
+    raw_lines = []
+    for line in text.splitlines():
+        line = line.strip().strip("\"'«»")
+        line = re.sub(r"^\s*(\d+[\.\)]\s*|[-*•]\s*|[IVXLCDM]+[\.\)]\s*)", "", line).strip()
+        if line and not line.lower().startswith(
+            ("estrofa", "stanza", "tema:", "theme:", "soneto:", "sonnet:")
+        ):
+            raw_lines.append(line)
+
+    if existing_lines and any(ln.strip() for ln in existing_lines):
+        clean_lines = []
+        for i in range(total_lines):
+            if i < len(existing_lines) and existing_lines[i].strip():
+                clean_lines.append(existing_lines[i].strip())
+            elif i < len(raw_lines):
+                clean_lines.append(raw_lines[i])
+            else:
+                clean_lines.append("")
+        return clean_lines
+
+    while len(raw_lines) < total_lines:
+        raw_lines.append("")
+    return raw_lines[:total_lines]
+
+
+def draft_poem(
+    llm: Any,
+    language: str,
+    form_name: str,
+    theme: str,
+    reflection: str = "",
+    stanza_thoughts: list[str] | None = None,
+    existing_lines: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Draft a complete poem using the LLM, honoring form, theme, reflection, and optional stanza thoughts."""
+    form = _form(language, form_name)
+    total_lines = form.total_lines if form is not None else 8
+    prompt = _build_draft_prompt(
+        language, form_name, total_lines, form, theme, reflection, stanza_thoughts
+    )
+    raw_output = llm.generate(prompt, n=1, temperature=0.7)
+    clean_lines = _clean_draft_lines(
+        raw_output[0] if raw_output else "", total_lines, existing_lines
+    )
+
+    result = []
+    lines_accum = []
+    for i, line_text in enumerate(clean_lines):
+        lines_accum.append(line_text)
+        scan = scan_line(line_text, language, form_name, i, lines_accum) if line_text else None
+        result.append({"text": line_text, "check": scan})
+
+    return result
+
+
 def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
     """FastAPI app. ``llm`` defaults to ``POESIA_WEB_LLM`` (a registry name); without it, an
     OpenAI-compatible endpoint when ``LLM_BASE_URL`` is set, else Ollama (``OLLAMA_MODEL``).
@@ -389,6 +520,14 @@ def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
         theme: str = Field(default="", max_length=200)
         reflection: str = Field(default="", max_length=4000)
         n: int = Field(default=3, ge=1, le=5)
+
+    class DraftRequest(BaseModel):
+        language: str = Field(pattern="^(es|en|it|de|fr)$")
+        form: str
+        theme: str = Field(default="", max_length=200)
+        reflection: str = Field(default="", max_length=4000)
+        stanza_thoughts: list[str] = Field(default_factory=list, max_length=10)
+        lines: list[str] = Field(default_factory=list, max_length=200)
 
     def _check(req: LineRequest) -> None:
         if (req.language, req.form) not in FORMS:
@@ -511,6 +650,24 @@ def create_app(llm: Any | None = None, setup: Any | None = None) -> Any:
         except Exception as exc:  # model offline etc.: the page keeps working without it
             raise HTTPException(status_code=503, detail=f"model unavailable: {exc}") from exc
         return {"proposals": props, "model": getattr(llm, "model", "")}
+
+    @app.post("/api/draft")
+    def draft(req: DraftRequest) -> dict[str, Any]:
+        if (req.language, req.form) not in FORMS:
+            raise HTTPException(status_code=400, detail="unknown form for this language")
+        try:
+            lines = draft_poem(
+                llm=llm,
+                language=req.language,
+                form_name=req.form,
+                theme=req.theme,
+                reflection=req.reflection,
+                stanza_thoughts=req.stanza_thoughts,
+                existing_lines=req.lines,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail=f"model unavailable: {exc}") from exc
+        return {"lines": lines, "model": getattr(llm, "model", "")}
 
     return app
 

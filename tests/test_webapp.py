@@ -272,3 +272,24 @@ def test_proposals_refuse_the_partners_own_word_and_rank_a_repeated_opening_last
     texts = [p["text"] for p in r["proposals"]]
     assert all(not t.endswith("shore") for t in texts)
     assert texts[0].startswith("Where") and texts[-1].startswith("The ocean")
+
+
+def test_draft_poem_supports_full_generation_and_stanza_thoughts() -> None:
+    fake_sonnet = "\n".join([f"Verso número {i + 1} del soneto" for i in range(14)])
+    client, _ = _client([fake_sonnet])
+    r = client.post(
+        "/api/draft",
+        json={
+            "language": "es",
+            "form": "soneto",
+            "theme": "el mar",
+            "reflection": "olas suaves",
+            "stanza_thoughts": ["primer cuarteto", "segundo cuarteto"],
+            "lines": [],
+        },
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data["lines"]) == 14
+    assert data["lines"][0]["text"] == "Verso número 1 del soneto"
+    assert data["lines"][0]["check"] is not None
