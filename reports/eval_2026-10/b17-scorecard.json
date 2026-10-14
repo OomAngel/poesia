@@ -1,0 +1,130 @@
+{
+ "es": {
+  "human": {
+   "line_metre_modal": 0.891,
+   "line_fragment": 0.023,
+   "pair_rhyming_share": 1.132,
+   "pair_near_copy": 0.055,
+   "pair_coherence": 0.095,
+   "stanza_redundancy": 0.083,
+   "stanza_repeated_words": 0.167,
+   "poem_repetition": 0.077,
+   "poem_development": 0.23,
+   "poem_repeated_words": 1.333,
+   "poems": 120,
+   "across_distinct_openings": 0.349,
+   "across_top10_endings_share": 0.054
+  },
+  "plain-8B": {
+   "line_metre_modal": 0.854,
+   "line_fragment": 0.0,
+   "pair_rhyming_share": 1.009,
+   "pair_near_copy": 0.164,
+   "pair_coherence": 0.352,
+   "stanza_redundancy": 0.324,
+   "stanza_repeated_words": 0.787,
+   "poem_repetition": 0.303,
+   "poem_development": 0.579,
+   "poem_repeated_words": 4.139,
+   "poems": 36,
+   "across_distinct_openings": 0.234,
+   "across_top10_endings_share": 0.185
+  }
+ },
+ "it": {
+  "human": {
+   "line_metre_modal": 0.819,
+   "line_fragment": 0.018,
+   "pair_rhyming_share": 1.118,
+   "pair_near_copy": 0.127,
+   "pair_coherence": 0.065,
+   "stanza_redundancy": 0.057,
+   "stanza_repeated_words": 0.416,
+   "poem_repetition": 0.052,
+   "poem_development": 0.176,
+   "poem_repeated_words": 2.259,
+   "poems": 85,
+   "across_distinct_openings": 0.413,
+   "across_top10_endings_share": 0.044
+  },
+  "plain-8B": {
+   "line_metre_modal": 0.85,
+   "line_fragment": 0.009,
+   "pair_rhyming_share": 0.968,
+   "pair_near_copy": 0.286,
+   "pair_coherence": 0.408,
+   "stanza_redundancy": 0.374,
+   "stanza_repeated_words": 1.213,
+   "poem_repetition": 0.353,
+   "poem_development": 0.638,
+   "poem_repeated_words": 5.833,
+   "poems": 36,
+   "across_distinct_openings": 0.306,
+   "across_top10_endings_share": 0.199
+  }
+ },
+ "de": {
+  "human": {
+   "line_metre_modal": 0.848,
+   "line_fragment": 0.02,
+   "pair_rhyming_share": 1.071,
+   "pair_near_copy": 0.077,
+   "pair_coherence": 0.116,
+   "stanza_redundancy": 0.1,
+   "stanza_repeated_words": 0.478,
+   "poem_repetition": 0.084,
+   "poem_development": 0.249,
+   "poem_repeated_words": 2.821,
+   "poems": 106,
+   "across_distinct_openings": 0.324,
+   "across_top10_endings_share": 0.062
+  },
+  "plain-8B": {
+   "line_metre_modal": 0.782,
+   "line_fragment": 0.005,
+   "pair_rhyming_share": 1.014,
+   "pair_near_copy": 0.177,
+   "pair_coherence": 0.365,
+   "stanza_redundancy": 0.343,
+   "stanza_repeated_words": 1.444,
+   "poem_repetition": 0.333,
+   "poem_development": 0.638,
+   "poem_repeated_words": 7.333,
+   "poems": 36,
+   "across_distinct_openings": 0.345,
+   "across_top10_endings_share": 0.188
+  }
+ },
+ "fr": {
+  "human": {
+   "line_metre_modal": 0.976,
+   "line_fragment": 0.016,
+   "pair_rhyming_share": 1.137,
+   "pair_near_copy": 0.118,
+   "pair_coherence": 0.096,
+   "stanza_redundancy": 0.084,
+   "stanza_repeated_words": 0.303,
+   "poem_repetition": 0.072,
+   "poem_development": 0.224,
+   "poem_repeated_words": 2.067,
+   "poems": 120,
+   "across_distinct_openings": 0.295,
+   "across_top10_endings_share": 0.039
+  },
+  "plain-8B": {
+   "line_metre_modal": 0.919,
+   "line_fragment": 0.002,
+   "pair_rhyming_share": 1.074,
+   "pair_near_copy": 0.077,
+   "pair_coherence": 0.359,
+   "stanza_redundancy": 0.334,
+   "stanza_repeated_words": 1.12,
+   "poem_repetition": 0.316,
+   "poem_development": 0.602,
+   "poem_repeated_words": 6.389,
+   "poems": 36,
+   "across_distinct_openings": 0.111,
+   "across_top10_endings_share": 0.15
+  }
+ }
+}
