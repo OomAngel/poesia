@@ -258,7 +258,7 @@ def test_proposals_refuse_the_partners_own_word_and_rank_a_repeated_opening_last
         [
             "And still the sailors linger on the shore",  # ends on the partner's word
             "The ocean whispers softly evermore",  # same opening word as line 1
-            "Where gulls are calling, ever wanting more",  # rhymes, new opening
+            "Where terns are calling, ever wanting more",  # rhymes, new opening, no reused word
         ]
     )
     lines = [
@@ -272,6 +272,29 @@ def test_proposals_refuse_the_partners_own_word_and_rank_a_repeated_opening_last
     texts = [p["text"] for p in r["proposals"]]
     assert all(not t.endswith("shore") for t in texts)
     assert texts[0].startswith("Where") and texts[-1].startswith("The ocean")
+
+
+def test_proposals_rank_reused_content_words_and_near_copy_rhymes_down() -> None:
+    # POETICS #2 and #3; the plain 8B repeats content words 3x more than poets (b17 scorecard).
+    client, _ = _client(
+        [
+            "Where gulls are calling, ever wanting more",  # reuses "gulls" from line 2
+            "Beyond the harbour, sailors ask for more",  # rhymes, nothing reused
+            "Then strangers come to stand upon the ashore",  # near copy of "shore"
+        ]
+    )
+    lines = [
+        "The restless waves are breaking on the shore",
+        "Above the cliffs the gulls are wheeling white",
+    ]
+    r = client.post(
+        "/api/propose",
+        json={"language": "en", "form": "sonnet_shakespearean", "index": 2, "lines": lines, "n": 3},
+    ).json()
+    texts = [p["text"] for p in r["proposals"]]
+    assert texts[0].startswith("Beyond")
+    assert texts.index("Where gulls are calling, ever wanting more") < len(texts)
+    assert not texts[0].endswith("ashore")
 
 
 def test_draft_poem_supports_full_generation_and_stanza_thoughts() -> None:
