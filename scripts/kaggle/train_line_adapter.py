@@ -57,7 +57,7 @@ for r in rows:
     if full_ids[: len(prompt_ids)] != prompt_ids or len(full_ids) > MAXLEN:
         continue  # template mismatch or too long: skip rather than train on a shifted mask
     labels = [-100] * len(prompt_ids) + full_ids[len(prompt_ids):]  # the answer and its end token
-    examples.append((full_ids, labels, r.get("language", "")))
+    examples.append((full_ids, labels, r.get("language", "") + "/" + r.get("shape", "line")))
 random.Random(0).shuffle(examples)
 n_eval = max(20, len(examples) // 20)
 evals, train = examples[:n_eval], examples[n_eval:]
@@ -155,6 +155,17 @@ for k, i in enumerate(order):
             if rank == 0: print(f"time limit: stopping at step {step}/{steps}, eval loss {ev:.3f}", flush=True)
             break
 log["seconds"] = time.time() - t0
+# Held-out loss per language and shape (line = free line, pair = closing a rhyme pair), so the
+# rounds of docs/TUNING_ROUNDS_2026-10.md can be read apart; rank 0 only, after training.
+if rank == 0:
+    core.eval(); groups = {}  # the unwrapped model: a DDP forward on one rank alone can hang
+    with torch.no_grad():
+        for ids, labels, g in evals:
+            x = torch.tensor([ids], device=rank); y = torch.tensor([labels], device=rank)
+            with torch.autocast("cuda", dtype=DT, enabled=DT != torch.float32):
+                groups.setdefault(g, []).append(core(input_ids=x, labels=y).loss.item())
+    log["eval_loss_by_group"] = {g: (sum(v) / len(v), len(v)) for g, v in sorted(groups.items())}
+    print("eval loss by group", json.dumps(log["eval_loss_by_group"]), flush=True)
 if rank == 0:
     core.save_pretrained(f"{OUT}/adapter")
     tok.save_pretrained(f"{OUT}/adapter")

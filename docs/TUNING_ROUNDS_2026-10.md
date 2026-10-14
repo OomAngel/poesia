@@ -43,6 +43,33 @@ Every instrument is checked on controls before it is used:
 
 A score that cannot separate a control pair is not used, and the plan says so.
 
+## 1a. Measured so far (2026-10-14)
+
+**R0 scorecard** (`scripts/poem_scorecard.py`, `reports/eval_2026-10/b17-scorecard.json`; LaBSE, centred;
+120 human poems and 36 of the plain 8B's sonnets per language, first 12 lines). At line level the 8B
+is near the poets (metre at the modal count: es 85% vs 89%). Above the line it is far:
+
+| Level | Measure | Human (es/it/de/fr) | Plain 8B |
+|---|---|---|---|
+| pair | rhyme on the same word or a near copy | 6-13% | 8-29% |
+| pair | the two lines restate each other (centred cosine) | 0.07-0.12 | 0.35-0.41 |
+| stanza | redundancy inside the stanza | 0.06-0.10 | 0.32-0.37 |
+| stanza | content words repeated per stanza | 0.2-0.5 | 0.8-1.4 |
+| poem | consecutive stanzas restate (lower develops) | 0.18-0.25 | 0.58-0.64 |
+| poem | content words repeated per poem | 1.3-2.8 | 4.1-7.3 |
+| across poems | share of the ten most common end words | 4-6% | 15-20% |
+
+Read as targets: the human column, per level. "Pair coherence" by cosine measures restatement, not
+whether the second line follows: poets' paired lines are far apart in meaning and still belong.
+
+**Sense judges** (`scripts/sense_judge_validation.py`, `b16-sense-judges.json`). The hackathon CSCS
+key is authorised only for Apertus (Gemma, GLM and Nemotron are listed but refused), so no
+cross-family judge is available: self-preference is a known limitation. Apertus 70B, one-word
+verdict, Spanish: real lines pass 90%, shuffled 8%, spliced halves 36% (balanced accuracy 0.84); the
+8B's lines pass 90%, like the poets'. So the judge *rejects* word salad and cannot *rank*: it gates,
+Angel's blind rating decides. Italian: it rejects 40% of real (older) lines, so it cannot gate
+Italian training data. Correct-and-compare is weaker (es 0.73, it 0.59).
+
 ## 2. Rounds
 
 Each round adds one request shape that a real inference path sends, built from human poems, and

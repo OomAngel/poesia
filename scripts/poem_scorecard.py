@@ -94,7 +94,7 @@ def score(poems, language, phon, encoder, function_words, centre):
                     pair_copy.append(near_copy(ends[i], ends[j]))
                     pair_cos.append(float(v[i] @ v[j]))
                     break
-        out["pair_rhyming_share"].append(len(pair_cos) / (len(lines) / 2))
+        out["pair_lines_rhyming"].append(len(pair_cos) / len(lines))  # lines with a later partner
         if pair_cos:
             out["pair_near_copy"].append(np.mean(pair_copy))
             out["pair_coherence"].append(np.mean(pair_cos))
