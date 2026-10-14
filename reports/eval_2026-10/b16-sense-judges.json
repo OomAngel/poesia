@@ -1,0 +1,494 @@
+{
+ "sets": {
+  "es": {
+   "real": [
+    "porque en su Dios está todo su intento,",
+    "hacen los cantares de la patria mía...",
+    "Alta en el alba se alza la severa",
+    "Como una flor clorótica el semblante,",
+    "pude daros a vos la más preciada;"
+   ],
+   "shuffled": [
+    "en intento, su todo está Dios porque su",
+    "mía... la patria cantares hacen de los",
+    "el en alza Alta la alba se severa",
+    "el una Como clorótica semblante, flor",
+    "a vos más preciada; pude la daros"
+   ],
+   "spliced": [
+    "porque en su Dios como un niflo, llora...",
+    "hacen los cantares allí lo tira",
+    "Alta en el alba y de tostada arena,",
+    "Como una flor con claros choques,",
+    "pude daros a tambien los sentimientos!"
+   ],
+   "model": [
+    "El mar en alma a su fulgor se eleva.",
+    "Suspira en la quietud del alma mía.",
+    "En la arena, sagrada jornada.",
+    "Bajo el cielo, el escarabajo danza.",
+    "resuena la brisa llena de pena."
+   ]
+  },
+  "it": {
+   "real": [
+    "Ché quel che si contenta è sol bëato;",
+    "mirare il fumo e la favilla ardente?",
+    "S'alla divota fede e a i pensier cari",
+    "toute la bestiaille dou païs mantinant",
+    "sTudisi ognun giovar altrui che rade"
+   ],
+   "shuffled": [
+    "bëato; quel è Ché sol contenta si che",
+    "favilla la il mirare e ardente? fumo",
+    "e fede a S'alla cari i pensier divota",
+    "dou mantinant païs la toute bestiaille",
+    "ognun giovar altrui sTudisi che rade"
+   ],
+   "spliced": [
+    "Ché quel che si sia solazo e gioco.",
+    "mirare il fumo a me istimo santitae",
+    "S'alla divota fede e dishonore e morte.",
+    "toute la bestiaille dei raggi suoi.",
+    "sTudisi ognun giovar colpo a me risponde."
+   ],
+   "model": [
+    "Tra i ricordi antichi, l'anima danza.",
+    "Rivolge nostalgia al suo dolce volge.",
+    "Sotto l'immensità, l'anima svanta.",
+    "Splende l'orizzonte che il mare attende.",
+    "Sotto il vano cielo l'onde passano."
+   ]
+  },
+  "de": {
+   "real": [
+    "Doch nimmermehr das Traumbild dessen",
+    "So weit das deutsche Wort erklingt, so weit man trinkt des deutschen Weins,",
+    "Drauf der Sonne Lachen lag,",
+    "O gib mir Freuden, nicht mit dem verstrickt,",
+    "Ich will weit mehr, ich will viel Größres sein."
+   ],
+   "shuffled": [
+    "das dessen Doch Traumbild nimmermehr",
+    "erklingt, so weit Wort Weins, deutsche trinkt So des man weit das deutschen",
+    "lag, Drauf Sonne der Lachen",
+    "gib nicht dem verstrickt, mit Freuden, O mir",
+    "will weit mehr, Größres ich will viel sein. Ich"
+   ],
+   "spliced": [
+    "Doch nimmermehr die Sinne wollen scheiden:",
+    "So weit das deutsche Wort erklingt, such' ich nicht.",
+    "Drauf der erste Blume lag",
+    "O gib mir Freuden, wohl in acht,",
+    "Ich will weit mehr, Vorüberfahrt durchs Leben,"
+   ],
+   "model": [
+    "Im Blick erscheint die tiefe, wechselnde Sicht.",
+    "Zeit zählt unaufhaltsam Momente fort.",
+    "Zeit schneidet scharfe Schatten auf die Wand.",
+    "Gleiten Jahre sanft im tiefen Schweigen.",
+    "Im Herzen der Nacht leise singt das Meer."
+   ]
+  },
+  "fr": {
+   "real": [
+    "Quand j'ouïs un murmure, un froissement léger,",
+    "Encadre les palmiers d'une maigre verdure",
+    "Sauf les lettres que le facteur",
+    "Ô Sommeil, ô Mort tiède, ô musique muette !",
+    "Qui sifflent dans la lande aux bords des pierres grises."
+   ],
+   "shuffled": [
+    "j'ouïs Quand un murmure, un froissement léger,",
+    "palmiers maigre verdure Encadre d'une les",
+    "les Sauf lettres facteur le que",
+    "ô tiède, Sommeil, ! Mort musique ô muette Ô",
+    "grises. lande bords des aux la Qui dans sifflent pierres"
+   ],
+   "spliced": [
+    "Quand j'ouïs un péché des envieux.",
+    "Encadre les palmiers choc souverain des combats.",
+    "Sauf les lettres où la commère",
+    "Ô Sommeil, ô Mort fracas des tempêtes publiques,",
+    "Qui sifflent dans la lande noir le regarde étonné ;"
+   ],
+   "model": [
+    "contented spent in silent, hopeful descent",
+    "Elle berce mon cœur d'une mélodie douce.",
+    "Dans la nature, le vent s'envole en lecture.",
+    "Sous le regard tendre de la lune éternelle.",
+    "Le temps ouvre son avenir"
+   ]
+  }
+ },
+ "results": {
+  "es|swiss-ai/Apertus-v1.5-70B|fix": {
+   "real": {
+    "n": 105,
+    "answered": 105,
+    "pass": 0.648
+   },
+   "shuffled": {
+    "n": 105,
+    "answered": 105,
+    "pass": 0.095
+   },
+   "spliced": {
+    "n": 31,
+    "answered": 31,
+    "pass": 0.29
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.825
+   },
+   "balanced_accuracy": 0.728
+  },
+  "es|swiss-ai/Apertus-v1.5-70B|verdict": {
+   "real": {
+    "n": 105,
+    "answered": 105,
+    "pass": 0.895
+   },
+   "shuffled": {
+    "n": 105,
+    "answered": 105,
+    "pass": 0.076
+   },
+   "spliced": {
+    "n": 31,
+    "answered": 31,
+    "pass": 0.355
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.9
+   },
+   "balanced_accuracy": 0.84
+  },
+  "es|swiss-ai/Apertus-v1.5-70B-thinking|fix": {
+   "real": {
+    "n": 105,
+    "answered": 105,
+    "pass": 0.629
+   },
+   "shuffled": {
+    "n": 105,
+    "answered": 105,
+    "pass": 0.095
+   },
+   "spliced": {
+    "n": 31,
+    "answered": 31,
+    "pass": 0.29
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.75
+   },
+   "balanced_accuracy": 0.718
+  },
+  "es|swiss-ai/Apertus-v1.5-70B-thinking|verdict": {
+   "real": {
+    "n": 105,
+    "answered": 105,
+    "pass": 0.924
+   },
+   "shuffled": {
+    "n": 105,
+    "answered": 105,
+    "pass": 0.133
+   },
+   "spliced": {
+    "n": 31,
+    "answered": 31,
+    "pass": 0.419
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.908
+   },
+   "balanced_accuracy": 0.824
+  },
+  "it|swiss-ai/Apertus-v1.5-70B|fix": {
+   "real": {
+    "n": 103,
+    "answered": 103,
+    "pass": 0.252
+   },
+   "shuffled": {
+    "n": 103,
+    "answered": 103,
+    "pass": 0.078
+   },
+   "spliced": {
+    "n": 32,
+    "answered": 32,
+    "pass": 0.062
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.792
+   },
+   "balanced_accuracy": 0.591
+  },
+  "it|swiss-ai/Apertus-v1.5-70B|verdict": {
+   "real": {
+    "n": 103,
+    "answered": 103,
+    "pass": 0.602
+   },
+   "shuffled": {
+    "n": 103,
+    "answered": 103,
+    "pass": 0.058
+   },
+   "spliced": {
+    "n": 32,
+    "answered": 32,
+    "pass": 0.375
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.917
+   },
+   "balanced_accuracy": 0.693
+  },
+  "it|swiss-ai/Apertus-v1.5-70B-thinking|fix": {
+   "real": {
+    "n": 103,
+    "answered": 103,
+    "pass": 0.233
+   },
+   "shuffled": {
+    "n": 103,
+    "answered": 103,
+    "pass": 0.087
+   },
+   "spliced": {
+    "n": 32,
+    "answered": 32,
+    "pass": 0.062
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.708
+   },
+   "balanced_accuracy": 0.579
+  },
+  "it|swiss-ai/Apertus-v1.5-70B-thinking|verdict": {
+   "real": {
+    "n": 103,
+    "answered": 102,
+    "pass": 0.775
+   },
+   "shuffled": {
+    "n": 103,
+    "answered": 103,
+    "pass": 0.214
+   },
+   "spliced": {
+    "n": 32,
+    "answered": 32,
+    "pass": 0.5
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.917
+   },
+   "balanced_accuracy": 0.709
+  },
+  "de|swiss-ai/Apertus-v1.5-70B|fix": {
+   "real": {
+    "n": 104,
+    "answered": 104,
+    "pass": 0.337
+   },
+   "shuffled": {
+    "n": 104,
+    "answered": 104,
+    "pass": 0.087
+   },
+   "spliced": {
+    "n": 36,
+    "answered": 36,
+    "pass": 0.278
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.642
+   },
+   "balanced_accuracy": 0.577
+  },
+  "de|swiss-ai/Apertus-v1.5-70B|verdict": {
+   "real": {
+    "n": 104,
+    "answered": 104,
+    "pass": 0.721
+   },
+   "shuffled": {
+    "n": 104,
+    "answered": 104,
+    "pass": 0.048
+   },
+   "spliced": {
+    "n": 36,
+    "answered": 36,
+    "pass": 0.25
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.792
+   },
+   "balanced_accuracy": 0.786
+  },
+  "de|swiss-ai/Apertus-v1.5-70B-thinking|fix": {
+   "real": {
+    "n": 104,
+    "answered": 104,
+    "pass": 0.26
+   },
+   "shuffled": {
+    "n": 104,
+    "answered": 104,
+    "pass": 0.077
+   },
+   "spliced": {
+    "n": 36,
+    "answered": 36,
+    "pass": 0.222
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.508
+   },
+   "balanced_accuracy": 0.555
+  },
+  "de|swiss-ai/Apertus-v1.5-70B-thinking|verdict": {
+   "real": {
+    "n": 104,
+    "answered": 104,
+    "pass": 0.75
+   },
+   "shuffled": {
+    "n": 104,
+    "answered": 104,
+    "pass": 0.087
+   },
+   "spliced": {
+    "n": 36,
+    "answered": 36,
+    "pass": 0.306
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.833
+   },
+   "balanced_accuracy": 0.777
+  },
+  "fr|swiss-ai/Apertus-v1.5-70B|fix": {
+   "real": {
+    "n": 111,
+    "answered": 111,
+    "pass": 0.766
+   },
+   "shuffled": {
+    "n": 111,
+    "answered": 111,
+    "pass": 0.108
+   },
+   "spliced": {
+    "n": 35,
+    "answered": 35,
+    "pass": 0.314
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.658
+   },
+   "balanced_accuracy": 0.778
+  },
+  "fr|swiss-ai/Apertus-v1.5-70B|verdict": {
+   "real": {
+    "n": 111,
+    "answered": 111,
+    "pass": 0.928
+   },
+   "shuffled": {
+    "n": 111,
+    "answered": 111,
+    "pass": 0.036
+   },
+   "spliced": {
+    "n": 35,
+    "answered": 35,
+    "pass": 0.543
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.875
+   },
+   "balanced_accuracy": 0.819
+  },
+  "fr|swiss-ai/Apertus-v1.5-70B-thinking|fix": {
+   "real": {
+    "n": 111,
+    "answered": 111,
+    "pass": 0.514
+   },
+   "shuffled": {
+    "n": 111,
+    "answered": 111,
+    "pass": 0.108
+   },
+   "spliced": {
+    "n": 35,
+    "answered": 35,
+    "pass": 0.143
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.375
+   },
+   "balanced_accuracy": 0.694
+  },
+  "fr|swiss-ai/Apertus-v1.5-70B-thinking|verdict": {
+   "real": {
+    "n": 111,
+    "answered": 111,
+    "pass": 0.964
+   },
+   "shuffled": {
+    "n": 111,
+    "answered": 111,
+    "pass": 0.045
+   },
+   "spliced": {
+    "n": 35,
+    "answered": 35,
+    "pass": 0.657
+   },
+   "model": {
+    "n": 120,
+    "answered": 120,
+    "pass": 0.875
+   },
+   "balanced_accuracy": 0.806
+  }
+ }
+}
