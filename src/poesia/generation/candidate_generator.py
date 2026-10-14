@@ -25,6 +25,16 @@ _LANG_NAMES = {
 }
 
 
+# Angel's criteria for a line (docs/POETICS.md #3-#5, #8; the quality directive of brief_builder,
+# which never reached a default prompt): sense first, then no tricks to meet the form.
+QUALITY_RULE = (
+    "The line must make sense and follow from the lines before it, as one natural sentence or "
+    "clause: a concrete image rather than an abstract statement, normal word order (do not twist "
+    "it to reach the rhyme), no filler words to fill syllables, no cliché, and no content word "
+    "the poem already used."
+)
+
+
 class CandidateGenerator:
     """Builds prompts and requests batches of candidate lines from an LLM."""
 
@@ -109,7 +119,16 @@ class CandidateGenerator:
             )
 
         constraints = " ".join(
-            filter(None, [syllable_instruction, rhyme_instruction, anti_repeat, guest_instruction])
+            filter(
+                None,
+                [
+                    syllable_instruction,
+                    rhyme_instruction,
+                    anti_repeat,
+                    guest_instruction,
+                    QUALITY_RULE,
+                ],
+            )
         )
         output_rule = (
             "Output ONLY the single bare poetry line — no explanation, "
