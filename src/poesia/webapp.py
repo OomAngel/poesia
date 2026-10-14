@@ -298,10 +298,38 @@ def _raw_proposals(
     return raw, example
 
 
+def _near_copy(a: str, b: str) -> bool:
+    """Same word, or one ends with the other ("venir"/"prevenir"): not a rhyme (POETICS #2)."""
+    return a == b or (min(len(a), len(b)) >= 3 and (a.endswith(b) or b.endswith(a)))
+
+
+def _content_words(text: str, language: str) -> set[str]:
+    """Words outside the language's ~150 most frequent (mostly function words), 3+ letters."""
+    from poesia.phonology.rhyme_index import rank
+
+    small = rank(language)
+    return {
+        w
+        for w in re.findall(r"[^\W\d_]+", text.lower())
+        if len(w) > 2 and small.get(w, 10**6) >= 150
+    }
+
+
 def _proposal_rank(
-    text: str, result: dict[str, Any], target: int | None, openings: set[str]
-) -> tuple[bool, int, bool, bool]:
-    """Sort key: right language, metre, rhyme, a new opening word (in that order).
+    text: str,
+    result: dict[str, Any],
+    target: int | None,
+    openings: set[str],
+    used: set[str] = frozenset(),
+    partner_word: str | None = None,
+    language: str = "es",
+) -> tuple[bool, int, bool, int, bool]:
+    """Sort key: right language, metre, rhyme, content words the poem already used, a new
+    opening word (in that order).
+
+    A rhyme on a near copy of the partner's word counts as no rhyme (POETICS #2), and reused
+    content words (#3) rank a line down: the plain 8B repeats 3x more content words per poem and
+    rhymes on near copies 2-3x more often than the poets (b17 scorecard, 2026-10-14).
 
     A line in another language comes last: Apertus slipped into English in 10-22% of benchmark
     lines in it/de/fr (2026-10-09), and the target language's counter would happily count it.
@@ -309,7 +337,12 @@ def _proposal_rank(
     """
     off = abs(result["syllables"] - target) if target else 0  # free verse: no metre rank
     repeats_opening = text.split()[0].lower().strip(_PUNCT_OPEN) in openings
-    return (result["other_language"] is not None, off, result["rhymes"] is False, repeats_opening)
+    from poesia.word_ideas import last_word
+
+    copy = bool(partner_word) and _near_copy(last_word(text), partner_word.lower())
+    no_rhyme = result["rhymes"] is False or copy
+    reused = len(_content_words(text, language) & used)
+    return (result["other_language"] is not None, off, no_rhyme, reused, repeats_opening)
 
 
 def propose_lines(
@@ -332,6 +365,11 @@ def propose_lines(
     target = _target(_form(language, form_name), index)
     prior = [ln for ln in lines[:index] if ln.strip()]
     openings = {ln.split()[0].lower().strip(_PUNCT_OPEN) for ln in prior if ln.split()}
+    used = (
+        set().union(*(_content_words(ln, language) for ln in lines if ln.strip()))
+        if lines
+        else set()
+    )
     seen: set[str] = set()
     ranked = []
     for cand in raw:
@@ -342,7 +380,8 @@ def propose_lines(
         if example and last_word(text) == example.lower():
             continue  # the partner's own word is not a rhyme
         result = scan_line(text, language, form_name, index, [*lines[:index], text])
-        ranked.append((_proposal_rank(text, result, target, openings), text, result))
+        key = _proposal_rank(text, result, target, openings, used, example, language)
+        ranked.append((key, text, result))
     ranked.sort(key=lambda r: r[0])
     return [{"text": t, "check": res} for _, t, res in ranked[:n]]
 
