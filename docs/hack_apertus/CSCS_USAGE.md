@@ -27,6 +27,7 @@ stopped after each batch. Cost: CSCS academic rates (ui.inference.cscs.ch/pricin
 | 2026-10-09 | German and French sonnets, 36 per language per model, seeds 0 and 3 | 8B, 70B | 19,979 | 4.4 M / 261 k | 0.22 | metre de/fr: 8B 84.7% / 88.1%, 70B 94.8% / 85.3%; **the 8B writes English lines in 10-13% of de/fr lines at full precision (the 70B in 1-2%)**, so the leak is the model's, not the quantisation's |
 | 2026-10-09 | Engine fixes measured, before/after: English-only rhyme word bank replaced, then the line prompt names the language; 36 sonnets per language, es/it/de/fr, plus a few live page proposals | 8B | 37,659 | - | 0.11 | **rhyme +23 to +36 points in all four languages; lines in English fell to 0-0.4%** (Italian 18% -> 0.4%); the leak was mostly our engine's, not the model's |
 | 2026-10-09 | Training data for a line adapter: 200 sonnets in es/it/de/fr/en written through the engine, each kept line checked by a correct-and-compare question | 70B | 57,494 | 24.6 M / 0.95 M | 1.86 | 1,160 lines kept (5.8 per poem), private Kaggle dataset; data in DVC, never git |
+| 2026-10-14 | Spanish rerun with the corrected syllable counter in the loop, 36 sonnets, seeds 0 and 3 (through a proxy another session had started) | 8B | 4,771 | 1.12 M / 47 k | ~0.01 (est. from the 9 Oct 8B rate) | **Spanish 83% of lines in exact metre, rhyme 71%**; the old counter's 82-91% fell to 48-58% when its stored poems were rescanned, so this rerun is the figure the report uses |
 
 Running total (proxy log, 2026-10-09 13:40): **223,704 requests, CHF 3.92.**
 
