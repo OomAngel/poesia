@@ -27,6 +27,7 @@ import collections
 import glob
 import json
 import random
+import re
 from pathlib import Path
 
 from poesia.generation import rhyme_fetcher
@@ -40,6 +41,34 @@ ITALIAN = "data/external/averell/biblioteca_italiana-master/json/*.json"
 FRENCH = "data/external/averell/metrique-en-ligne-master/json/*.json"
 GERMAN = "data/external/DLK/DLK/meterized/json_DLK_v6/*.json"
 MAX_LINES = 14
+MAX_REPEATED = 2  # content words used twice or more in the first 14 lines (POETICS #3)
+OPENING_CAP, ENDING_CAP = 0.05, 0.02  # shares across the whole set, not per poem
+WORD = re.compile(r"[^\W\d_]+", re.UNICODE)
+
+
+def _end(line: str) -> str:
+    w = WORD.findall(line.lower())
+    return w[-1] if w else ""
+
+
+def _near_copy(a: str, b: str) -> bool:
+    """Same word, or one ends with the other ("venir"/"prevenir"): not a rhyme (POETICS #2)."""
+    return a == b or (min(len(a), len(b)) >= 3 and (a.endswith(b) or b.endswith(a)))
+
+
+def _repeated_content_words(lines: list[str], language: str) -> int:
+    from poesia.phonology.rhyme_index import rank
+
+    small = {w.lower() for w, r in rank(language).items() if r < 150}
+    words = [w for ln in lines for w in WORD.findall(ln.lower()) if w not in small and len(w) > 2]
+    return sum(c > 1 for c in collections.Counter(words).values())
+
+
+def _influence_names() -> list[str]:
+    import yaml
+
+    data = yaml.safe_load(Path("data/influences.yaml").read_text(encoding="utf-8"))
+    return [p["name"] for p in data.get("spanish", [])]
 
 
 class _Recorder:
@@ -100,6 +129,7 @@ def _master(language: str):
                 "language": language,
                 "title": r.get("title", ""),
                 "author": r.get("author", ""),
+                "source": r.get("source", ""),
                 "stanzas": [s for s in stanzas if s],
             }
 
@@ -125,9 +155,7 @@ def _plan(poem: dict) -> list[tuple[str, int, int | None]] | None:
             (
                 j
                 for j in range(i - 1, max(stanza_start[i], i - 4) - 1, -1)
-                if keys[i]
-                and keys[j] == keys[i]
-                and flat[j].split()[-1].lower() != ln.split()[-1].lower()
+                if keys[i] and keys[j] == keys[i] and not _near_copy(_end(flat[j]), _end(ln))
             ),
             None,
         )
@@ -135,6 +163,8 @@ def _plan(poem: dict) -> list[tuple[str, int, int | None]] | None:
         plan.append((ln, counts[i], partner))
     modal = collections.Counter(counts).most_common(1)[0][1]
     if rhymed < len(flat) / 2 or modal < len(flat) / 2:
+        return None
+    if _repeated_content_words(flat, poem["language"]) > MAX_REPEATED:
         return None
     return plan
 
@@ -181,8 +211,41 @@ def _examples(poem: dict) -> list[dict]:
                 "title": title,
                 "line_index": i,
                 "rhymed": partner is not None,
+                "shape": "pair" if partner is not None else "line",
             }
         )
+    return out
+
+
+def _benchmark_themes() -> dict[str, set[str]]:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "bench", Path(__file__).with_name("evaluate_adapter_mlflow.py")
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return {k: {t.lower() for t in v} for k, v in mod.THEMES.items()}
+
+
+def _ordered(
+    lang: str, poems: list[dict], rng: random.Random, influence_share: float
+) -> list[dict]:
+    """Spanish: interleave Angel's poets (data/influences.yaml, POETICS #7) at ``influence_share``."""
+    if lang != "es" or influence_share <= 0:
+        return poems
+    names = [n.split()[-1].lower() for n in _influence_names()]
+    theirs = [p for p in poems if any(n in str(p["author"]).lower() for n in names)]
+    # Outside Angel's poets, leave the Golden Age collections out: their inverted word order
+    # contradicts the prompt's "normal word order" rule (POETICS #4), so the pair would teach the
+    # model to ignore it. Sor Juana stays (she is one of his poets).
+    golden = re.compile(r"siglo_de_oro|stuniga|garcilaso", re.I)
+    rest = [p for p in poems if p not in theirs and not golden.search(str(p.get("source", "")))]
+    out, k = [], 0
+    while theirs or rest:
+        take_theirs = theirs and (not rest or rng.random() < influence_share)
+        out.append(theirs.pop() if take_theirs else rest.pop())
+        k += 1
     return out
 
 
@@ -191,10 +254,18 @@ def main() -> None:
     ap.add_argument("--per-language", type=int, default=160, help="poems per language")
     ap.add_argument("--languages", nargs="+", default=["es", "en", "it", "de", "fr"])
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument(
+        "--influence-share", type=float, default=0.5, help="Spanish: share from Angel's poets"
+    )
+    ap.add_argument(
+        "--holdout-per-language", type=int, default=50, help="poems kept out for the judge"
+    )
     ap.add_argument("--out", required=True)
+    ap.add_argument("--holdout-out", default=None)
     args = ap.parse_args()
     rhyme_fetcher._fetch_datamuse = lambda *_a, **_k: []  # the offline page never reaches Datamuse
     rng = random.Random(args.seed)
+    themes = _benchmark_themes()
     sources = {
         "es": lambda: _master("es"),
         "en": lambda: _master("en"),
@@ -204,23 +275,63 @@ def main() -> None:
     }
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
+    hold = (
+        Path(args.holdout_out) if args.holdout_out else out.with_name(out.stem + "-holdout.jsonl")
+    )
     totals = {}
-    with out.open("w", encoding="utf-8") as fh:
+    with out.open("w", encoding="utf-8") as fh, hold.open("w", encoding="utf-8") as hh:
         for lang in args.languages:
             poems = list(sources[lang]())
             rng.shuffle(poems)
-            kept = n = 0
+            poems = [p for p in poems if p["title"].strip().lower() not in themes.get(lang, set())]
+            poems = _ordered(lang, poems, rng, args.influence_share)
+            openings, endings = collections.Counter(), collections.Counter()
+            kept = held = n = capped = 0
             for poem in poems:
                 ex = _examples(poem)
                 if not ex:
                     continue
+                if held < args.holdout_per_language:  # whole poems, never trained on
+                    hh.write(
+                        json.dumps(
+                            {
+                                "language": lang,
+                                "author": poem["author"],
+                                "title": poem["title"],
+                                "lines": [e["messages"][-1]["content"] for e in ex],
+                                "examples": ex,
+                            },
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                    )
+                    held += 1
+                    continue
                 for e in ex:
+                    line = e["messages"][-1]["content"]
+                    words = WORD.findall(line.lower())
+                    first, last = (words[0], words[-1]) if words else ("", "")
+                    total = max(n, 50)
+                    if (
+                        openings[first] + 1 > OPENING_CAP * total
+                        or endings[last] + 1 > ENDING_CAP * total
+                    ):
+                        capped += 1
+                        continue
+                    openings[first] += 1
+                    endings[last] += 1
                     fh.write(json.dumps(e, ensure_ascii=False) + "\n")
-                n += len(ex)
+                    n += 1
                 kept += 1
                 if kept >= args.per_language:
                     break
-            totals[lang] = {"poems": kept, "examples": n, "pool": len(poems)}
+            totals[lang] = {
+                "poems": kept,
+                "examples": n,
+                "capped": capped,
+                "holdout": held,
+                "pool": len(poems),
+            }
             print(lang, totals[lang], flush=True)
     print(json.dumps(totals))
 
