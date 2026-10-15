@@ -94,7 +94,10 @@ def main():
         "apertus-v1.5-8b-text-q4_k_m.gguf",
         local_dir=f"{T}/model",
     )
-    lora = glob.glob("/kaggle/input/**/line-v1.gguf", recursive=True)[0]
+    lora = sorted(glob.glob("/kaggle/input/**/*.gguf", recursive=True))[
+        -1
+    ]  # the dataset holds one adapter
+    print("adapter:", lora, flush=True)
     server = f"{T}/llama.cpp/build/bin/llama-server"
     common = [
         "--alias",

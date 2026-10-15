@@ -155,22 +155,33 @@ for k, i in enumerate(order):
             if rank == 0: print(f"time limit: stopping at step {step}/{steps}, eval loss {ev:.3f}", flush=True)
             break
 log["seconds"] = time.time() - t0
-# Held-out loss per language and shape (line = free line, pair = closing a rhyme pair), so the
-# rounds of docs/TUNING_ROUNDS_2026-10.md can be read apart; rank 0 only, after training.
-if rank == 0:
-    core.eval(); groups = {}  # the unwrapped model: a DDP forward on one rank alone can hang
-    with torch.no_grad():
-        for ids, labels, g in evals:
-            x = torch.tensor([ids], device=rank); y = torch.tensor([labels], device=rank)
-            with torch.autocast("cuda", dtype=DT, enabled=DT != torch.float32):
-                groups.setdefault(g, []).append(core(input_ids=x, labels=y).loss.item())
-    log["eval_loss_by_group"] = {g: (sum(v) / len(v), len(v)) for g, v in sorted(groups.items())}
-    print("eval loss by group", json.dumps(log["eval_loss_by_group"]), flush=True)
 if rank == 0:
     core.save_pretrained(f"{OUT}/adapter")
     tok.save_pretrained(f"{OUT}/adapter")
     json.dump(log, open(f"{OUT}/train_log.json", "w"), indent=1)
-    print("saved adapter", flush=True)
+    print("saved adapter", flush=True)  # before the extra evaluation, so it cannot be lost
+# Held-out loss per language and shape (line = free line, pair = closing a rhyme pair), so the
+# rounds of docs/TUNING_ROUNDS_2026-10.md can be read apart. Both ranks share it and gather the
+# results: run on rank 0 alone, rank 1 timed out waiting at shutdown (2026-10-15, after saving).
+core.eval(); mine_groups = {}  # the unwrapped model: a DDP forward needs both ranks in step
+with torch.no_grad():
+    for ids, labels, g in evals[rank::world]:
+        x = torch.tensor([ids], device=rank); y = torch.tensor([labels], device=rank)
+        with torch.autocast("cuda", dtype=DT, enabled=DT != torch.float32):
+            mine_groups.setdefault(g, []).append(core(input_ids=x, labels=y).loss.item())
+parts = [None] * world
+if ddp:
+    dist.all_gather_object(parts, mine_groups)
+else:
+    parts = [mine_groups]
+groups = {}
+for part in parts:
+    for g, v in part.items():
+        groups.setdefault(g, []).extend(v)
+log["eval_loss_by_group"] = {g: (sum(v) / len(v), len(v)) for g, v in sorted(groups.items())}
+if rank == 0:
+    print("eval loss by group", json.dumps(log["eval_loss_by_group"]), flush=True)
+    json.dump(log, open(f"{OUT}/train_log.json", "w"), indent=1)
 if ddp:
     dist.destroy_process_group()
 """
