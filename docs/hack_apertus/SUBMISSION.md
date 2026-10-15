@@ -62,7 +62,7 @@ https://github.com/OomAngel/poesia-apertus
 
 ### Technical Report (PDF)
 * **File**: `track_2b/PoesIA_Report.pdf` (or `track_2b/TeamName_Report.pdf`)
-* **Length**: 6 pages (limit: 6 without references). Build: `pandoc technical_report.md -o PoesIA_Report.pdf --pdf-engine=xelatex -V geometry:margin=0.75in -V fontsize=10pt`, then copy to `TeamName_Report.pdf`.
+* **Length**: 6 pages plus one page of references (limit: 6 without references). Build: `pandoc technical_report.md -o PoesIA_Report.pdf --pdf-engine=xelatex -V geometry:margin=0.75in -V fontsize=10pt`, then copy to `TeamName_Report.pdf`.
 * **Source**: Compiled from `track_2b/technical_report.md`.
 
 ---
