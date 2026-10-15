@@ -84,19 +84,56 @@ language), at four levels (`b21`) and for sense (`b22`, Apertus 70B verdict, 150
 | repeated content words per poem | 4.6 -> 2.6 | 5.6 -> 4.6 | 8.7 -> 5.6 | 6.1 -> 5.0 |
 | **lines the judge calls sense** (poets ~90%) | **93 -> 68%** | (judge unreliable) | **91 -> 64%** | 93 -> 89% |
 
-Above the line it moves toward the poets in every language; it loses sense. Rejected lines show
-why: unfinished clauses (learned from enjambment), odd syntax, invented forms ("desasalta",
-"entfüßt"), and in a few poems stutter ("La noche la noche la noche mía"). **Not adopted.**
-German also lost distinct openings (0.36 -> 0.20), the v1 collapse warning.
+### What v3 brought, and why (2026-10-15)
 
-Instruments: stutter is now measured (adapter 0.2-2.5% of lines, plain 0-0.2%); an
-unknown-word rate does not separate (the poets use 9-21% words outside the 40k list, more than
-either model), so it is not used.
+**What improved, and why.** v3 was trained only on poets' own lines, in the request the page
+sends, with caps on openings and end words across the set and the POETICS filters (no near-copy
+rhymes, few repeated words, rhymed metrical poems). It learned the poets' habits above the line:
 
-Next round (v4) hypotheses, one at a time against v3: answers that close a clause (end in
-punctuation) for the proposal shape; the sense verdict as a data gate (it passes 90% of poets'
-lines); fewer steps (most of the loss gain came in the first 100); serve with the adapter at a
-lower temperature.
+- *It develops instead of restating.* Consecutive stanzas went from 0.55-0.66 to 0.40-0.42
+  (poets 0.18-0.25), and repetition across the poem roughly halved. Why: each training answer
+  is a poet's next line given the lines before it, and poets move on; the plain 8B, prompted line
+  by line, keeps paraphrasing the theme.
+- *It repeats fewer words and spreads its rhymes.* Content words repeated per poem fell (es 4.6 ->
+  2.6, de 8.7 -> 5.6); the share of the ten most common end words fell (it 24% -> 9%). Why: the
+  answers had capped end words and were filtered for repeated words, so the familiar rhyme words
+  ("serena", "arena") lost their weight.
+- *Metre and rhyme rose in Spanish and Italian* (es 86 -> 93% metre, 58 -> 66% rhyme; it 83 -> 96%,
+  49 -> 68%). Why: the data was metrical by the corrected counter, and half of it was the
+  "close the rhyme pair" request with the poet's own rhyme word as the answer.
+
+**What worsened, and why.**
+
+- *Sense.* The judge passes 68% of the adapter's Spanish lines against 93% for the plain model
+  and about 90% for the poets (de 91 -> 64%, fr 93 -> 89%). Two causes, measured separately:
+  1. **Unfinished lines (measured).** The adapter closes fewer lines with punctuation (es 67 -> 55%,
+     de 98 -> 67%, fr 88 -> 63%; the training answers close 65-75%). Poets carry a sentence over
+     the line break; as single-line answers, those taught the model to stop mid-thought, and a
+     line that stops mid-thought fails as a stand-alone proposal. The judge passes the adapter's
+     open lines less often (es 57%, de 57%) than its closed ones.
+  2. **Worse even when the line closes (measured; cause is a hypothesis).** Closed lines pass
+     74% (es) and 68% (de) against 94% and 91% for the plain model. Most likely: poets' lines are
+     hard to predict (held-out loss stays at 3.0, against 1.66 for v1's teacher lines), so training
+     toward them flattens the model's word choices, and at the same sampling temperature (0.9)
+     more picks go wrong: odd syntax, invented forms ("aufgehebt", "befreuen", "desasalta"),
+     occasional stutter. Untested alternatives: imitation of 19th-century syntax without the
+     poets' control of it; training on NF4 and serving on Q4_K_M.
+- *German openings collapsed* (distinct openings 0.36 -> 0.20) and near-copy rhymes rose
+  (26 -> 34%). Why, likely: the German pool is the smallest and most uniform (DLK, 19th century),
+  so the caps bit less and its habits dominated.
+- *French metre fell* (90 -> 87%). Likely: the smallest pool (143 poems) and classical counting
+  (mute e) that the other languages' data does not teach.
+
+**What this means for v4.** Keep what worked (poets' lines, caps, the pair request). Fix the two
+measured causes one at a time: (a) answers that close their clause for the proposal request, and
+(b) a lower sampling temperature for the adapter, tested first on v3 itself (no training).
+**Not adopted.**
+
+Instruments added or dropped on the way: stutter is measured (a content word three times in a line,
+or twice in a row: adapter 0.2-2.5% of lines, plain 0-0.2%). Two "invented word" measures do not
+separate: words outside the 40k list (the poets use 9-21%, more than either model), and words absent
+from both the list and the training poems (it catches ordinary conjugations, "acarician", and the
+plain model's English, "cloaks"). Neither is used until it passes a control.
 
 ## 2. Rounds
 
