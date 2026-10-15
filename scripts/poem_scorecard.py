@@ -74,7 +74,7 @@ def near_copy(a: str, b: str) -> bool:
     return a == b or (min(len(a), len(b)) >= 3 and (a.endswith(b) or b.endswith(a)))
 
 
-def score(poems, language, phon, encoder, function_words, centre):
+def score(poems, language, phon, encoder, function_words, centre, vocab):
     out = collections.defaultdict(list)
     openings, endings = [], []
     for lines in poems:
@@ -83,6 +83,18 @@ def score(poems, language, phon, encoder, function_words, centre):
         modal = collections.Counter(counts).most_common(1)[0][0]
         out["line_metre_modal"].append(np.mean([c == modal for c in counts]))
         out["line_fragment"].append(np.mean([len(ln.split()) < 4 for ln in lines]))
+        # Stutter: a content word three times in a line, or twice in a row ("la noche la noche").
+        stutter = []
+        for ln in lines:
+            ws = words(ln)
+            counts = collections.Counter(w for w in ws if w not in function_words)
+            twice_in_row = any(a == b for a, b in zip(ws, ws[1:], strict=False))
+            stutter.append(max(counts.values(), default=0) >= 3 or twice_in_row)
+        out["line_stutter"].append(np.mean(stutter))
+        # Words outside the language's 40k list (adapter v3 invented "desasalta", "entfüßt"):
+        # compared with the poets' own rate, which includes rare and old words.
+        toks = [w for ln in lines for w in words(ln) if len(w) > 2]
+        out["line_unknown_words"].append(np.mean([w not in vocab for w in toks]) if toks else 0.0)
         v = encoder.encode(lines, normalize_embeddings=True) - centre
         v /= np.linalg.norm(v, axis=1, keepdims=True)
         keys = [phon.rhyme_key(ln).consonant for ln in lines]
@@ -144,6 +156,7 @@ def main() -> None:
     for language in args.languages:
         phon = _phonology(language)
         function_words = {w.lower() for w, r in rank(language).items() if r < 150}
+        vocab = {w.lower() for w in rank(language)}
         human = human_poems(language, args.human, random.Random(0))
         sample = [ln for p in human for ln in p]
         centre = encoder.encode(sample, normalize_embeddings=True).mean(0)
@@ -152,7 +165,7 @@ def main() -> None:
             name, pattern = spec.split("=", 1)
             sets[name] = model_poems(pattern.replace("{lang}", language))
         report[language] = {
-            name: score(p, language, phon, encoder, function_words, centre)
+            name: score(p, language, phon, encoder, function_words, centre, vocab)
             for name, p in sets.items()
             if p
         }
