@@ -9,7 +9,10 @@
   "enable_tpu": false,
   "enable_internet": true,
   "machine_shape": "NvidiaTeslaT4",
-  "dataset_sources": ["angelmarquezaguilar/poesia-distill-lines"],
+  "dataset_sources": [
+    "angelmarquezaguilar/poesia-distill-lines",
+    "angelmarquezaguilar/apertus-v1-5-8b-text"
+  ],
   "competition_sources": [],
   "kernel_sources": [],
   "model_sources": []

@@ -169,7 +169,10 @@ def _plan(poem: dict) -> list[tuple[str, int, int | None]] | None:
     return plan
 
 
-def _examples(poem: dict) -> list[dict]:
+CLOSES = (".", ",", ";", ":", "!", "?", "…", "»", '"', ")")
+
+
+def _examples(poem: dict, closing_only: bool = False) -> list[dict]:
     plan = _plan(poem)
     if plan is None:
         return []
@@ -182,6 +185,10 @@ def _examples(poem: dict) -> list[dict]:
     out = []
     for i, (line, syllables, partner) in enumerate(plan):
         if len(line.split()) < 3 or guess_language(line) not in (None, lang):
+            continue
+        # v4: a proposal stands alone on the page, so only answers that close their clause
+        # (adapter v3 learned to stop mid-thought from enjambed lines; TUNING_ROUNDS §1b).
+        if closing_only and not line.rstrip().endswith(CLOSES):
             continue
         word = key = None
         bank: list[str] = []
@@ -260,6 +267,7 @@ def main() -> None:
     ap.add_argument(
         "--holdout-per-language", type=int, default=50, help="poems kept out for the judge"
     )
+    ap.add_argument("--closing-only", action="store_true", help="answers must close their clause")
     ap.add_argument("--out", required=True)
     ap.add_argument("--holdout-out", default=None)
     args = ap.parse_args()
@@ -288,7 +296,7 @@ def main() -> None:
             openings, endings = collections.Counter(), collections.Counter()
             kept = held = n = capped = 0
             for poem in poems:
-                ex = _examples(poem)
+                ex = _examples(poem, args.closing_only)
                 if not ex:
                     continue
                 if held < args.holdout_per_language:  # whole poems, never trained on

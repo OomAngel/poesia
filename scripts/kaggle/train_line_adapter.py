@@ -192,10 +192,24 @@ def sh(cmd, env=None):
     subprocess.run(cmd, check=True, env={**os.environ, **(env or {})})
 
 
-if __name__ == "__main__":
-    from kaggle_secrets import UserSecretsClient  # type: ignore[import-not-found]
+def _attached_weights() -> str | None:
+    """The model folder of the private weights dataset, if attached (no token needed then)."""
+    for root, _d, files in os.walk("/kaggle/input"):
+        if "config.json" in files and any(f.endswith(".safetensors") for f in files):
+            return root
+    return None
 
-    os.environ["HF_TOKEN"] = UserSecretsClient().get_secret("HF_TOKEN")
+
+if __name__ == "__main__":
+    # Weights from the private Kaggle dataset (angelmarquezaguilar/apertus-v1-5-8b-text) when it is
+    # attached: then the run needs no secret and starts from the API. Otherwise Hugging Face with
+    # the HF_TOKEN secret, which reaches only runs started in the editor.
+    model_dir = _attached_weights()
+    if model_dir is None:
+        from kaggle_secrets import UserSecretsClient  # type: ignore[import-not-found]
+
+        os.environ["HF_TOKEN"] = UserSecretsClient().get_secret("HF_TOKEN")
+    print("weights:", model_dir or "Hugging Face", flush=True)
     sh(
         [
             sys.executable,
@@ -210,16 +224,17 @@ if __name__ == "__main__":
             "bitsandbytes",
         ]
     )
-    from huggingface_hub import snapshot_download
+    if model_dir is None:
+        from huggingface_hub import snapshot_download
 
-    model_dir = snapshot_download(
-        "andreasmartin/apertus-v1.5-8b-text", local_dir="/kaggle/tmp/model"
-    )
+        model_dir = snapshot_download(
+            "andreasmartin/apertus-v1.5-8b-text", local_dir="/kaggle/tmp/model"
+        )
     data = next(
         os.path.join(root, f)
         for root, _d, files in os.walk("/kaggle/input")
-        for f in files
-        if f.endswith(".jsonl")
+        for f in sorted(files)
+        if f.endswith(".jsonl") and "holdout" not in f
     )
     with open(f"{OUT}/worker.py", "w") as fh:
         fh.write(WORKER)
