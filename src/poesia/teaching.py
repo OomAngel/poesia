@@ -361,7 +361,15 @@ def teach_scan(
         _localise(lesson, ui_language, scan.line)
         return lesson
 
-    form_label = f" of a {form_name}" if form_name else ""
+    # Internal names ("sonnet_shakespearean") never reach the person (footage review, 2026-10-15).
+    readable = {
+        "sonnet_shakespearean": "Shakespearean sonnet",
+        "sonnet": "sonnet",
+        "haiku": "haiku",
+    }
+    form_label = (
+        f" of a {readable.get(form_name, form_name.replace('_', ' '))}" if form_name else ""
+    )
     if target_syllables is not None:
         _apply_target_check(lesson, actual, target_syllables, form_label)
 
