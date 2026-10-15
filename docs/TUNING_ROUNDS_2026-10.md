@@ -70,6 +70,34 @@ verdict, Spanish: real lines pass 90%, shuffled 8%, spliced halves 36% (balanced
 Angel's blind rating decides. Italian: it rejects 40% of real (older) lines, so it cannot gate
 Italian training data. Correct-and-compare is weaker (es 0.73, it 0.59).
 
+## 1b. Adapter v3 (R1 + R2), measured 2026-10-15
+
+Trained on Kaggle (2 x T4, fp32, half a pass over 10,242 real-poem lines, 5.2 h; held-out loss on
+poets' lines 5.55 -> 3.02). Evaluated on the 4-bit file with and without it (`b20`, 36 sonnets per
+language), at four levels (`b21`) and for sense (`b22`, Apertus 70B verdict, 150 lines):
+
+| | es | it | de | fr |
+|---|---|---|---|---|
+| metre, plain -> adapter | 86 -> 93% | 83 -> 96% | 84 -> 95% | 90 -> 87% |
+| rhyme | 58 -> 66% | 49 -> 68% | 62 -> 51% | 59 -> 54% |
+| stanzas restate (human 0.18-0.25) | 0.55 -> 0.42 | 0.57 -> 0.40 | 0.66 -> 0.40 | 0.60 -> 0.41 |
+| repeated content words per poem | 4.6 -> 2.6 | 5.6 -> 4.6 | 8.7 -> 5.6 | 6.1 -> 5.0 |
+| **lines the judge calls sense** (poets ~90%) | **93 -> 68%** | (judge unreliable) | **91 -> 64%** | 93 -> 89% |
+
+Above the line it moves toward the poets in every language; it loses sense. Rejected lines show
+why: unfinished clauses (learned from enjambment), odd syntax, invented forms ("desasalta",
+"entfüßt"), and in a few poems stutter ("La noche la noche la noche mía"). **Not adopted.**
+German also lost distinct openings (0.36 -> 0.20), the v1 collapse warning.
+
+Instruments: stutter is now measured (adapter 0.2-2.5% of lines, plain 0-0.2%); an
+unknown-word rate does not separate (the poets use 9-21% words outside the 40k list, more than
+either model), so it is not used.
+
+Next round (v4) hypotheses, one at a time against v3: answers that close a clause (end in
+punctuation) for the proposal shape; the sense verdict as a data gate (it passes 90% of poets'
+lines); fewer steps (most of the loss gain came in the first 100); serve with the adapter at a
+lower temperature.
+
 ## 2. Rounds
 
 Each round adds one request shape that a real inference path sends, built from human poems, and
