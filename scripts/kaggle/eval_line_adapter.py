@@ -23,6 +23,7 @@ POESIA_REF = "POESIA_REF_PLACEHOLDER"
 LLAMA_CPP_REF = "f498f864f"
 LANGS = ["es", "it", "de", "fr"]
 SEEDS = [0, 3]
+TEMPERATURE = ""  # e.g. "0.6"; set at push time, like POESIA_REF
 W = "/kaggle/working"  # results only: Kaggle lists every file here as output
 T = "/kaggle/tmp"  # build and model (a llama.cpp tree in W made the output listing hit rate limits)
 
@@ -148,6 +149,8 @@ def main():
                     # on a fresh schema ("duplicate column name: step", 15 of 16 failed in v3)
                     "DATABASE_URL": f"sqlite:///{T}/mlflow-{name}-{lang}-{seed}.db",
                     "MLFLOW_DISABLE_AGENT_HINT": "1",
+                    # both servers at the same temperature (unset: the engine's own values)
+                    **({"LLM_TEMPERATURE": TEMPERATURE} if TEMPERATURE else {}),
                 }
                 out = f"{W}/results/{name}-s{seed}-{lang}.json"
                 log = open(f"{W}/results/{name}-s{seed}-{lang}.log", "w")

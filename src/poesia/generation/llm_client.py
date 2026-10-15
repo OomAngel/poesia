@@ -663,6 +663,10 @@ class OpenAICompatClient:
     def _chat(
         self, messages: list[dict[str, str]], temperature: float, max_tokens: int = 120
     ) -> str:
+        # LLM_TEMPERATURE overrides every call's temperature (unset: the caller's value). For
+        # measuring an adapter at a lower temperature (docs/TUNING_ROUNDS_2026-10.md §1b).
+        if os.environ.get("LLM_TEMPERATURE"):
+            temperature = float(os.environ["LLM_TEMPERATURE"])
         payload = {
             "model": self.model,
             "messages": messages,
