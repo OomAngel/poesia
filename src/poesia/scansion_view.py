@@ -252,7 +252,9 @@ def _en_word(word: str) -> list[dict[str, Any]]:
     stresses = pronouncing.stresses(phones[0])
     primary = stresses.find("1")
     if len(stresses) <= 1:
-        return [_syl(clean, stresses == "1")]
+        # CMUdict stresses every monosyllable; function words ("I", "the", "on") are the verse's
+        # unstressed beats, so showing them stressed misdrew iambic lines (footage review).
+        return [_syl(clean, stresses == "1" and letters.lower() not in _EN_WEAK)]
     try:
         import pyphen  # type: ignore[import-untyped]
 
@@ -260,8 +262,37 @@ def _en_word(word: str) -> list[dict[str, Any]]:
     except Exception:
         parts = [clean]
     if len(parts) != len(stresses):
-        return [_syl(clean, True)]  # split unknown: show the word whole, stressed
+        parts = _en_vowel_split(clean, len(stresses))  # pyphen disagrees ("evening": 2 sounds)
+    if len(parts) != len(stresses):
+        return [_syl(clean, False)]  # split unknown: show the word whole, not falsely stressed
     return [_syl(p, i == primary) for i, p in enumerate(parts)]
+
+
+_EN_WEAK = set(
+    "a an the and or but nor of to in on at by for from with as than that this these those "
+    "i me my we us our you your he him his she her it its they them their is am are was were be "
+    "been do does did has have had shall will would can could may might must not no so if".split()
+)
+
+
+def _en_vowel_split(word: str, n: int) -> list[str]:
+    """Split by spelling into ``n`` parts at the consonants between vowel groups (a fallback
+    when pyphen's split does not match CMUdict's count); a final silent e joins its group."""
+    groups = [m.span() for m in re.finditer(r"[aeiouyAEIOUY]+", word)]
+    if len(groups) > 1 and word.lower().endswith("e") and groups[-1][0] == len(word) - 1:
+        groups = groups[:-1]
+    if len(groups) != n:
+        return [word]
+    cuts = []
+    for (_, end), (start, _) in zip(groups, groups[1:], strict=False):
+        cons = start - end
+        cuts.append(end + (cons // 2 if cons > 1 else 0))
+    pieces, prev = [], 0
+    for c in cuts:
+        pieces.append(word[prev:c])
+        prev = c
+    pieces.append(word[prev:])
+    return pieces
 
 
 def syllable_view(line: str, language: str) -> list[dict[str, Any]]:
