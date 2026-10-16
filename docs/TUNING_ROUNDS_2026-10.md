@@ -14,8 +14,7 @@ service from here.
 **Update 2026-10-17 00:45 (PoesIA models session):** v5 trained, uploaded (`line-v5.gguf` is the only
 file of the Kaggle dataset `poesia-line-adapter-gguf`) and evaluated; result in **§1d: not adopted**
 (above-line gains lost in es/it/fr, German openings still collapsed). Sense for v5 waits for the CSCS
-proxy, which was down (sense then measured: level with plain in es/fr, 6 points down in de). The bullets
-below describe the state at hand-over.
+proxy, which was down (sense then measured: level with plain in es/fr, 6 points down in de).
 
 **Done after that, same night (17 Oct):**
 - **Ranking penalties built, off by default** (`d6f593f`, `8ef1019`): `evaluation/rank_penalties.py`
@@ -41,7 +40,7 @@ below describe the state at hand-over.
   `docker/calaveritas.Dockerfile`. A merge publishes the whole history; the clean route is a
   code-only branch (src, tests, scripts, pyproject, fonts, a scrubbed memory-bank entry). Angel decides.
   The Spanish metre counter changed in that branch, so Spanish baselines must be rerun after it.
-- The bullets below describe the state at hand-over.
+The bullets below describe the state at hand-over.
 
 **State, verified 2026-10-16 17:00:**
 - Branch `hack-apertus`, last own commits `352f9d7` (v5 data), `fa8b302` (§1c), pushed.
