@@ -11,6 +11,11 @@ The Calaveritas service stays with its own session (worktree `~/dev/poesia-quali
 `quality-layer`, live on the Veriton until 4 Nov): coordinate the merge with it, never deploy its
 service from here.
 
+**Update 2026-10-17 00:45 (PoesIA models session):** v5 trained, uploaded (`line-v5.gguf` is the only
+file of the Kaggle dataset `poesia-line-adapter-gguf`) and evaluated; result in **§1d: not adopted**
+(above-line gains lost in es/it/fr, German openings still collapsed). Sense for v5 waits for the CSCS
+proxy, which was down. The bullets below describe the state at hand-over.
+
 **State, verified 2026-10-16 17:00:**
 - Branch `hack-apertus`, last own commits `352f9d7` (v5 data), `fa8b302` (§1c), pushed.
 - **v5 training is running on Kaggle** (kernel `angelmarquezaguilar/poesia-line-adapter` version 13,
@@ -228,6 +233,73 @@ German: sense plain 89%, v3 71%, v4 81%; French: 97%, 83%, 93%. Italian: no reli
 - **Not adopted.** v4 (Spanish) is the first adapter worth Angel's blind rating against the plain
   model; the opening collapse must be fixed (caps per language and per position, and a ranking
   penalty on openings used across recent poems) before adoption.
+
+## 1d. Adapter v5: sentence-closing answers only, openings capped at 3% (2026-10-17)
+
+v4's recipe with two data changes: only answers that end in . ; : ! ? or a closing quote count as
+closing (v4 counted a final comma), and openings capped at 3% across the set (`352f9d7`). 4,844
+lines, one full pass over 288 steps, 5.2 h on Kaggle, held-out loss 5.58 -> 2.94 (v4: 2.94).
+Evaluated as v4 was: 4-bit, temperature 0.6, 36 sonnets per language, seeds 0 and 3
+(`b29-kaggle-q4-adapter-v5-t06`, kernel version 9; the adapter control passed: `line-v5.gguf`
+mounted, and at temperature 0 it answers differently from the plain server). Scorecard:
+`b30-scorecard-adapter-v5-t06.json`, which holds both plain runs (b26 and b29) as a noise gauge:
+two runs of the *same* plain model differ by up to 0.12 in a pair measure (de near-copy rhymes
+0.45 vs 0.33) at n = 36, so only gaps larger than that count.
+
+| es | human | plain b26 / b29 | v4 | v5 |
+|---|---|---|---|---|
+| metre at the modal count | 0.89 | 0.84 / 0.85 | 0.91 | 0.88 |
+| rhyme (lines rhyming within the group) | 0.57 | 0.51 / 0.45 | 0.51 | 0.61 |
+| near-copy rhymes | 0.06 | 0.30 / 0.26 | 0.25 | 0.33 |
+| pair: second line restates the first | 0.10 | 0.37 / 0.38 | 0.37 | **0.54** |
+| stanza redundancy | 0.08 | 0.32 / 0.32 | 0.33 | **0.49** |
+| content words repeated per stanza | 0.17 | 0.94 / 0.94 | 1.19 | **1.47** |
+| consecutive stanzas restate (lower develops) | 0.23 | 0.61 / 0.60 | 0.57 | **0.68** |
+| content words repeated per poem | 1.3 | 5.1 / 5.2 | 4.1 | 3.8 |
+| distinct openings across poems | 0.35 | 0.19 / 0.16 | 0.14 | 0.14 |
+| top-10 end-word share | 0.05 | 0.24 / 0.23 | 0.14 | 0.19 |
+
+Other languages, v5 against the two plain runs (plain b26 / b29):
+
+- **Above the line, v5 is worse than plain in Spanish, Italian and French; German is the
+  exception.** Stanza redundancy it 0.42 (plain 0.36 / 0.37), fr 0.45 (0.35 / 0.34); consecutive
+  stanzas restate it 0.65 (plain 0.58), fr 0.71 (0.63 / 0.64); content words repeated per stanza
+  it 1.8 (1.4 / 1.2), fr 1.7 (1.4 / 1.2). In German v5 is level with or slightly better than plain
+  (redundancy 0.40 vs 0.40 / 0.42, consecutive stanzas 0.61 vs 0.68 / 0.68, words per stanza 1.9
+  vs 2.4 / 2.2), but not better than v4 (0.31, 0.57, 1.8). Repeated words per poem and end-word
+  spread improve everywhere (es 3.8 vs 5.1; it top-10 0.13 vs 0.29 / 0.31). The pair measure
+  (second line restates the first) rises only in Spanish (0.54 vs 0.37 / 0.38) and French
+  (0.58 vs 0.41 / 0.42). v3's and v4's development gain is gone outside German.
+- **Near-copy rhymes rose: fr 0.50 against plain 0.21-0.24 (v4 0.33), de 0.53 (plain 0.33-0.45).**
+  French rhyme fell to 0.36 (plain 0.45); French metre is back to plain (0.85).
+- **Metre up in it (0.95 vs 0.83-0.85) and de (0.96 vs 0.83-0.85), as in v4.**
+- **Stutter** (a content word three times in a line, or twice in a row): de 5.1% and fr 1.6% of
+  lines against 0% for plain; v4 was de 3.2%.
+- **Openings:** the 3% cap in the data did not fix German (0.11 against plain 0.29 / 0.32, v4
+  0.11). It restored Italian partway (0.21 against plain 0.27 / 0.29, v4 0.15). Spanish sits at plain's level
+  (0.14 vs 0.16-0.19) and French above it (0.11 vs 0.05-0.07), but both plain models are far
+  from the human 0.30-0.35, so the collapse that matters is German and Italian.
+
+**Reading.** v5 does not beat the plain model at all four levels, so it is **not adopted**, with or
+without the sense judge (the judge can reject further, it cannot rescue). Measured: the closing-only
+filter did not keep v4's above-line gains in Spanish, Italian and French; it lost them. Cause, a
+hypothesis not yet tested: answers that always close their sentence are self-contained statements
+about the theme, and a model that writes self-contained lines restates more, which is what
+poets' enjambed lines do not do. v4 (with its comma-closing lines) kept part of the development
+gain; v5 did not. The caps fixed end words and Italian openings, not German openings.
+
+**Sense for v5 is not measured yet:** the CSCS proxy (127.0.0.1:8790) was down on 17 Oct 00:30
+(nothing listening; last usage-log entry 16 Oct 14:22), the first run of `sense_compare.py`
+answered 0 of 150 and its output was discarded. Rerun when Angel restarts the proxy:
+`LLM_BASE_URL=http://127.0.0.1:8790/v1 python scripts/sense_compare.py --runs
+plain-b29=reports/eval_2026-10/b29-kaggle-q4-adapter-v5-t06/plain-s*-{lang}.json
+adapter-v5=reports/eval_2026-10/b29-kaggle-q4-adapter-v5-t06/lora-s*-{lang}.json
+--out reports/eval_2026-10/b31-sense-adapter-v5-t06.json`.
+
+**Angel's blind rating of v4 so far (2 of 20 pairs, 16 Oct):** one pick for v4 ("the verses of B
+other than the repeated beginning are more logical and rhyme better"; B = v4), one tie. He
+noticed the opening collapse unprompted ("every single verse starts the same way"). Two pairs
+decide nothing; the rating continues.
 
 ## 2. Rounds
 
