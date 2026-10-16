@@ -288,13 +288,21 @@ about the theme, and a model that writes self-contained lines restates more, whi
 poets' enjambed lines do not do. v4 (with its comma-closing lines) kept part of the development
 gain; v5 did not. The caps fixed end words and Italian openings, not German openings.
 
-**Sense for v5 is not measured yet:** the CSCS proxy (127.0.0.1:8790) was down on 17 Oct 00:30
-(nothing listening; last usage-log entry 16 Oct 14:22), the first run of `sense_compare.py`
-answered 0 of 150 and its output was discarded. Rerun when Angel restarts the proxy:
-`LLM_BASE_URL=http://127.0.0.1:8790/v1 python scripts/sense_compare.py --runs
-plain-b29=reports/eval_2026-10/b29-kaggle-q4-adapter-v5-t06/plain-s*-{lang}.json
-adapter-v5=reports/eval_2026-10/b29-kaggle-q4-adapter-v5-t06/lora-s*-{lang}.json
---out reports/eval_2026-10/b31-sense-adapter-v5-t06.json`.
+**Sense (Apertus 70B verdict, 150 lines per cell, `b31-sense-adapter-v5-t06.json`; measured after
+Angel restarted the proxy on 17 Oct; a first attempt while it was down answered 0 of 150 and was
+discarded):**
+
+| | plain (b29) | v5 | v4 (b28; plain 0.90 / 0.89 / 0.97) |
+|---|---|---|---|
+| es | 91.3% | 94.7% | 91.3% |
+| de | 87.3% | 81.3% | 80.7% |
+| fr | 95.3% | 97.3% | 92.7% |
+
+Sampling error on 150 lines is about 2-3 points per cell (about 4 on a difference), so v5 is level
+with plain in Spanish and French and about 6 points down in German, as v4 was. The judge rejects
+broken lines and cannot rank good ones (§1a), so this says v5 did not break its lines; it does not
+say they are better. The filter flaw that v5 fixed (final comma) did not move German sense. The
+verdict stays **not adopted**: sense holds, the above-line levels do not.
 
 **Angel's blind rating of v4 so far (2 of 20 pairs, 16 Oct):** one pick for v4 ("the verses of B
 other than the repeated beginning are more logical and rhyme better"; B = v4), one tie. He
