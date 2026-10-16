@@ -135,6 +135,38 @@ separate: words outside the 40k list (the poets use 9-21%, more than either mode
 from both the list and the training poems (it catches ordinary conjugations, "acarician", and the
 plain model's English, "cloaks"). Neither is used until it passes a control.
 
+## 1c. Temperature 0.6 on v3, and adapter v4 (2026-10-16)
+
+The research report (`docs/research/reports/Improving PoesIA poetry models.md`) put the cheapest test
+first: sample v3 at 0.6 instead of 0.9 (`b23`, `b24`, `b25`). Then v4 (`b26`-`b28`): the same recipe
+trained only on answers that end in punctuation (8,922 lines; 4.2 h; held-out loss 5.42 -> 2.94).
+All at temperature 0.6, 4-bit, 36 sonnets per language; sense = Apertus 70B verdict on 150 lines.
+
+| es | plain | v3 @0.9 | v3 @0.6 | v4 @0.6 |
+|---|---|---|---|---|
+| sense (poets ~90%) | 90-93% | 68% | 81% | **91%** |
+| metre / rhyme | 83-86% / 58-66% | 93% / 66% | 92% / 74% | 91% / 61% |
+| stanzas restate (human 0.23) | 0.55-0.61 | 0.42 | 0.52 | 0.56 |
+| repeated content words per poem (human 1.3) | 4.4-5.1 | 2.6 | 3.3 | 4.1 |
+| top-10 end-word share (human 5%) | 24% | 13% | 13% | 14% |
+| distinct openings across poems (human 0.35) | 0.19 | 0.14 | 0.14 | 0.14 |
+
+German: sense plain 89%, v3 71%, v4 81%; French: 97%, 83%, 93%. Italian: no reliable judge.
+
+- **Temperature is a dial, not a fix:** at 0.6 v3 regains half its lost sense and gives back half its
+  development gain.
+- **v4 holds sense** (es at parity, de and fr closer) and keeps a smaller part of the gains: fewer
+  repeated words and end words than plain, slightly better development, metre +7 points in es.
+- **Red flag: openings collapse.** Distinct openings across poems fall in every language (it 0.27 ->
+  0.15, de 0.32 -> 0.11), the warning sign from v1; near-copy rhymes rise in de and fr; rhyme falls
+  in es (66 -> 61%) and fr (63 -> 48%); French metre falls.
+- **Filter flaw:** the "closing" test counted a final comma as closing, so lines that run on past a
+  comma stayed in (the control answer "Der Herbst ist gekommen,"). v5 should count only . ; : ! ?
+  and closing quotes.
+- **Not adopted.** v4 (Spanish) is the first adapter worth Angel's blind rating against the plain
+  model; the opening collapse must be fixed (caps per language and per position, and a ranking
+  penalty on openings used across recent poems) before adoption.
+
 ## 2. Rounds
 
 Each round adds one request shape that a real inference path sends, built from human poems, and

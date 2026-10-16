@@ -1,0 +1,32 @@
+{
+ "es|plain-t06": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.9
+ },
+ "es|adapter-v4-t06": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.913
+ },
+ "de|plain-t06": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.893
+ },
+ "de|adapter-v4-t06": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.807
+ },
+ "fr|plain-t06": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.973
+ },
+ "fr|adapter-v4-t06": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.927
+ }
+}
