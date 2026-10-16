@@ -26,6 +26,7 @@ from poesia.evaluation.metrics import (
     rhyme_score,
     theme_score,
 )
+from poesia.evaluation.rank_penalties import RankPenalties
 from poesia.memoria.embedding_validation import (
     EmbeddingValidationError,
     validate_embedding_vector,
@@ -104,7 +105,9 @@ class LineScorer:
         target_foot: str | None = None,
         guest_word: str | None = None,
         guest_phonology=None,
+        rank_penalties: RankPenalties | None = None,
     ) -> None:
+        self._rank_penalties = rank_penalties
         self._phonology = phonology_backend
         self._target_syllable_count = target_syllable_count
         self._embedding_client = embedding_client
@@ -259,6 +262,8 @@ class LineScorer:
             # breakdown keys are exactly composite_score's keyword params, but
             # mypy cannot match a plain dict unpack against a named signature.
             total = composite_score(**breakdown)  # type: ignore[arg-type]
+            if self._rank_penalties is not None:
+                total -= self._rank_penalties.penalty(line, prior_lines, self._language)
             scored.append(ScoredCandidate(line=line, scan=scan, score=total, breakdown=breakdown))
 
         return sorted(scored, key=lambda c: c.score, reverse=True)
