@@ -24,6 +24,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, cast
 
+from poesia.evaluation.rank_penalties import RankPenalties
 from poesia.evaluation.scorer import LineScorer, ScoredCandidate
 from poesia.forms.definitions import FormSpec, get_form
 from poesia.generation.candidate_generator import CandidateGenerator
@@ -506,8 +507,11 @@ class ConstrainedLoop:
         fragments: list[FragmentRecord] | None = None,
         influences: list[InfluenceRecord] | None = None,
         repair_llm: LLMClient | None = None,
+        rank_penalties: RankPenalties | None = None,
     ) -> None:
         self.language = language
+        # Optional: rank candidates down for words/openings the poem (or recent poems) already used
+        self._rank_penalties = rank_penalties
         self.form_spec: FormSpec = get_form(form, language)
         self._llm = llm or StubLLMClient()
         # Optional separate model for metre/rhyme repair (hybrid: draft with a
@@ -788,6 +792,7 @@ class ConstrainedLoop:
             target_foot=self.form_spec.foot,
             guest_word=guest_word,
             guest_phonology=guest_phonology,
+            rank_penalties=self._rank_penalties,
         )
 
         def _batch(word_bank: list[str] | None) -> list[str]:

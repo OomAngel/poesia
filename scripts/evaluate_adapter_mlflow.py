@@ -140,7 +140,13 @@ def evaluate(
     out_path: str | None = None,
     ollama_model: str | None = None,
     openai_compat: bool = False,
+    repeat_weight: float = 0.0,
+    opening_weight: float = 0.0,
+    recent_poems: int = 10,
 ) -> dict:
+    import collections
+
+    from poesia.evaluation.rank_penalties import RankPenalties, opening_word
     from poesia.generation.constrained_loop import ConstrainedLoop
 
     mlflow.set_tracking_uri(os.environ.get("DATABASE_URL", "sqlite:///mlruns/mlflow.db"))
@@ -166,6 +172,11 @@ def evaluate(
         ),
         "samples": samples,
         "seed": seed,
+        "rank_penalties": {
+            "repeat_weight": repeat_weight,
+            "opening_weight": opening_weight,
+            "recent_poems": recent_poems,
+        },
         "languages": {},
     }
     with run:
@@ -183,13 +194,26 @@ def evaluate(
             form = get_form(FORMS[lang], lang)
             phon = _phonology(lang)
             poems = []
+            recent = collections.deque(maxlen=recent_poems)  # openings of the last poems
             for theme in themes[lang]:
                 for k in range(samples):
                     poem_seed = seed + k
                     _seed_everything(poem_seed)
                     t0 = time.time()
-                    loop = ConstrainedLoop(language=lang, form=FORMS[lang], llm=llm)
+                    penalties = (
+                        RankPenalties(
+                            repeat_weight,
+                            opening_weight,
+                            set().union(*recent) if recent else set(),
+                        )
+                        if repeat_weight or opening_weight
+                        else None
+                    )
+                    loop = ConstrainedLoop(
+                        language=lang, form=FORMS[lang], llm=llm, rank_penalties=penalties
+                    )
                     result = loop.run(theme=theme, n_candidates=8, max_repair_attempts=4)
+                    recent.append({o for o in map(opening_word, result.lines) if o})
                     scores = score_poem(result.lines, form, phon)
                     scores.update(
                         theme=theme,
@@ -243,6 +267,20 @@ if __name__ == "__main__":
         help="evaluate the OpenAI-compatible endpoint in LLM_BASE_URL/LLM_NAME (as the page does)",
     )
     ap.add_argument("--parent-run-id", default=None, help="MLflow run to nest under")
+    ap.add_argument(
+        "--repeat-weight",
+        type=float,
+        default=0.0,
+        help="rank a candidate down by this much per content word the poem already used (0 = off)",
+    )
+    ap.add_argument(
+        "--opening-weight",
+        type=float,
+        default=0.0,
+        help="rank a candidate down by this much when its first word opened an earlier line of "
+        "the poem or one of the last --recent-poems poems (0 = off)",
+    )
+    ap.add_argument("--recent-poems", type=int, default=10)
     args = ap.parse_args()
     if not (args.adapter or args.base_model or args.ollama_model or args.openai_compat):
         ap.error("give --adapter, --base-model (or both), --ollama-model or --openai-compat")
@@ -265,4 +303,7 @@ if __name__ == "__main__":
         out_path=args.out,
         ollama_model=args.ollama_model,
         openai_compat=args.openai_compat,
+        repeat_weight=args.repeat_weight,
+        opening_weight=args.opening_weight,
+        recent_poems=args.recent_poems,
     )

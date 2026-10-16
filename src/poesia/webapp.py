@@ -23,6 +23,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from poesia.evaluation.rank_penalties import content_words
+
 WEBUI = Path(__file__).with_name("webui")
 
 # Forms offered on the page: (language, form name).
@@ -303,16 +305,7 @@ def _near_copy(a: str, b: str) -> bool:
     return a == b or (min(len(a), len(b)) >= 3 and (a.endswith(b) or b.endswith(a)))
 
 
-def _content_words(text: str, language: str) -> set[str]:
-    """Words outside the language's ~150 most frequent (mostly function words), 3+ letters."""
-    from poesia.phonology.rhyme_index import rank
-
-    small = rank(language)
-    return {
-        w
-        for w in re.findall(r"[^\W\d_]+", text.lower())
-        if len(w) > 2 and small.get(w, 10**6) >= 150
-    }
+_content_words = content_words
 
 
 def _proposal_rank(
