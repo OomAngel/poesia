@@ -24,6 +24,11 @@ LLAMA_CPP_REF = "f498f864f"
 LANGS = ["es", "it", "de", "fr"]
 SEEDS = [0, 3]
 TEMPERATURE = ""  # e.g. "0.6"; set at push time, like POESIA_REF
+# "": the second arm is the plain file with the adapter. "<repeat>,<opening>" (e.g. "0.03,0.08"):
+# the second arm is the same plain file, and its benchmark ranks candidates down by those weights
+# (evaluation/rank_penalties.py); the adapter is not loaded. Set at push time.
+PENALTIES = ""
+SECOND = "pen" if PENALTIES else "lora"
 W = "/kaggle/working"  # results only: Kaggle lists every file here as output
 T = "/kaggle/tmp"  # build and model (a llama.cpp tree in W made the output listing hit rate limits)
 
@@ -114,7 +119,8 @@ def main():
         "127.0.0.1",
     ]
     procs = {}
-    for name, port, gpu, extra in (("plain", 8080, "0", []), ("lora", 8081, "1", ["--lora", lora])):
+    second_extra = [] if PENALTIES else ["--lora", lora]
+    for name, port, gpu, extra in (("plain", 8080, "0", []), (SECOND, 8081, "1", second_extra)):
         log = open(f"{W}/server-{name}.log", "w")
         procs[name] = subprocess.Popen(
             [server, "-m", base, *extra, *common, "--port", str(port)],
@@ -129,15 +135,28 @@ def main():
         "Write the line in German only, no English words. Output ONLY the single bare poetry line."
     )
     a, b = chat(8080, probe), chat(8081, probe)
-    print(f"control plain: {a!r}\ncontrol lora:  {b!r}", flush=True)
-    if a.strip() == b.strip():
+    print(f"control plain: {a!r}\ncontrol {SECOND}:  {b!r}", flush=True)
+    if PENALTIES:
+        if a.strip() != b.strip():  # the arms differ only in ranking: report, do not waste the run
+            print("WARNING: the two plain servers disagree at temperature 0", flush=True)
+    elif a.strip() == b.strip():
         raise SystemExit(
             "the adapter server answers exactly like the plain one: adapter not applied"
         )
     os.makedirs(f"{W}/results", exist_ok=True)
     os.chdir(repo)
     jobs = []
-    for name, port in (("plain", 8080), ("lora", 8081)):
+    for name, port in (("plain", 8080), (SECOND, 8081)):
+        weights = (
+            [
+                "--repeat-weight",
+                PENALTIES.split(",")[0],
+                "--opening-weight",
+                PENALTIES.split(",")[1],
+            ]
+            if PENALTIES and name == SECOND
+            else []
+        )
         for lang in LANGS:
             for seed in SEEDS:
                 env = {
@@ -168,6 +187,7 @@ def main():
                             str(seed),
                             "--out",
                             out,
+                            *weights,
                         ],
                         env=env,
                         stdout=log,
