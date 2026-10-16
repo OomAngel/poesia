@@ -14,7 +14,34 @@ service from here.
 **Update 2026-10-17 00:45 (PoesIA models session):** v5 trained, uploaded (`line-v5.gguf` is the only
 file of the Kaggle dataset `poesia-line-adapter-gguf`) and evaluated; result in **§1d: not adopted**
 (above-line gains lost in es/it/fr, German openings still collapsed). Sense for v5 waits for the CSCS
-proxy, which was down. The bullets below describe the state at hand-over.
+proxy, which was down (sense then measured: level with plain in es/fr, 6 points down in de). The bullets
+below describe the state at hand-over.
+
+**Done after that, same night (17 Oct):**
+- **Ranking penalties built, off by default** (`d6f593f`, `8ef1019`): `evaluation/rank_penalties.py`
+  ranks a candidate down by `repeat_weight` per content word the poem already used (capped at 4) and
+  by `opening_weight` when its first word opened an earlier line or one of the last N poems; the
+  loop and scorer take them as an optional argument, the benchmark as `--repeat-weight`,
+  `--opening-weight`, `--recent-poems`. The page already did both within one poem
+  (`webapp._proposal_rank`); the loop did not. Weights are movable defaults, not findings.
+- **The measurement has not run:** Kaggle refused the push ("Maximum weekly GPU quota of 30.00
+  hours reached"; v5 training and eval used it). When the quota is back, one command runs plain
+  against plain-with-penalties on the same seeds (about 2 h 10, no key needed):
+  `scripts/kaggle/push_eval.sh HEAD 0.6 0.03,0.08` (results `plain-*` and `pen-*`; score with
+  `poem_scorecard.py --extra` as in §1d). The CSCS 8B could run it instead, but that is a hackathon
+  key and Angel has not said it may be used for a benchmark campaign.
+- **`quality-layer` merged locally, not pushed:** branch `merge-quality-layer-0417` (worktree
+  `~/dev/poesia-merge-0417`, merge commit `d4126c9` on top of `4d12401`), one conflict
+  (`memory-bank/activeContext.md`, both sections kept), full suite green. **Do not push it:** the
+  history carries private material (Calaveritas session, 17 Oct): `memory-bank/activeContext.md`
+  entries (Nebius credit and spend, Veriton rollback commands, a claude.ai review link, the CSCS-key
+  question), `docs/research/reports/Calaveritas hosting Apertus and corpus.md` and its research
+  notes (Veriton internals), `PoesIA calaveritas site design.md` (artifact link), `PoesIA shared
+  poem quality layer.md` (container limits), `docs/calaveritas/DECISIONS.md`, a comment in
+  `docker/calaveritas.Dockerfile`. A merge publishes the whole history; the clean route is a
+  code-only branch (src, tests, scripts, pyproject, fonts, a scrubbed memory-bank entry). Angel decides.
+  The Spanish metre counter changed in that branch, so Spanish baselines must be rerun after it.
+- The bullets below describe the state at hand-over.
 
 **State, verified 2026-10-16 17:00:**
 - Branch `hack-apertus`, last own commits `352f9d7` (v5 data), `fa8b302` (§1c), pushed.
