@@ -1,5 +1,67 @@
 # Tuning rounds: line, rhyme pair, stanza, whole poem (plan, 2026-10-14)
 
+## Continue here (retired 2026-10-16, for the "PoesIA models" session)
+
+The Hack Apertus session retired after the submission (16 Oct, before 12:00; winners 23 Oct). This
+file is the entry point for the model work; §1 and §1a-§1c hold every measured result, the research
+behind the next steps is `docs/research/reports/Improving PoesIA poetry models.md` (ordered plan in its
+last section; references with Zotero keys next to it). Scope: tuning rounds, evaluation instruments,
+the shared `poesia.quality` layer and merging the `quality-layer` branch into this engine branch.
+The Calaveritas service stays with its own session (worktree `~/dev/poesia-quality`, branch
+`quality-layer`, live on the Veriton until 4 Nov): coordinate the merge with it, never deploy its
+service from here.
+
+**State, verified 2026-10-16 17:00:**
+- Branch `hack-apertus`, last own commits `352f9d7` (v5 data), `fa8b302` (§1c), pushed.
+- **v5 training is running on Kaggle** (kernel `angelmarquezaguilar/poesia-line-adapter` version 13,
+  started 16:06 CEST, expected end 20:15-20:30): v4's recipe, only sentence-closing answers (no final
+  comma), openings capped at 3%, 4,844 lines (`data/distill/apertus-lines-v5-2026-10-16.jsonl`, DVC),
+  one full pass, weights from the private Kaggle dataset `apertus-v1-5-8b-text` (no secret, starts
+  from the API).
+- v4 (§1c): Spanish sense at parity with the plain model at temperature 0.6, smaller above-line gains,
+  openings collapsed: not adopted. Angel's blind rating page (plain vs v4, Spanish, 20 pairs) is
+  https://claude.ai/artifact/WXtt44ieDVguhYhfYzgKkf; ratings arrive in its `ratings` collection
+  (read with ArtifactData); the key (which side is v4) is `data/distill/blind-key-v4-es-2026-10-16.json`
+  (git-ignored, never publish before the ratings are in). Angel rates "bit by bit": do not wait on it.
+- The CSCS proxy (127.0.0.1:8790) was started by another session; usage log
+  `~/.local/state/secret-proxy/usage.csv`. If it is down, Angel starts it (KeePassXC prompt in a
+  Windows Terminal tab: `with-secret "Hack Apertus/CSCS inference key" PROXY_KEY -- secret-proxy
+  https://api.inference.cscs.ch 8790`); describe the prompt and wait for his "ready" first. Only Apertus
+  models are authorised on this key. Whether it works after the hackathon is asked in an Outlook draft
+  Angel sends.
+
+**First commands:**
+```bash
+git -C ~/dev/poesia log --oneline -3                      # hack-apertus at or after 352f9d7
+K=$(ls ~/.cache/uv/archive-v0/*/bin/kaggle | head -1); (cd /tmp && $K kernels status angelmarquezaguilar/poesia-line-adapter)
+# when COMPLETE (Kaggle gives the log only at the end):
+mkdir -p /tmp/v5 && (cd /tmp && $K kernels output angelmarquezaguilar/poesia-line-adapter -p /tmp/v5)
+cd ~/dev/poesia && scripts/kaggle/upload_adapter.sh /tmp/v5/adapter line-v5 /tmp/v5/train_log.json
+scripts/kaggle/push_eval.sh HEAD 0.6                      # eval v5 vs plain, about 2 h 10
+# then, as for v4 (results into reports/eval_2026-10/b29-...):
+#   poem_scorecard.py --extra "name=<glob with {lang}>" ... ; LLM_BASE_URL=http://127.0.0.1:8790/v1 sense_compare.py --runs ...
+```
+Both scripts take `DRY_RUN=1` to show what they would do. Kaggle runs share the account's free
+weekly GPU hours (about 30; this week used roughly 25 by 16 Oct).
+
+**Rules that bite:** poems and corpus never in git (DVC only); the engine branch is public on GitHub;
+no AI attribution in commits; commit by path; no local GPU (Kaggle or CSCS only); a score is used only
+after it separates a control pair (§1); the sense judge rejects but cannot rank; Angel's blind rating
+decides adoption. Watch Kaggle with a loop that stops only on COMPLETE/ERROR (a DNS hiccup once ended a
+watcher early).
+
+**Open for Angel** (most consequential first):
+1. Blind rating of v4 (page above): decides whether any adapter goes into the page.
+2. Merge `quality-layer` into the engine: touches the live Calaveritas service; its session planned it
+   "after Hack Apertus".
+3. Continued CSCS access: his Outlook draft "PoesIA submitted: may I keep using the CSCS key…" (delete
+   the older 15 Oct draft "CSCS key: end date…" before sending).
+4. A stronger drafting model for PoesIA: the Calaveritas session measured Qwen 27B (Groq) at 90% of
+   Spanish lines in metre against 34% for Apertus 70B, raw drafts; PoesIA's entry is built on Apertus.
+5. Zotero: 96 PDFs of this research wait for one "Always Allow" click (rerun command in
+   `research-tools/results/zotero-capture/poesia-poetry-models-2026-10-16/pdf_pending.json`).
+
+
 What a poem must be is in `POETICS.md` (Angel's criteria). How to gate, rank and measure it is in
 the quality-layer research (`docs/research/reports/PoesIA shared poem quality layer.md`, branch
 `calaveritas`; the code is `poesia.quality` on branch `quality-layer`). This plan applies both to

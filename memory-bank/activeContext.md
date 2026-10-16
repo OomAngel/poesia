@@ -4,7 +4,9 @@ _Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
 
 ---
 
-## Current focus (2026-10-06 → 13 Oct): Hack Apertus — START HERE
+## Model work continues: START at `docs/TUNING_ROUNDS_2026-10.md` "Continue here (retired 2026-10-16)"
+
+## Current focus (2026-10-06 → 13 Oct): Hack Apertus (submitted 16 Oct; history)
 
 - **SUBMITTED 2026-10-16 before 12:00** (hackapertus.ch form; winners 23 Oct 12:00): repo `OomAngel/poesia-apertus`, 6-page report, video https://youtu.be/P4T0PgHf3dk, model "8B + 70B v1.5". Quality work continues: `docs/TUNING_ROUNDS_2026-10.md` and `docs/research/reports/Improving PoesIA poetry models.md`.
 
