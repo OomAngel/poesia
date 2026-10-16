@@ -1,5 +1,7 @@
 # Hack Apertus 2026 — Track 2B Submission Sheet
 
+> **Submitted 2026-10-16 before 12:00 CEST** ("Submission received"; winners announced 23 Oct 12:00). Report as submitted: 6 pages incl. references (0.5 in margins); video https://youtu.be/P4T0PgHf3dk (118 s, interface clips, no voiceover); model field "8B + 70B v1.5"; dataset field empty.
+
 > **Single reference document for applying to Hack Apertus Track 2B (Own Project).**  
 > Use this document to copy-paste directly into the submission forms.
 >
@@ -69,7 +71,7 @@ https://github.com/OomAngel/poesia-apertus
 
 ### Demo Video URL (Max 2 minutes)
 ```text
-[INSERT_YOUTUBE_OR_VIMEO_LINK_HERE]
+https://youtu.be/P4T0PgHf3dk
 ```
 *(See Checklist below for script and recording instructions)*
 
