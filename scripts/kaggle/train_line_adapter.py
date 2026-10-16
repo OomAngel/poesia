@@ -245,7 +245,7 @@ if __name__ == "__main__":
         "MODEL": model_dir,
         "DATA": data,
         "OUT": OUT,
-        "EPOCHS": "0.5",
+        "EPOCHS": "1",  # v5: half the lines of v4 (no comma closes), so one full pass
         "LR": "1e-4",
         "ACCUM": "8",
         "MAXLEN": "1024",

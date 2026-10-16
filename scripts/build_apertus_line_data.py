@@ -42,7 +42,8 @@ FRENCH = "data/external/averell/metrique-en-ligne-master/json/*.json"
 GERMAN = "data/external/DLK/DLK/meterized/json_DLK_v6/*.json"
 MAX_LINES = 14
 MAX_REPEATED = 2  # content words used twice or more in the first 14 lines (POETICS #3)
-OPENING_CAP, ENDING_CAP = 0.05, 0.02  # shares across the whole set, not per poem
+# shares across the whole set, not per poem; openings at 3% since v4's openings collapsed (b27)
+OPENING_CAP, ENDING_CAP = 0.03, 0.02
 WORD = re.compile(r"[^\W\d_]+", re.UNICODE)
 
 
@@ -169,7 +170,8 @@ def _plan(poem: dict) -> list[tuple[str, int, int | None]] | None:
     return plan
 
 
-CLOSES = (".", ",", ";", ":", "!", "?", "…", "»", '"', ")")
+# A final comma is not a close (v4 kept run-on lines through it: "Der Herbst ist gekommen,").
+CLOSES = (".", ";", ":", "!", "?", "…", "»", '"', ")")
 
 
 def _examples(poem: dict, closing_only: bool = False) -> list[dict]:
