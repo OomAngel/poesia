@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PoesIA blind pairs</title>
+<style>
+:root{--bg:#f6f7f5;--surface:#fff;--ink:#1d2a2e;--muted:#5b6b70;--line:#d6dedd;--accent:#1f6f78;--accent-ink:#fff;--chosen:#e3f1ef;
+--poem:Georgia,"Times New Roman",serif;--ui:system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--bg:#121a1c;--surface:#1a2427;--ink:#e4ecea;--muted:#9db0b2;--line:#2e3d40;--accent:#5cb8bf;--accent-ink:#0d1517;--chosen:#1f3a3c;color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px var(--ui)}
+.wrap{max-width:1060px;margin:0 auto;padding:24px 16px 48px;display:grid;gap:20px}
+h1{font:600 1.7rem var(--poem);margin:0}
+.lede{color:var(--muted);margin:6px 0 0;max-width:65ch;line-height:1.5}
+.notice{border:1px solid var(--line);background:var(--surface);padding:10px 14px;border-radius:6px;color:var(--muted)}
+.sets{display:flex;flex-wrap:wrap;gap:8px}
+.strip{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dot{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:600 12px var(--ui);cursor:pointer}
+.dot.done{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.dot.here{outline:2px solid var(--ink);outline-offset:2px}
+.count{color:var(--muted);font-size:.9rem;margin-left:6px}
+.head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.theme{font:italic 1.25rem var(--poem)}
+.theme small{font:.8rem var(--ui);font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:8px}
+.poems{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.poems{grid-template-columns:1fr}}
+.poem{min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.poem.picked{background:var(--chosen);border-color:var(--accent)}
+.poem h2{margin:0 0 10px;font:700 .8rem var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.poem ol{list-style:none;margin:0;padding:0;font:1.06rem/1.55 var(--poem)}
+.poem li.gap{margin-top:.7em}
+.verdict{display:grid;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.label{font-weight:600;margin-right:6px}
+button.pick,button.chip,button.set{font:600 .95rem var(--ui);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 16px;cursor:pointer}
+button.chip{font-weight:400;padding:6px 12px}
+button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+textarea{width:100%;box-sizing:border-box;min-height:60px;font:.95rem var(--ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.nav{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+button.go{font:600 .95rem var(--ui);border:0;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:10px 18px;cursor:pointer}
+button.go.quiet{background:transparent;color:var(--accent);border:1px solid var(--line)}
+button.go:disabled{opacity:.45;cursor:default}
+.status{color:var(--muted);font-size:.9rem}
+</style></head><body>
+<div class="wrap">
+ <header><h1>Which poem is better?</h1><p class="lede" id="lede"></p></header>
+ <div class="notice" id="notice" hidden></div>
+ <div class="sets" id="sets" role="group" aria-label="Sets"></div>
+ <div class="strip" id="strip" aria-label="Pairs"></div>
+ <section aria-live="polite"><div class="head"><div class="theme" id="theme"></div><div class="status" id="pairno"></div></div></section>
+ <div class="poems">
+  <article class="poem" id="poemA"><h2>Poem A</h2><ol id="linesA"></ol></article>
+  <article class="poem" id="poemB"><h2>Poem B</h2><ol id="linesB"></ol></article>
+ </div>
+ <div class="verdict">
+  <div class="row" role="group" aria-label="Verdict"><span class="label">Better:</span>
+   <button class="pick" data-pick="A" aria-pressed="false">Poem A</button>
+   <button class="pick" data-pick="same" aria-pressed="false">About the same</button>
+   <button class="pick" data-pick="B" aria-pressed="false">Poem B</button></div>
+  <div class="row" role="group" aria-label="Why" id="reasons"><span class="label">Why:</span></div>
+  <label for="note" class="label">Note (optional)</label>
+  <textarea id="note" placeholder="A line you liked or hated, anything else"></textarea>
+  <div class="nav"><button class="go quiet" id="prev">Previous</button><span class="status" id="saved"></span><button class="go" id="save">Save and next</button></div>
+ </div>
+ <div class="row"><button class="go quiet" id="export">Export my ratings (file)</button><button class="go quiet" id="copy">Copy my ratings</button><span class="status" id="exp"></span></div>
+</div>
+<script>
+"use strict";
+const REASONS=["makes sense","images","sound and rhythm","rhyme","natural Spanish","less repetition","ending"];
+const LS="poesia-blind-ratings-v1";
+const $=id=>document.getElementById(id);
+let DATA=null,set=null,idx=0,online=false,ratings={};   // ratings[setId][pairId]=rec
+const draft={pick:null,reasons:new Set(),note:""};
+function loadLocal(){try{return JSON.parse(localStorage.getItem(LS)||"{}")}catch(e){return{}}}
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(ratings))}catch(e){}}
+function notice(t){const n=$("notice");n.hidden=!t;n.textContent=t||""}
+function lines(el,arr){el.textContent="";arr.forEach((t,i)=>{const li=document.createElement("li");li.textContent=t;if(i===4||i===8||i===11)li.className="gap";el.appendChild(li)})}
+function mine(){return ratings[set.id]||(ratings[set.id]={})}
+function renderSets(){const s=$("sets");s.textContent="";DATA.sets.forEach(x=>{const b=document.createElement("button");b.className="set";b.textContent=x.title;
+ b.setAttribute("aria-pressed",String(x.id===set.id));b.onclick=()=>{set=x;idx=firstOpen();render()};s.appendChild(b)})}
+function firstOpen(){const i=set.pairs.findIndex(p=>!mine()[p.id]);return i<0?0:i}
+function renderStrip(){const s=$("strip");s.textContent="";set.pairs.forEach((p,i)=>{const b=document.createElement("button");
+ b.className="dot"+(mine()[p.id]?" done":"")+(i===idx?" here":"");b.textContent=i+1;b.onclick=()=>{idx=i;render()};s.appendChild(b)});
+ const c=document.createElement("span");c.className="count";c.textContent=Object.keys(mine()).length+" of "+set.pairs.length+" rated";s.appendChild(c)}
+function renderChoice(){document.querySelectorAll("button.pick").forEach(b=>b.setAttribute("aria-pressed",String(draft.pick===b.dataset.pick)));
+ $("poemA").classList.toggle("picked",draft.pick==="A");$("poemB").classList.toggle("picked",draft.pick==="B");
+ document.querySelectorAll("button.chip").forEach(b=>b.setAttribute("aria-pressed",String(draft.reasons.has(b.dataset.r))));$("save").disabled=!draft.pick}
+function render(){const p=set.pairs[idx],r=mine()[p.id];$("lede").textContent=set.lede;renderSets();
+ $("theme").textContent="";const sm=document.createElement("small");sm.textContent="Theme";$("theme").append(sm,document.createTextNode(p.theme));
+ $("pairno").textContent="Pair "+(idx+1)+" of "+set.pairs.length;lines($("linesA"),p.A);lines($("linesB"),p.B);
+ draft.pick=r?r.pick:null;draft.reasons=new Set(r?r.reasons:[]);draft.note=r?(r.note||""):"";$("note").value=draft.note;
+ $("saved").textContent=r?"Saved":"";$("prev").disabled=idx===0;$("save").textContent=idx===set.pairs.length-1?"Save":"Save and next";renderChoice();renderStrip()}
+async function post(rec){const r=await fetch("api/rate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(rec)});if(!r.ok)throw new Error(r.status)}
+REASONS.forEach(r=>{const b=document.createElement("button");b.className="chip";b.dataset.r=r;b.textContent=r;b.setAttribute("aria-pressed","false");
+ b.onclick=()=>{draft.reasons.has(r)?draft.reasons.delete(r):draft.reasons.add(r);renderChoice()};$("reasons").appendChild(b)});
+document.querySelectorAll("button.pick").forEach(b=>b.onclick=()=>{draft.pick=b.dataset.pick;renderChoice()});
+$("note").addEventListener("input",e=>{draft.note=e.target.value});
+$("prev").onclick=()=>{if(idx>0){idx--;render()}};
+$("save").onclick=async()=>{const p=set.pairs[idx];const rec={set:set.id,id:p.id,pick:draft.pick,reasons:[...draft.reasons],note:draft.note.trim(),at:new Date().toISOString()};
+ mine()[p.id]=rec;saveLocal();let where="on this device only";
+ if(online){try{await post(rec);where="on the server and this device"}catch(e){online=false;notice("The server is not reachable now: choices are kept on this device, press Export when done.")}}
+ $("saved").textContent="Saved "+where;
+ if(idx<set.pairs.length-1){idx++;render();$("saved").textContent="Saved "+where}else renderStrip()};
+function exportJSON(){return JSON.stringify({exported:new Date().toISOString(),ratings:ratings},null,1)}
+$("export").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([exportJSON()],{type:"application/json"}));a.download="poesia-ratings.json";a.click();$("exp").textContent="File saved to Downloads."};
+$("copy").onclick=async()=>{try{await navigator.clipboard.writeText(exportJSON());$("exp").textContent="Copied."}catch(e){$("exp").textContent="Copy failed: use Export."}};
+(async()=>{
+ ratings=loadLocal();
+ try{DATA=await (await fetch("pairs.json")).json()}catch(e){notice("Could not load the pairs.");return}
+ set=DATA.sets[0];
+ try{const srv=await (await fetch("api/ratings")).json();online=true;
+  for(const sid in srv){ratings[sid]=Object.assign(ratings[sid]||{},srv[sid])}saveLocal();
+  // push what only this device has
+  for(const sid in ratings)for(const pid in ratings[sid]){if(!(srv[sid]&&srv[sid][pid])){try{await post(ratings[sid][pid])}catch(e){}}}
+ }catch(e){online=false;notice("Server not reachable: your choices are kept on this device. Press Export when you are done.")}
+ idx=firstOpen();render();
+})();
+</script></body></html>
