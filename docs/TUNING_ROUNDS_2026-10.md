@@ -32,9 +32,9 @@ state and first commands are replaced by this one. Results: §1d (adapter v5, no
   (v5 PEFT adapter + train log) are pushed to the D: remote (`dvc status -c`: in sync). **The v3 and v4
   adapter weights were not kept** (the Kaggle dataset holds only the latest GGUF and offers no old
   versions); they can be retrained from the DVC data (about 5 h of Kaggle each).
-- **`quality-layer` is merged locally and must not be pushed:** branch `merge-quality-layer-0417`
-  (worktree `~/dev/poesia-merge-0417`, `d4126c9`); reasons and the code-only alternative are in the
-  paragraph "quality-layer merged locally" in the Superseded section below. Angel, 2026-10-17: "private still".
+- **Unified 2026-10-17 (Angel: "merge all poesia branches"):** `quality-layer`, `calaveritas` and `main`
+  are in `hack-apertus` as one code-only commit (`fd73a62`, merge `44a27ca`; `main` = `hack-apertus`);
+  the full history with the working notes is in the private repo `OomAngel/poesia-private` (`main`).
 
 **First commands:**
 ```bash
@@ -104,7 +104,7 @@ proxy, which was down (sense then measured: level with plain in es/fr, 6 points 
   `scripts/kaggle/push_eval.sh HEAD 0.6 0.03,0.08` (results `plain-*` and `pen-*`; score with
   `poem_scorecard.py --extra` as in §1d). The CSCS 8B could run it instead, but that is a hackathon
   key and Angel has not said it may be used for a benchmark campaign.
-- **`quality-layer` merged locally, not pushed:** branch `merge-quality-layer-0417` (worktree
+- **(Superseded 2026-10-17: unified, see "Continue here".)** **`quality-layer` merged locally, not pushed:** branch `merge-quality-layer-0417` (worktree
   `~/dev/poesia-merge-0417`, merge commit `d4126c9` on top of `4d12401`), one conflict
   (`memory-bank/activeContext.md`, both sections kept), full suite green. **Do not push it:** the
   history carries private material (Calaveritas session, 17 Oct): `memory-bank/activeContext.md`
