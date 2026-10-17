@@ -1,0 +1,32 @@
+{
+ "es|plain": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.92
+ },
+ "es|pen": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.92
+ },
+ "de|plain": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.893
+ },
+ "de|pen": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.9
+ },
+ "fr|plain": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.967
+ },
+ "fr|pen": {
+  "n": 150,
+  "answered": 150,
+  "sense": 0.927
+ }
+}
