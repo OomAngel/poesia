@@ -48,17 +48,26 @@ class RankPenalties:
     repeat_weight: float = 0.0
     opening_weight: float = 0.0
     recent_openings: set[str] = field(default_factory=set)
+    # True: order candidates by metre, then rhyme, then reused words, then reused opening, then the
+    # composite score, as the page does (``webapp._proposal_rank``). The penalties then only break
+    # ties between equally well-formed lines and can never trade form for variety; the weights
+    # only switch each term on. False: subtract the weighted penalty from the composite score.
+    lexicographic: bool = False
 
-    def penalty(self, text: str, prior_lines: list[str] | None, language: str) -> float:
+    def counts(self, text: str, prior_lines: list[str] | None, language: str) -> tuple[int, int]:
+        """(reused content words, 1 if the opening was used) -- each 0 when its term is off."""
         prior = [ln for ln in (prior_lines or []) if ln.strip()]
-        total = 0.0
+        reused = 0
         if self.repeat_weight and prior:
             used = set().union(*(content_words(ln, language) for ln in prior))
-            reused = len(content_words(text, language) & used)
-            total += self.repeat_weight * min(reused, _MAX_REUSED)
+            reused = min(len(content_words(text, language) & used), _MAX_REUSED)
+        opening = 0
         if self.opening_weight:
             first = opening_word(text)
             seen = {opening_word(ln) for ln in prior} | self.recent_openings
-            if first is not None and first in seen:
-                total += self.opening_weight
-        return total
+            opening = int(first is not None and first in seen)
+        return reused, opening
+
+    def penalty(self, text: str, prior_lines: list[str] | None, language: str) -> float:
+        reused, opening = self.counts(text, prior_lines, language)
+        return self.repeat_weight * reused + self.opening_weight * opening

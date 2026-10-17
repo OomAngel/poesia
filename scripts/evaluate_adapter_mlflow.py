@@ -143,6 +143,7 @@ def evaluate(
     repeat_weight: float = 0.0,
     opening_weight: float = 0.0,
     recent_poems: int = 10,
+    lexicographic: bool = False,
 ) -> dict:
     import collections
 
@@ -176,6 +177,7 @@ def evaluate(
             "repeat_weight": repeat_weight,
             "opening_weight": opening_weight,
             "recent_poems": recent_poems,
+            "lexicographic": lexicographic,
         },
         "languages": {},
     }
@@ -205,6 +207,7 @@ def evaluate(
                             repeat_weight,
                             opening_weight,
                             set().union(*recent) if recent else set(),
+                            lexicographic,
                         )
                         if repeat_weight or opening_weight
                         else None
@@ -281,6 +284,11 @@ if __name__ == "__main__":
         "the poem or one of the last --recent-poems poems (0 = off)",
     )
     ap.add_argument("--recent-poems", type=int, default=10)
+    ap.add_argument(
+        "--lexicographic",
+        action="store_true",
+        help="penalties only break ties after metre and rhyme (the weights just switch them on)",
+    )
     args = ap.parse_args()
     if not (args.adapter or args.base_model or args.ollama_model or args.openai_compat):
         ap.error("give --adapter, --base-model (or both), --ollama-model or --openai-compat")
@@ -306,4 +314,5 @@ if __name__ == "__main__":
         repeat_weight=args.repeat_weight,
         opening_weight=args.opening_weight,
         recent_poems=args.recent_poems,
+        lexicographic=args.lexicographic,
     )

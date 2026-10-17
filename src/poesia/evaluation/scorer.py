@@ -262,11 +262,31 @@ class LineScorer:
             # breakdown keys are exactly composite_score's keyword params, but
             # mypy cannot match a plain dict unpack against a named signature.
             total = composite_score(**breakdown)  # type: ignore[arg-type]
-            if self._rank_penalties is not None:
-                total -= self._rank_penalties.penalty(line, prior_lines, self._language)
+            total -= self._weighted_penalty(line, prior_lines)
             scored.append(ScoredCandidate(line=line, scan=scan, score=total, breakdown=breakdown))
 
-        return sorted(scored, key=lambda c: c.score, reverse=True)
+        return self._order(scored, prior_lines)
+
+    def _weighted_penalty(self, line: str, prior_lines: list[str] | None) -> float:
+        pen = self._rank_penalties
+        if pen is None or pen.lexicographic:
+            return 0.0
+        return pen.penalty(line, prior_lines, self._language)
+
+    def _order(
+        self, scored: list[ScoredCandidate], prior_lines: list[str] | None
+    ) -> list[ScoredCandidate]:
+        """Best first: by composite score, or, in lexicographic mode, metre, rhyme, reused words,
+        reused opening and only then the score (the page's order)."""
+        pen = self._rank_penalties
+        if pen is None or not pen.lexicographic:
+            return sorted(scored, key=lambda c: c.score, reverse=True)
+
+        def key(c: ScoredCandidate):
+            reused, opening = pen.counts(c.line, prior_lines, self._language)
+            return (-c.breakdown["metre"], -c.breakdown["rhyme"], reused, opening, -c.score)
+
+        return sorted(scored, key=key)
 
     def _theme_score(self, line: str) -> tuple[float, list[float] | None]:
         """Compute theme score + candidate embedding (if embedding enabled)."""
