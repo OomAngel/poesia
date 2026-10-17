@@ -4,7 +4,7 @@ _Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
 
 ---
 
-## Model work continues: START at `docs/TUNING_ROUNDS_2026-10.md` "Continue here (retired 2026-10-16)"
+## Model work continues: START at `docs/TUNING_ROUNDS_2026-10.md` "Continue here (retired 2026-10-17)"
 
 ## Current focus (2026-10-06 → 13 Oct): Hack Apertus (submitted 16 Oct; history)
 

@@ -1,6 +1,79 @@
 # Tuning rounds: line, rhyme pair, stanza, whole poem (plan, 2026-10-14)
 
-## Continue here (retired 2026-10-16, for the "PoesIA models" session)
+## Continue here (retired 2026-10-17, for the next "PoesIA models" session)
+
+The previous section below ("Superseded resume point") is kept for its rules and first-day facts; its
+state and first commands are replaced by this one. Results: §1d (adapter v5, not adopted) and §1e
+(ranking penalties, the open decision).
+
+**State, verified 2026-10-17 13:40:**
+- `hack-apertus` at or after `8885ccd`, pushed. Code: `evaluation/rank_penalties.py` (off by default;
+  weighted and lexicographic modes), flags in `scripts/evaluate_adapter_mlflow.py`, Kaggle eval mode
+  `scripts/kaggle/push_eval.sh <ref> <temp> <repeat,opening[,lex]>`.
+- **Kaggle replicate in flight, unattended:** kernel version 10 (weighted penalties, 4-bit) was running at
+  13:40; a detached script (`~/kaggle-results-2026-10-17/chain.sh`, log `chain.log` next to it) saves its
+  output to `v10-weighted-4bit/`, then pushes the lexicographic replicate (pinned `8885ccd`) and saves
+  it to `v11-lexi-4bit/`. About 2 h 10 each; the weekly GPU quota (30 h) reset on 17 Oct. If the chain died
+  (`pgrep -f kaggle-results-2026-10-17/chain.sh`), run the same two steps by hand.
+- **Blind rating page on the Veriton** (so the review is not only in Claude): container `poesia-rating`
+  on `127.0.0.1:8095` (data in `~groot_cappuccino/poesia-rating/`: `pairs.json`, `ratings.jsonl`, `index.html`,
+  `server.py`; hardened, restart-on-boot). Two sets, 20 Spanish pairs each: Set 1 plain vs adapter v4
+  (the first page's pairs; Angel's 2 earlier ratings were imported), Set 2 plain vs the lexicographic
+  ranking (b35). The page also works offline (choices kept in the browser, Export button). Built by
+  `scripts/make_blind_pages.py`; the key (which side is which) is `data/distill/blind-pages/blind-keys.json`,
+  never shown to Angel before his ratings are in. **Not reachable on the tailnet until Angel runs, once,
+  with his sudo password:** `ssh -t groot_cappuccino@veriton "sudo tailscale serve --bg --https=8443
+  --set-path=/rate http://127.0.0.1:8095"`, then `https://veriton.tail6b937e.ts.net:8443/rate/`
+  (tailnet only; the page on `/` stays the PoesIA page). Service notes:
+  `workspace-governance/machines/veriton/services/poesia/README.md` "Rating page".
+- **DVC:** `data/distill.dvc` (all line data, holdouts, keys, blind pages) and `models/line-v5-peft.dvc`
+  (v5 PEFT adapter + train log) are pushed to the D: remote (`dvc status -c`: in sync). **The v3 and v4
+  adapter weights were not kept** (the Kaggle dataset holds only the latest GGUF and offers no old
+  versions); they can be retrained from the DVC data (about 5 h of Kaggle each).
+- **`quality-layer` is merged locally and must not be pushed:** branch `merge-quality-layer-0417`
+  (worktree `~/dev/poesia-merge-0417`, `d4126c9`); reasons and the code-only alternative are in the
+  paragraph "quality-layer merged locally" in the Superseded section below. Angel, 2026-10-17: "private still".
+
+**First commands:**
+```bash
+git -C ~/dev/poesia log --oneline -3                       # 8885ccd or later on hack-apertus
+tail -n 3 ~/kaggle-results-2026-10-17/chain.log            # where the Kaggle chain is
+ssh groot_cappuccino@veriton 'docker ps --filter name=poesia-rating --format "{{.Names}} {{.Status}}"; curl -s http://127.0.0.1:8095/rate/api/ratings | head -c 300'   # Angel's ratings so far
+curl -s -m 5 -o /dev/null -w "proxy %{http_code}\n" http://127.0.0.1:8790/v1/models   # CSCS proxy; if 000, Angel restarts it (below)
+# when ~/kaggle-results-2026-10-17/v10-weighted-4bit/results exists, score like b36:
+#   poem_scorecard.py --extra "plain=<dir>/plain-s*-{lang}.json" "pen=<dir>/pen-s*-{lang}.json" --out reports/eval_2026-10/b38-...json
+#   (needs LLM_BASE_URL=http://127.0.0.1:8790/v1 for sense_compare.py); same for v11-lexi-4bit
+```
+CSCS proxy, if down (Angel types the KeePassXC master password; call by path, they are not on PATH):
+`~/dev/dotfiles/bin/with-secret "Hack Apertus/CSCS inference key" PROXY_KEY -- ~/dev/dotfiles/bin/secret-proxy https://api.inference.cscs.ch 8790`.
+
+**Open for Angel, most consequential first:**
+1. **Rate the pairs** (Set 2 above, then the rest of Set 1). This, not the metrics, decides whether
+   the lexicographic ranking becomes the loop's default and whether any adapter goes near the page.
+   Angel, 2026-10-17, when asked to decide on the numbers: "How can I assess that already? It is not
+   logical." So: no adoption call without his reading; ask for ratings, nothing else.
+2. **Expose the rating page on the tailnet** (one sudo command, above); ideally before his trip.
+3. **Public `poesia` repo and `quality-layer`:** stays private for now (Angel, 2026-10-17). A code-only
+   branch (src, tests, scripts, pyproject, fonts, a scrubbed memory-bank entry) is the clean route if he
+   wants it public later.
+4. **Next experiment after the ratings:** tie-break-sized weights (0.005 per word, untested), or more
+   varied candidates (different plans, higher temperature for the first words): French openings do not
+   move under any ranking because its 8 candidates share their first word.
+5. **CSCS access after the hackathon** (his Outlook draft "PoesIA submitted: may I keep using the CSCS key…";
+   delete the older 15 Oct draft first). On 17 Oct he said to use the CSCS 8B for the penalty runs
+   ("run it in the cscs 8b now"); two runs of about 38,000 requests each were made. Ask again before
+   another campaign of that size.
+6. A stronger drafting model for PoesIA (Qwen 27B 90% of Spanish lines in metre against Apertus 70B's 34%,
+   Calaveritas session); Zotero: 96 PDFs wait for one "Always Allow" click (command in
+   `research-tools/results/zotero-capture/poesia-poetry-models-2026-10-16/pdf_pending.json`).
+
+**Rules that bite (additions to the section below):** the plain-vs-plain noise gauge (§1e) comes first:
+a gap smaller than the difference between two identical plain runs is not a result (German sense varies
+8 points); run a second plain arm whenever an arm is compared. Pre-commit hooks reject complexity (xenon)
+and reformat files: after a hook failure, check `git show --stat HEAD` and re-add before believing a commit
+happened. Never `pkill -f` a pattern that appears in your own command line.
+
+## Superseded resume point (retired 2026-10-16, for the "PoesIA models" session)
 
 The Hack Apertus session retired after the submission (16 Oct, before 12:00; winners 23 Oct). This
 file is the entry point for the model work; §1 and §1a-§1c hold every measured result, the research
