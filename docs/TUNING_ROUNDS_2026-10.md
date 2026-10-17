@@ -10,11 +10,13 @@ state and first commands are replaced by this one. Results: §1d (adapter v5, no
 - `hack-apertus` at or after `8885ccd`, pushed. Code: `evaluation/rank_penalties.py` (off by default;
   weighted and lexicographic modes), flags in `scripts/evaluate_adapter_mlflow.py`, Kaggle eval mode
   `scripts/kaggle/push_eval.sh <ref> <temp> <repeat,opening[,lex]>`.
-- **Kaggle replicate in flight, unattended:** kernel version 10 (weighted penalties, 4-bit) was running at
-  13:40; a detached script (`~/kaggle-results-2026-10-17/chain.sh`, log `chain.log` next to it) saves its
-  output to `v10-weighted-4bit/`, then pushes the lexicographic replicate (pinned `8885ccd`) and saves
-  it to `v11-lexi-4bit/`. About 2 h 10 each; the weekly GPU quota (30 h) reset on 17 Oct. If the chain died
-  (`pgrep -f kaggle-results-2026-10-17/chain.sh`), run the same two steps by hand.
+- **Kaggle replicate, unattended:** version 10 (weighted, 4-bit) finished and is scored (§1e, `b38`-`b40`).
+  **Version 11 (lexicographic, 4-bit, pinned `8885ccd`) was queued 14:23 on 17 Oct** and takes about 2 h 10;
+  a detached script on the desktop (`~/kaggle-results-2026-10-17/chain.sh`, log `chain.log` next to it)
+  fetches it into `v11-lexi-4bit/` when it ends. Score it like b36 (same commands below). The desktop has
+  to stay on until `chain.log` says "chain done"; if it was off, `kaggle kernels output
+  angelmarquezaguilar/poesia-line-adapter-eval -p <dir>` still returns version 11 as long as no newer
+  version was pushed.
 - **Blind rating page on the Veriton** (so the review is not only in Claude): container `poesia-rating`
   on `127.0.0.1:8095` (data in `~groot_cappuccino/poesia-rating/`: `pairs.json`, `ratings.jsonl`, `index.html`,
   `server.py`; hardened, restart-on-boot). Two sets, 20 Spanish pairs each: Set 1 plain vs adapter v4
@@ -40,7 +42,7 @@ git -C ~/dev/poesia log --oneline -3                       # 8885ccd or later on
 tail -n 3 ~/kaggle-results-2026-10-17/chain.log            # where the Kaggle chain is
 ssh groot_cappuccino@veriton 'docker ps --filter name=poesia-rating --format "{{.Names}} {{.Status}}"; curl -s http://127.0.0.1:8095/rate/api/ratings | head -c 300'   # Angel's ratings so far
 curl -s -m 5 -o /dev/null -w "proxy %{http_code}\n" http://127.0.0.1:8790/v1/models   # CSCS proxy; if 000, Angel restarts it (below)
-# when ~/kaggle-results-2026-10-17/v10-weighted-4bit/results exists, score like b36:
+# when ~/kaggle-results-2026-10-17/v11-lexi-4bit/results exists (arm names plain-* and pen-*), score like b36/b38:
 #   poem_scorecard.py --extra "plain=<dir>/plain-s*-{lang}.json" "pen=<dir>/pen-s*-{lang}.json" --out reports/eval_2026-10/b38-...json
 #   (needs LLM_BASE_URL=http://127.0.0.1:8790/v1 for sense_compare.py); same for v11-lexi-4bit
 ```
@@ -456,6 +458,13 @@ the Spanish and French sense results and the scorecard's larger gaps stand.
   repetition and openings, sense not worse), pending the 4-bit replicate on Kaggle and Angel's
   call. The page already ranks this way within a poem; what is new is the loop and the openings
   of recent poems.
+
+**Replicate on the 4-bit file (Kaggle kernel version 10, 17 Oct; `b38`-`b40`; weighted arm only).** The
+weighted cost on form reproduces on a second model: metre at the modal count es 0.88 -> 0.74, it 0.85 ->
+0.70, de 0.85 -> 0.73, fr 0.88 -> 0.75; rhyme down 8-14 points; content words repeated per poem down 25-40%
+(es 4.7 -> 3.5, de 9.5 -> 6.5); distinct openings about double (de .22 -> .49); sense es 92 -> 92, de
+89 -> 90, fr 97 -> 93 (inside the plain-vs-plain noise of 8 points). The lexicographic replicate is
+version 11 (queued 14:23 on 17 Oct; results land in `~/kaggle-results-2026-10-17/v11-lexi-4bit/` on the desktop).
 
 ## 2. Rounds
 
