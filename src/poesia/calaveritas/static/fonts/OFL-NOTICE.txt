@@ -1,0 +1,6 @@
+Fonts in this folder are served from the site itself (no requests to Google) and are licensed
+under the SIL Open Font License 1.1 (https://openfontlicense.org):
+- Alfa Slab One, Copyright (c) 2011 JM Solé (https://fonts.google.com/specimen/Alfa+Slab+One)
+- Literata, Copyright 2017 The Literata Project Authors (https://github.com/googlefonts/literata)
+- IBM Plex Mono, Copyright 2017 IBM Corp. (https://github.com/IBM/plex)
+Downloaded from the Google Fonts CSS API on 2026-10-09 (latin and latin-ext subsets, woff2).

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="{{LANG}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calaveritas · PoesIA</title>
+<meta name="description" content="Calaveritas para el Día de Muertos, escritas con IA y revisadas en métrica y rima. Calaveritas for the Day of the Dead, written with AI and checked for metre and rhyme.">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/card.js" defer></script>
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="brandbar">
+    <div class="brand">
+      <span class="poesia">Poes<em>IA</em></span><span class="sep">/</span><span class="sec">Calaveritas</span>
+    </div>
+    <nav class="langsw" aria-label="Idioma / Language">
+      <a href="/es/" lang="es" id="lang-es">Español</a>
+      <a href="/en/" lang="en" id="lang-en">English</a>
+    </nav>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <div class="picado top" aria-hidden="true" id="picadoTop"></div>
+
+  <noscript><p class="notice">Esta página necesita JavaScript. / This page needs JavaScript.</p></noscript>
+
+  <section data-tab="crear">
+    <div class="kicker" data-i="kicker"></div>
+    <h1 data-i="h1"></h1>
+    <p class="lede" data-i="lede"></p>
+  </section>
+
+  <section data-tab="crear" id="formView">
+    <form id="f" novalidate>
+      <div class="field">
+        <label class="lbl" for="who" data-i="whoL"></label>
+        <input type="text" id="who" maxlength="40" autocomplete="off" spellcheck="false">
+        <span class="hint" id="whoH"></span>
+      </div>
+      <div class="field">
+        <span class="lbl" id="relLabel" data-i="relL"></span>
+        <div class="chips" id="rel" role="group" aria-labelledby="relLabel"></div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="byear" data-i="ageL"></label>
+        <select id="byear"></select>
+        <span class="hint" data-i="ageH"></span>
+      </div>
+      <div class="field">
+        <span class="lbl" id="traitLabel" data-i="traitsL"></span>
+        <div class="chips" id="traits" role="group" aria-labelledby="traitLabel"></div>
+        <span class="hint" data-i="traitsH"></span>
+      </div>
+      <div class="field">
+        <label class="lbl" for="detail" data-i="detailL"></label>
+        <textarea id="detail" maxlength="200"></textarea>
+        <span class="count" id="detailCount"></span>
+      </div>
+      <div class="field">
+        <div class="lblrow"><span class="lbl" id="toneLabel" data-i="toneL"></span><button type="button" class="linkish" data-goto="tonos" data-i="toneMore"></button></div>
+        <div class="chips" id="tone" role="group" aria-labelledby="toneLabel"></div>
+        <span class="tonehint" id="tonehint"></span>
+      </div>
+      <div class="field">
+        <span class="lbl" id="lenLabel" data-i="lenL"></span>
+        <div class="chips" id="len" role="group" aria-labelledby="lenLabel"></div>
+      </div>
+      <label class="consent"><input type="checkbox" id="ok"><span id="consentText"></span></label>
+      <p class="notice" data-i="contest"></p>
+      <p class="err" id="err" role="alert"></p>
+      <button class="primary" type="submit" id="go" data-i="go"></button>
+    </form>
+  </section>
+
+  <section data-tab="crear" id="writeView" hidden>
+    <div class="writing">
+      <h2 data-i="writingH"></h2>
+      <p class="wstatus" id="wstatus" aria-live="polite"></p>
+      <button type="button" class="ghost cancel" id="cancel" data-i="cancel" hidden></button>
+    </div>
+  </section>
+
+  <section data-tab="crear" id="resultView" hidden>
+    <div class="resultwrap">
+      <article class="card" id="card" data-ai-generated="true">
+        <div class="picado" aria-hidden="true" id="picadoCard"></div>
+        <h2 id="cardTitle"></h2>
+        <div class="scheme" id="scheme"></div>
+        <div id="poem" lang=""></div>
+        <div class="ailabel" id="ailabel"></div>
+        <div class="brandmark" id="brandmark"></div>
+      </article>
+      <div class="actions">
+        <button type="button" class="ghost" id="share" data-i="share"></button>
+        <button type="button" class="ghost" id="dl" data-i="dl"></button>
+        <button type="button" class="ghost" id="copy" data-i="copy"></button>
+        <button type="button" class="ghost" id="again" data-i="again"></button>
+        <button type="button" class="ghost" id="rep" data-i="rep"></button>
+        <button type="button" class="ghost" id="restart" data-i="restart"></button>
+      </div>
+      <p class="toast" id="toast" role="status"></p>
+      <div class="panel reportbox" id="reportbox" hidden>
+        <label for="reason" data-i="repL"></label>
+        <textarea id="reason" maxlength="500"></textarea>
+        <button type="button" class="ghost" id="repSend" data-i="repSend"></button>
+      </div>
+      <canvas id="cardCanvas" class="hidden-canvas" width="1080" height="1350"></canvas>
+    </div>
+  </section>
+
+  <section data-tab="que" class="prose" hidden>
+    <h2 class="page" data-i="queH"></h2>
+    <p data-i="que1"></p><p data-i="que2"></p><p data-i="que3"></p>
+    <h3 data-i="queFormH"></h3><p data-i="queForm"></p>
+  </section>
+
+  <section data-tab="tonos" hidden>
+    <h2 class="page" data-i="tonosH"></h2>
+    <p class="lede" data-i="tonosP"></p>
+    <div class="tonelist" id="tonelist"></div>
+  </section>
+
+  <section data-tab="como" class="prose" hidden>
+    <h2 class="page" data-i="comoH"></h2>
+    <ol class="steps" id="steps"></ol>
+    <h3 data-i="marksH"></h3><p data-i="marks"></p>
+    <h3 data-i="limitsH"></h3><p data-i="limits"></p>
+  </section>
+
+  <section data-tab="aviso" class="prose" hidden>
+    <h2 class="page" data-i="avisoH"></h2>
+    <h3 data-i="satH"></h3><p data-i="sat"></p>
+    <h3 data-i="floorH"></h3><p data-i="floor"></p>
+    <h3 data-i="privH"></h3><p data-i="priv"></p>
+    <h3 data-i="contH"></h3><p id="cont"></p>
+  </section>
+
+  <footer>
+    <nav id="footnav"></nav>
+    <div data-i="fShort"></div>
+    <div data-i="fMade"></div>
+  </footer>
+</div>
+</body>
+</html>
