@@ -335,6 +335,55 @@ other than the repeated beginning are more logical and rhyme better"; B = v4), o
 noticed the opening collapse unprompted ("every single verse starts the same way"). Two pairs
 decide nothing; the rating continues.
 
+## 1e. Ranking penalties on the plain model, CSCS 8B (2026-10-17)
+
+The research plan's step 3 (decoding on the plain model, no training). The loop's candidate ranking
+(8 candidates per line) gets two penalties, `evaluation/rank_penalties.py`: content words the poem has
+already used, and an opening word used earlier in the poem or in the last 10 poems of the run.
+Run on the CSCS 8B (full precision, so absolute numbers differ from the 4-bit Kaggle runs; arms are
+compared within a run), temperature 0.6, the Kaggle seeds, 36 sonnets per language and arm, 38,330
+requests in 12 minutes per run (Angel, 2026-10-17: "run it in the cscs 8b now"). Files: `b32`
+(plain and weighted), `b33`/`b34` (scorecard, sense), `b35` (second plain run and lexicographic),
+`b36`/`b37` (scorecard, sense). Two arms:
+
+- **weighted:** subtract 0.03 per reused word (up to 4) and 0.08 per reused opening from the
+  composite score. One syllable off costs the composite about 0.035, so these weights outweigh form.
+- **lexicographic:** order by metre, then rhyme, then reused words, then reused opening, then the
+  composite score: the page's order. The penalties break ties between equally well-formed lines.
+
+**Noise gauge (new, important).** Plain was run twice with the same seeds: metre differs by up to
+0.03, repeated words per poem by 0.4-0.5, distinct openings by up to 0.04, and **German sense by 8
+points (90.7% and 82.7%, 150 lines each)**. Differences below these sizes are noise. That includes
+the "6 points down in German" in §1c/§1d for v4 and v5, which sits inside the German noise; only
+the Spanish and French sense results and the scorecard's larger gaps stand.
+
+| mean of two plain runs -> arm | es | it | de | fr |
+|---|---|---|---|---|
+| metre at the modal count, weighted | 0.85 -> 0.72 | 0.86 -> 0.73 | 0.90 -> 0.76 | 0.89 -> 0.79 |
+| metre, lexicographic | 0.85 -> 0.84 | 0.86 -> 0.86 | 0.90 -> 0.92 | 0.89 -> 0.90 |
+| rhyme, lexicographic (plain 0.57 / 0.49 / 0.55 / 0.50) | 0.54 | 0.48 | 0.57 | 0.51 |
+| content words repeated per poem, plain -> weighted | 4.6 -> 2.5 | 5.1 -> 3.1 | 8.5 -> 5.1 | 6.3 -> 2.7 |
+| content words repeated per poem, lexicographic (poets 1.3 / 2.3 / 2.8 / 2.1) | 4.6 -> 3.9 | 5.1 -> 4.6 | 8.5 -> 6.4 | 6.3 -> 4.6 |
+| distinct openings, plain -> weighted -> lexicographic (poets 0.35 / 0.41 / 0.32 / 0.30) | .16 -> .32 -> .20 | .20 -> .37 -> .25 | .29 -> .50 -> .37 | .06 -> .07 -> .07 |
+| sense, plain (two runs) -> lexicographic | 93 / 93 -> 93 | n/a | 91 / 83 -> 85 | 93 / 92 -> 91 |
+| sense, weighted vs its plain | 92.7 -> 94.0 | n/a | 90.7 -> 87.3 | 93.3 -> 93.3 |
+
+**Reading.**
+- **Weighted** removes about 40% of the repeated words and doubles the opening variety, and pays
+  10-15 points of metre and 5-12 points of rhyme. Not usable as it is.
+- **Lexicographic costs nothing measurable** in metre, rhyme or sense, and takes a smaller share
+  of the repeated words (Spanish about 15%, Italian 10%, German 25%, French 27%) and some of the
+  opening variety (German now above the poets' 0.32). The poems still repeat 2-3 times the poets'
+  words, and French openings do not move: its 8 candidates rarely differ in their first word, so
+  ranking has nothing to choose between. Variety beyond this has to come from the candidates
+  (different plans, higher temperature for the first words), not from ranking.
+- The step between the two (a weight small enough to stay under one syllable's cost, 0.005 per
+  word) has not been run; the lexicographic order is the principled form of it.
+- **Candidate for adoption in the loop, by the plan's rule** (no worse on form, better on
+  repetition and openings, sense not worse), pending the 4-bit replicate on Kaggle and Angel's
+  call. The page already ranks this way within a poem; what is new is the loop and the openings
+  of recent poems.
+
 ## 2. Rounds
 
 Each round adds one request shape that a real inference path sends, built from human poems, and
