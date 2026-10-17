@@ -2,7 +2,7 @@
 # Push the Kaggle eval (plain 4-bit Apertus 8B vs the same with the dataset's adapter, es/it/de/fr, seeds
 # 0 and 3) pinned to an engine commit that is on GitHub, at a sampling temperature ("" = engine default).
 # Needs no secret, so it starts from the API. Results: kernels output -> results/{plain,lora}-s{0,3}-{lang}.json
-#   scripts/kaggle/push_eval.sh <poesia commit> [temperature, e.g. 0.6] [penalties, e.g. 0.03,0.08]
+#   scripts/kaggle/push_eval.sh <poesia commit> [temperature, e.g. 0.6] [penalties, e.g. 0.03,0.08 or 0.03,0.08,lex]
 # With penalties the second arm is the same plain file ranked with those weights (repeat,opening)
 # instead of the adapter; results are plain-*.json and pen-*.json.      (DRY_RUN=1: show, do not push)
 set -euo pipefail

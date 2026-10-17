@@ -24,7 +24,7 @@ LLAMA_CPP_REF = "f498f864f"
 LANGS = ["es", "it", "de", "fr"]
 SEEDS = [0, 3]
 TEMPERATURE = ""  # e.g. "0.6"; set at push time, like POESIA_REF
-# "": the second arm is the plain file with the adapter. "<repeat>,<opening>" (e.g. "0.03,0.08"):
+# "": the second arm is the plain file with the adapter. "<repeat>,<opening>[,lex]" (e.g. "0.03,0.08"):
 # the second arm is the same plain file, and its benchmark ranks candidates down by those weights
 # (evaluation/rank_penalties.py); the adapter is not loaded. Set at push time.
 PENALTIES = ""
@@ -40,6 +40,13 @@ def sh(cmd, **kw):
     if r.returncode != 0:
         print((r.stdout + r.stderr)[-4000:], flush=True)
         raise SystemExit(f"step failed ({r.returncode})")
+
+
+def penalty_args():
+    """PENALTIES "<repeat>,<opening>" or "<repeat>,<opening>,lex" -> benchmark flags."""
+    repeat, opening, *mode = PENALTIES.split(",")
+    flags = ["--repeat-weight", repeat, "--opening-weight", opening]
+    return flags + ["--lexicographic"] if mode == ["lex"] else flags
 
 
 def chat(port, prompt):
@@ -147,16 +154,7 @@ def main():
     os.chdir(repo)
     jobs = []
     for name, port in (("plain", 8080), (SECOND, 8081)):
-        weights = (
-            [
-                "--repeat-weight",
-                PENALTIES.split(",")[0],
-                "--opening-weight",
-                PENALTIES.split(",")[1],
-            ]
-            if PENALTIES and name == SECOND
-            else []
-        )
+        weights = penalty_args() if PENALTIES and name == SECOND else []
         for lang in LANGS:
             for seed in SEEDS:
                 env = {
