@@ -57,3 +57,33 @@ def test_scorer_ranks_the_reusing_candidate_lower_only_when_penalties_are_set() 
         SpanishPhonology(), 11, language="es", rank_penalties=RankPenalties()
     ).score_candidates(cands, prior_lines=PRIOR)
     assert [(c.line, c.score) for c in plain] == [(c.line, c.score) for c in again]
+
+
+def test_lexicographic_mode_never_trades_metre_for_variety() -> None:
+    prior = ["El viento duerme sobre el puerto"]
+    exact_but_repeating = "El viento canta en el puerto dormido"  # 11 syllables, reuses two words
+    fresh_but_short = "Bajo la sombra espera un barco"  # 9 syllables
+
+    def first(penalties: RankPenalties) -> str:
+        scorer = LineScorer(SpanishPhonology(), 11, language="es", rank_penalties=penalties)
+        ranked = scorer.score_candidates([exact_but_repeating, fresh_but_short], prior_lines=prior)
+        return ranked[0].line
+
+    weighted = RankPenalties(repeat_weight=0.5, opening_weight=0.5)
+    lexi = RankPenalties(repeat_weight=0.5, opening_weight=0.5, lexicographic=True)
+    assert first(weighted) == fresh_but_short  # the heavy weights buy variety with form
+    assert first(lexi) == exact_but_repeating  # metre first, as on the page
+
+
+def test_lexicographic_mode_breaks_ties_with_the_penalties() -> None:
+    prior = ["El viento duerme sobre el puerto"]
+    repeating = "El viento canta en el puerto dormido"  # 11 syllables
+    fresh = "Bajo la sombra espera un barco azul"  # 11 syllables
+    scorer = LineScorer(
+        SpanishPhonology(),
+        11,
+        language="es",
+        rank_penalties=RankPenalties(repeat_weight=0.01, opening_weight=0.01, lexicographic=True),
+    )
+    ranked = scorer.score_candidates([repeating, fresh], prior_lines=prior)
+    assert ranked[0].line == fresh
