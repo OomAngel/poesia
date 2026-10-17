@@ -29,10 +29,13 @@ SRC = Path(__file__).resolve().parent.parent / "src" / "poesia"
 # Reconciled layering (docs/ARCHITECTURE.md, 2026-08-04).
 ALLOWED: dict[str, set[str]] = {
     "phonology": {"phonology"},
-    "evaluation": {"evaluation", "phonology", "memoria"},
+    # shared poem-quality layer (gates, ranking, diversity, repair texts); 2026-10-10
+    "quality": {"quality", "phonology"},
+    "evaluation": {"evaluation", "phonology", "memoria", "quality"},
     "generation": {
         "generation",
         "phonology",
+        "quality",
         "evaluation",
         "forms",
         "memoria",
@@ -48,6 +51,11 @@ ALLOWED: dict[str, set[str]] = {
     "config": {"config", "forms"},
     "safety": {"safety"},
     "linking": {"linking"},  # the model arrives as a duck-typed argument, never imported
+    "calaveritas": {
+        "calaveritas",
+        "phonology",
+        "quality",
+    },  # the web app (calaveritas_web.py) composes it
 }
 
 # Top-level modules in ``src/poesia/`` (cli.py, api.py, exceptions.py,
