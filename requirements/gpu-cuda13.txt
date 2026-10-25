@@ -7,7 +7,7 @@
 # build because bitsandbytes ships CUDA 13.0 kernels that include sm_86 (below).
 # torchvision/torchaudio are not installed: nothing in this repository imports them, and
 # the newest torchaudio (2.11.0) pins torch 2.11.
-torch==2.14.0+cu130
+torch==2.14.1+cu130
 
 # Training stack (QLoRA, DPO): only this tier trains.
 # bitsandbytes 0.50.2 is the newest; its Linux wheel carries libbitsandbytes_cuda130.so
