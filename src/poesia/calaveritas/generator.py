@@ -67,6 +67,9 @@ SENSE_PREFIX = {
 CALL_TIMEOUT = float(os.environ.get("CALAVERITAS_CALL_TIMEOUT") or 25.0)
 TOTAL_BUDGET = float(os.environ.get("CALAVERITAS_TOTAL_BUDGET") or 90.0)
 # HTTP 429 from the provider: wait as the Retry-After header asks (capped), at most this often.
+# 502/503 are retried the same way: a preview model on a free tier (Groq qwen3.8-27b) answered 503
+# once and three times 200 within the next minute (2026-11-06).
+RETRY_CODES = frozenset({429, 502, 503})
 RATE_LIMIT_RETRIES = 2
 RATE_LIMIT_MAX_WAIT = 12.0
 
@@ -168,8 +171,9 @@ class Provider:
                 break
             except urllib.error.HTTPError as e:
                 # Free tiers (Groq: 8,000 tokens a minute) answer 429 when the engine's parallel
-                # calls overrun the minute; waiting as asked turns most of them into answers.
-                if e.code != 429 or attempt == RATE_LIMIT_RETRIES:
+                # calls overrun the minute, 503 when a preview model is briefly out of capacity;
+                # waiting as asked turns most of them into answers.
+                if e.code not in RETRY_CODES or attempt == RATE_LIMIT_RETRIES:
                     raise
                 time.sleep(_retry_after(e.headers.get("retry-after")))
         choices = res.get("choices") or [{}]
