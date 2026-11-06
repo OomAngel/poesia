@@ -23,7 +23,13 @@ from typing import Any
 
 from poesia.calaveritas import generator
 from poesia.calaveritas.guard import MESSAGES, Rejection, validate_request
-from poesia.calaveritas.service import ModelWatch, RateLimiter, ReportGuard, send_github_issue
+from poesia.calaveritas.service import (
+    Limits,
+    ModelWatch,
+    RateLimiter,
+    ReportGuard,
+    send_github_issue,
+)
 
 STATIC = Path(__file__).parent / "calaveritas" / "static"
 MAX_BODY = 4096
@@ -88,7 +94,11 @@ def create_app(providers: list[generator.Provider] | None = None) -> Any:
 
     app = FastAPI(title="PoesIA Calaveritas", docs_url=None, redoc_url=None, openapi_url=None)
     providers = generator.providers_from_env() if providers is None else providers
-    limiter = RateLimiter()
+    # CALAVERITAS_GLOBAL_DAY: poems a day for the whole page. On a free model tier the provider's
+    # daily quota runs out first; capping below it gives "come back tomorrow" instead of errors.
+    limiter = RateLimiter(
+        Limits(global_day=int(os.environ.get("CALAVERITAS_GLOBAL_DAY") or Limits.global_day))
+    )
     reports = ReportGuard()
     model = ModelWatch(providers)
     page = (STATIC / "index.html").read_text(encoding="utf-8")

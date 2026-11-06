@@ -165,3 +165,17 @@ def test_page_names_the_configured_model_and_place(monkeypatch):
     assert '<meta name="calav-where" content="OpenRouter (USA)">' in en
     assert '<meta name="calav-fallback" content="">' in es
     assert "{{" not in es and "{{" not in en
+
+
+def test_daily_page_cap_comes_from_the_environment(monkeypatch):
+    """On a free model tier the page stops at its own cap with "come back tomorrow"."""
+    monkeypatch.setattr(
+        generator, "scan", lambda line, lang: ScanResult(line=line, metrical_syllable_count=8)
+    )
+    monkeypatch.delenv("CALAVERITAS_PAUSE_RISKY", raising=False)
+    monkeypatch.setenv("CALAVERITAS_GLOBAL_DAY", "1")
+    c = TestClient(calaveritas_web.create_app(providers=[Fake()]))
+    assert c.post("/api/calaverita", json=body()).json()["ok"]
+    second = c.post("/api/calaverita", json=body(name="Pancho")).json()
+    assert not second["ok"] and second["code"] == "rate_global"
+    assert "Vuelve mañana" in second["message"]
