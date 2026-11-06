@@ -3,6 +3,12 @@
 (function () {
   "use strict";
   const LANG = document.documentElement.lang === "en" ? "en" : "es";
+  // Model and where it runs come from the server's configuration (CALAVERITAS_LLM_LABEL,
+  // CALAVERITAS_LLM_WHERE_ES/_EN), so a change of provider never leaves the privacy text wrong.
+  const meta = (n) => { const m = document.querySelector(`meta[name="${n}"]`); return m ? m.content.trim() : ""; };
+  const MODEL = meta("calav-model") || (LANG === "en" ? "a language model" : "un modelo de lenguaje");
+  const WHERE = meta("calav-where") || (LANG === "en" ? "an external server" : "un servidor externo");
+  const FALLBACK = meta("calav-fallback") === "1";
   const TABS = ["crear", "que", "tonos", "como", "aviso"];
   const PRIVATE = ["amistad", "familia", "pareja", "trabajo"];
   const RECIPIENTS = ["amistad", "familia", "pareja", "trabajo", "publica", "mascota", "yo", "fallecida"];
@@ -64,7 +70,7 @@
       tonosP: "El tono decide de qué y cómo se ríe la Catrina. Ninguno cambia la forma. Las calaveritas tradicionales son humor adulto, así que a menores de 18 años solo se les ofrece el tono Escolar.",
       comoH: "Cómo funciona",
       stepsL: [["Tú das los datos", "Un nombre, quién es para ti, unas manías, el tono y cuántas estrofas."],
-               ["La IA propone los versos", "Apertus, un modelo de lenguaje abierto hecho en Suiza, escribe la calaverita estrofa por estrofa en los servidores de CSCS (Suiza)."],
+               ["La IA propone los versos", `${MODEL} escribe la calaverita estrofa por estrofa en ${WHERE}.`],
                ["PoesIA revisa", "Cuenta las sílabas de cada verso, comprueba la rima y descarta lo que no cumple, antes de mostrártelo."],
                ["Tú la compartes", "Comparte la tarjeta, descárgala o copia el texto. La etiqueta de IA viaja con ella."]],
       marksH: "Cómo reconocer que la escribió una IA",
@@ -77,11 +83,11 @@
       floorH: "Lo que no se escribe",
       floor: "Cualquier tema y cualquier persona, también públicas. No se escriben amenazas, datos personales como domicilios, teléfonos o correos, contenido sexual, discurso de odio, acusaciones de hechos, ni datos de salud, religión o sexualidad de personas privadas.",
       privH: "Privacidad",
-      priv: "No guardamos nombres ni poemas y no usamos cookies. Para escribir la calaverita, los datos del formulario se envían una vez al modelo Apertus en CSCS (Suiza) y se descartan. Si CSCS no responde, otro servidor escribe la calaverita sin recibir el nombre: el nombre lo pone esta página. Los reportes se envían a un buzón privado (GitHub) con el texto reportado. Los registros técnicos solo cuentan peticiones, sin nombres ni textos.",
+      priv: `No guardamos nombres ni poemas y no usamos cookies. Para escribir la calaverita, los datos del formulario se envían una vez a ${MODEL} en ${WHERE}; esta página no los guarda.${FALLBACK ? " Si no responde, otro servidor escribe la calaverita sin recibir el nombre: el nombre lo pone esta página." : ""} Los reportes se envían a un buzón privado (GitHub) con el texto reportado. Los registros técnicos solo cuentan peticiones, sin nombres ni textos.`,
       contH: "Contacto y retiradas",
       cont: "Escribe a través de GitHub: github.com/OomAngel. Para pedir que se retire algo, usa «Reportar» o escribe ahí con el texto.",
       fShort: "Sátira escrita con IA. No afirma hechos sobre personas reales.",
-      fMade: "PoesIA: poesía con IA y métrica revisada. Calaveritas es su primera sección. Hecho con Apertus.",
+      fMade: "PoesIA: poesía con IA y métrica revisada. Calaveritas es su primera sección. Hecho con modelos de lenguaje abiertos.",
     },
     en: {
       tabs: ["Create", "What is a calaverita?", "Tones", "How it works", "Notice and privacy"],
@@ -129,7 +135,7 @@
       tonosP: "The tone decides what the Catrina laughs at, and how. None of them changes the form. Traditional calaveritas are adult humour, so under-18s are offered the School tone only.",
       comoH: "How it works",
       stepsL: [["You give the details", "A name, who they are to you, a few quirks, the tone and how many stanzas."],
-               ["The AI drafts the verses", "Apertus, an open language model made in Switzerland, writes the calaverita stanza by stanza on CSCS servers (Switzerland)."],
+               ["The AI drafts the verses", `${MODEL} writes the calaverita stanza by stanza on ${WHERE}.`],
                ["PoesIA checks them", "It counts the syllables of every line, checks the rhyme and discards what fails, before you see it."],
                ["You share it", "Share the card, download it or copy the text. The AI label travels with it."]],
       marksH: "How to tell it was written by AI",
@@ -142,11 +148,11 @@
       floorH: "What is not written",
       floor: "Any topic and any person, public figures included. Not written: threats, personal data such as home addresses, phone numbers or e-mail, sexual content, hate speech, factual allegations, and health, religion or sexuality details of private people.",
       privH: "Privacy",
-      priv: "We do not store names or poems and use no cookies. To write the calaverita, the form's details are sent once to the Apertus model at CSCS (Switzerland) and discarded. If CSCS does not answer, another server writes the calaverita without receiving the name: this page puts the name in. Reports go to a private inbox (GitHub) with the reported text. Technical logs only count requests, with no names or texts.",
+      priv: `We do not store names or poems and use no cookies. To write the calaverita, the form's details are sent once to ${MODEL} on ${WHERE}; this page keeps nothing.${FALLBACK ? " If it does not answer, another server writes the calaverita without receiving the name: this page puts the name in." : ""} Reports go to a private inbox (GitHub) with the reported text. Technical logs only count requests, with no names or texts.`,
       contH: "Contact and takedowns",
       cont: "Write through GitHub: github.com/OomAngel. To ask for something to be taken down, use “Report” or write there with the text.",
       fShort: "AI-written satire. It states no facts about real people.",
-      fMade: "PoesIA: poetry with AI and checked metre. Calaveritas is its first section. Made with Apertus.",
+      fMade: "PoesIA: poetry with AI and checked metre. Calaveritas is its first section. Made with open language models.",
     },
   };
   const t = T[LANG];

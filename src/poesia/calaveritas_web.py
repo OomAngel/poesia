@@ -13,6 +13,7 @@ Run locally: ``poesia-calaveritas`` (127.0.0.1:8080), or in the container with
 ``from __future__ import annotations`` so FastAPI can resolve the request models.
 """
 
+import html
 import json
 import os
 import sys
@@ -113,13 +114,26 @@ def create_app(providers: list[generator.Provider] | None = None) -> Any:
     def root() -> Any:
         return RedirectResponse("/es/", status_code=302)
 
+    def render(lang: str) -> str:
+        # The page names the model and where it runs from configuration, so the "how it
+        # works" and privacy text follow a change of provider (2026-11-06: CSCS key ended).
+        first = providers[0] if providers else None
+        where = os.environ.get(f"CALAVERITAS_LLM_WHERE_{lang.upper()}", "")
+        fallback = any(not p.sends_names for p in providers[1:])
+        return (
+            page.replace("{{LANG}}", lang)
+            .replace("{{MODEL}}", html.escape(first.label if first else "", quote=True))
+            .replace("{{WHERE}}", html.escape(where, quote=True))
+            .replace("{{FALLBACK}}", "1" if fallback else "")
+        )
+
     @app.get("/es/")
     def page_es() -> Any:
-        return HTMLResponse(page.replace("{{LANG}}", "es"))
+        return HTMLResponse(render("es"))
 
     @app.get("/en/")
     def page_en() -> Any:
-        return HTMLResponse(page.replace("{{LANG}}", "en"))
+        return HTMLResponse(render("en"))
 
     @app.get("/healthz")
     def healthz() -> dict[str, Any]:
