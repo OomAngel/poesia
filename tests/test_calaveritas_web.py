@@ -150,3 +150,18 @@ def test_model_health_reports_a_dead_model(monkeypatch):
     w = ModelWatch([Dead()], ttl=600)
     w.record(True, "a request was answered")
     assert w.status() == (True, "a request was answered")  # fresh result, no new probe
+
+
+def test_page_names_the_configured_model_and_place(monkeypatch):
+    """The privacy text follows the provider: it said CSCS (Switzerland) after the key ended."""
+    monkeypatch.setenv("CALAVERITAS_LLM_WHERE_ES", "OpenRouter (EE. UU.)")
+    monkeypatch.setenv("CALAVERITAS_LLM_WHERE_EN", "OpenRouter (USA)")
+    fake = Fake()
+    fake.label = "Gemma 3 27B <script>"
+    c = TestClient(calaveritas_web.create_app(providers=[fake]))
+    es, en = c.get("/es/").text, c.get("/en/").text
+    assert '<meta name="calav-model" content="Gemma 3 27B &lt;script&gt;">' in es
+    assert '<meta name="calav-where" content="OpenRouter (EE. UU.)">' in es
+    assert '<meta name="calav-where" content="OpenRouter (USA)">' in en
+    assert '<meta name="calav-fallback" content="">' in es
+    assert "{{" not in es and "{{" not in en
