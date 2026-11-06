@@ -464,3 +464,38 @@ def test_a_rate_limit_that_persists_is_raised(monkeypatch):
     p = generator.Provider("t", "https://example.test/v1", "m", "k", True)
     with pytest.raises(urllib.error.HTTPError):
         p.chat([{"role": "user", "content": "x"}])
+
+
+def test_a_busy_model_is_retried_and_other_errors_are_not(monkeypatch):
+    """A preview model on a free tier answers 503 when briefly out of capacity (Groq, 2026-11-06)."""
+    import io
+    import json
+    import urllib.error
+
+    codes = [503, None]
+    seen: list[int | None] = []
+
+    def fake_urlopen(req, timeout=None):
+        code = codes.pop(0)
+        seen.append(code)
+        if code:
+            raise urllib.error.HTTPError(req.full_url, code, "busy", {}, None)
+        resp = io.BytesIO(json.dumps({"choices": [{"message": {"content": "verso"}}]}).encode())
+        resp.__enter__ = lambda self=resp: self
+        resp.__exit__ = lambda *a: None
+        return resp
+
+    monkeypatch.setattr(generator.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(generator.time, "sleep", lambda s: None)
+    p = generator.Provider("t", "https://example.test/v1", "m", "k", True)
+    assert p.chat([{"role": "user", "content": "x"}]) == "verso" and seen == [503, None]
+
+    def forbidden(req, timeout=None):
+        seen.append(403)
+        raise urllib.error.HTTPError(req.full_url, 403, "Forbidden", {}, None)
+
+    seen.clear()
+    monkeypatch.setattr(generator.urllib.request, "urlopen", forbidden)
+    with pytest.raises(urllib.error.HTTPError):
+        p.chat([{"role": "user", "content": "x"}])
+    assert seen == [403]
