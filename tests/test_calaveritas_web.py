@@ -179,3 +179,35 @@ def test_daily_page_cap_comes_from_the_environment(monkeypatch):
     second = c.post("/api/calaverita", json=body(name="Pancho")).json()
     assert not second["ok"] and second["code"] == "rate_global"
     assert "Vuelve mañana" in second["message"]
+
+
+def test_daily_spend_budget_stops_the_page(monkeypatch):
+    """Prepaid credit and no card (Nebius, 2026-11-06): over the day's dollars, "come back tomorrow"."""
+    monkeypatch.delenv("CALAVERITAS_PAUSE_RISKY", raising=False)
+    monkeypatch.setenv("CALAVERITAS_DAY_BUDGET_USD", "0.5")
+    spend = generator._Spend()
+    monkeypatch.setattr(generator, "SPEND", spend)
+    c = TestClient(calaveritas_web.create_app(providers=[Fake()]))
+    assert c.get("/healthz").json()["day_budget_usd"] == 0.5
+    spend.add(0.6)
+    r = c.post("/api/calaverita", json=body())
+    assert r.status_code == 429 and r.json()["code"] == "rate_global"
+    assert c.get("/healthz").json()["spent_today_usd"] == 0.6
+
+
+def test_page_closes_after_its_last_day(monkeypatch):
+    """After CALAVERITAS_OPEN_UNTIL no model is called: the credit has expired and the card would pay."""
+    monkeypatch.delenv("CALAVERITAS_PAUSE_RISKY", raising=False)
+    monkeypatch.setenv("CALAVERITAS_OPEN_UNTIL", "2000-01-01")
+    monkeypatch.setattr(
+        generator, "scan", lambda line, lang: ScanResult(line=line, metrical_syllable_count=8)
+    )
+    real_write, calls = generator.write, []
+    monkeypatch.setattr(generator, "write", lambda *a, **k: calls.append(1))
+    c = TestClient(calaveritas_web.create_app(providers=[Fake()]))
+    r = c.post("/api/calaverita", json=body())
+    assert r.status_code == 503 and r.json()["code"] == "closed" and not calls
+    monkeypatch.setattr(generator, "write", real_write)
+    monkeypatch.setenv("CALAVERITAS_OPEN_UNTIL", "2999-12-31")
+    c = TestClient(calaveritas_web.create_app(providers=[Fake()]))
+    assert c.post("/api/calaverita", json=body()).json()["ok"]

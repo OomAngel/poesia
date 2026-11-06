@@ -48,6 +48,10 @@ ERRORS = {
         "Por ahora solo se escriben calaveritas para mascotas y para ti, sin detalle libre.",
         "For now only calaveritas for pets and for yourself are written, without free detail.",
     ),
+    "closed": (
+        "La Catrina ya guardó la pluma hasta el próximo Día de Muertos.",
+        "La Catrina has put her pen away until next Day of the Dead.",
+    ),
     "unavailable": (
         "La Catrina descansa: el modelo no responde. Intenta más tarde.",
         "La Catrina is resting: the model is not answering. Try again later.",
@@ -99,6 +103,13 @@ def create_app(providers: list[generator.Provider] | None = None) -> Any:
     limiter = RateLimiter(
         Limits(global_day=int(os.environ.get("CALAVERITAS_GLOBAL_DAY") or Limits.global_day))
     )
+    # CALAVERITAS_DAY_BUDGET_USD: dollars a day for the whole page, from the token counts the provider
+    # reports and its configured price; over it, "come back tomorrow". With prepaid credit and no card
+    # (Nebius, 2026-11-06), budget x days left stays below the credit.
+    day_budget = float(os.environ.get("CALAVERITAS_DAY_BUDGET_USD") or 0)
+    # CALAVERITAS_OPEN_UNTIL (YYYY-MM-DD, UTC, inclusive): no model call after it. Promotional credit
+    # expires and the provider then bills the card on file (Nebius), so the page closes before.
+    open_until = os.environ.get("CALAVERITAS_OPEN_UNTIL", "")
     reports = ReportGuard()
     model = ModelWatch(providers)
     page = (STATIC / "index.html").read_text(encoding="utf-8")
@@ -152,6 +163,9 @@ def create_app(providers: list[generator.Provider] | None = None) -> Any:
             "app": "calaveritas",
             "providers": len(providers),
             "risky_paused": reports.paused,
+            "spent_today_usd": round(generator.SPEND.today(), 4),
+            "day_budget_usd": day_budget,
+            "open_until": open_until,
         }
 
     @app.get("/healthz/model")
@@ -188,6 +202,16 @@ def create_app(providers: list[generator.Provider] | None = None) -> Any:
         if reports.blocks(req):
             return JSONResponse(
                 {"ok": False, "code": "paused", "message": _msg("paused", lang)}, status_code=503
+            )
+        if open_until and time.strftime("%Y-%m-%d", time.gmtime()) > open_until:
+            return JSONResponse(
+                {"ok": False, "code": "closed", "message": _msg("closed", lang)}, status_code=503
+            )
+        if day_budget and generator.SPEND.today() >= day_budget:
+            _log("budget", spent=round(generator.SPEND.today(), 4))
+            return JSONResponse(
+                {"ok": False, "code": "rate_global", "message": _msg("rate_global", lang)},
+                status_code=429,
             )
         over = limiter.check(_client(request))
         if over:

@@ -499,3 +499,32 @@ def test_a_busy_model_is_retried_and_other_errors_are_not(monkeypatch):
     with pytest.raises(urllib.error.HTTPError):
         p.chat([{"role": "user", "content": "x"}])
     assert seen == [403]
+
+
+def test_spend_is_counted_from_the_reported_tokens(monkeypatch):
+    """Each answer's usage times the configured price ($ per million tokens) goes into SPEND."""
+    import io
+    import json
+
+    def fake_urlopen(req, timeout=None):
+        body = {
+            "choices": [{"message": {"content": "verso"}}],
+            "usage": {"prompt_tokens": 1_000_000, "completion_tokens": 100_000},
+        }
+        resp = io.BytesIO(json.dumps(body).encode())
+        resp.__enter__ = lambda self=resp: self
+        resp.__exit__ = lambda *a: None
+        return resp
+
+    spend = generator._Spend()
+    monkeypatch.setattr(generator, "SPEND", spend)
+    monkeypatch.setattr(generator.urllib.request, "urlopen", fake_urlopen)
+    env = {
+        "CALAVERITAS_LLM_URL": "https://example.test/v1",
+        "CALAVERITAS_LLM_MODEL": "m",
+        "CALAVERITAS_LLM_PRICE_IN": "0.10",
+        "CALAVERITAS_LLM_PRICE_OUT": "0.30",
+    }
+    (p,) = generator.providers_from_env(env)
+    assert p.chat([{"role": "user", "content": "x"}]) == "verso"
+    assert abs(spend.today() - 0.13) < 1e-9

@@ -81,6 +81,33 @@ def _retry_after(value: str | None) -> float:
         return 2.0
 
 
+class _Spend:
+    """Dollars spent today (UTC) on model calls, from the token counts each answer reports and the
+    provider's price. Kept in memory: a restart starts the day again at zero, so a daily budget bounds
+    the spend to about the budget times the restarts that day (2026-11-06: Nebius credit, no card)."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._day = ""
+        self._usd = 0.0
+
+    def add(self, usd: float) -> None:
+        if usd <= 0:
+            return
+        today = time.strftime("%Y-%m-%d", time.gmtime())
+        with self._lock:
+            if today != self._day:
+                self._day, self._usd = today, 0.0
+            self._usd += usd
+
+    def today(self) -> float:
+        with self._lock:
+            return self._usd if self._day == time.strftime("%Y-%m-%d", time.gmtime()) else 0.0
+
+
+SPEND = _Spend()
+
+
 class GenerationError(Exception):
     """``code``: "unavailable" (no provider answered), "quality" (form not met), "floor"."""
 
@@ -107,6 +134,19 @@ class Provider:
     # editor's choices or the checks), always with the name masked; any error falls back to self.
     drafter: Provider | None = None
     draft_langs: tuple[str, ...] = ("es",)
+    # Dollars per million input / output tokens (CALAVERITAS_*_PRICE_IN/_OUT), counted into SPEND.
+    price_in: float = 0.0
+    price_out: float = 0.0
+
+    def _count(self, res: dict) -> None:
+        u = res.get("usage") or {}
+        SPEND.add(
+            (
+                (u.get("prompt_tokens") or 0) * self.price_in
+                + (u.get("completion_tokens") or 0) * self.price_out
+            )
+            / 1e6
+        )
 
     def line_logprob(self, context: list[str], line: str, language: str = "es") -> float | None:
         """Mean token log-probability of ``line`` after ``context`` (None if not available).
@@ -135,7 +175,9 @@ class Provider:
         )
         try:
             with urllib.request.urlopen(req, timeout=CALL_TIMEOUT) as resp:  # noqa: S310
-                lp = json.loads(resp.read().decode())["choices"][0]["logprobs"]
+                res = json.loads(resp.read().decode())
+            self._count(res)
+            lp = res["choices"][0]["logprobs"]
             values = [
                 v
                 for o, v in zip(lp["text_offset"], lp["token_logprobs"], strict=False)
@@ -176,6 +218,7 @@ class Provider:
                 if e.code not in RETRY_CODES or attempt == RATE_LIMIT_RETRIES:
                     raise
                 time.sleep(_retry_after(e.headers.get("retry-after")))
+        self._count(res)
         choices = res.get("choices") or [{}]
         return (choices[0].get("message", {}).get("content") or "").strip()
 
@@ -208,7 +251,8 @@ class _NameMask(Provider):
 
 def providers_from_env(env: dict[str, str] | None = None) -> list[Provider]:
     """``CALAVERITAS_LLM_*`` (receives names) then ``CALAVERITAS_FALLBACK_*`` (masked names);
-    each may add ``_EXTRA`` (JSON merged into the request) and ``_MIN_TOKENS``."""
+    each may add ``_EXTRA`` (JSON merged into the request), ``_MIN_TOKENS`` and ``_PRICE_IN`` /
+    ``_PRICE_OUT`` (dollars per million tokens, counted into the daily spend)."""
     env = dict(os.environ if env is None else env)
     out = []
     for prefix, label, sends_names in (
@@ -226,6 +270,8 @@ def providers_from_env(env: dict[str, str] | None = None) -> list[Provider]:
                     json.loads(env.get(f"{prefix}_EXTRA") or "{}"),
                     int(env.get(f"{prefix}_MIN_TOKENS") or 0),
                     env.get(f"{prefix}_SENSE", "logprob") == "logprob",
+                    price_in=float(env.get(f"{prefix}_PRICE_IN") or 0),
+                    price_out=float(env.get(f"{prefix}_PRICE_OUT") or 0),
                 )
             )
     if out and env.get("CALAVERITAS_DRAFT_URL") and env.get("CALAVERITAS_DRAFT_MODEL"):
@@ -237,6 +283,8 @@ def providers_from_env(env: dict[str, str] | None = None) -> list[Provider]:
             False,
             json.loads(env.get("CALAVERITAS_DRAFT_EXTRA") or "{}"),
             int(env.get("CALAVERITAS_DRAFT_MIN_TOKENS") or 0),
+            price_in=float(env.get("CALAVERITAS_DRAFT_PRICE_IN") or 0),
+            price_out=float(env.get("CALAVERITAS_DRAFT_PRICE_OUT") or 0),
         )
         out[0].draft_langs = tuple(
             x.strip() for x in env.get("CALAVERITAS_DRAFT_LANGS", "es").split(",") if x.strip()
