@@ -653,6 +653,7 @@ class OpenAICompatClient:
         self.model = model or os.environ.get("LLM_NAME", "")
         self.api_key = api_key if api_key is not None else os.environ.get("LLM_API_KEY", "")
         self.timeout = timeout
+        self.extra: dict[str, Any] = json.loads(os.environ.get("LLM_EXTRA") or "{}")
         self.provider = "openai_compat"
         self.usage: LLMUsage = LLMUsage()
         if not self.base_url or not self.model:
@@ -673,6 +674,9 @@ class OpenAICompatClient:
             "temperature": temperature,
             "seed": random.randrange(2**31),
             "max_tokens": max_tokens,
+            # LLM_EXTRA: JSON merged into every request, e.g. a reasoning switch for hosted
+            # reasoning models whose hidden reasoning would otherwise eat max_tokens.
+            **self.extra,
         }
         headers = {"Content-Type": "application/json", "User-Agent": "poesia/1.0"}
         if self.api_key:
