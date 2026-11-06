@@ -66,6 +66,16 @@ SENSE_PREFIX = {
 # Seconds per model call and per poem; the environment may raise them for slow hosts (a Kaggle T4).
 CALL_TIMEOUT = float(os.environ.get("CALAVERITAS_CALL_TIMEOUT") or 25.0)
 TOTAL_BUDGET = float(os.environ.get("CALAVERITAS_TOTAL_BUDGET") or 90.0)
+# HTTP 429 from the provider: wait as the Retry-After header asks (capped), at most this often.
+RATE_LIMIT_RETRIES = 2
+RATE_LIMIT_MAX_WAIT = 12.0
+
+
+def _retry_after(value: str | None) -> float:
+    try:
+        return min(max(float(value or 2.0), 0.5), RATE_LIMIT_MAX_WAIT)
+    except ValueError:
+        return 2.0
 
 
 class GenerationError(Exception):
@@ -151,8 +161,17 @@ class Provider:
             data=json.dumps(payload).encode(),
             headers=headers,
         )
-        with urllib.request.urlopen(req, timeout=CALL_TIMEOUT) as resp:  # noqa: S310
-            res = json.loads(resp.read().decode())
+        for attempt in range(RATE_LIMIT_RETRIES + 1):
+            try:
+                with urllib.request.urlopen(req, timeout=CALL_TIMEOUT) as resp:  # noqa: S310
+                    res = json.loads(resp.read().decode())
+                break
+            except urllib.error.HTTPError as e:
+                # Free tiers (Groq: 8,000 tokens a minute) answer 429 when the engine's parallel
+                # calls overrun the minute; waiting as asked turns most of them into answers.
+                if e.code != 429 or attempt == RATE_LIMIT_RETRIES:
+                    raise
+                time.sleep(_retry_after(e.headers.get("retry-after")))
         choices = res.get("choices") or [{}]
         return (choices[0].get("message", {}).get("content") or "").strip()
 

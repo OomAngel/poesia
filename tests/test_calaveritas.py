@@ -424,3 +424,43 @@ def test_drafter_from_env():
     (p,) = generator.providers_from_env(env)
     assert p.drafter.model == "qwen" and not p.drafter.sends_names
     assert p.drafter.extra == {"reasoning_effort": "none"} and p.draft_langs == ("es",)
+
+
+def test_a_rate_limited_call_waits_and_retries(monkeypatch):
+    """Free tiers answer 429 when parallel calls overrun the minute (Groq: 8,000 tokens/min)."""
+    import io
+    import json
+    import urllib.error
+
+    calls = {"n": 0}
+    waits: list[float] = []
+
+    def fake_urlopen(req, timeout=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise urllib.error.HTTPError(
+                req.full_url, 429, "Too Many Requests", {"retry-after": "3"}, None
+            )
+        resp = io.BytesIO(json.dumps({"choices": [{"message": {"content": "verso"}}]}).encode())
+        resp.__enter__ = lambda self=resp: self
+        resp.__exit__ = lambda *a: None
+        return resp
+
+    monkeypatch.setattr(generator.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(generator.time, "sleep", waits.append)
+    p = generator.Provider("t", "https://example.test/v1", "m", "k", True)
+    assert p.chat([{"role": "user", "content": "x"}]) == "verso"
+    assert calls["n"] == 2 and waits == [3.0]
+
+
+def test_a_rate_limit_that_persists_is_raised(monkeypatch):
+    import urllib.error
+
+    def always_429(req, timeout=None):
+        raise urllib.error.HTTPError(req.full_url, 429, "Too Many Requests", {}, None)
+
+    monkeypatch.setattr(generator.urllib.request, "urlopen", always_429)
+    monkeypatch.setattr(generator.time, "sleep", lambda s: None)
+    p = generator.Provider("t", "https://example.test/v1", "m", "k", True)
+    with pytest.raises(urllib.error.HTTPError):
+        p.chat([{"role": "user", "content": "x"}])
