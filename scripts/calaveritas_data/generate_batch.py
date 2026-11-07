@@ -168,6 +168,13 @@ def main() -> None:
     ap.add_argument("--draft-key-env", default="DRAFT_KEY")
     ap.add_argument("--draft-extra", default="{}")
     ap.add_argument("--draft-langs", default="es")
+    ap.add_argument(
+        "--trace",
+        action="store_true",
+        help="store each request's drafts and why each was discarded (generator.write trace)",
+    )
+    ap.add_argument("--price-in", type=float, default=0.0, help="$ per million input tokens")
+    ap.add_argument("--price-out", type=float, default=0.0, help="$ per million output tokens")
     args = ap.parse_args()
     rng = random.Random(args.seed)  # noqa: S311 - sampling a test batch
     commit = subprocess.run(
@@ -179,9 +186,9 @@ def main() -> None:
 
         calls = 0
 
-        def chat(self, msgs, temperature=0.9, max_tokens=160):
+        def chat(self, msgs, temperature=0.9, max_tokens=160, timeout=None):
             self.calls += 1  # small race across the engine's threads is acceptable for a count
-            return super().chat(msgs, temperature, max_tokens)
+            return super().chat(msgs, temperature, max_tokens, timeout)
 
     base = dict(
         label=args.model,
@@ -192,6 +199,8 @@ def main() -> None:
         extra=json.loads(args.extra),
         min_tokens=args.min_tokens,
         sense=not args.no_sense,
+        price_in=args.price_in,
+        price_out=args.price_out,
     )
     provider = generator.Provider(
         args.model,
@@ -227,7 +236,15 @@ def main() -> None:
             counted.draft_langs = tuple(args.draft_langs.split(","))
         try:
             req = validate_request(raw)
-            rec["poem"] = generator.write(req, [counted], rng=random.Random(i)).as_dict()  # noqa: S311
+            trace: list[dict] | None = [] if args.trace else None
+            if trace is not None:
+                rec["trace"] = trace
+            rec["poem"] = generator.write(
+                req,
+                [counted],
+                rng=random.Random(i),  # noqa: S311
+                trace=trace,
+            ).as_dict()
         except Rejection as r:
             rec["error"] = "rejected:" + r.code
         except generator.GenerationError as e:
@@ -251,6 +268,8 @@ def main() -> None:
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
             fh.flush()
             print(rec["id"], rec.get("error", "ok"), rec["seconds"], flush=True)
+    if args.price_in or args.price_out:
+        print(f"spent ${generator.SPEND.today():.3f} (UTC day, this run)")
 
 
 if __name__ == "__main__":

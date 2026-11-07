@@ -66,6 +66,10 @@ SENSE_PREFIX = {
 # Seconds per model call and per poem; the environment may raise them for slow hosts (a Kaggle T4).
 CALL_TIMEOUT = float(os.environ.get("CALAVERITAS_CALL_TIMEOUT") or 25.0)
 TOTAL_BUDGET = float(os.environ.get("CALAVERITAS_TOTAL_BUDGET") or 90.0)
+# The story plan is one long answer (up to 500 tokens): Gemma 3 27B on Nebius writes about 20 tokens
+# a second, so a plan took 12 s and some ran past 25 s, which failed the request (6 of 33 Spanish
+# requests, 2026-11-06). It gets its own, longer limit.
+PLAN_TIMEOUT = float(os.environ.get("CALAVERITAS_PLAN_TIMEOUT") or max(CALL_TIMEOUT, 45.0))
 # HTTP 429 from the provider: wait as the Retry-After header asks (capped), at most this often.
 # 502/503 are retried the same way: a preview model on a free tier (Groq qwen3.8-27b) answered 503
 # once and three times 200 within the next minute (2026-11-06).
@@ -188,7 +192,11 @@ class Provider:
         return sum(values) / len(values) if values else None
 
     def chat(
-        self, msgs: list[dict[str, str]], temperature: float = 0.9, max_tokens: int = 160
+        self,
+        msgs: list[dict[str, str]],
+        temperature: float = 0.9,
+        max_tokens: int = 160,
+        timeout: float | None = None,
     ) -> str:
         payload = {
             "model": self.model,
@@ -208,7 +216,7 @@ class Provider:
         )
         for attempt in range(RATE_LIMIT_RETRIES + 1):
             try:
-                with urllib.request.urlopen(req, timeout=CALL_TIMEOUT) as resp:  # noqa: S310
+                with urllib.request.urlopen(req, timeout=timeout or CALL_TIMEOUT) as resp:  # noqa: S310
                     res = json.loads(resp.read().decode())
                 break
             except urllib.error.HTTPError as e:
@@ -242,11 +250,15 @@ class _NameMask(Provider):
         )
 
     def chat(
-        self, msgs: list[dict[str, str]], temperature: float = 0.9, max_tokens: int = 160
+        self,
+        msgs: list[dict[str, str]],
+        temperature: float = 0.9,
+        max_tokens: int = 160,
+        timeout: float | None = None,
     ) -> str:
         if self._pattern is not None:
             msgs = [{**m, "content": self._pattern.sub(PLACEHOLDER, m["content"])} for m in msgs]
-        return self.inner.chat(msgs, temperature, max_tokens)
+        return self.inner.chat(msgs, temperature, max_tokens, timeout)
 
 
 def providers_from_env(env: dict[str, str] | None = None) -> list[Provider]:
@@ -334,6 +346,24 @@ def parse_quatrain(text: str) -> list[str] | None:
     return lines if len(lines) == 4 else None
 
 
+def parse_stanza(
+    text: str, index: int, n: int, seen: set[str] | frozenset[str] = frozenset()
+) -> list[str] | None:
+    """One quatrain from an answer to "write stanza ``index`` of ``n``". Gemma 3 27B often answers
+    with the whole poem in four-line blocks (2026-11-07: 15 of 18 drafts of one request); then the
+    block at the stanza's place is taken when there is one block per stanza, else the first block
+    whose lines are not written already (``seen``: normalised lines). None if it is not verse."""
+    single = parse_quatrain(text)
+    if single is not None:
+        return single
+    blocks = _blocks(text)
+    if len(blocks) < 2 or any(len(b) != 4 for b in blocks):
+        return None
+    if len(blocks) == n:
+        return blocks[index]
+    return next((b for b in blocks if not {_norm(x) for x in b} & seen), None)
+
+
 def _rhymes(a: str, b: str, language: str, loose: bool) -> bool:
     """Phonetic rhyme (shared key; Spanish with seseo), the same word never rhymes with itself."""
     return gates.rhyme(b, a, _phonology(language), loose) is None  # type: ignore[arg-type]
@@ -389,10 +419,37 @@ def _norm(line: str) -> str:
     return re.sub(r"[^\w]+", " ", line.lower()).strip()
 
 
-def write(request: Request, providers: list[Provider], rng: random.Random | None = None) -> Poem:
-    """Write ``request.stanzas`` stanzas or raise GenerationError."""
+# Opt-in trace of one request (measurement only, never the web service: it holds the drafts'
+# text): every raw draft, why each discarded one was discarded, what the repair changed. Keyed by
+# the request object, so the engine's threads and parallel requests each find their own list.
+_TRACES: dict[int, list[dict]] = {}
+
+
+def _note(request: Request, kind: str, **kw: object) -> None:
+    events = _TRACES.get(id(request))
+    if events is not None:
+        events.append({"kind": kind, **kw})  # list.append is atomic across threads
+
+
+def write(
+    request: Request,
+    providers: list[Provider],
+    rng: random.Random | None = None,
+    trace: list[dict] | None = None,
+) -> Poem:
+    """Write ``request.stanzas`` stanzas or raise GenerationError. With ``trace`` (a list), the
+    engine appends what it drafted and why it discarded each draft (see _note)."""
     if not providers:
         raise GenerationError("unavailable")
+    if trace is not None:
+        _TRACES[id(request)] = trace
+    try:
+        return _write(request, providers, rng)
+    finally:
+        _TRACES.pop(id(request), None)
+
+
+def _write(request: Request, providers: list[Provider], rng: random.Random | None) -> Poem:
     t0 = time.monotonic()
     rng = rng or random.Random()  # noqa: S311 - sampling, not security
     last_error = "unavailable"
@@ -402,10 +459,12 @@ def write(request: Request, providers: list[Provider], rng: random.Random | None
         try:
             stanzas = _write_with(provider, request, rng, t0)
             return Poem(request.language, stanzas, provider.label, time.monotonic() - t0)
-        except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
+            _note(request, "provider_error", provider=provider.label, error=repr(e)[:200])
             last_error = "unavailable"
             continue
         except GenerationError as e:
+            _note(request, "generation_error", provider=provider.label, code=e.code)
             last_error = e.code
             if e.code != "unavailable":
                 break  # the form or the floor failed: another provider would not be safer
@@ -950,7 +1009,7 @@ def _draft_stanza(ctx: _Ctx, rejected: list[Stanza]) -> Stanza | None:
             return None
         drafts = []
         for text in _ask_many(ctx.provider, [msgs] * DRAFTS, DRAFT_TEMPERATURE):
-            draft = parse_quatrain(text)
+            draft = parse_stanza(text, ctx.index, ctx.request.stanzas, ctx.seen())
             if draft is None:
                 continue
             if not ctx.provider.sends_names:
@@ -1034,19 +1093,39 @@ def _mend_stanza(ctx: _Ctx, draft: list[str]) -> Stanza | None:
             if got is None and pair and not pair[2]:  # a rhyme kept from the draft, not required
                 pairs.pop(li)
                 got = _rewrite(ctx, li, others, current, line, problem, None, False)
+            _note(
+                ctx.request, "repair", stanza=ctx.index, line=li, problem=problem, before=line,
+                after=got[0] if got else None,
+            )  # fmt: skip
             if got is None:
+                _note(ctx.request, "mend_failed", stanza=ctx.index, draft=draft, line=li,
+                      problem=problem)  # fmt: skip
                 return None
             line, count = got
         if _repeats(line, ctx, others) or _end_word(line) in ctx.used():
             got = _rewrite(ctx, li, others, current, line, "repeated_word", partner, loose)
-            if got is not None and not _repeats(got[0], ctx, others):
+            took = got is not None and not _repeats(got[0], ctx, others)
+            _note(
+                ctx.request, "repair", stanza=ctx.index, line=li, problem="repeated_word",
+                before=line, after=got[0] if took else None, optional=True,
+            )  # fmt: skip
+            if took:
                 line, count = got
         lines.append(line)
         counts.append(count)
     if ctx.lang == "es":
+        before = list(lines)
         lines, counts = _tighten(ctx, lines, counts)
+        for i, (a, b) in enumerate(zip(before, lines, strict=True)):
+            if a != b:
+                _note(ctx.request, "tighten", stanza=ctx.index, line=i, before=a, after=b)
     sch = scheme(lines, ctx.lang)
-    return Stanza(lines, counts, sch) if sch else None
+    if not sch:
+        _note(ctx.request, "mend_failed", stanza=ctx.index, draft=draft, line=None,
+              problem="scheme", lines=lines)  # fmt: skip
+        return None
+    _note(ctx.request, "mended", stanza=ctx.index, draft=draft, lines=lines, counts=counts)
+    return Stanza(lines, counts, sch)
 
 
 def _tighten(ctx: _Ctx, lines: list[str], counts: list[int]) -> tuple[list[str], list[int]]:
@@ -1160,27 +1239,45 @@ def _story_stanza(ctx: _Ctx) -> Stanza | None:
         send_name=ctx.provider.sends_names,
         rng=ctx.rng,
     )
-    for _ in range(DRAFT_ROUNDS):
+    for rnd in range(DRAFT_ROUNDS):
         if ctx.over_budget():
+            _note(ctx.request, "over_budget", where="story_stanza", stanza=ctx.index)
             return None
         drafts = []
         for text in _write_many(ctx, [msgs] * DRAFTS, DRAFT_TEMPERATURE):
-            draft = parse_quatrain(text)
+            draft = parse_stanza(text, ctx.index, ctx.request.stanzas, ctx.seen())
             if draft is None:
+                _note(
+                    ctx.request, "draft", stanza=ctx.index, round=rnd, raw=text, verdict="unparsed"
+                )
                 continue
             draft = _restore(draft, ctx.request.name)
-            if _distinct(draft, ctx) and not check_output(draft, ctx.request):
+            verdict = (
+                "ok"
+                if _distinct(draft, ctx)
+                else "not_distinct"
+            ) if not check_output(draft, ctx.request) else "unsafe"  # fmt: skip
+            _note(ctx.request, "draft", stanza=ctx.index, round=rnd, lines=draft, verdict=verdict,
+                  syllables=[syllables(x, ctx.lang) for x in draft])  # fmt: skip
+            if verdict == "ok":
                 drafts.append(draft)
         if not drafts:
             continue
-        drafts = _closest(ctx, drafts + _condensed(ctx, drafts))[:JUDGED]
+        condensed = _condensed(ctx, drafts)
+        for d in condensed:
+            _note(ctx.request, "condensed", stanza=ctx.index, round=rnd, lines=d,
+                  syllables=[syllables(x, ctx.lang) for x in d])  # fmt: skip
+        drafts = _closest(ctx, drafts + condensed)[:JUDGED]
         order = _ranked(
             ctx.provider,
             judge_messages(ctx.request, ctx.index, ctx.previous, drafts, ctx.plan),
             len(drafts),
         )[:REPAIR_DRAFTS]
+        _note(ctx.request, "ranked", stanza=ctx.index, round=rnd,
+              order=[drafts[k] for k in order])  # fmt: skip
         for i in range(0, len(order), 2):
             if ctx.over_budget():
+                _note(ctx.request, "over_budget", where="story_stanza_mend", stanza=ctx.index)
                 return None
             batch = order[i : i + 2]
             with ThreadPoolExecutor(max_workers=len(batch)) as pool:
@@ -1193,8 +1290,8 @@ def _story_stanza(ctx: _Ctx) -> Stanza | None:
     return None
 
 
-def parse_poem(text: str, n: int) -> list[list[str]] | None:
-    """``n`` quatrains from a whole-poem answer (blank lines between stanzas, or 4n lines), or None."""
+def _blocks(text: str) -> list[list[str]]:
+    """The answer's verse lines, in blocks split at blank lines (headings and numbering dropped)."""
     blocks: list[list[str]] = []
     cur: list[str] = []
     for raw in (text or "").splitlines():
@@ -1209,6 +1306,12 @@ def parse_poem(text: str, n: int) -> list[list[str]] | None:
         cur.append(line)
     if cur:
         blocks.append(cur)
+    return blocks
+
+
+def parse_poem(text: str, n: int) -> list[list[str]] | None:
+    """``n`` quatrains from a whole-poem answer (blank lines between stanzas, or 4n lines), or None."""
+    blocks = _blocks(text)
     if len(blocks) == n and all(len(b) == 4 for b in blocks):
         return blocks
     flat = [x for b in blocks for x in b]
@@ -1253,6 +1356,7 @@ def _story_poem(ctx: _Ctx) -> list[Stanza] | None:
         k = POEM_DRAFTS_DRAFTER if _drafter(ctx) else POEM_DRAFTS
         for text in _write_many(ctx, [msgs] * k, DRAFT_TEMPERATURE):
             poem = parse_poem(text, n)
+            _note(ctx.request, "poem_draft", raw=text, parsed=poem is not None)
             if poem is None:
                 continue
             poem = [_restore(st, ctx.request.name) for st in poem]
@@ -1273,10 +1377,20 @@ def _story_poem(ctx: _Ctx) -> list[Stanza] | None:
 def _plan(provider: Provider, request: Request) -> planmod.Plan:
     from .prompt import plan_messages
 
-    text = provider.chat(
-        plan_messages(request, send_name=provider.sends_names), temperature=0.8, max_tokens=500
-    )
-    return planmod.parse(text, request)
+    t = time.monotonic()
+    try:
+        text = provider.chat(
+            plan_messages(request, send_name=provider.sends_names),
+            temperature=0.8,
+            max_tokens=500,
+            timeout=PLAN_TIMEOUT,
+        )
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
+        _note(request, "plan", seconds=round(time.monotonic() - t, 1), error=repr(e)[:200])
+        raise
+    plan = planmod.parse(text, request)
+    _note(request, "plan", seconds=round(time.monotonic() - t, 1), text=text)
+    return plan
 
 
 def _write_with(
@@ -1301,15 +1415,18 @@ def _write_with(
         if stanza is not None:
             done.append(Stanza(_polish(stanza.lines), stanza.counts, stanza.scheme))
             continue
+        _note(request, "fallback", stanza=index, stage="draft_stanza")
         ctx = _Ctx(provider, request, index, done, plan, rng, t0)
         rejected: list[Stanza] = []
         stanza = _draft_stanza(ctx, rejected)
         if stanza is None:
+            _note(request, "fallback", stanza=index, stage="write_stanza", rejected=len(rejected))
             try:
                 stanza = _write_stanza(ctx)
             except GenerationError:
                 # a stanza the editor turned down is still better than no calaverita at all
                 if not rejected:
+                    _note(request, "fallback_failed", stanza=index, over_budget=ctx.over_budget())
                     raise
                 stanza = max(rejected, key=_form_score)
         done.append(Stanza(_polish(stanza.lines), stanza.counts, stanza.scheme))
