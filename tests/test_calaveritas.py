@@ -172,7 +172,7 @@ class FakeProvider(generator.Provider):
         self.seen: list[str] = []
         self._lock = threading.Lock()
 
-    def chat(self, msgs, temperature=0.9, max_tokens=160):
+    def chat(self, msgs, temperature=0.9, max_tokens=160, timeout=None):
         with self._lock:
             self.seen.append(msgs[-1]["content"])
             n = len(self.seen)
@@ -203,6 +203,53 @@ def test_fallback_never_sees_the_name(monkeypatch):
     poem = generator.write(r, [down, fb], rng=random.Random(1))
     assert all("Lupita" not in s for s in fb.seen)
     assert low(poem.stanzas[0].lines) == low(GOOD)  # name restored on our side
+
+
+def test_a_whole_poem_answer_gives_the_stanza_at_its_place():
+    a, b, c = (["a1", "a2", "a3", "a4"], ["b1", "b2", "b3", "b4"], ["c1", "c2", "c3", "c4"])
+    poem = "\n\n".join("\n".join(x) for x in (a, b, c))
+    assert generator.parse_stanza(poem, 1, 3) == b  # one block per stanza: its own place
+    seen = {generator._norm(x) for x in a}
+    assert generator.parse_stanza(poem, 1, 2, seen) == b  # else the first block not written yet
+    assert generator.parse_stanza("\n".join(a), 2, 3) == a  # a plain quatrain stays as it is
+    assert generator.parse_stanza("a1\na2\na3\n\nb1\nb2", 0, 2) is None  # not quatrains
+    assert generator.parse_stanza("no es un poema", 0, 1) is None
+
+
+def test_trace_records_drafts_and_why_they_were_dropped(monkeypatch):
+    monkeypatch.setattr(
+        generator, "scan", lambda line, lang: ScanResult(line=line, metrical_syllable_count=8)
+    )
+    r = validate_request(form(stanzas=1), today=TODAY)
+    p = FakeProvider(lambda prompt, n: "no es un poema" if n == 2 else "\n".join(GOOD))
+    trace: list[dict] = []
+    poem = generator.write(r, [p], rng=random.Random(1), trace=trace)
+    kinds = [e["kind"] for e in trace]
+    assert kinds[0] == "plan" and "seconds" in trace[0]
+    verdicts = [e["verdict"] for e in trace if e["kind"] == "draft"]
+    assert "unparsed" in verdicts and "ok" in verdicts
+    mended = [e for e in trace if e["kind"] == "mended"]
+    assert mended and low(mended[-1]["lines"]) == low(poem.stanzas[0].lines)
+    assert id(r) not in generator._TRACES  # nothing kept after the request
+    generator.write(r, [p], rng=random.Random(1))  # without a trace: nothing recorded
+    assert len(trace) == len(kinds)
+
+
+def test_the_plan_call_gets_its_own_longer_timeout(monkeypatch):
+    monkeypatch.setattr(
+        generator, "scan", lambda line, lang: ScanResult(line=line, metrical_syllable_count=8)
+    )
+    r = validate_request(form(stanzas=1), today=TODAY)
+    timeouts = []
+
+    class Timed(FakeProvider):
+        def chat(self, msgs, temperature=0.9, max_tokens=160, timeout=None):
+            timeouts.append((max_tokens, timeout))
+            return super().chat(msgs, temperature, max_tokens, timeout)
+
+    generator.write(r, [Timed()], rng=random.Random(1))
+    assert timeouts[0] == (500, generator.PLAN_TIMEOUT)
+    assert generator.PLAN_TIMEOUT >= 45 and all(t is None for _, t in timeouts[1:])
 
 
 def test_write_gives_up_with_a_code(monkeypatch):

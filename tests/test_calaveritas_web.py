@@ -21,7 +21,7 @@ class Fake(generator.Provider):
         super().__init__("Apertus · test", "http://x", "m", "", True)
         self.calls = 0
 
-    def chat(self, msgs, temperature=0.9, max_tokens=160):
+    def chat(self, msgs, temperature=0.9, max_tokens=160, timeout=None):
         self.calls += 1
         return GOOD
 
@@ -140,7 +140,7 @@ def test_model_health_reports_a_dead_model(monkeypatch):
         def __init__(self):
             super().__init__("x", "http://127.0.0.1:9/v1", "m", "k", True)
 
-        def chat(self, msgs, temperature=0.9, max_tokens=160):
+        def chat(self, msgs, temperature=0.9, max_tokens=160, timeout=None):
             raise OSError("down")
 
     c = TestClient(calaveritas_web.create_app(providers=[Dead()]))
