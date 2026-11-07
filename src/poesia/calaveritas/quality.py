@@ -145,3 +145,82 @@ def score_line(
     if opening and death_opening(line, language):
         score -= 1.5
     return score
+
+
+# Step 3 of the 2026-11-06 plan (poesia-private research note calaveritas-live-sample, §9): faults
+# both engines showed in blind round 6. None of these phrases occurs in the 2,192 broadside lines
+# (transcriptions + local_octosyllabic); "¡qué X!" does (26 lines) and stays allowed.
+FILLER = re.compile(
+    r"\b(?:afán|fervor|sin cesar|sin fin|sin igual|sin parar|sin dudar|con primor|con esmero|"
+    r"sin pudor)\b",
+    re.I,
+)
+# The verse is written in Mexican Spanish, by rule (POETICS #6; Angel, 2026-11-07: "by rule in
+# Mexican Spanish"). Words whose everyday Mexican form is another one, with that form; the repair is
+# told the Mexican word. "mando" only as a noun (after an article), "yo mando" is Mexican too.
+MEXICAN = {
+    "móvil": "celular",
+    "móviles": "celulares",
+    "serial": "serie",
+    "seriales": "series",
+    "mando": "control",
+    "verle": "verlo o verla",
+    "vosotros": "ustedes",
+    "ordenador": "computadora",
+    "gafas": "lentes",
+    "zumo": "jugo",
+    "patata": "papa",
+    "patatas": "papas",
+    "nevera": "refrigerador",
+    "melocotón": "durazno",
+    "aparcar": "estacionar",
+    "chaval": "chavo",
+    "guay": "padre",
+}
+_NOT_MEXICAN = re.compile(
+    r"\b(?:(?:el|su|un|del|al) (mando)|(" + "|".join(w for w in MEXICAN if w != "mando") + r"))\b",
+    re.I,
+)
+_TITLED = re.compile(r"\b(?:don|doña)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)")
+DEATH_WORD = re.compile(rf"\b(?:{_EPITHETS[3:-1]}|panteón|tumba|más allá|ultratumba)\b", re.I)
+
+
+def filler(line: str) -> str | None:
+    m = FILLER.search(line)
+    return m.group(0) if m else None
+
+
+def not_mexican(line: str) -> tuple[str, str] | None:
+    """(the word, its Mexican form) for the first word that Mexican Spanish says otherwise."""
+    m = _NOT_MEXICAN.search(line)
+    if not m:
+        return None
+    word = m.group(1) or m.group(2)
+    return word, MEXICAN[word.lower()]
+
+
+def invented_name(line: str, name: str) -> str | None:
+    """A "don X" / "doña X" whose X is not in the requested name (e.g. "don Remigio" for "el
+    alcalde")."""
+    own = {w.lower() for w in re.findall(r"[A-Za-zÀ-ÿ]+", name)}
+    for m in _TITLED.finditer(line):
+        if m.group(1).lower() not in own:
+            return m.group(0)
+    return None
+
+
+def names_person(lines: list[str], name: str, placeholder: str) -> bool:
+    """The stanza names the person (any word of the name of 3+ letters other than an article)."""
+    text = " ".join(lines).lower()
+    keys = [
+        w.lower()
+        for w in re.findall(r"[A-Za-zÀ-ÿ]+", name)
+        if len(w) > 2 and w.lower() not in {"los", "las", "del", "the"}
+    ]
+    return (
+        not keys or placeholder.lower() in text or any(re.search(rf"\b{k}\b", text) for k in keys)
+    )
+
+
+def has_death(lines: list[str]) -> bool:
+    return bool(DEATH_WORD.search(" ".join(lines)))
