@@ -1069,6 +1069,24 @@ def _repeats(line: str, ctx: _Ctx, others: list[str]) -> tuple[str, ...]:
     return gates.repeated_words(line, earlier, ctx.lang, _may_repeat(ctx.request))
 
 
+def _soft_problem(line: str, ctx: _Ctx, others: list[str]) -> str:
+    """A fault the minimal repair tries once and keeps the line if no repair passes (so it costs no
+    failures): a repeated word or reused end word (POETICS #3), filler (#11, round 6), a word from
+    a word that is not Mexican Spanish (#6: the verse is Mexican Spanish by rule), a made-up "don X" for the person (round 6: "don Remigio" for "el
+    alcalde")."""
+    if _repeats(line, ctx, others) or _end_word(line) in ctx.used():
+        return "repeated_word"
+    if ctx.lang != "es":
+        return ""
+    if quality.filler(line):
+        return "filler"
+    if quality.not_mexican(line):
+        return "mexican"
+    if quality.invented_name(line, ctx.request.name):
+        return "name"
+    return ""
+
+
 def _mend_stanza(ctx: _Ctx, draft: list[str]) -> Stanza | None:
     """Keep the draft's lines; repair only real defects (POETICS #4 before #1: the meaning of a
     draft line is worth more than an exact count). A line goes to repair if its metre is off by more
@@ -1102,11 +1120,12 @@ def _mend_stanza(ctx: _Ctx, draft: list[str]) -> Stanza | None:
                       problem=problem)  # fmt: skip
                 return None
             line, count = got
-        if _repeats(line, ctx, others) or _end_word(line) in ctx.used():
-            got = _rewrite(ctx, li, others, current, line, "repeated_word", partner, loose)
-            took = got is not None and not _repeats(got[0], ctx, others)
+        soft = _soft_problem(line, ctx, others)
+        if soft:
+            got = _rewrite(ctx, li, others, current, line, soft, partner, loose)
+            took = got is not None and not _soft_problem(got[0], ctx, others)
             _note(
-                ctx.request, "repair", stanza=ctx.index, line=li, problem="repeated_word",
+                ctx.request, "repair", stanza=ctx.index, line=li, problem=soft,
                 before=line, after=got[0] if took else None, optional=True,
             )  # fmt: skip
             if took:
@@ -1193,7 +1212,12 @@ def _off(ctx: _Ctx, draft: list[str]) -> float:
     slack = RELAXED_TOLERANCE[ctx.lang]
     off = sum(max(0, abs(syllables(x, ctx.lang) - TARGET) - slack) for x in draft)
     reps = sum(len(_repeats(x, ctx, draft[:i])) for i, x in enumerate(draft))
-    return off + reps + (0 if _rhymes(draft[1], draft[3], ctx.lang, True) else 3)
+    soft = sum(bool(_soft_problem(x, ctx, draft[:i])) for i, x in enumerate(draft))
+    first = 0
+    if ctx.index == 0:  # round 6: poems without the person's name, or where Death never came
+        first += 0 if quality.names_person(draft, ctx.request.name, PLACEHOLDER) else 2
+        first += 0 if ctx.lang != "es" or quality.has_death(draft) else 2
+    return off + reps + soft + first + (0 if _rhymes(draft[1], draft[3], ctx.lang, True) else 3)
 
 
 def _condensed(ctx: _Ctx, drafts: list[list[str]]) -> list[list[str]]:

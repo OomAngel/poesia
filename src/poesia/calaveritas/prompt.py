@@ -20,6 +20,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from . import plan as planmod
+from . import quality
 from .options import Recipient, Request, Tone
 
 PLACEHOLDER = "NOMBRE"
@@ -31,7 +32,10 @@ QUALITY = {
         "para forzar la rima, nada de palabras de relleno, nada de una palabra suelta al final después "
         "de una coma. Imágenes concretas y situaciones con gracia, no frases hechas. Cada verso tiene "
         "sentido completo y se enlaza con el siguiente. No copies los rasgos tal cual: conviértelos en "
-        "una escena o un chiste."
+        "una escena o un chiste. "
+        "Sin muletillas de relleno como «afán», "
+        "«con fervor», «sin cesar» o «sin fin». Solo palabras que existen: no cortes ni inventes una "
+        "palabra para que rime."
     ),
     "en": (
         "Quality: natural English with normal word order. No inverted word order to force a rhyme, no "
@@ -190,7 +194,11 @@ def _person(request: Request, send_name: bool) -> list[str]:
     li = 0 if lang == "es" else 1
     name = request.name if send_name else PLACEHOLDER
     parts = [
-        (f"La persona se llama {name}." if lang == "es" else f"The person is called {name}."),
+        (
+            f"La persona se llama {name}; nómbrala solo así, sin inventarle otro nombre."
+            if lang == "es"
+            else f"The person is called {name}; call them only that, never an invented name."
+        ),
         RECIPIENT_GUIDE[request.recipient][li],
         TONE_GUIDE[request.tone][li],
     ]
@@ -274,7 +282,9 @@ def plan_messages(request: Request, *, send_name: bool = True) -> list[dict[str,
             "falleció, la recibe allá) y el remate es una ocurrencia sobre esa misma costumbre. Los datos "
             "de quien la pide se vuelven imágenes y situaciones dentro de esa historia, no etiquetas ni "
             "una lista; si no caben todos, usa los que mejor sirvan al chiste. La Muerte llega solo una "
-            "vez, en la estrofa 1. No inventes hechos que parezcan reales (delitos, salud, religión, "
+            "vez, en la estrofa 1, y llega de una manera propia de esta historia (no con una descripción de "
+            "su ropa). Nombra a la persona tal como la escribió quien la pide, sin inventarle otro "
+            "nombre. No inventes hechos que parezcan reales (delitos, salud, religión, "
             "sexualidad, datos personales); nada sexual, sin odio, sin amenazas.\n"
             f"Responde SOLO en este formato, una línea cada cosa, en prosa breve ({n} estrofas):\n"
             f"IDEA: (el chiste de toda la calaverita en una frase)\n{beats}\nREMATE: (la ocurrencia final)"
@@ -432,9 +442,15 @@ def repair_messages(
             "stiff": "suena forzado o poco natural",
             "tacked": "termina con una palabra suelta después de una coma",
             "repeated_word": "repite una palabra que ya está en el poema; usa otra",
+            "filler": "trae una muletilla de relleno; dilo con una imagen concreta o una acción",
+            "mexican": "usa una palabra que no se dice así en México",
+            "name": "inventa un nombre para la persona; llámala solo como se llama",
             "opening": "empieza con el nombre de la Muerte, y esta estrofa no debe empezar así",
             "other": "no funciona como está",
         }[problem]
+        mx = quality.not_mexican(draft_line) if problem == "mexican" else None
+        if mx:
+            why = f"dice «{mx[0]}»; usa «{mx[1]}»"
         if problem == "metre" and count:
             d = count - 8
             why = (
@@ -453,6 +469,9 @@ def repair_messages(
             "stiff": "sounds forced or unnatural",
             "tacked": "ends on a single word tacked on after a comma",
             "repeated_word": "repeats a word already in the poem; use another",
+            "filler": "is padded with filler; say it with a concrete image or action",
+            "mexican": "is not in Mexican Spanish",
+            "name": "invents a name for the person; call them only by their name",
             "opening": "opens with Death's name, and this stanza must not",
             "other": "does not work as it is",
         }[problem]

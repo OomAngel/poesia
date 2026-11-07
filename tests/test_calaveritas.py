@@ -575,3 +575,46 @@ def test_spend_is_counted_from_the_reported_tokens(monkeypatch):
     (p,) = generator.providers_from_env(env)
     assert p.chat([{"role": "user", "content": "x"}]) == "verso"
     assert abs(spend.today() - 0.13) < 1e-9
+
+
+def test_round6_faults_are_detected():
+    from poesia.calaveritas import quality
+
+    assert quality.filler("Juraba Beto, ¡qué afán!") == "afán"
+    assert quality.filler("Desde el cielo, sin cesar.") == "sin cesar"
+    assert quality.filler("¡qué numerito armó!") is None  # "¡qué X!" is in the broadsides
+    assert quality.not_mexican("Con el móvil en la mano") == ("móvil", "celular")
+    assert quality.not_mexican("El mando aún sostiene") == ("mando", "control")
+    assert quality.not_mexican("La Catrina sonríe al verle")[1] == "verlo o verla"
+    assert quality.not_mexican("yo mando en esta casa") is None  # the verb, not the remote
+    assert quality.not_mexican("con su celular en la mano") is None
+    r = validate_request(form(stanzas=1), today=TODAY)
+    ask = prompt.repair_messages(r, 0, GOOD, [], "Con el móvil en la mano", "mexican", None, [])
+    assert "dice «móvil»; usa «celular»" in ask[-1]["content"]
+    assert quality.invented_name("Aquí está don Remigio,", "el alcalde") == "don Remigio"
+    assert quality.invented_name("Aquí está don Pedro Infante", "Pedro Infante") is None
+    assert quality.names_person(["A Fer vi yo, sin tardar"], "Fer", prompt.PLACEHOLDER)
+    assert not quality.names_person(["Con chaleco y gran fervor"], "Pelusa", prompt.PLACEHOLDER)
+    assert quality.names_person([f"vi a {prompt.PLACEHOLDER}"], "Pelusa", prompt.PLACEHOLDER)
+    assert quality.has_death(["La Huesuda lo esperaba"]) and not quality.has_death(["Toño canta"])
+
+
+def test_a_soft_fault_is_repaired_once_and_kept_if_no_fix_passes(monkeypatch):
+    monkeypatch.setattr(
+        generator, "scan", lambda line, lang: ScanResult(line=line, metrical_syllable_count=8)
+    )
+    r = validate_request(form(stanzas=1), today=TODAY)
+    draft = [GOOD[0], GOOD[1], "con fervor por la escalera,", GOOD[3]]
+
+    def mend(reply):
+        p = FakeProvider(lambda text, n: reply if "muletilla" in text else "\n".join(GOOD))
+        ctx = generator._Ctx(
+            p, r, 0, [], generator.planmod.empty(r), random.Random(1), 0.0, minimal=True
+        )
+        return generator._mend_stanza(ctx, draft), p
+
+    st, p = mend("por pasillo y escalera,")
+    assert low(st.lines) == low(GOOD)  # the filler line was repaired
+    assert any("muletilla" in s for s in p.seen)
+    st, _ = mend("con fervor y la escalera,")  # every repair still pads: the draft line stays
+    assert low(st.lines)[2] == "con fervor por la escalera,"

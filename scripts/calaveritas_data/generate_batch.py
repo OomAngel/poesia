@@ -123,7 +123,9 @@ def make_request(rng: random.Random) -> dict:
     elif rec == "mascota":
         name = rng.choice(PETS[lang])
     elif rec == "yo":
-        name = "Yo" if lang == "es" else "Me"
+        # the page asks for the writer's own name (static/app.js); no extra draw, so the same seed
+        # gives the same requests as before (2026-11-07)
+        name = NAMES[lang][TONES.index(tone) % len(NAMES[lang])]
     else:
         name = rng.choice(NAMES[lang])
     minor = tone == "escolar" and rec != "pareja" and rng.random() < 0.5
