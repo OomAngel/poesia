@@ -364,18 +364,18 @@ def _valid_name(name: str) -> bool:
 
 
 def _parse(raw: dict) -> tuple[str, str, Recipient, Tone, int, int]:
-    language = raw.get("language") if raw.get("language") in LANGUAGES else "es"
+    language = raw["language"] if raw.get("language") in LANGUAGES else "es"
     name = re.sub(r"\s+", " ", unicodedata.normalize("NFC", str(raw.get("name", "")))).strip()
     try:
         return (
             language,
             name,
-            Recipient(raw.get("recipient")),
-            Tone(raw.get("tone")),
+            Recipient(raw["recipient"]),
+            Tone(raw["tone"]),
             int(raw.get("stanzas", 3)),
-            int(raw.get("birth_year")),
+            int(raw["birth_year"]),
         )
-    except (ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError) as e:
         raise Rejection("invalid") from e
 
 

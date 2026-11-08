@@ -106,10 +106,10 @@ def copied(line: str, material: str) -> bool:
 
 
 class RecentEndings(_SharedRecent):
-    """End words of recent lines across poems (shared ``poesia.quality.diversity``)."""
+    """End words of recent lines across poems (shared ``poesia.quality.diversity``).
 
-    def add(self, words: list[str]) -> None:  # type: ignore[override] - takes end words
-        super().add(words)
+    ``add`` takes lines or their end words: the end word of an end word is itself.
+    """
 
 
 RECENT = RecentEndings()

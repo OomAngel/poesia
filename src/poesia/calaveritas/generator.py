@@ -729,8 +729,8 @@ def _check(
 
 def _candidates(texts: list[str], ctx: _Ctx, others: list[str]) -> list[str]:
     """Distinct parsed lines (names restored), with their sense scored in parallel once."""
-    lines = [_parse_line(raw) for text in texts for raw in text.splitlines()]
-    lines = [_restore([x], ctx.request.name)[0] for x in dict.fromkeys(lines) if x is not None]
+    parsed = [_parse_line(raw) for text in texts for raw in text.splitlines()]
+    lines = [_restore([x], ctx.request.name)[0] for x in dict.fromkeys(parsed) if x is not None]
     if ctx.provider.sense and lines:
         from concurrent.futures import ThreadPoolExecutor
 
@@ -746,10 +746,8 @@ def _with_sense(out: list[tuple[float, str, int]], ctx: _Ctx, others: list[str])
     if not known:
         return out
     mid = known[len(known) // 2]
-    return [
-        (sc + SENSE_WEIGHT * ((lps[ln] if lps[ln] is not None else mid) - mid), ln, c)
-        for sc, ln, c in out
-    ]
+    filled = {ln: mid if lp is None else lp for ln, lp in lps.items()}
+    return [(sc + SENSE_WEIGHT * (filled[ln] - mid), ln, c) for sc, ln, c in out]
 
 
 def _rank(
@@ -855,10 +853,18 @@ def _rewrite(
     batches = []
     for _ in range(LINE_CANDIDATES_DRAFTER if _drafter(ctx) else LINE_CANDIDATES):
         bank = ctx.rng.sample(pool, min(BANK, len(pool)))
-        kw = {"plan": ctx.plan, "send_name": ctx.provider.sends_names, "rng": ctx.rng}
         if line is None:
             msgs = line_messages(
-                ctx.request, ctx.index, li, current, ctx.previous, rhyme_with, bank, **kw
+                ctx.request,
+                ctx.index,
+                li,
+                current,
+                ctx.previous,
+                rhyme_with,
+                bank,
+                plan=ctx.plan,
+                send_name=ctx.provider.sends_names,
+                rng=ctx.rng,
             )
         else:
             msgs = repair_messages(
@@ -871,7 +877,9 @@ def _rewrite(
                 rhyme_with,
                 bank,
                 count=count,
-                **kw,
+                plan=ctx.plan,
+                send_name=ctx.provider.sends_names,
+                rng=ctx.rng,
             )
         batches.append(msgs)
     texts = _write_many(ctx, batches, REPAIR_TEMPERATURE)
@@ -1068,7 +1076,7 @@ def _write_stanza(ctx: _Ctx) -> Stanza:
     return Stanza(lines, counts, scheme(lines, ctx.lang) or "abcb")
 
 
-def _repeats(line: str, ctx: _Ctx, others: list[str]) -> tuple[str, ...]:
+def _repeats(line: str, ctx: _Ctx, others: list[str]) -> list[str]:
     earlier = tuple(x for st in ctx.done for x in st.lines) + tuple(others)
     return gates.repeated_words(line, earlier, ctx.lang, _may_repeat(ctx.request))
 

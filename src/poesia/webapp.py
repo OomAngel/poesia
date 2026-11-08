@@ -20,6 +20,7 @@ inside ``create_app`` at runtime.
 
 import os
 import re
+from collections.abc import Set
 from pathlib import Path
 from typing import Any
 
@@ -313,7 +314,7 @@ def _proposal_rank(
     result: dict[str, Any],
     target: int | None,
     openings: set[str],
-    used: set[str] = frozenset(),
+    used: Set[str] = frozenset(),
     partner_word: str | None = None,
     language: str = "es",
 ) -> tuple[bool, int, bool, int, bool]:
@@ -332,7 +333,7 @@ def _proposal_rank(
     repeats_opening = text.split()[0].lower().strip(_PUNCT_OPEN) in openings
     from poesia.word_ideas import last_word
 
-    copy = bool(partner_word) and _near_copy(last_word(text), partner_word.lower())
+    copy = bool(partner_word and _near_copy(last_word(text), partner_word.lower()))
     no_rhyme = result["rhymes"] is False or copy
     reused = len(_content_words(text, language) & used)
     return (result["other_language"] is not None, off, no_rhyme, reused, repeats_opening)
