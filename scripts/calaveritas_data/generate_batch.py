@@ -7,6 +7,12 @@ roles and famous people who have died (homage); no living private person.
 Usage (CSCS through the local key proxy, see docs/hack_apertus/CSCS_USAGE.md):
   PYTHONPATH=src python scripts/calaveritas_data/generate_batch.py OUT.jsonl \\
       --url http://127.0.0.1:8790/v1 --model swiss-ai/Apertus-v1.5-70B --n 200 --workers 2
+
+The Calaveritas blind rounds (2026-11-08) use Nebius Token Factory and the 40-request set, traced:
+  KEY=... PYTHONPATH=src python scripts/calaveritas_data/generate_batch.py OUT.jsonl \\
+      --url https://api.tokenfactory.nebius.com/v1 --model deepseek-ai/DeepSeek-V4-Pro-0813 \\
+      --extra '{"reasoning_effort":"none"}' --n 40 --workers 3 --tag d10 --trace \\
+      --ids 4,6,7,13,14,20,21,22,23,25,26,34 --price-in 1.60 --price-out 4.79
 """
 
 from __future__ import annotations
@@ -177,6 +183,12 @@ def main() -> None:
     )
     ap.add_argument("--price-in", type=float, default=0.0, help="$ per million input tokens")
     ap.add_argument("--price-out", type=float, default=0.0, help="$ per million output tokens")
+    ap.add_argument(
+        "--ids",
+        default="",
+        help="only these request numbers, e.g. 4,6,13 (the same seed gives the same requests); "
+        "resuming is off with --ids",
+    )
     args = ap.parse_args()
     rng = random.Random(args.seed)  # noqa: S311 - sampling a test batch
     commit = subprocess.run(
@@ -262,6 +274,10 @@ def main() -> None:
         requests = requests[: args.n_only]
     shard, shards = (int(x) for x in args.shard.split("/"))
     todo = [(i, r) for i, r in enumerate(requests) if i % shards == shard]
+    if args.ids:  # the blind rounds' 12 requests (2026-11-08), or a 3-request model probe
+        keep = {int(x) for x in args.ids.split(",")}
+        todo = [(i, r) for i, r in todo if i in keep]
+        done = 0
     with (
         out.open("a", encoding="utf-8") as fh,
         ThreadPoolExecutor(max_workers=args.workers) as pool,
