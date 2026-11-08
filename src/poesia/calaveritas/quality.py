@@ -255,10 +255,16 @@ EVERYDAY_MX = frozenset(
     petate petatear petatearse petateó petatea petatean petatearon petateado petateada tejocote
     tejocotes tepetate cuatacho chambear chilango chilanga popote popotes padrísimo padrísima
     cuico cuicos carnala jefecita jefecito pachanga pachangas lambiscón metiche metiches
-    argüendero argüendera argüende copal jacal ofertón deveras bonsáis""".split()
+    argüendero argüendera argüende copal jacal ofertón deveras bonsáis tamalada tamaladas
+    sentadilla sentadillas""".split()
 )
 _DIMINUTIVE = re.compile(r"(?:c?it)(o|a)(s?)$")
 _AUGMENTATIVE = ("ón", "ona", "ones", "onas", "ote", "ota", "otes", "otas", "tón", "tona", "tones")
+# Pronouns attached to an infinitive, gerund or imperative ("rascarle", "dándole", "cómetelo"), which
+# the dictionary does not list (round 10, 2026-11-08: "rascarle" flagged as made up).
+_ENCLITIC = re.compile(
+    r"(?:(?:me|te|se|nos)(?:lo|la|los|las|le|les)|me|te|se|nos|le|les|lo|la|los|las)$"
+)
 
 
 def _hunspell() -> Any:
@@ -288,6 +294,10 @@ def _known(word: str, vocab: frozenset[str], dic: Any) -> bool:
         if word.endswith(suffix) and len(word) > 5:
             stem = word[: -len(suffix)]
             bases += [stem + "e", stem + "o", stem + "a", stem, stem + "r"]
+    m = _ENCLITIC.search(word)
+    if m and len(word) - len(m.group(0)) >= 3:  # rascarle -> rascar, dándole -> dando
+        stem = word[: m.start()]
+        bases += [stem, _bare(stem)]
     return any(b in vocab or dic.lookup(b) for b in bases)
 
 

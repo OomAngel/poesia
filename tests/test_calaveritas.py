@@ -638,6 +638,9 @@ def test_made_up_and_prosaic_words_are_caught():
         "La chamaca se petateó",  # everyday Mexican words the dictionary lacks
         "Lo vio don Pedro bailar",  # a name inside the line
         "Con rebozo y cempasúchil",
+        "A rascarle la pancita",  # a pronoun attached to the verb (round 10)
+        "y dándole su tamalada",
+        "Entre sentadilla y horario",
     ):
         assert quality.made_up(ok, none) is None, ok
     assert quality.prosaic("Perdido en bytes, ya no veía") == "bytes"
