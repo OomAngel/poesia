@@ -582,11 +582,6 @@ BANK = 4  # rhyme words offered per repair call (each call gets its own sample)
 DRAFTS = 6
 REPAIR_DRAFTS = 4  # drafts repaired in parallel; every one that passes becomes a candidate
 DRAFT_ROUNDS = 2  # a new round when the editor rejects every candidate
-# A soft fault of these kinds gets a second repair try (round 8, 2026-11-08: one try fixed 19 of 28
-# filler lines and 4 of 10 made-up words; the 7 filler lines left all failed their single try).
-# Repeated words keep one try: 33 of 44 failed it, and a second would add calls for little.
-SOFT_RETRY = frozenset({"filler", "mexican", "made_up", "name"})
-SOFT_RETRY_TRIES = 2
 POEM_DRAFTS = 4  # whole-poem drafts per round (English)
 # With a drafter on a free tier (Groq: 8,000 tokens a minute), fewer calls per poem: whole-poem
 # drafts in Spanish too (Qwen 27B keeps the octosyllable over a whole poem: 86% of lines at 7-9,
@@ -888,7 +883,30 @@ def _rewrite(
             )
         batches.append(msgs)
     texts = _write_many(ctx, batches, REPAIR_TEMPERATURE)
-    return _choose(ctx, current, _rank(texts, ctx, li, others, partner, loose), line, must)
+    ranked = _rank(texts, ctx, li, others, partner, loose)
+    return _choose(ctx, current, _keep_anchors(ctx, line, ranked), line, must)
+
+
+def _keep_anchors(
+    ctx: _Ctx, line: str | None, ranked: list[tuple[float, str, int]]
+) -> list[tuple[float, str, int]]:
+    """Repairs of a line that names the person or brings Death: the candidates that keep them come
+    first (stable; unchanged if none does). Round 9 (2026-11-08): both poems without the person's
+    name had lost it to a metre repair of the line that carried it ("Canelo tejía..." became
+    "calcetines tejía ya."); round 8 lost Death the same way."""
+    if line is None:
+        return ranked
+    name = quality.names_person([line], ctx.request.name, PLACEHOLDER)
+    death = ctx.lang == "es" and quality.has_death([line])
+    if not (name or death):
+        return ranked
+
+    def keeps(cand: str) -> bool:
+        return (not name or quality.names_person([cand], ctx.request.name, PLACEHOLDER)) and (
+            not death or quality.has_death([cand])
+        )
+
+    return sorted(ranked, key=lambda r: not keeps(r[1]))
 
 
 def _pairs(draft: list[str], lang: str) -> dict[int, tuple[int, bool, bool]]:
@@ -1087,8 +1105,8 @@ def _repeats(line: str, ctx: _Ctx, others: list[str]) -> list[str]:
 
 
 def _soft_problem(line: str, ctx: _Ctx, others: list[str]) -> str:
-    """A fault the minimal repair tries to fix (twice for SOFT_RETRY kinds, once otherwise) and keeps
-    the line if no repair passes (so it costs no failures): a repeated word or reused end word (POETICS #3), filler (#11, round 6), a word from
+    """A fault the minimal repair tries once and keeps the line if no repair passes (so it costs no
+    failures): a repeated word or reused end word (POETICS #3), filler (#11, round 6), a word from
     a word that is not Mexican Spanish (#6: the verse is Mexican Spanish by rule), a made-up "don X" for the person (round 6: "don Remigio" for "el
     alcalde")."""
     if _repeats(line, ctx, others) or _end_word(line) in ctx.used():
@@ -1122,16 +1140,15 @@ def _soft_mend(
     soft = _soft_problem(line, ctx, others)
     if not soft:
         return got
-    for attempt in range(SOFT_RETRY_TRIES if soft in SOFT_RETRY else 1):
-        new = _rewrite(ctx, li, others, current, line, soft, partner, loose)
-        took = new if new is not None and not _soft_problem(new[0], ctx, others) else None
-        _note(
-            ctx.request, "repair", stanza=ctx.index, line=li, problem=soft,
-            before=line, after=took[0] if took else None, optional=True, attempt=attempt,
-        )  # fmt: skip
-        if took:
-            return took
-    return got
+    # One try: a second one (round 9, 2026-11-08) fixed 2 of 20 filler lines and 0 of 3 made-up
+    # words for about 190 more calls over 33 poems.
+    new = _rewrite(ctx, li, others, current, line, soft, partner, loose)
+    took = new if new is not None and not _soft_problem(new[0], ctx, others) else None
+    _note(
+        ctx.request, "repair", stanza=ctx.index, line=li, problem=soft,
+        before=line, after=took[0] if took else None, optional=True,
+    )  # fmt: skip
+    return took or got
 
 
 def _mend_stanza(ctx: _Ctx, draft: list[str]) -> Stanza | None:
