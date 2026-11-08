@@ -734,7 +734,7 @@ def test_a_mended_stanza_that_kept_death_wins_and_a_last_stanza_line_brings_her(
     )
     without = generator.Stanza(plain, [8] * 4, "abab")
     with_death = generator.Stanza(GOOD, [8] * 4, "ABAB")
-    assert generator._keeps_death(ctx, [without, with_death]) is with_death
+    assert generator._keeps_anchors(ctx, [without, with_death]) is with_death
     added = generator._add_death(ctx, without)
     assert generator.quality.has_death(added.lines)
     assert any("no trae a la Muerte" in s for s in p.seen)
@@ -757,3 +757,17 @@ def test_a_repair_keeps_the_name_and_death_when_a_candidate_does():
     assert generator._keep_anchors(ctx, "la Flaca miraba atenta", death)[0][1].startswith(
         "la Flaca"
     )
+
+
+def test_the_repair_prompt_asks_to_keep_the_name_and_death():
+    r = validate_request(form(stanzas=1, name="el alcalde"), today=TODAY)
+    ask = prompt.repair_messages(
+        r, 0, GOOD, [], "Aquí está el alcalde,", "metre", None, [], count=6
+    )
+    assert "Conserva en el verso «el alcalde»" in ask[-1]["content"]
+    ask = prompt.repair_messages(r, 0, GOOD, [], "la Flaca llegó veloz", "metre", None, [], count=7)
+    assert "Conserva en el verso «Flaca»" in ask[-1]["content"]
+    hidden = prompt.repair_messages(
+        r, 0, GOOD, [], "Aquí está el alcalde,", "metre", None, [], count=6, send_name=False
+    )
+    assert "el alcalde" not in hidden[-1]["content"].split("Conserva")[-1]

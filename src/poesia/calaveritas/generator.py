@@ -1328,15 +1328,18 @@ def _bring_death(ctx: _Ctx, drafts: list[list[str]]) -> list[list[str]]:
     return with_death or drafts
 
 
-def _keeps_death(ctx: _Ctx, mended: list[Stanza]) -> Stanza:
-    """The first mended stanza, or the first that still has Death when she is needed: a repair can
-    rewrite the line that brought her (round 8, 2026-11-08: all six drafts had her, the kept stanza
-    had lost her)."""
-    if _death_needed(ctx):
-        for st in mended:
-            if quality.has_death(st.lines):
-                return st
-    return mended[0]
+def _keeps_anchors(ctx: _Ctx, mended: list[Stanza]) -> Stanza:
+    """The first mended stanza that still names the person (first stanza) and has Death (when she is
+    needed), else the first: a repair can rewrite the line that carried them (round 8, 2026-11-08:
+    all six drafts had Death, the kept stanza had lost her; round 9: the same for the name)."""
+    need_name = ctx.index == 0
+    need_death = _death_needed(ctx)
+
+    def missing(st: Stanza) -> int:
+        no_name = need_name and not quality.names_person(st.lines, ctx.request.name, PLACEHOLDER)
+        return 2 * no_name + (need_death and not quality.has_death(st.lines))
+
+    return min(mended, key=missing)  # min keeps the first of equals
 
 
 def _add_death(ctx: _Ctx, st: Stanza) -> Stanza:
@@ -1436,7 +1439,7 @@ def _story_stanza(ctx: _Ctx) -> Stanza | None:
                 )
             alive = [st for st in got if st is not None]
             if alive:
-                return _add_death(ctx, _keeps_death(ctx, alive))
+                return _add_death(ctx, _keeps_anchors(ctx, alive))
     return None
 
 

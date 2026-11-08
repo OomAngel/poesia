@@ -416,6 +416,20 @@ def line_messages(
     return [{"role": "system", "content": system}, {"role": "user", "content": "\n".join(user)}]
 
 
+def _keep_ask(request: Request, line: str, send_name: bool) -> str:
+    """Ask to keep the person's name and Death when the line has them: round 9 (2026-11-08) lost
+    the name twice to metre repairs ("Aquí está el alcalde," became "¡y halló su eterno sendero!")."""
+    name = request.name if send_name else PLACEHOLDER
+    es = request.language == "es"
+    out = ""
+    if quality.names_person([line], request.name, PLACEHOLDER):
+        out += f" Conserva en el verso «{name}»." if es else f' Keep "{name}" in the line.'
+    death = quality.DEATH_WORD.search(line) if es else None
+    if death:
+        out += f" Conserva en el verso «{death.group(0)}»."
+    return out
+
+
 def repair_messages(
     request: Request,
     stanza: int,
@@ -472,7 +486,7 @@ def repair_messages(
         ask = (
             f"Este verso {why}: «{draft_line}». Corrígelo cambiando lo mínimo: conserva su sentido, sus "
             "imágenes y su gracia, en español natural, ocho sílabas."
-        )
+        ) + _keep_ask(request, draft_line, send_name)
     else:
         why = {
             "metre": "does not have about eight syllables",
@@ -499,7 +513,7 @@ def repair_messages(
         ask = (
             f'This line {why}: "{draft_line}". Fix it with the smallest change: keep its meaning, its '
             "images and its wit, in natural English, about eight syllables."
-        )
+        ) + _keep_ask(request, draft_line, send_name)
     user.append(ask + _rhyme_ask(lang, rhyme_with, bank))
     return [{"role": "system", "content": system}, {"role": "user", "content": "\n".join(user)}]
 
