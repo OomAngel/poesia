@@ -14,6 +14,7 @@ from __future__ import annotations
 import re
 import threading
 from collections import Counter
+from typing import Any
 
 from poesia.quality import gates
 from poesia.quality.diversity import RecentEndings as _SharedRecent
@@ -260,7 +261,7 @@ _DIMINUTIVE = re.compile(r"(?:c?it)(o|a)(s?)$")
 _AUGMENTATIVE = ("ón", "ona", "ones", "onas", "ote", "ota", "otes", "otas", "tón", "tona", "tones")
 
 
-def _hunspell() -> object | None:
+def _hunspell() -> Any:
     with _HUNSPELL_LOCK:
         if not _HUNSPELL:
             try:
@@ -275,7 +276,7 @@ def _hunspell() -> object | None:
         return _HUNSPELL[0]
 
 
-def _known(word: str, vocab: frozenset[str], dic: object) -> bool:
+def _known(word: str, vocab: frozenset[str], dic: Any) -> bool:
     if len(word) == 1 or word in vocab or word in EVERYDAY_MX or dic.lookup(word):
         return True  # one letter: y, o, a, e, u and the old "á"
     bases = []

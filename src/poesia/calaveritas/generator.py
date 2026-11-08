@@ -1131,13 +1131,13 @@ def _mend_stanza(ctx: _Ctx, draft: list[str]) -> Stanza | None:
         soft = _soft_problem(line, ctx, others)
         if soft:
             got = _rewrite(ctx, li, others, current, line, soft, partner, loose)
-            took = got is not None and not _soft_problem(got[0], ctx, others)
+            took = got if got is not None and not _soft_problem(got[0], ctx, others) else None
             _note(
                 ctx.request, "repair", stanza=ctx.index, line=li, problem=soft,
-                before=line, after=got[0] if took else None, optional=True,
+                before=line, after=took[0] if took else None, optional=True,
             )  # fmt: skip
             if took:
-                line, count = got
+                line, count = took
         lines.append(line)
         counts.append(count)
     if ctx.lang == "es":
