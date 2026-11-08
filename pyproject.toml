@@ -151,9 +151,9 @@ web = [
 ]
 
 mlops = [
-    # Same pin as environment.yml and docker/mlflow.Dockerfile (3.16.1, security fixes,
-    # 2026-10-04). Older tracking stores need `mlflow db upgrade` (LOCAL_ONLY.md).
-    "mlflow==3.16.1",
+    # Same pin as environment.yml and docker/mlflow.Dockerfile (3.17.2, security fixes,
+    # 2026-11-08). Older tracking stores need `mlflow db upgrade` (LOCAL_ONLY.md).
+    "mlflow==3.17.2",
 ]
 
 dev = [
