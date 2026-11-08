@@ -774,3 +774,15 @@ def test_the_repair_prompt_asks_to_keep_the_name_and_death():
         r, 0, GOOD, [], "Aquí está el alcalde,", "metre", None, [], count=6, send_name=False
     )
     assert "el alcalde" not in hidden[-1]["content"].split("Conserva")[-1]
+
+
+def test_syllable_notes_and_unpaired_quotes_are_cleaned():
+    """Round 10 ranking (2026-11-08): "(8)" left in a line; a closing » with no opening one."""
+    assert generator._parse_line("Y Toño dirige el ensayo; (8)") == "Y Toño dirige el ensayo;"
+    assert generator._blocks("1. La Flaca llegó al salón [8 sílabas]\n")[0] == [
+        "La Flaca llegó al salón"
+    ]
+    st = generator.Stanza(["Llegas tarde, pero no", "te pierdes la tamalada»."], [8, 8], "abcb")
+    assert generator._balance_quotes([st])[0].lines[1] == "te pierdes la tamalada."
+    ok = generator.Stanza(["«Toño, ya voy», le dijo", "la Flaca desde el panteón"], [8, 8], "abcb")
+    assert generator._balance_quotes([ok])[0].lines == ok.lines

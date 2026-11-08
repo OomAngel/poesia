@@ -332,6 +332,9 @@ def syllables(line: str, language: str) -> int:
 
 
 _NUMBERING = re.compile(r"^\s*(?:\d+[.)]|[-*•])\s*")
+# A syllable count the model writes after a line, "(8)" or "[8 sílabas]" (round 10 ranking,
+# 2026-11-08: Kimi-K3.1-Pro left "Y Toño dirige el ensayo; (8)" in a poem).
+_ANNOTATION = re.compile(r"\s*[(\[]\s*\d+\s*(?:s[ií]labas?|syllables?)?\s*[)\]]\s*$", re.I)
 
 
 def parse_quatrain(text: str) -> list[str] | None:
@@ -457,7 +460,7 @@ def _write(request: Request, providers: list[Provider], rng: random.Random | Non
         if not provider.sends_names:
             provider = _NameMask(provider, request.name)
         try:
-            stanzas = _write_with(provider, request, rng, t0)
+            stanzas = _balance_quotes(_write_with(provider, request, rng, t0))
             return Poem(request.language, stanzas, provider.label, time.monotonic() - t0)
         except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
             _note(request, "provider_error", provider=provider.label, error=repr(e)[:200])
@@ -473,7 +476,7 @@ def _write(request: Request, providers: list[Provider], rng: random.Random | Non
 
 def _parse_line(text: str) -> str | None:
     for raw in text.splitlines():
-        line = _NUMBERING.sub("", raw).strip()
+        line = _ANNOTATION.sub("", _NUMBERING.sub("", raw)).strip()
         line = (
             re.sub(r"^(verso|line)\s*\d+\s*[:.-]\s*", "", line, flags=re.I).strip("\"“”«»'").strip()
         )
@@ -561,6 +564,30 @@ def _may_repeat(request: Request) -> frozenset[str]:
 
 def _gibberish(line: str, request: Request) -> bool:
     return bool(gates.unknown_words(line, request.language, _allowed_words(request)))
+
+
+def _balance_quotes(stanzas: list[Stanza]) -> list[Stanza]:
+    """Drop quotation marks that do not pair up across the poem (round 10 ranking, 2026-11-08: a
+    closing » with no opening one in four poems; the parsers strip quotes at line edges, so an
+    opening mark is often lost)."""
+    text = "\n".join(x for st in stanzas for x in st.lines)
+    drop = ""
+    for a, b in (("«", "»"), ("“", "”")):
+        if text.count(a) != text.count(b):
+            drop += a + b
+    if text.count('"') % 2:
+        drop += '"'
+    if not drop:
+        return stanzas
+    table = str.maketrans("", "", drop)
+    return [
+        Stanza(
+            [re.sub(r"\s{2,}", " ", x.translate(table)).strip() for x in st.lines],
+            st.counts,
+            st.scheme,
+        )
+        for st in stanzas
+    ]
 
 
 def _polish(lines: list[str]) -> list[str]:
@@ -1448,7 +1475,8 @@ def _blocks(text: str) -> list[list[str]]:
     blocks: list[list[str]] = []
     cur: list[str] = []
     for raw in (text or "").splitlines():
-        line = _NUMBERING.sub("", raw.strip().strip("*#").strip()).strip().strip("\"“”«»'").strip()
+        line = _NUMBERING.sub("", raw.strip().strip("*#").strip()).strip()
+        line = _ANNOTATION.sub("", line).strip().strip("\"“”«»'").strip()
         if not line:
             if cur:
                 blocks.append(cur)
