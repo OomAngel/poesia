@@ -716,6 +716,10 @@ def _check(
         tolerance = (RELAXED_TOLERANCE if ctx.minimal and not ctx.exact else METRE_TOLERANCE)[lang]
     if gates.metre(scanned, TARGET, tolerance):
         return None, "metre"
+    if ctx.minimal and abs(scanned.metrical_syllable_count - TARGET) > tolerance:
+        # the plain reading, not any admissible one: "la calle prometía un jardín" passed as 9
+        # through a hiatus reading but reads 10 (step 3 run, 2026-11-07: 12 of 352 lines)
+        return None, "metre"
     lp = ctx.logprob(others, line)
     floor = SENSE_FLOOR.get(lang)
     if lp is not None and floor is not None and lp < floor:
@@ -1082,6 +1086,10 @@ def _soft_problem(line: str, ctx: _Ctx, others: list[str]) -> str:
         return "filler"
     if quality.not_mexican(line):
         return "mexican"
+    if quality.made_up(line, _allowed_words(ctx.request)):
+        return "made_up"  # Angel, 2026-11-08: "We need to catch them" ("la Catrí")
+    if quality.prosaic(line):
+        return "prosaic"
     if quality.invented_name(line, ctx.request.name):
         return "name"
     return ""
@@ -1247,6 +1255,20 @@ def _closest(ctx: _Ctx, drafts: list[list[str]]) -> list[list[str]]:
     return sorted(drafts, key=lambda d: _off(ctx, d))
 
 
+def _bring_death(ctx: _Ctx, drafts: list[list[str]]) -> list[list[str]]:
+    """Round 6 found poems where Death never came: if no earlier stanza brought her, the last
+    stanza keeps only the drafts that do (all of them if none does)."""
+    if (
+        ctx.lang != "es"
+        or ctx.index != ctx.request.stanzas - 1
+        or quality.has_death([x for st in ctx.done for x in st.lines])
+    ):
+        return drafts
+    with_death = [d for d in drafts if quality.has_death(d)]
+    _note(ctx.request, "death_needed", stanza=ctx.index, kept=len(with_death), of=len(drafts))
+    return with_death or drafts
+
+
 def _story_stanza(ctx: _Ctx) -> Stanza | None:
     """Stanza drafts that follow the story's beat; the editor ranks them as drafts (story and
     sense), then the best ones are mended (minimal repair), two at a time; the first in the
@@ -1287,6 +1309,7 @@ def _story_stanza(ctx: _Ctx) -> Stanza | None:
                 drafts.append(draft)
         if not drafts:
             continue
+        drafts = _bring_death(ctx, drafts)
         condensed = _condensed(ctx, drafts)
         for d in condensed:
             _note(ctx.request, "condensed", stanza=ctx.index, round=rnd, lines=d,

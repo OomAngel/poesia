@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -34,7 +35,7 @@ QUALITY = {
         "sentido completo y se enlaza con el siguiente. No copies los rasgos tal cual: conviértelos en "
         "una escena o un chiste. "
         "Sin muletillas de relleno como «afán», "
-        "«con fervor», «sin cesar» o «sin fin». Solo palabras que existen: no cortes ni inventes una "
+        "«con fervor», «sin cesar» o «sin fin». Un solo narrador de principio a fin: no cambies de voz a mitad del poema. Solo palabras que existen: no cortes ni inventes una "
         "palabra para que rime."
     ),
     "en": (
@@ -444,6 +445,8 @@ def repair_messages(
             "repeated_word": "repite una palabra que ya está en el poema; usa otra",
             "filler": "trae una muletilla de relleno; dilo con una imagen concreta o una acción",
             "mexican": "usa una palabra que no se dice así en México",
+            "made_up": "tiene una palabra que no existe en español; usa palabras reales",
+            "prosaic": "usa una palabra técnica o prosaica; dilo con una imagen",
             "name": "inventa un nombre para la persona; llámala solo como se llama",
             "opening": "empieza con el nombre de la Muerte, y esta estrofa no debe empezar así",
             "other": "no funciona como está",
@@ -451,6 +454,12 @@ def repair_messages(
         mx = quality.not_mexican(draft_line) if problem == "mexican" else None
         if mx:
             why = f"dice «{mx[0]}»; usa «{mx[1]}»"
+        own = frozenset(
+            w.lower() for w in re.findall(r"[A-Za-zÀ-ÿ]+", request.name + " " + request.detail)
+        )
+        bad = quality.made_up(draft_line, own) if problem == "made_up" else None
+        if bad:
+            why = f"dice «{bad}», que no es una palabra del español; usa una palabra real"
         if problem == "metre" and count:
             d = count - 8
             why = (
@@ -471,6 +480,8 @@ def repair_messages(
             "repeated_word": "repeats a word already in the poem; use another",
             "filler": "is padded with filler; say it with a concrete image or action",
             "mexican": "is not in Mexican Spanish",
+            "made_up": "has a word that does not exist; use real words",
+            "prosaic": "uses a technical or prosaic word; say it with an image",
             "name": "invents a name for the person; call them only by their name",
             "opening": "opens with Death's name, and this stanza must not",
             "other": "does not work as it is",

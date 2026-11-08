@@ -6,6 +6,7 @@ import datetime as dt
 import random
 import re
 import threading
+from pathlib import Path
 
 import pytest
 
@@ -618,3 +619,75 @@ def test_a_soft_fault_is_repaired_once_and_kept_if_no_fix_passes(monkeypatch):
     assert any("muletilla" in s for s in p.seen)
     st, _ = mend("con fervor y la escalera,")  # every repair still pads: the draft line stays
     assert low(st.lines)[2] == "con fervor por la escalera,"
+
+
+@pytest.mark.skipif(
+    not (Path(prompt.__file__).parents[1] / "wordlists" / "hunspell" / "es_MX.dic").exists(),
+    reason="es_MX dictionary not fetched (python src/poesia/wordlists/fetch_hunspell.py)",
+)
+def test_made_up_and_prosaic_words_are_caught():
+    from poesia.calaveritas import quality
+
+    none = frozenset()
+    assert quality.made_up("Ante el gesto de la Catrí.", none) == "Catrí"  # cut short to rhyme
+    assert quality.made_up("Su perro poodle blanco", none) == "poodle"
+    for ok in (
+        "El ladrido del perrito",  # diminutive of a real word
+        "¡Qué bigotón tan chido!",  # augmentative
+        "La chamaca se petateó",  # everyday Mexican words the dictionary lacks
+        "Lo vio don Pedro bailar",  # a name inside the line
+        "Con rebozo y cempasúchil",
+    ):
+        assert quality.made_up(ok, none) is None, ok
+    assert quality.prosaic("Perdido en bytes, ya no veía") == "bytes"
+    assert quality.prosaic("Entre helechos y bonsáis") is None
+    r = validate_request(form(stanzas=1, name="Fer"), today=TODAY)
+    ask = prompt.repair_messages(r, 0, GOOD, [], "Fer miró a la Catrí", "made_up", None, [])
+    assert "dice «Catrí»" in ask[-1]["content"]
+
+
+def test_the_plain_syllable_count_must_be_near_eight(monkeypatch):
+    from poesia.phonology.base import ScanResult as SR
+
+    r = validate_request(form(stanzas=1), today=TODAY)
+    p = FakeProvider()
+    ctx = generator._Ctx(
+        p, r, 0, [], generator.planmod.empty(r), random.Random(1), 0.0, minimal=True
+    )
+    # an admissible reading of 9 but a plain count of 10: the minimal repair sends it to repair
+    monkeypatch.setattr(
+        generator,
+        "scan",
+        lambda line, lang: SR(
+            line=line, metrical_syllable_count=10, metrical_counts=frozenset({9, 10})
+        ),
+    )
+    assert (
+        generator._check("la calle prometía un jardín", ctx, 3, GOOD[:3], None, False)[1] == "metre"
+    )
+    monkeypatch.setattr(
+        generator,
+        "scan",
+        lambda line, lang: SR(
+            line=line, metrical_syllable_count=9, metrical_counts=frozenset({9, 10})
+        ),
+    )
+    assert generator._check("la calle prometía un jardín", ctx, 3, GOOD[:3], None, False)[0] == 9
+
+
+def test_the_last_stanza_brings_death_if_no_earlier_one_did(monkeypatch):
+    monkeypatch.setattr(
+        generator, "scan", lambda line, lang: ScanResult(line=line, metrical_syllable_count=8)
+    )
+    r = validate_request(form(stanzas=1), today=TODAY)
+    no_death = [
+        "Lupita toma café",
+        "buscando un pan cada día",
+        "ya ni sabe lo que fue",
+        "la mañana se perdía",
+    ]
+    p = FakeProvider(lambda text, n: "\n".join(no_death) if n % 2 else "\n".join(GOOD))
+    trace: list[dict] = []
+    poem = generator.write(r, [p], rng=random.Random(1), trace=trace)
+    assert any(e["kind"] == "death_needed" for e in trace)
+    assert any("calavera" in x.lower() for x in poem.stanzas[0].lines)

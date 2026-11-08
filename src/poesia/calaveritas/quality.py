@@ -12,6 +12,7 @@ scene, novelty is character-trigram overlap with earlier lines.
 from __future__ import annotations
 
 import re
+import threading
 from collections import Counter
 
 from poesia.quality import gates
@@ -181,12 +182,25 @@ _NOT_MEXICAN = re.compile(
     r"\b(?:(?:el|su|un|del|al) (mando)|(" + "|".join(w for w in MEXICAN if w != "mando") + r"))\b",
     re.I,
 )
+# Prosaic or technical words (POETICS #5: "mencionar *derecho* lo hace menos lírico"), seen in the
+# live sample of 2026-11-06 ("bytes", "datos", "aparato", "abono"); none occurs in the broadsides.
+PROSAIC = re.compile(
+    r"\b(?:bytes?|datos?|aparatos?|abono|jardinería|algoritmos?|software|dispositivos?|"
+    r"archivos?|información|sistemas?|procesos?|gestión|análisis|función|eficiencia|"
+    r"productividad|optimizar|estrategia|plataforma|usuarios?|contenido|digital|tecnología)\b",
+    re.I,
+)
 _TITLED = re.compile(r"\b(?:don|doña)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)")
 DEATH_WORD = re.compile(rf"\b(?:{_EPITHETS[3:-1]}|panteón|tumba|más allá|ultratumba)\b", re.I)
 
 
 def filler(line: str) -> str | None:
     m = FILLER.search(line)
+    return m.group(0) if m else None
+
+
+def prosaic(line: str) -> str | None:
+    m = PROSAIC.search(line)
     return m.group(0) if m else None
 
 
@@ -224,3 +238,82 @@ def names_person(lines: list[str], name: str, placeholder: str) -> bool:
 
 def has_death(lines: list[str]) -> bool:
     return bool(DEATH_WORD.search(" ".join(lines)))
+
+
+# Made-up words (Angel, 2026-11-08: "We need to catch them"): a word in neither the es_MX Hunspell
+# dictionary (wordlists/hunspell, MPL 1.1) nor the 40,000-word list, e.g. "la Catrí" cut short to
+# rhyme. Diminutives are looked up by their base word (Hunspell lacks most of them); a capitalised
+# word inside the line is a name unless it is a cut-short genre word. Without spylls or the files
+# the check is off (fails open).
+_HUNSPELL_LOCK = threading.Lock()
+_HUNSPELL: list = []
+# Everyday Mexican words the es_MX dictionary lacks (checked 2026-11-08; the broadside lines it
+# flagged include chamaca, tejocotes, petateó, tepetate).
+EVERYDAY_MX = frozenset(
+    """mija mijo mijita mijito chavo chava chavos chavas chamaca chamaco chamacas chamacos
+    petate petatear petatearse petateó petatea petatean petatearon petateado petateada tejocote
+    tejocotes tepetate cuatacho chambear chilango chilanga popote popotes padrísimo padrísima
+    cuico cuicos carnala jefecita jefecito pachanga pachangas lambiscón metiche metiches
+    argüendero argüendera argüende copal jacal ofertón deveras bonsáis""".split()
+)
+_DIMINUTIVE = re.compile(r"(?:c?it)(o|a)(s?)$")
+_AUGMENTATIVE = ("ón", "ona", "ones", "onas", "ote", "ota", "otes", "otas", "tón", "tona", "tones")
+
+
+def _hunspell() -> object | None:
+    with _HUNSPELL_LOCK:
+        if not _HUNSPELL:
+            try:
+                from importlib.resources import files
+
+                from spylls.hunspell import Dictionary
+
+                base = files("poesia.wordlists") / "hunspell" / "es_MX"
+                _HUNSPELL.append(Dictionary.from_files(str(base)))
+            except (ImportError, OSError, ValueError):
+                _HUNSPELL.append(None)
+        return _HUNSPELL[0]
+
+
+def _known(word: str, vocab: frozenset[str], dic: object) -> bool:
+    if len(word) == 1 or word in vocab or word in EVERYDAY_MX or dic.lookup(word):
+        return True  # one letter: y, o, a, e, u and the old "á"
+    bases = []
+    m = _DIMINUTIVE.search(word)
+    if m and len(word) > 5:  # lomitos -> lomos, cafecito -> cafe
+        stem = word[: m.start()]
+        bases += [stem + m.group(1) + m.group(2), stem + "e" + m.group(2), stem + m.group(2)]
+    for suffix in _AUGMENTATIVE:  # bigotón -> bigote, panzón -> panza, lametón -> lame(r)
+        if word.endswith(suffix) and len(word) > 5:
+            stem = word[: -len(suffix)]
+            bases += [stem + "e", stem + "o", stem + "a", stem, stem + "r"]
+    return any(b in vocab or dic.lookup(b) for b in bases)
+
+
+_DEATH_NAMES = frozenset({"catrina", "calaca", "huesuda", "pelona", "flaca", "parca", "calavera"})
+
+
+def _bare(word: str) -> str:
+    return word.translate(str.maketrans("áéíóúü", "aeiouu"))
+
+
+def made_up(line: str, allowed: frozenset[str], genre: frozenset[str] = frozenset()) -> str | None:
+    """The first word of ``line`` that does not exist in Spanish (None if all do)."""
+    dic = _hunspell()
+    if dic is None:
+        return None
+    vocab = gates.vocabulary("es")
+    for i, m in enumerate(re.finditer(r"[A-Za-zÀ-ÿ]+", line)):
+        raw = m.group(0)
+        word = raw.lower()
+        if word in allowed or _known(word, vocab, dic) or (raw[0].isupper() and dic.lookup(raw)):
+            continue
+        if i > 0 and raw[0].isupper():
+            bare = _bare(word)
+            cut = len(word) >= 3 and any(
+                _bare(g).startswith(bare) and _bare(g) != bare for g in genre | _DEATH_NAMES
+            )
+            if not cut:
+                continue  # a name
+        return raw
+    return None

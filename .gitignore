@@ -99,3 +99,7 @@ secrets/*.env
 
 # Node (untracked deps)
 node_modules/
+
+# es_MX Hunspell dictionary, fetched by src/poesia/wordlists/fetch_hunspell.py (0.9 MB)
+src/poesia/wordlists/hunspell/es_MX.dic
+src/poesia/wordlists/hunspell/es_MX.aff

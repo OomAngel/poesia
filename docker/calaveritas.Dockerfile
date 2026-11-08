@@ -18,12 +18,13 @@ WORKDIR /app
 
 # Runtime dependencies only: the web stack and the Spanish/English scanners.
 RUN pip install "fastapi>=0.115" "uvicorn>=0.30" "pydantic>=2.6" "python-dotenv>=1.0" \
-        "typer>=0.12" "rich>=13.7" fonemas silabeador pronouncing g2p_en \
+        "typer>=0.12" "rich>=13.7" fonemas silabeador "spylls>=0.1.7" pronouncing g2p_en \
  && python -m nltk.downloader -q -d "$NLTK_DATA" averaged_perceptron_tagger_eng cmudict
 
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
-RUN pip install --no-deps . && rm -rf /app/src /root/.cache
+RUN python src/poesia/wordlists/fetch_hunspell.py \
+ && pip install --no-deps . && rm -rf /app/src /root/.cache
 
 USER 10001:10001
 EXPOSE 8080

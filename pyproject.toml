@@ -32,6 +32,7 @@ dependencies = [
 spanish = [
     "silabeador",
     "fonemas",  # phonology/spanish.py transcription for rhyme validation (pinned 2.1.0 in environment.yml)
+    "spylls>=0.1.7",  # reads the es_MX Hunspell dictionary (wordlists/hunspell): made-up words in calaveritas
 ]
 
 # English phonology / scansion
@@ -178,7 +179,7 @@ poesia-calaveritas = "poesia.calaveritas_web:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-poesia = ["webui/*.html", "wordlists/*.txt", "wordlists/README.md", "phonology/data/*.tsv", "phonology/data/*.txt", "phonology/data/README.md", "calaveritas/static/*", "calaveritas/static/fonts/*"]
+poesia = ["webui/*.html", "wordlists/*.txt", "wordlists/README.md", "wordlists/hunspell/*", "phonology/data/*.tsv", "phonology/data/*.txt", "phonology/data/README.md", "calaveritas/static/*", "calaveritas/static/fonts/*"]
 
 [tool.ruff]
 line-length = 100
