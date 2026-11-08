@@ -6,6 +6,7 @@ import datetime as dt
 import random
 import re
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -691,3 +692,73 @@ def test_the_last_stanza_brings_death_if_no_earlier_one_did(monkeypatch):
     poem = generator.write(r, [p], rng=random.Random(1), trace=trace)
     assert any(e["kind"] == "death_needed" for e in trace)
     assert any("calavera" in x.lower() for x in poem.stanzas[0].lines)
+
+
+def test_a_filler_line_gets_a_second_repair_try(monkeypatch):
+    """Round 8 (2026-11-08): the 7 filler lines left in the live engine had each failed one try."""
+    monkeypatch.setattr(
+        generator, "scan", lambda line, lang: ScanResult(line=line, metrical_syllable_count=8)
+    )
+    r = validate_request(form(stanzas=1), today=TODAY)
+    draft = [GOOD[0], GOOD[1], "con fervor por la escalera,", GOOD[3]]
+    asked = {"n": 0}
+
+    def reply(text, n):
+        if "muletilla" not in text:
+            return "\n".join(GOOD)
+        asked["n"] += 1
+        return "con fervor y la escalera," if asked["n"] <= 8 else "por pasillo y escalera,"
+
+    p = FakeProvider(reply)
+    ctx = generator._Ctx(
+        p, r, 0, [], generator.planmod.empty(r), random.Random(1), 0.0, minimal=True
+    )
+    st = generator._mend_stanza(ctx, draft)
+    assert low(st.lines)[2] == "por pasillo y escalera,"  # the second try fixed it
+    assert asked["n"] > generator.LINE_CANDIDATES  # a second batch of repair calls was made
+
+
+def test_the_first_stanza_keeps_drafts_with_death_and_the_name():
+    r = validate_request(form(stanzas=2), today=TODAY)
+    ctx = generator._Ctx(
+        FakeProvider(), r, 0, [], generator.planmod.empty(r), random.Random(1), 0.0, minimal=True
+    )
+    plain = [
+        "Lupita toma café",
+        "buscando un pan cada día",
+        "ya ni sabe lo que fue",
+        "la mañana se perdía",
+    ]
+    unnamed = [
+        "La Flaca toma café",
+        "buscando un pan cada día",
+        "ya ni sabe lo que fue",
+        "la mañana se perdía",
+    ]
+    assert generator._bring_death(ctx, [plain, GOOD, unnamed]) == [GOOD]
+    assert generator._bring_death(ctx, [plain]) == [plain]  # none has Death: all are kept
+
+
+def test_a_mended_stanza_that_kept_death_wins_and_a_last_stanza_line_brings_her(monkeypatch):
+    monkeypatch.setattr(
+        generator, "scan", lambda line, lang: ScanResult(line=line, metrical_syllable_count=8)
+    )
+    r = validate_request(form(stanzas=1), today=TODAY)
+    plain = [
+        "Lupita toma café",
+        "buscando un pan cada día",
+        "ya ni sabe lo que fue",
+        "la mañana se perdía",
+    ]
+    p = FakeProvider(
+        lambda text, n: "la Flaca vio que se fue" if "Muerte" in text else "\n".join(GOOD)
+    )
+    ctx = generator._Ctx(
+        p, r, 0, [], generator.planmod.empty(r), random.Random(1), time.monotonic(), minimal=True
+    )
+    without = generator.Stanza(plain, [8] * 4, "abab")
+    with_death = generator.Stanza(GOOD, [8] * 4, "ABAB")
+    assert generator._keeps_death(ctx, [without, with_death]) is with_death
+    added = generator._add_death(ctx, without)
+    assert generator.quality.has_death(added.lines)
+    assert any("no trae a la Muerte" in s for s in p.seen)

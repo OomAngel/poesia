@@ -448,6 +448,8 @@ def repair_messages(
             "made_up": "tiene una palabra que no existe en español; usa palabras reales",
             "prosaic": "usa una palabra técnica o prosaica; dilo con una imagen",
             "name": "inventa un nombre para la persona; llámala solo como se llama",
+            "death": "no trae a la Muerte, y en esta estrofa tiene que llegar: que aparezca la Calaca, "
+            "la Flaca o la Catrina, de una manera propia de esta historia",
             "opening": "empieza con el nombre de la Muerte, y esta estrofa no debe empezar así",
             "other": "no funciona como está",
         }[problem]
@@ -483,6 +485,7 @@ def repair_messages(
             "made_up": "has a word that does not exist; use real words",
             "prosaic": "uses a technical or prosaic word; say it with an image",
             "name": "invents a name for the person; call them only by their name",
+            "death": "does not bring Death, who must arrive in this stanza in a way that fits the story",
             "opening": "opens with Death's name, and this stanza must not",
             "other": "does not work as it is",
         }[problem]
