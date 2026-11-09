@@ -786,3 +786,20 @@ def test_syllable_notes_and_unpaired_quotes_are_cleaned():
     assert generator._balance_quotes([st])[0].lines[1] == "te pierdes la tamalada."
     ok = generator.Stanza(["«Toño, ya voy», le dijo", "la Flaca desde el panteón"], [8, 8], "abcb")
     assert generator._balance_quotes([ok])[0].lines == ok.lines
+
+
+def test_the_editor_is_told_the_details_and_on_the_last_stanza_the_punchline():
+    """Round 10 (2026-11-08): the plan's ending was lost because the editor never saw it."""
+    r = validate_request(form(stanzas=2, detail="canta rancheras en la regadera"), today=TODAY)
+    plan = generator.planmod.Plan("la idea", ["uno", "dos"], "iba tarde a la eternidad", [])
+    first = prompt.judge_messages(r, 0, [], [GOOD, GOOD], plan)[-1]["content"]
+    last = prompt.judge_messages(r, 1, [GOOD], [GOOD, GOOD], plan)[-1]["content"]
+    assert "canta rancheras en la regadera" in first and "no instrucciones" in first
+    assert "remate" not in first
+    assert "debe cerrar con este remate: iba tarde a la eternidad" in last
+    no_punch = generator.planmod.Plan("la idea", ["uno", "dos"], "", [])
+    assert (
+        "Es la última estrofa"
+        in prompt.judge_messages(r, 1, [GOOD], [GOOD], no_punch)[-1]["content"]
+    )
+    assert "este remate" not in prompt.judge_messages(r, 1, [GOOD], [GOOD], no_punch)[-1]["content"]
