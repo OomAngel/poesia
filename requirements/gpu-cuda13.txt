@@ -16,7 +16,7 @@ torch==2.14.0+cu130
 # compute capability >= 6.0, which is why the laptop (5.0) has no bitsandbytes at all.
 bitsandbytes==0.50.2
 # trl and datasets: scripts/train_poetry_dpo.py and scripts/train_poetry_lora.py.
-datasets==5.0.1
+datasets==5.1.0
 trl==1.14.0
 
 # Evaluation and search that run after or around training (2026-09-27, newest):
