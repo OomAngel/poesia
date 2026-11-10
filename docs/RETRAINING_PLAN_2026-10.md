@@ -123,7 +123,7 @@ The environment already supports these architectures: transformers 5.14.1 includ
 | **The training path to the new corpus:** `scripts/build_fixed_dataset.py` reads `corpus_master/poems.jsonl` (it falls back to globbing `training_data_structured/*.jsonl` only when the master corpus is missing) and writes `mlops/data/train_fixed.jsonl`, the file `train_v2_fixed.yaml` trains on. The other configs still name specific curated files (`sonetos_*`, `master_train*`, `multiform_train`) | the script, `mlops/configs/` |
 | History (2026-08-01): the old glob over `training_data_structured/*.jsonl` produced the 38K-example `v2-fixed` dataset, *before* the 08-31 expansion | `memory-bank/activeContext.md` |
 | The champion `poetry-lora-distilled` trained on `training_data_distilled/`: 57,862 bytes, about 100 Groq-distilled sonnets (`dvc.yaml`: `distill_sonetos.py --count 100`) | `dvc.lock` |
-| **The corpus was rebuilt on the desktop 2026-10-04** from git history (`f8b2017^`) and the fetch scripts, without the DVC remote (`CORPUS_SOURCES.md` "Rebuilding the corpus"). **The adapters are still only on the laptop's D: drive** (`models/` is 36 KB here). | checked 2026-10-04 |
+| **The corpus was rebuilt on the desktop 2026-10-04** from git history (`f003789^`) and the fetch scripts, without the DVC remote (`CORPUS_SOURCES.md` "Rebuilding the corpus"). **The adapters are still only on the laptop's D: drive** (`models/` is 36 KB here). | checked 2026-10-04 |
 | Copyrighted modern poets (Paz, Sabines, Neruda, the Poetry Foundation set) are in by Angel's decision: training a personal model, poems never shared | 2026-10-04 |
 
 ### What the previous runs say about more data
@@ -219,7 +219,7 @@ this corpus, more poems at 1–3 epochs uses its breadth better.
 
 **Bug the size depends on:** each line's prompt lists every previous line, and training
 truncated `prompt + completion + EOS` at 300 tokens from the right (`train_poetry_lora.py`,
-before commit `923434e`). From about line 19–20 of a long poem the target line and EOS were
+before commit `ac8b552`). From about line 19–20 of a long poem the target line and EOS were
 cut off, so the example taught the model to continue the prompt. That's 61–68% of examples
 outside sonnets. **Fixed 2026-10-04 with option (a):** `train_poetry_lora.py` tokenizes without
 truncation and drops any example longer than `max_length` (`_drop_overlong`; the counts are
@@ -297,7 +297,7 @@ runaway lines again: Spanish 17.9 syllables off per line, 19% metre, 99 accepted
 20 syllables. Cause, verified: `train_poetry_lora.py` set `pad_token = eos_token` and used
 `DataCollatorForLanguageModeling`, which masks every token equal to the pad id, so the real
 `<|im_end|>` ending every example got label −100. **No adapter since July learned to stop.**
-Fixed in `52fea7a` (labels mask padding positions only).
+Fixed in `1305418` (labels mask padding positions only).
 
 | 2 Spanish poems (luna, tiempo; seed 0) | Off per line | Metre | Rhyme | Lines > 20 syll. | s/poem |
 |---|---|---|---|---|---|

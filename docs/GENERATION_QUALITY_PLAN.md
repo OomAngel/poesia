@@ -20,7 +20,7 @@ Produce coherent, metrically-correct, fluent poems — not just scaffolding.
 | 7 | Fine-tune prompt | aligned to training format + `repeat_penalty=1.15` |
 | 8 | Rhyme-key hygiene | raw keys removed from all 4 LLM-facing prompts |
 | 9 | Draft prompt | adds "no title/preamble" + syllable-count hint for general models |
-| 10 | Draft length validation | `run_draft()` warns when the draft is shorter than the form requires, instead of silently shipping a fragment as "the poem" (commit `9b7b0a2`) |
+| 10 | Draft length validation | `run_draft()` warns when the draft is shorter than the form requires, instead of silently shipping a fragment as "the poem" (commit `1d1ff10`) |
 
 ## Fine-tune verdict (measured 2026-08-30, corrected 2026-08-31)
 
@@ -113,7 +113,7 @@ consistent adapters across both passes.
 | 8 | `--repair-llm` unvalidated | ✅ done — `_resolve_llm_client` already fails fast |
 | 9 | Fine-tune fate: re-train vs deprioritize | ✅ decided 2026-10-04 (Angel): re-train, with the expanded corpus and a larger base model. Plan: `docs/RETRAINING_PLAN_2026-10.md` |
 | 10 | Draft shorter than form's line count silently accepted | ✅ done — `run_draft()` now warns (`draft has N/M lines...`) |
-| 11 | Rhyme-key correctness weak even after repair (hybrid path, all 3 trials) | ✅ fix landed (`b120de0`) — repair loop now enforces rhyme, not just metre, in both paths; warns when repair still fails after max attempts instead of shipping silently |
+| 11 | Rhyme-key correctness weak even after repair (hybrid path, all 3 trials) | ✅ fix landed (`a3d3d4d`) — repair loop now enforces rhyme, not just metre, in both paths; warns when repair still fails after max attempts instead of shipping silently |
 | 12 | `run_draft()` sometimes concatenates two disconnected fragments into one drafted line (e.g. `"tranquila alta."`, `"brinda, ansia."`, `"pura, elida."`, `"corazón, espíritu."`) instead of one coherent thought — reproduced 4x in the "el mar" trial, not a one-off. `_clean_candidate`/`_clean_candidates` don't catch it (they target prompt-echo artifacts, not fragment merging); a coherence-classifier probe scored only 60% on these, misclassifying all 4 as COHERENT | ✅ fix landed — (a) `_metre_defect_text` flags lines missing >40% of their target syllables as "disconnected fragments" and tells the repair LLM to rewrite rather than pad (used by both `_repair_defect_description` and `_repair_draft_line`); (b) `_line_is_stiff`'s prompt (the `--polish` fluency gate) now explicitly names the "two disconnected fragments crammed into one line" failure mode with a reproduced example, since it was never told to check for that pattern at all. Neither fix has been validated against a live trial yet — see caveat below |
 | 13 | Rhyme repair accepts a literal repeated word as a "resolved" rhyme (e.g. two A-rhyme lines both ending on "swell") — passes `rhyme_key()` trivially since it's the same word, but it's not a rhyme | ✅ fix landed — see below |
 | 14 | Repair prompt for a wrong-rhyme-sound defect is vague ("rhymes with its rhyme-group partner") — gives the repair LLM no concrete word to work from, so genuine sound mismatches (seen live: needed `'UW1 F'`) often survive `max_repair_attempts` | ✅ fix landed — see below |
@@ -127,7 +127,7 @@ consistent adapters across both passes.
 4. ✅ Restore `tone` in the draft prompt (backend-aware).
 5. ✅ Make `--repair-llm` affect line-by-line repair too.
 6. ✅ Warn instead of silently shipping a short/degraded draft.
-7. ✅ Rhyme-key repair correctness — root-caused and fixed 2026-08-31 (`b120de0`), see analysis
+7. ✅ Rhyme-key repair correctness — root-caused and fixed 2026-08-31 (`a3d3d4d`), see analysis
    below.
 8. ✅ Adapter evaluation unblocked on the laptop (GGUF/llama.cpp fallback + `max_repair_attempts`
    wiring fix); all 8 local adapters swept, see below. Downgraded from "decide fine-tune fate".
@@ -177,7 +177,7 @@ in the file:
 
 Pre-fix aggregate was 21/42 (50%). **Metre accuracy is statistically flat** (46.3% vs 50%, well
 within the trial-to-trial variance already documented) — the fix was never expected to move
-this number, since it targets rhyme enforcement, not metre. `b120de0` does exactly what it
+this number, since it targets rhyme enforcement, not metre. `a3d3d4d` does exactly what it
 should: every rhyme failure that survives repair is now honestly reported instead of silently
 shipped.
 

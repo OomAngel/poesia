@@ -10,10 +10,10 @@ _Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
 
 - **SUBMITTED 2026-10-16 before 12:00** (hackapertus.ch form; winners 23 Oct 12:00): repo `OomAngel/poesia-apertus`, 6-page report, video https://youtu.be/P4T0PgHf3dk, model "8B + 70B v1.5". Quality work continues: `docs/TUNING_ROUNDS_2026-10.md` and `docs/research/reports/Improving PoesIA poetry models.md`.
 
-- **State 2026-10-13 evening:** entry public (`OomAngel/poesia-apertus`), repinned locally to `b29a13f`
+- **State 2026-10-13 evening:** entry public (`OomAngel/poesia-apertus`), repinned locally to `1301e0a`
   (whole draft = secondary "starting point" link, drafted lines marked `proposal-draft`, no auto-draft on an
   empty poem; Angel's choice "keep, not headline"), pushed with the rebuilt 6-page PDF (UX journeys rerun,
-  both pass). Veriton page (tailnet `:8443`, CSCS 8B) swapped to `b29a13f` the same evening. Open for Angel:
+  both pass). Veriton page (tailnet `:8443`, CSCS 8B) swapped to `1301e0a` the same evening. Open for Angel:
   the 2-minute video, the official form (not Devpost), whether to make the safety dataset public. Submission sheet:
   `docs/hack_apertus/SUBMISSION.md` (= entry `track_2b/SUBMISSION.md`). Criteria: `docs/POETICS.md`. The
   real-poem quality plan of 10 Oct (judge against held-out corpus lines, prompt changes, v3 data, Kaggle fp32)
@@ -59,7 +59,7 @@ _Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
   GrootCappuccino/poesia-experiments), never on Angel's GPU. Safety screen widened on a 70B-written
   tuning set and tested on a held-out set: full precision 34% → 46%, 6-bit 48%, shipped 4-bit
   40% (false alarms ≤ 4/437; `reports/eval_2026-10/b6-*`). Italian stress table from
-  Wiktionary (44,272 words). Entry repinned to `12b5ed3`, image rebuilt and checked.
+  Wiktionary (44,272 words). Entry repinned to `5595cc9`, image rebuilt and checked.
 - **Safety research (2026-10-08):** `docs/research/reports/Poetry writing and risk disclosure.md` (claims table:
   supported / not supported), references with Zotero keys next to it (113 added, tag `poesia-safety`, collection PoesIA / PoesIA safety). Upshot: anonymity,
   not writing, raises disclosure; no "detection" wording (MDR); don't pause on anger/revenge alone; tune for passive
@@ -70,7 +70,7 @@ _Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
   Haider gold) and `phonology/french.py` (95.9% on 72,412 Métrique en Ligne verses; rhyme by sound 98.4%
   vs eSpeak), tables from Wiktionary; on the page with Sonett and French sonnet (alexandrines), text,
   helplines, voices (Thorsten CC0, SIWIS CC BY), rhyme words, linking (676 de, 547 fr Gutenberg poems).
-  Entry pinned to 723a209. Open: model proposals in de/fr not benchmarked; native read of de/fr page text.
+  Entry pinned to 3df774b. Open: model proposals in de/fr not benchmarked; native read of de/fr page text.
 - **Open decision:** 4-bit vs 6-bit for the entry. 6-bit is better on Italian metre and safety, but
   no public Q6_K file exists. Shipping it means publishing one (deferred by Angel) or quantising
   at install time.
@@ -116,7 +116,7 @@ _Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
   adapters are only on the laptop's DVC remote (`/mnt/d/dvc-remotes/poesia`, its D: drive).
   The corpus was rebuilt on the desktop the same day (next bullet), and its DVC cache exists
   on the desktop only: the laptop's remote lacks it.
-- **Corpus rebuilt on the desktop and enlarged (same day):** restored from git (`f8b2017^`;
+- **Corpus rebuilt on the desktop and enlarged (same day):** restored from git (`f003789^`;
   three folders match the DVC hashes exactly), re-fetched the 08-31 Gutenberg round, added
   4 Gutenberg books plus DISCO v5 and two Golden-Age corpora via the new
   `scripts/ingest_external_corpora.py`, then (Angel: Spanish and English, mainly English;
@@ -131,7 +131,7 @@ _Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
 - **Fixed same day:** truncation, by dropping examples that don't fit (`_drop_overlong`, §5).
   CI was red since 10-02 (no mlflow); it now installs mlflow and the CPU training stack.
   After the 3.13 switch below, CI runs one test job on Python 3.13: 446 passed, 0 skipped
-  (`90f6c32`; hosted-provider and hosted-image test files excluded). Local full suite: 519
+  (`d490a79`; hosted-provider and hosted-image test files excluded). Local full suite: 519
   pass.
 - **One Python version: 3.13** (Angel, 2026-10-04): `requires-python >=3.13,<3.14`; CI,
   deploy, pre-commit, both Dockerfiles and the README moved off 3.11/3.12. Checked: Colab
@@ -139,12 +139,12 @@ _Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
   3.11 install is refused. Serving image was broken (deleted requirements-lock.txt), now
   installs `.[mlops]`; `.dockerignore` keeps the corpus and `mlops/data/` out of images.
   Colab notebook pins aligned to the env. Images not built: Docker has no WSL integration.
-- **After the switch (same day):** networkx 3.6.1 → 3.7 (`0789824`). Extras made installable
-  on 3.13 (`75f3e6b`): `recitation` = `piper-tts` (Spanish synthesis verified; Coqui TTS
+- **After the switch (same day):** networkx 3.6.1 → 3.7 (`74d0c30`). Extras made installable
+  on 3.13 (`dac28b0`): `recitation` = `piper-tts` (Spanish synthesis verified; Coqui TTS
   needs <3.12 and the `coqui-tts` fork fails with transformers 5, upstream #558);
   `music-ai` = MusicGen through transformers + scipy (audiocraft pins torch 2.1). Still
   open: `classical` resolves to cltk 2.x, which has no scansion. README records the
-  dependency impact (`459ab1c`).
+  dependency impact (`6737572`).
 - **Code bugs and security (same day, later):** `mlflow run` was broken outright (MLflow 3
   refuses a project with both `docker_env` and `conda_env`); `MLproject` now has no env field
   (run with `--env-manager local` in the `poesia` env). `add-influence` now saves to
@@ -185,7 +185,7 @@ _Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
 - **Two machines, both current:** desktop (RTX 3070, 8 GB, sm_86, tier `gpu-cuda13`)
   trains; laptop (Quadro M1000M, 2 GB, sm_50, tier `gpu-cuda12`) runs the adapters
   through llama.cpp and cannot train. Reverted the 2026-09-26 "this machine is now an
-  RTX 3070 / previous laptop" notes (e790776); 379942d's single cu128 index became
+  RTX 3070 / previous laptop" notes (6276187); b86a7e0's single cu128 index became
   per-tier layers (its `-e .` and python-dotenv fixes stay).
 - **Env spec split:** `environment.yml` is the hardware-neutral base (+ mlflow 3.14.0,
   peft, accelerate, which the scripts import but the old export lacked);
@@ -223,14 +223,14 @@ _Last updated: 2026-10-09 (Hack Apertus: German and French on the page)_
 ## Status update (2026-08-31) — MLflow wiring fix committed; this file trails the repo
 
 - The MLflow wiring was fixed and **committed** (not left uncommitted): commit
-  `3161f39` "fix(mlops): use sqlite MLflow backend, MLflow 3.x dropped file:// tracking".
+  `efed046` "fix(mlops): use sqlite MLflow backend, MLflow 3.x dropped file:// tracking".
   `scripts/benchmark_metre.py`'s `_log_mlflow` now uses `DATABASE_URL` (canonical
   PostgreSQL via `.env_mlflow`; sqlite fallback), because MLflow 3.x removed the
   `file://` tracking backend (logging was silently no-oping). Regression test
-  `tests/test_mlflow_wiring.py` added. Follow-on commits landed through `b120de0`
+  `tests/test_mlflow_wiring.py` added. Follow-on commits landed through `a3d3d4d`
   (2026-08-31): generation repair-loop fix, Model Registry backfill, docs.
 - The re-entry checklist below still says "PostgreSQL — NOT sqlite anymore"; that
-  remains true for the **canonical** backend. The sqlite reference in commit `3161f39`
+  remains true for the **canonical** backend. The sqlite reference in commit `efed046`
   is only the code-level *fallback* default, not a switch away from PostgreSQL.
 - *(Superseded 2026-10-04: the memory-bank is current again; this note describes 2026-08-31.)*
   ⚠️ This memory-bank is stale: it was last updated 2026-08-06, but the branch has

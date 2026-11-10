@@ -159,7 +159,7 @@ From `RETRAINING_PLAN_2026-10.md` §3/§5: Qwen3-8B trained on the 3070 at 7.32 
 - Base: the text model (`hf-text`), same layout; **40-step smoke run first** (peak memory).
 - Data: the loop's line format via `build_fixed_dataset.py`, mixed ~30% es, 25% en, 15% each
   it/de/fr (new corpora, section 7).
-- End-of-text fix `52fea7a` must be in the trainer (it is on `main`).
+- End-of-text fix `1305418` must be in the trainer (it is on `main`).
 - Use the adapter **only if** it beats plain Apertus on the seeded evaluation.
 - Convert with `scripts/convert_adapters_to_gguf.py`; log the run in MLflow.
 
@@ -235,7 +235,7 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
       |---|---|---|---|---|---|---|
       | July recipe (Qwen2.5-1.5B) | 0.63 | 57% | 3% | 0.35 | 73% | 11% |
       | Plain Qwen3-4B | 0.52 | 62% | 30% | 0.69 | 56% | 72% |
-      | Qwen3-4B + corpus adapter (main, 55784bd) | 0.38 | 71% | 24% | 0.46 | 75% | 40% |
+      | Qwen3-4B + corpus adapter (main, 90dd48c) | 0.38 | 71% | 24% | 0.46 | 75% | 40% |
       | Apertus 8B text, transformers, raw prompt | 0.83 | 60% | 41% | 0.73 | 77% | 83% |
       | **Apertus 8B text, Ollama Q4_K_M + line system message** | 0.42 | **82%** | **44%** | **0.29** | **89%** | 83% |
 
@@ -243,8 +243,8 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
       four words, which also inflated its rhyme. Cause: with a rhyme word bank in the prompt,
       Apertus answers with the word alone (6/6 seeded tries, chat format); a system message for
       line prompts fixes that (0/6) and is now sent by the Ollama and OpenAI-compatible clients
-      (921d6b6). Fragments left with it: 9 es / 5 en, so the loop now also drops candidates
-      under three words for lines of 8+ syllables (fail-open, 9be86c3). ~35 s per poem via Ollama.
+      (025f512). Fragments left with it: 9 es / 5 en, so the loop now also drops candidates
+      under three words for lines of 8+ syllables (fail-open, 258e8d6). ~35 s per poem via Ollama.
 
       Re-run with that filter (`apertus-v1.5-8b-text-ollama-nofrag.json`): es 0.28 / 85% / 33%,
       en 0.37 / 87% / 86%. Fragments barely moved (es 9 → 5, en 5 → 7): they come from batches
@@ -254,7 +254,7 @@ Each day: tick the boxes, then update `memory-bank/activeContext.md`.
       from Datamuse (online); English from CMUdict (offline). The page sends no word bank, so
       the benchmark is not the page's exact condition.
 
-      Fix (5b94712): a batch of nothing but bare words is regenerated once without the word
+      Fix (008342d): a batch of nothing but bare words is regenerated once without the word
       bank. Re-run (`apertus-v1.5-8b-text-ollama-retry.json`): **no fragments left** (0 es,
       0 en); es 0.21 / 83% / 36%, **en 0.10 / 90% / 88%**, the best English row so far.
 

@@ -32,7 +32,7 @@ starts.
 | Poem library (MemorIA) | Local Markdown + **SQLite** index (`~/.poesia/poems/`, `library.db`) |
 | Experiment tracking | **MLflow**, tracking store = local SQLite `mlruns/mlflow.db` on the laptop (71 runs / 8 models; every script defaults to it). The docker `postgres` + `mlflow-ui` stack is kept but holds no results — see §7 |
 | Model artifacts | `models/` (~9 GB on the laptop; the desktop holds only the `.dvc` pointers): `final_adapter/` + `*-Q4_K_M.gguf` tracked in DVC; `merged/` + `*-f16.gguf` regenerable, deleted (see §7) |
-| DVC | **Adopted** (2026-09-08): remote `local_d_drive` → `/mnt/d/dvc-remotes/poesia` (the laptop's D: drive; the desktop can't reach it); tracks source + deployable model artifacts and, since `f8b2017`, the poetry corpus (`seeds/poetry_corpus/*.dvc`). `corpus_master` (2026-10-04) is cached on the desktop only, not pushed; a remote both machines reach is open |
+| DVC | **Adopted** (2026-09-08): remote `local_d_drive` → `/mnt/d/dvc-remotes/poesia` (the laptop's D: drive; the desktop can't reach it); tracks source + deployable model artifacts and, since `f003789`, the poetry corpus (`seeds/poetry_corpus/*.dvc`). `corpus_master` (2026-10-04) is cached on the desktop only, not pushed; a remote both machines reach is open |
 | Serving | `serving.Dockerfile` = `mlflow models serve` sketch only (not an app backend); images not rebuilt since the Python 3.13 switch (2026-10-04) |
 | Local MLflow history | `mlruns/mlflow.db` (SQLite): 71 runs / 13 experiments, 8 registered models; dumped to `mlops/mlflow_metadata_dump.sql` in git |
 
@@ -46,7 +46,7 @@ starts.
 - **DVC + remote (adopted 2026-09-08).** DVC is the system of record for model
   weights: it tracks `final_adapter/` (source LoRA) + `*-Q4_K_M.gguf`
   (deployable GGUF), pushed to `local_d_drive` → `/mnt/d/dvc-remotes/poesia`.
-  Since `f8b2017` it also versions the poetry corpus (never in git: the
+  Since `f003789` it also versions the poetry corpus (never in git: the
   GitHub repo is public).
 - **Model artifacts (source + deployable).** Keep the non-regenerable / deployable
   assets:
@@ -88,7 +88,7 @@ Start the deferred work only when the product build begins, evidenced by any of:
 - A decision to build the web / Android frontend.
 - A requirement for multiple users / concurrent access to the poem library.
 - ~~Corpus growth that makes git-only data tracking insufficient.~~ Fired and
-  answered without product work: the corpus moved to DVC (`f8b2017`).
+  answered without product work: the corpus moved to DVC (`f003789`).
 
 Until one of these fires, keep the current state and do not add or remove
 infrastructure.
@@ -107,7 +107,7 @@ Division of labor — one system of record per artifact type:
 - **DVC** = versioning + backup of model weights: `final_adapter/` (source LoRA)
   and `*-Q4_K_M.gguf` (deployable GGUF), pushed to
   `local_d_drive` → `/mnt/d/dvc-remotes/poesia` (the laptop's D: drive). Also
-  the poetry corpus (`seeds/poetry_corpus/*.dvc`, since `f8b2017`);
+  the poetry corpus (`seeds/poetry_corpus/*.dvc`, since `f003789`);
   `corpus_master` is so far cached on the desktop only.
 - **Git** = provenance + results: `mlops/adapter_registry.json`, configs,
   scripts, docs, and the MLflow metadata dump `mlops/mlflow_metadata_dump.sql`.

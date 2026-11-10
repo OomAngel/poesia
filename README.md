@@ -305,9 +305,9 @@ HW_PROFILE=gpu-cuda12 scripts/env.sh create --dry-run   # any tier's layer, from
 ```
 
 What the repository records about the laptop: evaluation and generation tuning through
-llama.cpp, no training. The llama.cpp backend was added for it (8c50e34); the draft prompt,
-token caps and `repeat_penalty` were tuned against the local GGUF (e697ac0, 10a9c9a); the
-benchmark and the adapter evaluations ran there (db9d065, d6c0446; MLflow runs
+llama.cpp, no training. The llama.cpp backend was added for it (481c3b8); the draft prompt,
+token caps and `repeat_penalty` were tuned against the local GGUF (a7ed302, 81450e6); the
+benchmark and the adapter evaluations ran there (58473a9, 4a14c2d; MLflow runs
 2026-08-30 to 09-01). The adapters themselves were trained 2026-07-28 to 08-07
 (`mlops/adapter_registry.json`), before any of that.
 
@@ -623,8 +623,8 @@ cu130, `scripts/build_llama_cpp.sh`; its build was blocked by the permission che
 2026-09-26).
 
 **Verified here:** 515/515 tests; `env.sh check` runs a CUDA op and a real NF4
-bitsandbytes quantize on the RTX 3070 (`7b93e16`); tiny Qwen2 → GGUF f16 → Q4_K_M
-(`c851128`); llama.cpp full GPU offload only in a scratch venv (`44ef203`).
+bitsandbytes quantize on the RTX 3070 (`51ab083`); tiny Qwen2 → GGUF f16 → Q4_K_M
+(`7c057da`); llama.cpp full GPU offload only in a scratch venv (`4991377`).
 
 **GPU goals: in the env but never run on this PC** — QLoRA training of the 1.5B/3B
 configs, DPO, HPO, `--llm lora` with a real adapter. **Doc-only** — `--llm llama_cpp` on
@@ -632,13 +632,13 @@ the GPU (needs `poesia-gpu`), the Qwen2.5-3B / Llama 3.2 3B / Gemma 2 2B experim
 local diffusers for GalerIA, the CI GPU training job (`train.yml` targets a self-hosted
 GPU runner; none exists). **Blocked upstream** — Unsloth (caps torch < 2.13).
 
-**Advanced (pushed):** per-tier env split (`379942d` … `a809103`), llama.cpp/GGUF tooling
-(`44ef203`, `c851128`), 4-bit device dispatch (`7b93e16`), tests and CI hygiene, docs
-(`f64fa77`).
+**Advanced (pushed):** per-tier env split (`b86a7e0` … `8228b3c`), llama.cpp/GGUF tooling
+(`4991377`, `7c057da`), 4-bit device dispatch (`51ab083`), tests and CI hygiene, docs
+(`6ffe954`).
 
 **Pending / known missing:**
 - Build `poesia-gpu`; bump the Hugging Face stack (sentence-transformers 6 is a major).
-- GitHub CI red since at least 2026-09-27 (checked on `2503818`): the CPU test job
+- GitHub CI red since at least 2026-09-27 (checked on `b507f64`): the CPU test job
   does not install mlflow, so `tests/test_mlflow_wiring.py` fails (438 others pass);
   pre-commit's `no-plaintext-secrets` flags two placeholder URLs,
   `.env_mlflow.example:12` (`mlflow:mlflow@localhost`) and `docs/CRONOLOGIA_CLOUD.md:62`
@@ -646,7 +646,7 @@ GPU runner; none exists). **Blocked upstream** — Unsloth (caps torch < 2.13).
 - Training prerequisites absent here: model adapters (`models/` holds only `.dvc`
   pointers; ≈9.5 GB on the laptop), the DVC remote `/mnt/d/dvc-remotes/poesia` (does not
   exist on this PC; a network remote is proposed in `LOCAL_ONLY.md`), the training corpus
-  (restorable byte-identical from `git f8b2017^`), Qwen2.5-1.5B/3B weights (only the
+  (restorable byte-identical from `git f003789^`), Qwen2.5-1.5B/3B weights (only the
   1.5B tokenizer is cached). The first desktop run needs smaller batches.
 - Dedupe the corpus before training; Model Registry aliases (`memory-bank/tasks.md`).
 - Uncommitted, not from this log: `docs/LEMONADE_INTEGRATION.md` and a `memory-bank/tasks.md`

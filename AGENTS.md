@@ -31,7 +31,7 @@ skeleton, and do not delete source/deployable model artifacts (`final_adapter/`,
 intermediates (`models/*/merged/`, `models/*/*-f16.gguf`) are excluded from
 tracking and may be deleted/regenerated via `scripts/convert_adapters_to_gguf.py`
 (see `docs/INFRASTRUCTURE_DECISIONS.md` §7). System of record: **DVC** = model
-weights and the poetry corpus (since `f8b2017`), **Git** = provenance/results, **`mlruns/`** = local disposable cache.
+weights and the poetry corpus (since `f003789`), **Git** = provenance/results, **`mlruns/`** = local disposable cache.
 PoesIA is a single-user CLI today with a long-term web/Android product intent;
 infrastructure work is a staged transition, not an all-at-once build or teardown.
 

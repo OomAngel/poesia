@@ -4,7 +4,7 @@
 > still skeleton-only — never run under DVC on the laptop, where `evaluate` runs and which cannot
 > train (see `TRAINING_RUNBOOK.md`) · **Added:** 2026-08-10
 >
-> **Status 2026-10-04:** the poetry corpus is DVC-tracked too (never in git since `f8b2017`);
+> **Status 2026-10-04:** the poetry corpus is DVC-tracked too (never in git since `f003789`);
 > `corpus_master` was `dvc add`ed on the desktop and is cached there only, not pushed. The
 > only remote is on the laptop's D: drive, which the desktop can't reach; a remote both
 > machines reach is open (`RETRAINING_PLAN_2026-10.md` §7). The desktop now trains, but the
@@ -16,7 +16,7 @@
 complete MLOps stack among this repo's siblings, covering training-to-
 deployment: autologging, model registry, serving. It does not cover
 data-to-training: the `distill -> train -> eval` chain (`MLproject`'s
-`pipeline` entry point) always re-runs every stage, and (before `f8b2017`)
+`pipeline` entry point) always re-runs every stage, and (before `f003789`)
 growing training datasets under `seeds/poetry_corpus/` sat in plain git
 with no dependency-aware versioning.
 
@@ -50,7 +50,7 @@ they do today.
   identical numbers to MLflow (see `GENERATION_QUALITY_PLAN.md`).
 - Verified: `dvc dag` resolves the correct chain, `dvc params diff`
   correctly reads the 6 tracked params out of the real YAML.
-- The corpus is data-tracked (never in git since `f8b2017`; the GitHub repo
+- The corpus is data-tracked (never in git since `f003789`; the GitHub repo
   is public): `.dvc` pointers under `seeds/poetry_corpus/` for
   `corpus_master`, `training_data_structured`, `external`, `eval_gold`,
   `sonetos_curated`, `training_data` and `repair_examples`. `corpus_master`

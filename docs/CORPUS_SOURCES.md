@@ -6,7 +6,7 @@
 
 The poetry corpus lives in `seeds/poetry_corpus/`. Structured training data is in
 `training_data_structured/` (JSONL with `prompt`/`completion` + metadata). It is versioned
-with **DVC, never git** (since commit `f8b2017`). Every folder below is gitignored.
+with **DVC, never git** (since commit `f003789`). Every folder below is gitignored.
 
 **Training reads one file:** `corpus_master/poems.jsonl`, built by `scripts/build_corpus.py`
 (dedup across all files, ADSO gold removed, fragments dropped; counts and sha256 in
@@ -121,7 +121,7 @@ Sor Juana 76, Gutiérrez Nájera 52, Acuña 67, Sabines 38, Paz 32, Díaz Mirón
 
 ### Ingested before 2026-08-30 but never listed here
 
-Read from each record's `source` field on 2026-10-04 (git history before `f8b2017`). How
+Read from each record's `source` field on 2026-10-04 (git history before `f003789`). How
 these were obtained isn't recorded.
 
 | `source` | Poems | Where it sits | Probable origin |
@@ -262,8 +262,8 @@ The only DVC remote is on the laptop's D: drive. On another machine (done on the
 
 ```bash
 # 1. Everything that was in git before the DVC migration (exact):
-for f in $(git ls-tree -r --name-only f8b2017^ -- seeds/poetry_corpus/{sonetos_curated,training_data,training_data_distilled,training_data_structured}); do
-  mkdir -p "$(dirname "$f")"; git show "f8b2017^:$f" > "$f"; done
+for f in $(git ls-tree -r --name-only f003789^ -- seeds/poetry_corpus/{sonetos_curated,training_data,training_data_distilled,training_data_structured}); do
+  mkdir -p "$(dirname "$f")"; git show "f003789^:$f" > "$f"; done
 # 2. The 2026-08-31 and 2026-10-04 Gutenberg rounds:
 python scripts/fetch_gutenberg_poems.py
 # 3. Repair pairs (mkdir first; the script doesn't create it):

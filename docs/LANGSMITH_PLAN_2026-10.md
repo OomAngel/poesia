@@ -44,7 +44,7 @@ that now." The Nebius half is in career-assets
 
 | # | Use | Why | When |
 |---|---|---|---|
-| P1 | **Debug the generation loop** (`poesia-dev`) | See which validator rejects a draft and what the repair changed. Example: the English leakage in German and French proposals measured in `fa72194`. Today this means reading JSONL | After 16 Oct |
+| P1 | **Debug the generation loop** (`poesia-dev`) | See which validator rejects a draft and what the repair changed. Example: the English leakage in German and French proposals measured in `5f28a42`. Today this means reading JSONL | After 16 Oct |
 | P2 | **Benchmark samples** (`poesia-eval`) | Trace a sample of the HF Jobs / CSCS / Ollama benchmark calls to inspect failures. **Numbers stay in MLflow** | After 16 Oct |
 | P3 | **Annotation queue** (`poesia-annotation`) | Angel rates poems: quality, and safety false alarms and misses. Two uses: DPO pairs for `scripts/train_poetry_dpo.py`, and tuning and test sets for the safety screen (its research says to split `risk_other` before more tuning). Export the ratings to DVC (poems are DVC, never git) | After 16 Oct |
 | P4 | **Calaveritas monitoring** (`calaveritas-prod`), **metadata only** | The service runs unattended 17 Oct – 4 Nov. Watch latency, errors, model, validator pass/fail and safety flags, with `LANGSMITH_HIDE_INPUTS/OUTPUTS=true`. The service rule "log no names or poem text" (workspace-governance `machines/veriton/services/calaveritas/README.md`) holds: no user text leaves the Veriton | See decision 2 |

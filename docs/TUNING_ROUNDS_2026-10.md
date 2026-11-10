@@ -7,11 +7,11 @@ state and first commands are replaced by this one. Results: §1d (adapter v5, no
 (ranking penalties, the open decision).
 
 **State, verified 2026-10-17 13:40:**
-- `hack-apertus` at or after `8885ccd`, pushed. Code: `evaluation/rank_penalties.py` (off by default;
+- `hack-apertus` at or after `1bd5cfc`, pushed. Code: `evaluation/rank_penalties.py` (off by default;
   weighted and lexicographic modes), flags in `scripts/evaluate_adapter_mlflow.py`, Kaggle eval mode
   `scripts/kaggle/push_eval.sh <ref> <temp> <repeat,opening[,lex]>`.
 - **Kaggle replicate, unattended:** version 10 (weighted, 4-bit) finished and is scored (§1e, `b38`-`b40`).
-  **Version 11 (lexicographic, 4-bit, pinned `8885ccd`) was queued 14:23 on 17 Oct** and takes about 2 h 10;
+  **Version 11 (lexicographic, 4-bit, pinned `1bd5cfc`) was queued 14:23 on 17 Oct** and takes about 2 h 10;
   a detached script on the desktop (`~/kaggle-results-2026-10-17/chain.sh`, log `chain.log` next to it)
   fetches it into `v11-lexi-4bit/` when it ends. Score it like b36 (same commands below). The desktop has
   to stay on until `chain.log` says "chain done"; if it was off, `kaggle kernels output
@@ -33,12 +33,12 @@ state and first commands are replaced by this one. Results: §1d (adapter v5, no
   adapter weights were not kept** (the Kaggle dataset holds only the latest GGUF and offers no old
   versions); they can be retrained from the DVC data (about 5 h of Kaggle each).
 - **Unified 2026-10-17 (Angel: "merge all poesia branches"):** `quality-layer`, `calaveritas` and `main`
-  are in `hack-apertus` as one code-only commit (`fd73a62`, merge `44a27ca`; `main` = `hack-apertus`);
+  are in `hack-apertus` as one code-only commit (`e5bcace`, merge `df8e14d`; `main` = `hack-apertus`);
   the full history with the working notes is in the private repo `OomAngel/poesia-private` (`main`).
 
 **First commands:**
 ```bash
-git -C ~/dev/poesia log --oneline -3                       # 8885ccd or later on hack-apertus
+git -C ~/dev/poesia log --oneline -3                       # 1bd5cfc or later on hack-apertus
 tail -n 3 ~/kaggle-results-2026-10-17/chain.log            # where the Kaggle chain is
 ssh groot_cappuccino@veriton 'docker ps --filter name=poesia-rating --format "{{.Names}} {{.Status}}"; curl -s http://127.0.0.1:8095/rate/api/ratings | head -c 300'   # Angel's ratings so far
 curl -s -m 5 -o /dev/null -w "proxy %{http_code}\n" http://127.0.0.1:8790/v1/models   # CSCS proxy; if 000, Angel restarts it (below)
@@ -92,7 +92,7 @@ file of the Kaggle dataset `poesia-line-adapter-gguf`) and evaluated; result in 
 proxy, which was down (sense then measured: level with plain in es/fr, 6 points down in de).
 
 **Done after that, same night (17 Oct):**
-- **Ranking penalties built, off by default** (`d6f593f`, `8ef1019`): `evaluation/rank_penalties.py`
+- **Ranking penalties built, off by default** (`3ee53f2`, `244d07a`): `evaluation/rank_penalties.py`
   ranks a candidate down by `repeat_weight` per content word the poem already used (capped at 4) and
   by `opening_weight` when its first word opened an earlier line or one of the last N poems; the
   loop and scorer take them as an optional argument, the benchmark as `--repeat-weight`,
@@ -105,7 +105,7 @@ proxy, which was down (sense then measured: level with plain in es/fr, 6 points 
   `poem_scorecard.py --extra` as in §1d). The CSCS 8B could run it instead, but that is a hackathon
   key and Angel has not said it may be used for a benchmark campaign.
 - **(Superseded 2026-10-17: unified, see "Continue here".)** **`quality-layer` merged locally, not pushed:** branch `merge-quality-layer-0417` (worktree
-  `~/dev/poesia-merge-0417`, merge commit `d4126c9` on top of `4d12401`), one conflict
+  `~/dev/poesia-merge-0417`, merge commit `074e152` on top of `dc542f7`), one conflict
   (`memory-bank/activeContext.md`, both sections kept), full suite green. **Do not push it:** the
   history carries private material (Calaveritas session, 17 Oct): `memory-bank/activeContext.md`
   entries (Nebius credit and spend, Veriton rollback commands, a claude.ai review link, the CSCS-key
@@ -118,7 +118,7 @@ proxy, which was down (sense then measured: level with plain in es/fr, 6 points 
 The bullets below describe the state at hand-over.
 
 **State, verified 2026-10-16 17:00:**
-- Branch `hack-apertus`, last own commits `352f9d7` (v5 data), `fa8b302` (§1c), pushed.
+- Branch `hack-apertus`, last own commits `2782286` (v5 data), `fd6dd11` (§1c), pushed.
 - **v5 training is running on Kaggle** (kernel `angelmarquezaguilar/poesia-line-adapter` version 13,
   started 16:06 CEST, expected end 20:15-20:30): v4's recipe, only sentence-closing answers (no final
   comma), openings capped at 3%, 4,844 lines (`data/distill/apertus-lines-v5-2026-10-16.jsonl`, DVC),
@@ -138,7 +138,7 @@ The bullets below describe the state at hand-over.
 
 **First commands:**
 ```bash
-git -C ~/dev/poesia log --oneline -3                      # hack-apertus at or after 352f9d7
+git -C ~/dev/poesia log --oneline -3                      # hack-apertus at or after 2782286
 K=$(ls ~/.cache/uv/archive-v0/*/bin/kaggle | head -1); (cd /tmp && $K kernels status angelmarquezaguilar/poesia-line-adapter)
 # when COMPLETE (Kaggle gives the log only at the end):
 mkdir -p /tmp/v5 && (cd /tmp && $K kernels output angelmarquezaguilar/poesia-line-adapter -p /tmp/v5)
@@ -338,7 +338,7 @@ German: sense plain 89%, v3 71%, v4 81%; French: 97%, 83%, 93%. Italian: no reli
 ## 1d. Adapter v5: sentence-closing answers only, openings capped at 3% (2026-10-17)
 
 v4's recipe with two data changes: only answers that end in . ; : ! ? or a closing quote count as
-closing (v4 counted a final comma), and openings capped at 3% across the set (`352f9d7`). 4,844
+closing (v4 counted a final comma), and openings capped at 3% across the set (`2782286`). 4,844
 lines, one full pass over 288 steps, 5.2 h on Kaggle, held-out loss 5.58 -> 2.94 (v4: 2.94).
 Evaluated as v4 was: 4-bit, temperature 0.6, 36 sonnets per language, seeds 0 and 3
 (`b29-kaggle-q4-adapter-v5-t06`, kernel version 9; the adapter control passed: `line-v5.gguf`

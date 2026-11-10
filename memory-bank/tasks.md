@@ -98,11 +98,11 @@
 - [x] **Truncation fix** — `train_poetry_lora.py` drops examples longer than `max_length`
       (`_drop_overlong`) instead of cutting them; counts logged to MLflow
 - [x] **One Python version: 3.13** — pyproject `>=3.13,<3.14`, CI, deploy, pre-commit, both
-      Dockerfiles, Colab pins (`90f6c32`, `4fdbfb4`, `fd53708`)
+      Dockerfiles, Colab pins (`d490a79`, `2ba5810`, `3458db7`)
 - [x] **CI green** — installs mlflow + the CPU training stack; 446 tests on 3.13, 0 skipped
-      (`56b8167`, `90f6c32`); local suite 519 pass
-- [x] **networkx 3.6.1 → 3.7** (`0789824`)
-- [x] **Extras installable on 3.13** (`75f3e6b`): `recitation` = piper-tts (Spanish verified),
+      (`1f1524a`, `d490a79`); local suite 519 pass
+- [x] **networkx 3.6.1 → 3.7** (`74d0c30`)
+- [x] **Extras installable on 3.13** (`dac28b0`): `recitation` = piper-tts (Spanish verified),
       `music-ai` = MusicGen through transformers + scipy
 - [x] **Closed as superseded by the retrain decision:** "Test poem generation with
       v2-fixed" (v2-fixed is mid-pack, 4.80); "Run Qwen2.5-3B training with fixed format";
