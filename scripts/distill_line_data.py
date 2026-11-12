@@ -210,7 +210,7 @@ class RecordingLLM:
 
 
 def _accepted(language: str, form: str, lines: list[str], i: int) -> bool:
-    from poesia.webapp import scan_line
+    from poesia.lines import scan_line
 
     line = lines[i]
     if len(line.split()) < 3:

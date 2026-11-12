@@ -3,7 +3,7 @@
 import pytest
 
 from poesia.generation.rhyme_fetcher import fetch_rhyme_words
-from poesia.webapp import _phonology
+from poesia.lines import _phonology
 
 
 @pytest.mark.parametrize(

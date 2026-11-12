@@ -13,6 +13,10 @@ you carry: a thought, a feeling, a grievance, a joy that never became words.
 PoesIA gives it the shape of poetry and, in the shaping, teaches you the craft —
 so that it needs you a little less each time.
 
+This repository holds the engine: scansion, forms, evaluation, generation and the
+command line. The applications built on it, such as the writing page, are developed
+privately.
+
 The machine underneath exists to serve that purpose, and it divides authority on
 one principle:
 

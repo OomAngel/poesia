@@ -33,8 +33,8 @@ from pathlib import Path
 from poesia.generation import rhyme_fetcher
 from poesia.generation.candidate_generator import CandidateGenerator
 from poesia.generation.llm_client import LINE_SYSTEM_PROMPT, is_line_prompt
+from poesia.lines import guess_language
 from poesia.phonology.rhyme_index import phonology
-from poesia.webapp import guess_language
 
 MASTER = Path("seeds/poetry_corpus/corpus_master/poems.jsonl")
 ITALIAN = "data/external/averell/biblioteca_italiana-master/json/*.json"

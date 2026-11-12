@@ -41,7 +41,7 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
-    from poesia.webapp import guess_language
+    from poesia.lines import guess_language
 
     lines = [
         line

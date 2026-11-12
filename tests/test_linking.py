@@ -1,4 +1,4 @@
-"""Linking: nearest poems by vector, and the page endpoint."""
+"""Linking: nearest poems by vector."""
 
 from __future__ import annotations
 
@@ -35,29 +35,6 @@ def test_mismatched_index_is_rejected(tmp_path) -> None:
     np.save(tmp_path / "vectors_en.npy", np.eye(2, 3, dtype="float16"))
     with pytest.raises(ValueError):
         LinkIndex.load(tmp_path)
-
-
-def test_page_link_endpoint(tmp_path, monkeypatch) -> None:
-    pytest.importorskip("fastapi")
-    from fastapi.testclient import TestClient
-
-    import poesia.webapp as webapp
-    from poesia.linking import EmbeddingClient
-
-    _write_index(tmp_path)
-    monkeypatch.setenv("POESIA_LINK_INDEX", str(tmp_path))
-    monkeypatch.setattr(webapp, "_link_index", None)
-    monkeypatch.setattr(EmbeddingClient, "embed", lambda self, texts: [[0.0, 1.0, 0.0]])
-
-    class _LLM:
-        model = "fake"
-
-        def generate(self, prompt, n=1, temperature=0.9):
-            return ["NO"]
-
-    client = TestClient(webapp.create_app(llm=_LLM()))
-    r = client.post("/api/link", json={"language": "en", "text": "the sea at dusk"}).json()
-    assert r["poems"][0]["title"] == "Sea" and r["poems"][0]["licence"] == "CC0"
 
 
 def test_poems_with_unicode_line_separators_load(tmp_path) -> None:

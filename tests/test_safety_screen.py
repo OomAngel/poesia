@@ -1,4 +1,4 @@
-"""Safety screen: phrases per language, the model question, and the page endpoint."""
+"""Safety screen: phrases per language, and the model question."""
 
 from __future__ import annotations
 
@@ -79,19 +79,6 @@ def test_test_set_is_balanced_and_phrases_raise_no_false_alarms() -> None:
     assert not [r["id"] for r in rows if not r["risk"] and keyword_matches(r["text"])]
 
 
-def test_page_endpoint_returns_resources_only_when_flagged() -> None:
-    pytest.importorskip("fastapi")
-    from fastapi.testclient import TestClient
-
-    from poesia.webapp import create_app
-
-    client = TestClient(create_app(llm=_Model("NO")))
-    calm = client.post("/api/safety", json={"text": "the chestnut tree turned gold"}).json()
-    assert calm == {"flagged": False, "resources": []}
-    risk = client.post("/api/safety", json={"text": "no quiero seguir viviendo"}).json()
-    assert risk["flagged"] and risk["resources"][0]["number"] == "143"
-
-
 def test_helplines_follow_the_page_language_with_the_same_facts():
     # U9: a pause shown in Spanish, Italian, German or French must not switch to English.
     from poesia.safety.screen import RESOURCES_BY_LANGUAGE, resources_for
@@ -103,24 +90,3 @@ def test_helplines_follow_the_page_language_with_the_same_facts():
         assert all(a["note"] != b["note"] for a, b in zip(loc, en, strict=True))
         assert all("0800 143 000" in r["note"] for r in loc[:1])  # the English line kept
     assert resources_for("nl") == en  # a language without its own text: English, never empty
-
-
-def test_safety_endpoint_answers_in_the_requested_language():
-    import pytest
-
-    pytest.importorskip("fastapi")
-    from fastapi.testclient import TestClient
-
-    from poesia.webapp import create_app
-
-    client = TestClient(create_app(llm=object()))
-    r = client.post(
-        "/api/safety",
-        json={
-            "text": "Últimamente no quiero despertar. Todos estarían mejor sin mí.",
-            "language": "es",
-        },
-    ).json()
-    assert r["flagged"] and r["resources"][0]["note"].startswith("Siempre disponible")
-    calm = client.post("/api/safety", json={"text": "el mar en otoño", "language": "es"}).json()
-    assert calm == {"flagged": False, "resources": []}

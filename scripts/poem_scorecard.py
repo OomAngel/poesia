@@ -148,8 +148,8 @@ def main() -> None:
     args = ap.parse_args()
     from sentence_transformers import SentenceTransformer
 
+    from poesia.lines import _phonology
     from poesia.phonology.rhyme_index import rank
-    from poesia.webapp import _phonology
 
     encoder = SentenceTransformer("sentence-transformers/LaBSE", device="cpu")
     report = {}
